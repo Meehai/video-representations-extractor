@@ -3,6 +3,7 @@ PyYAML
 argparse
 pims
 tqdm
+scikit-image
 media-processing-lib
 git+git://gitlab.com/neuralwrappers/nwdata#egg=nwdata
 git+git://github.com/python-halftone@master#egg=python-halftone
