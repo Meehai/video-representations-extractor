@@ -1,5 +1,7 @@
 # Video Representation Extractor
 
+![logo](logo.png)
+
 ## 1. Description
 The purpose of this repository is to export the standard NGC representations from RGB alone.
 
