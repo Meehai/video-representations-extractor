@@ -1,4 +1,4 @@
-# Video Representation Maker
+# Video Representation Extractor
 
 ## 1. Description
 The purpose of this repository is to export the standard NGC representations from RGB alone.
@@ -27,23 +27,19 @@ The config file will have the hyperparameters required to instantiate each suppo
 Example cfg file:
 ```
 resolution: 256,256
-representations: [
+representations:
   halftone:
     method: python-halftone
     name: halftone1
-    parameters: {
-      sample: 3,
-      scale: 1,
+    parameters:
+      sample: 3
+      scale: 1
       percentage: 91
-    },
-
   depth:
     method: sfmlearner
     name: depth1
-    parameters: {
+    parameters:
       weightsFile: /path/to/model.pkl
-    }
-]
 ```
 
 The above file will output 2 representations, named `halftone1` and `depth1`, the first one based on `python-halftone` package with the specified parameters, the second one based on SfmLearner pre-trained neural network, given the path to the model.
