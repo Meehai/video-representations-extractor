@@ -27,37 +27,27 @@ class Halftone(Representation):
         self.percentage = percentage
 
     @overrides
-    def makeFrame(
+    def make(
         self,
         frame,
-        filename_addition="_halftoned",
         angles=[0, 15, 30, 45],
         style="color",
         antialias=False,
         output_format="default",
         output_quality=75,
-        save_channels=False,
-        save_channels_format="default",
-        save_channels_style="color",
     ):
         """
-        Leave filename_addition empty to save the image in place.
         Arguments:
             sample: Sample box size from original image, in pixels.
             scale: Max output dot diameter is sample * scale (which is also the
                 number of possible dot sizes)
             percentage: How much of the gray component to remove from the CMY
                 channels and put in the K channel.
-            filename_addition: What to add to the filename (before the extension).
             angles: A list of 4 angles that each screen channel should be rotated by.
             style: 'color' or 'grayscale'.
             antialias: boolean.
             output_format: "default", "jpeg", "png".
             output_quality: Integer, default 75. Only used when saving jpeg images.
-            save_channels: Boolean, whether to save the four separate channel images in
-                addition to the main image.
-            save_channels_format: "default", "jpeg", "png".
-            save_channels_style: "color" or "grayscale".
         """
 
         self.check_arguments(
@@ -67,9 +57,6 @@ class Halftone(Representation):
             output_quality=output_quality,
             percentage=self.percentage,
             sample=self.sample,
-            save_channels=save_channels,
-            save_channels_format=save_channels_format,
-            save_channels_style=save_channels_style,
             scale=self.scale,
             style=style,
         )
@@ -83,6 +70,9 @@ class Halftone(Representation):
         new = np.float32(new) / 255
         return new
 
+    @overrides
+    def makeImage(self, x):
+        return np.uint8(x * 255)
 
     def check_arguments(
         self,
@@ -92,9 +82,6 @@ class Halftone(Representation):
         output_quality,
         percentage,
         sample,
-        save_channels,
-        save_channels_format,
-        save_channels_style,
         scale,
         style,
     ):
@@ -121,11 +108,6 @@ class Halftone(Representation):
                 "The antialias argument must be a boolean, not '%s'." % antialias
             )
 
-        if output_format not in ["default", "jpeg", "png"]:
-            raise ValueError(
-                "The output_format argument must be one of 'default', "
-                "'jpeg' or 'png', not '%s'." % save_channels_format
-            )
 
         if not isinstance(output_quality, int):
             raise TypeError(
@@ -147,23 +129,6 @@ class Halftone(Representation):
         if not isinstance(sample, int):
             raise TypeError(
                 "The sample argument must be an integer, not '%s'." % sample
-            )
-
-        if not isinstance(save_channels, bool):
-            raise TypeError(
-                "The save_channels argument must be a boolean, not '%s'."
-                % save_channels
-            )
-
-        if save_channels_format not in ["default", "jpeg", "png"]:
-            raise ValueError(
-                "The save_channels_format argument must be one of 'default', "
-                "'jpeg' or 'png', not '%s'." % save_channels_format
-            )
-        if save_channels_style not in ["color", "grayscale"]:
-            raise ValueError(
-                "The save_channels_style argument must be one of "
-                "'color' or 'grayscale', not '%s'." % save_channels_style
             )
 
         if not isinstance(scale, int):
@@ -280,54 +245,6 @@ class Halftone(Representation):
 
             dots.append(half_tone)
         return dots
-
-    def save_channel_images(
-        self,
-        channel_images,
-        channels_style,
-        channels_format,
-        output_filename,
-        output_quality,
-    ):
-        """
-        Save the individual CMYK channels as separate images.
-        """
-
-        channel_names = (
-            ("c", "cyan"),
-            ("m", "magenta"),
-            ("y", "yellow"),
-            ("k", "black"),
-        )
-
-        f, extension = os.path.splitext(output_filename)
-
-        if channels_format == "jpeg":
-            extension = ".jpg"
-        elif channels_format.startswith("png"):
-            extension = ".png"
-        # Else, keep the same as the input file.
-
-        for count, channel_img in enumerate(channel_images):
-            channel_filename = "%s_%s%s" % (
-                f,
-                channel_names[count][0],
-                extension,
-            )
-
-            i = ImageOps.invert(channel_img)
-
-            if channels_style == "color" and count < 3:
-                i = ImageOps.colorize(i, black=channel_names[count][1], white="white")
-
-            if extension == ".jpg":
-                # subsampling=0 seems to make them look crisper.
-                i.convert("CMYK").save(
-                    channel_filename, "JPEG", subsampling=0, quality=output_quality
-                )
-            elif extension == ".png":
-                i.save(channel_filename, "PNG")
-
 
 if __name__ == "__main__":
 
