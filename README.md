@@ -21,7 +21,9 @@ TODO: define more representations.
 
 ## 2. Usage
 
-`python main.py --videoPath /path/to/mp4 --cfgPath /path/to/cfg.yaml --outputDir /path/to/outputDir`
+`python main.py --videoPath /path/to/mp4 --cfgPath /path/to/cfg.yaml --outputDir /path/to/outputDir [--N n]`
+
+The optional parameter N can be used in order to compute the first N frames of the video for debugging purposes.
 
 ## 3. CFG file
 The config file will have the hyperparameters required to instantiate each supported method as well as global hyperparameters for the output. This means that if a depth method is pre-traied for 0-300m, this information will be encoded in the CFG file. Similarily, if the output resolution is 256x256, this will be encoded as a global hyperparameter.
@@ -54,11 +56,13 @@ For the above CFG file, 2 subdirectories will be created:
 /path/to/outputDir/
   
   halftone1/
-    1.npz, ..., N.npz
+    1.npz, ..., N.npz + cfg.yaml
   
   depth1/
-    1.npz, ..., N.npz
+    1.npz, ..., N.npz + cfg.yaml
 ```
+
+The `cfg.yaml` file for each representation is created so that we know what parameters were used for that representation.
 
 ## 5. Export PNGs
 Given a exported video, as npz files, we can create a collage of stacked image representations, which is useful to present the outputs in a human viewable format.
