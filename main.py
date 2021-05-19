@@ -22,14 +22,13 @@ def getArgs():
     args.cfg = yaml.safe_load(open(args.cfgPath, "r"))
     args.cfg["resolution"] = list(map(lambda x : float(x), args.cfg["resolution"].split(",")))
 
-    assert not args.outputDir.exists()
-    args.outputDir.mkdir(parents=True, exist_ok=False)
-    [(args.outputDir / v["name"]).mkdir(parents=True) for k, v in args.cfg["representations"].items()]
-
     return args
 
 def main():
     args = getArgs()
+    assert not args.outputDir.exists()
+    args.outputDir.mkdir(parents=True, exist_ok=False)
+    [(args.outputDir / v["name"]).mkdir(parents=True) for k, v in args.cfg["representations"].items()]
 
     video = tryReadVideo(args.videoPath, vidLib="pims")
     print(video)
@@ -41,11 +40,11 @@ def main():
         frame = np.array(video[i])
         frame = imgResize(frame, height=args.cfg["resolution"][0], width=args.cfg["resolution"][1])
         outputs = [r(frame) for r in representations]
-        pngs = [r.makeImage(o) for r, o in zip(representations, outputs)]
+        # pngs = [r.makeImage(o) for r, o in zip(representations, outputs)]
         outPaths = ["%s/%s/%d.npz" % (args.outputDir, name, i) for name in names]
-        for path, output, png in zip(outPaths, outputs, pngs):
-            np.save(path, output)
-            tryWriteImage(png, path.replace("npz", "png"))
+        for path, output in zip(outPaths, outputs):
+            np.savez_compressed(path, output)
+            # tryWriteImage(png, path.replace("npz", "png"))
 
 if __name__ == "__main__":
     main()

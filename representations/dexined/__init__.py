@@ -41,7 +41,9 @@ class DexiNed(Representation):
             B = self.model.npForward(A)
         C = postprocessImage(B, coordinates)
         D = imgResize(C, height=frame.shape[0], width=frame.shape[1], onlyUint8=False)
+
         return D
 
     def makeImage(self, x):
+        x = np.repeat(np.expand_dims(x, axis=-1), 3, axis=-1)
         return np.uint8(x * 255)
