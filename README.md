@@ -5,19 +5,31 @@
 ## 1. Description
 The purpose of this repository is to export the standard NGC representations from RGB alone.
 
-The common representations are:
+<u>Supported representations</u>
   - Low level vision
+    - RGB
     - HSV
-    - Semantic GB
-    - Halftone (via python-halftone)
+    - Halftone
+       - [python-halftone](https://github.com/philgyford/python-halftone)
     - Edges
+      - [DexiNed](https://github.com/xavysp/DexiNed/)
   - Mid level vision
-    - Unsupervised Depth (Sfm Learner style)
-    - Optical Flow
+    - n/a
   - High level vision
-    - Semantic Segmentation (pretrained)
+    - n/a
 
-TODO: define more representations.
+<u>WIP representations</u>
+  - Low level vision
+    - TODO: representations & methods
+  - Mid level vision
+    - Unsupervised Depth
+      - [Sfm learner](https://github.com/ClementPinard/SfmLearner-Pytorch)
+      - TODO: more methods
+    - Optical Flow
+      - TODO: methods
+  - High level vision
+    - Semantic Segmentation
+      - TODO: methods
 
 ## 2. Usage
 
