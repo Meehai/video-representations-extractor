@@ -15,6 +15,11 @@ class Representation(ABC):
     def makeImage(self, x:np.ndarray):
         pass
 
+    # @brief Method that should automate the entire download/instantiate/resolve any issues with a representation
+    @abstractmethod
+    def setup(self):
+        pass
+
     def __call__(self, frame:np.ndarray) -> np.ndarray:
         assert len(frame.shape) == 3 and frame.shape[-1] == 3 and frame.dtype == np.uint8
         result = self.make(frame)

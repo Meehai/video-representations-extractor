@@ -21,8 +21,7 @@ def getArgs():
     args.videoPath = fullPath(args.videoPath)
     args.cfgPath = fullPath(args.cfgPath)
     args.outputDir = fullPath(args.outputDir)
-    args.cfg = yaml.safe_load(open(args.cfgPath, "r"))
-    args.cfg["resolution"] = list(map(lambda x : float(x), args.cfg["resolution"].split(",")))
+    args = validateArgs(args)
     return args
 
 # Function that validates the output dir (args.outputDir) and each representation. By default, it just dumps the yaml
@@ -43,28 +42,42 @@ def validateOutputDir(args):
             representationCfg = yaml.safe_load(open(thisCfgFile, "r"))
             assert representationCfg == v, "Wrong cfg file. Loaded: %s. This: %s" % (representationCfg, v)
             N = len([x for x in Dir.glob("*.npz")])
-            assert N == args.N, "Loaded %d npz files. Expected %d." % (N, args.N)
-            print("[validateOutputDir] Files already computted. Can be skipped safely.")
+            if N == args.N:
+                print("[validateOutputDir] Files already computted. Can be skipped safely.")
+                continue
+            if N != 0:
+                assert N == args.N, "Loaded %d npz files. Expected %d." % (N, args.N)
+            else:
+                print("[validateOutputDir] Empty dir. New representation.")
         else:
-            Dir.mkdir()
-            yaml.safe_dump(v, open(thisCfgFile, "w"))
             print("[validateOutputDir] Directory '%s' (%s) doesn't exists. New representation." % (Dir, k))
-            validRepresentations[k] = v
-    args.cfg["representations"] = validRepresentations
+
+        Dir.mkdir(exist_ok=True)
+        yaml.safe_dump(v, open(thisCfgFile, "w"))
+        validRepresentations[k] = v
+    return validRepresentations
+
+def validateArgs(args):
+    args.video = tryReadVideo(args.videoPath, vidLib="pims")
+    args.N = len(args.video) if args.N is None else args.N
+    args.cfg = yaml.safe_load(open(args.cfgPath, "r"))
+    args.cfg["resolution"] = list(map(lambda x : float(x), args.cfg["resolution"].split(",")))
+    for k, v in args.cfg["representations"].items():
+        v["method"] = k if not "method" in v else v["method"]
+    return args
 
 def main():
     args = getArgs()
+    args.cfg["validRepresentations"] = validateOutputDir(args)
 
-    video = tryReadVideo(args.videoPath, vidLib="pims")
-    print(video)
-    args.N = len(video) if not args.N else args.N
+    print(args.video)
+    print("[main] Num representations: %d. Num frames to be exported: %d" % \
+        (len(args.cfg["validRepresentations"]), args.N))
 
-    validateOutputDir(args)
-
-    names = [v["name"] for k, v in args.cfg["representations"].items()]
-    representations = [getRepresentation(k, v) for k, v in args.cfg["representations"].items()]
+    names = [v["name"] for k, v in args.cfg["validRepresentations"].items()]
+    representations = [getRepresentation(k, v) for k, v in args.cfg["validRepresentations"].items()]
     for i in trange(args.N):
-        frame = np.array(video[i])
+        frame = np.array(args.video[i])
         frame = imgResize(frame, height=args.cfg["resolution"][0], width=args.cfg["resolution"][1])
         outputs = [r(frame) for r in representations]
         outPaths = ["%s/%s/%d.npz" % (args.outputDir, name, i) for name in names]

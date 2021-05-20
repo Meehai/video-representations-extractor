@@ -2,6 +2,7 @@ from typing import Dict
 from .representation import Representation
 
 def getRepresentation(Type:str, args:Dict) -> Representation:
+    print("[getRepresentation] Instantiating Type='%s' Method='%s'..." % (Type, args["method"]))
     obj = None
     if Type == "rgb":
         from .rgb import RGB

@@ -8,3 +8,6 @@ class HSV(Representation):
          
     def makeImage(self, x):
         return np.uint8(x * 255)
+
+    def setup(self):
+        pass

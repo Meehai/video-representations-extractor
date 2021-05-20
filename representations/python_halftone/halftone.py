@@ -31,7 +31,6 @@ class Halftone(Representation):
         self,
         frame,
         angles=[0, 15, 30, 45],
-        style="color",
         antialias=False,
         output_format="default",
         output_quality=75,
@@ -44,7 +43,6 @@ class Halftone(Representation):
             percentage: How much of the gray component to remove from the CMY
                 channels and put in the K channel.
             angles: A list of 4 angles that each screen channel should be rotated by.
-            style: 'color' or 'grayscale'.
             antialias: boolean.
             output_format: "default", "jpeg", "png".
             output_quality: Integer, default 75. Only used when saving jpeg images.
@@ -58,7 +56,6 @@ class Halftone(Representation):
             percentage=self.percentage,
             sample=self.sample,
             scale=self.scale,
-            style=style,
         )
 
 
@@ -83,7 +80,6 @@ class Halftone(Representation):
         percentage,
         sample,
         scale,
-        style,
     ):
         "Checks all the arguments are valid. Raises TypeError or ValueError if not."
 
@@ -133,11 +129,6 @@ class Halftone(Representation):
 
         if not isinstance(scale, int):
             raise TypeError("The scale argument must be an integer, not '%s'." % scale)
-
-        if style not in ["color", "grayscale"]:
-            raise ValueError(
-                "The style argument must be either 'color' or 'grayscale'."
-            )
 
         return True
 
@@ -245,6 +236,10 @@ class Halftone(Representation):
 
             dots.append(half_tone)
         return dots
+
+    @overrides
+    def setup(self):
+        pass
 
 if __name__ == "__main__":
 
