@@ -8,4 +8,5 @@ media-processing-lib
 natsort
 gitpython
 gdown
-git+git://gitlab.com/neuralwrappers/nwdata#egg=nwdata
+git+https://gitlab.com/neuralwrappers/nwdata#egg=nwdata
+git+https://gitlab.com/neuralwrappers/nwmodule#egg=nwmodule
