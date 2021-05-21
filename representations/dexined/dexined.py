@@ -13,7 +13,8 @@ from ..representation import Representation
 from matplotlib.cm import gray
 
 def preprocessImage(img):
-    img, coordinates = imgResize(img, height=352, width=352, mode="black_bars", imgLib="lycon", returnCoordinates=True)
+    img, coordinates = imgResize(img, height=352, width=352, mode="black_bars", \
+        resizeLib="lycon", returnCoordinates=True)
     img = np.float32(img) / 255
     img = img.transpose(2, 0, 1)[None]
     return img, coordinates
@@ -29,12 +30,12 @@ def postprocessImage(img, coordinates):
     return img
 
 class DexiNed(Representation):
-    def __init__(self, weightsFile:str):
-        self.weightsFile = weightsFile
+    def __init__(self):
+        self.weightsFile = str(fullPath(__file__).parents[0] / "weights.pth")
         self.setup()
         from model_dexined import DexiNed as Model
         model = Model().to(device)
-        model.load_state_dict(tr.load(weightsFile, map_location=device))
+        model.load_state_dict(tr.load(self.weightsFile, map_location=device))
         self.model = trModuleWrapper(model)
 
     def setup(self):
