@@ -1,0 +1,26 @@
+resolution: 240,426
+representations:
+  rgb:
+    name: rgb
+  hsv:
+    name: hsv
+  halftone:
+    method: python-halftone
+    name: halftone1
+    parameters:
+      sample: 3
+      scale: 1
+      percentage: 91
+  edgeDetection:
+    method: dexined
+    name: edges1
+  depthEstimation:
+    method: jiaw
+    name: depth1
+    parameters:
+      weightsFile: /Date2/hpc/depth_seg/code/SC-SfMLearner-Release/checkpoints/jian_slanic_overfit_096_noval_s32/03-24-12:13/dispnet_checkpoint.pth.tar
+      resNetLayers: 18
+      trainHeight: 256
+      trainWidth: 448
+      minDepth: 0
+      maxDepth: 2
