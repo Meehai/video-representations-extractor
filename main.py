@@ -76,11 +76,11 @@ def main():
 
     names = [v["name"] for k, v in args.cfg["validRepresentations"].items()]
     representations = [getRepresentation(k, v) for k, v in args.cfg["validRepresentations"].items()]
-    for i in trange(args.N):
+    for i in trange(2000, 2000+args.N):
         frame = np.array(args.video[i])
         frame = imgResize(frame, height=args.cfg["resolution"][0], width=args.cfg["resolution"][1])
         outputs = [r(frame) for r in representations]
-        outPaths = ["%s/%s/%d.npz" % (args.outputDir, name, i) for name in names]
+        outPaths = ["%s/%s/%d.npz" % (args.outputDir, name, i-2000) for name in names]
         for path, output in zip(outPaths, outputs):
             np.savez_compressed(path, output)
 
