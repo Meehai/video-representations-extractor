@@ -15,7 +15,10 @@ def getRepresentation(Type:str, args:Dict) -> Representation:
         obj = Halftone(**args["parameters"])
     elif Type == "edgeDetection" and args["method"] == "dexined":
         from .dexined import DexiNed
-        obj = DexiNed(**args["parameters"])
+        obj = DexiNed()
+    elif Type =="depthEstimation" and args["method"] == "jiaw":
+        from .depth_jiaw import DepthJiaw
+        obj = DepthJiaw(**args["parameters"])
     else:
         assert False, "Unknown representation: %s or method: %s" % (Type, args["method"])
     
