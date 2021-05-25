@@ -15,7 +15,8 @@ def getArgs():
     parser.add_argument("--cfgPath", required=True, help="Path to global YAML cfg file")
     parser.add_argument("--outputDir", required=True, \
         help="Path to the output directory where representations are stored")
-    parser.add_argument("--N", type=int, help="Debug method to only dump first N frames")
+    parser.add_argument("--skip", type=int, default=0, help="Debug method to skip first N frames")
+    parser.add_argument("--N", type=int, help="Debug method to only dump first N frames (starting from --skip)")
     args = parser.parse_args()
 
     args.videoPath = fullPath(args.videoPath)
@@ -71,16 +72,16 @@ def main():
     args.cfg["validRepresentations"] = validateOutputDir(args)
 
     print(args.video)
-    print("[main] Num representations: %d. Num frames to be exported: %d" % \
-        (len(args.cfg["validRepresentations"]), args.N))
+    print("[main] Num representations: %d. Num frames to be exported: %d. Skipping first %d frames." % \
+        (len(args.cfg["validRepresentations"]), args.N, args.skip))
 
     names = [v["name"] for k, v in args.cfg["validRepresentations"].items()]
     representations = [getRepresentation(k, v) for k, v in args.cfg["validRepresentations"].items()]
-    for i in trange(2000, 2000+args.N):
+    for i in trange(args.skip, args.skip + args.N):
         frame = np.array(args.video[i])
         frame = imgResize(frame, height=args.cfg["resolution"][0], width=args.cfg["resolution"][1])
         outputs = [r(frame) for r in representations]
-        outPaths = ["%s/%s/%d.npz" % (args.outputDir, name, i-2000) for name in names]
+        outPaths = ["%s/%s/%d.npz" % (args.outputDir, name, i-args.skip) for name in names]
         for path, output in zip(outPaths, outputs):
             np.savez_compressed(path, output)
 

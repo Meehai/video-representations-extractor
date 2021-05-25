@@ -39,7 +39,7 @@ def closest_fit(size, multiples):
 
 
 class DepthJiaw(Representation):
-	def __init__(self, weightsFile:str, resNetLayers:int, trainHeight:int, trainWidth:int, minDepth:int, maxDepth:int):     # runHeight:None, runWidth:None
+	def __init__(self, weightsFile:str, resNetLayers:int, trainHeight:int, trainWidth:int, minDepth:int, maxDepth:int):
 		model = DispResNet(resNetLayers, False).to(device)
 		weights = torch.load(weightsFile, map_location=device)
 		model.load_state_dict(weights['state_dict'])
@@ -47,7 +47,6 @@ class DepthJiaw(Representation):
 		self.model = model
 		self.multiples = (64, 64)   # is it 32 tho?
 		self.trainSize = (trainHeight, trainWidth)
-		# self.runSize = (runHeight, runWidth)
 		self.scale = (minDepth, maxDepth)
 
 	def make(self, x):
