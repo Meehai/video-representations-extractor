@@ -9,9 +9,6 @@ from nwdata.utils import fullPath
 
 from representations import getRepresentation
 
-import os
-os.environ['MPL_QUIET'] = '1'
-
 def getArgs():
     parser = ArgumentParser()
     parser.add_argument("--videoPath", required=True, help="Path to the scene video we are processing")
