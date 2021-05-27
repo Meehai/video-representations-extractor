@@ -3,14 +3,13 @@ import gdown
 import numpy as np
 import torch as tr
 from shutil import copyfile
-from git import Repo
 from nwdata.utils import fullPath
 from nwmodule.utilities import device, trModuleWrapper
 from media_processing_lib.image import imgResize, tryWriteImage
 from scipy.special import expit as sigmoid
 
+from .model_dexined import DexiNed as Model
 from ..representation import Representation
-from matplotlib.cm import gray
 
 def preprocessImage(img):
     img, coordinates = imgResize(img, height=352, width=352, mode="black_bars", \
@@ -33,27 +32,17 @@ class DexiNed(Representation):
     def __init__(self):
         self.weightsFile = str(fullPath(__file__).parents[0] / "weights.pth")
         self.setup()
-        from model_dexined import DexiNed as Model
         model = Model().to(device)
         model.load_state_dict(tr.load(self.weightsFile, map_location=device))
         self.model = trModuleWrapper(model)
 
     def setup(self):
         urlWeights = "https://drive.google.com/u/0/uc?id=1MRUlg_mRwDiBiQLKFVuEfuvkzs65JFVe"
-        urlRepo = "https://github.com/xavysp/DexiNed/"
-
-        dexinedPath = fullPath(__file__).parents[0] / "DexiNed"
-        if not dexinedPath.exists():
-            print("[DexiNed::setup] Downloading repository for dexined from %s" % urlRepo)
-            Repo.clone_from(urlRepo, str(dexinedPath), depth=1)
-            # Just making sure we don't name clash with this generic model.py file
-            copyfile(dexinedPath/"model.py", dexinedPath/"model_dexined.py")
 
         weightsPath = fullPath(self.weightsFile)
         if not weightsPath.exists():
             print("[DexiNed::setup] Downloading weights for dexined from %s" % urlWeights)
             gdown.download(urlWeights, self.weightsFile)
-        sys.path.append(str(dexinedPath))
 
     def make(self, frame):
         A, coordinates = preprocessImage(frame)

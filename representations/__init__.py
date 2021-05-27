@@ -31,6 +31,11 @@ def getRepresentation(item) -> Representation:
         elif method == "dpt":
             from .depth_dpt import DepthDpt
             obj = DepthDpt(**item["parameters"])
+    elif group == "opticalFlow":
+        assert method in ("rife", ), "Unknown method: %s/%s" % (group, method)
+        if method == "rife":
+            from .flow_rife import FlowRife
+            obj = FlowRife(**item["parameters"])
     else:
         assert False, "Unknown method: %s/%s" % (group, method)
     
