@@ -6,6 +6,7 @@ import numpy as np
 
 from PIL import Image, ImageDraw, ImageOps, ImageStat
 from overrides import overrides
+from media_processing_lib.image import imgResize
 from ..representation import Representation
 
 """
@@ -21,20 +22,14 @@ http://stackoverflow.com/a/10575940/250962
 
 
 class Halftone(Representation):
-    def __init__(self, sample, scale, percentage):
+    def __init__(self, sample, scale, percentage, resolution):
         self.sample = sample
         self.scale = scale
         self.percentage = percentage
+        self.resolution = [int(x) for x in resolution.split(",")]
 
     @overrides
-    def make(
-        self,
-        frame,
-        angles=[0, 15, 30, 45],
-        antialias=False,
-        output_format="default",
-        output_quality=75,
-    ):
+    def make(self, video, t, angles=[0, 15, 30, 45], antialias=False, output_format="default", output_quality=75):
         """
         Arguments:
             sample: Sample box size from original image, in pixels.
@@ -48,6 +43,8 @@ class Halftone(Representation):
             output_quality: Integer, default 75. Only used when saving jpeg images.
         """
 
+        frame = video[t]
+        frame = imgResize(frame, height=self.resolution[0], width=self.resolution[1])
         self.check_arguments(
             angles=angles,
             antialias=antialias,
