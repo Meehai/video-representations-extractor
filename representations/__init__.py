@@ -1,25 +1,38 @@
 from typing import Dict
 from .representation import Representation
 
-def getRepresentation(Type:str, args:Dict) -> Representation:
-    print("[getRepresentation] Instantiating Type='%s' Method='%s'..." % (Type, args["method"]))
+def getRepresentation(item) -> Representation:
+    group, method = item["group"], item["method"]
+    print("[getRepresentation] Instantiating Group='%s' Method='%s'..." % (group, method))
     obj = None
-    if Type == "rgb":
+    if group == "rgb":
+        assert method == "rgb", "Unknown method: %s/%s" % (group, method)
         from .rgb import RGB
         obj = RGB()
-    elif Type == "hsv":
+    elif group == "hsv":
+        assert method == "hsv", "Unknown method: %s/%s" % (group, method)
         from .hsv import HSV
         obj = HSV()
-    elif Type == "halftone" and args["method"] == "python-halftone":
-        from .python_halftone import Halftone
-        obj = Halftone(**args["parameters"])
-    elif Type == "edgeDetection" and args["method"] == "dexined":
-        from .dexined import DexiNed
-        obj = DexiNed()
-    elif Type =="depthEstimation" and args["method"] == "jiaw":
-        from .depth_jiaw import DepthJiaw
-        obj = DepthJiaw(**args["parameters"])
+    elif group == "halftone":
+        assert method in ("python-halftone", ), "Unknown method: %s/%s" % (group, method)
+        if method == "python-halftone":
+            from .python_halftone import Halftone
+            obj = Halftone(**item["parameters"])
+    elif group == "edgeDetection":
+        assert method in ("dexined", ), "Unknown method: %s/%s" % (group, method)
+        if method == "dexined":
+            from .dexined import DexiNed
+            obj = DexiNed()
+    elif group == "depthEstimation":
+        assert method in ("jiaw", "dpt"), "Unknown method: %s/%s" % (group, method)
+        if method == "jiaw":
+            from .depth_jiaw import DepthJiaw
+            obj = DepthJiaw(**item["parameters"])
+        elif method == "dpt":
+            # TODO
+            from .rgb import RGB
+            obj = RGB()
     else:
-        assert False, "Unknown representation: %s or method: %s" % (Type, args["method"])
+        assert False, "Unknown method: %s/%s" % (group, method)
     
     return obj

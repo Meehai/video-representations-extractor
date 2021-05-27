@@ -34,14 +34,16 @@ def getArgs():
 #  updating the representation's parameters accordingly.
 def validateOutputDir(args):
     args.outputDir.mkdir(parents=True, exist_ok=True)
-    validRepresentations = {}
-    for k, v in args.cfg["representations"].items():
-        Dir = args.outputDir / v["name"]
+    validRepresentations = []
+    for representation in args.cfg["representations"]:
+        name, method, group = representation["name"], representation["method"], representation["group"]
+        Dir = args.outputDir / name
         thisCfgFile = Dir / "cfg.yaml"
         if Dir.exists():
-            print("[validateOutputDir] Directory '%s' (%s) already exists." % (Dir, k))
+            print("[validateOutputDir] Directory '%s' (%s/%s) already exists." % (Dir, group, name))
             representationCfg = yaml.safe_load(open(thisCfgFile, "r"))
-            assert representationCfg == v, "Wrong cfg file. Loaded: %s. This: %s" % (representationCfg, v)
+            assert representationCfg == representation, "Wrong cfg file. Loaded: %s. This: %s" % \
+                (representationCfg, representation)
             N = len([x for x in Dir.glob("*.npz")])
             if N == args.N:
                 print("[validateOutputDir] Files already computted. Can be skipped safely.")
@@ -51,20 +53,50 @@ def validateOutputDir(args):
             else:
                 print("[validateOutputDir] Empty dir. New representation.")
         else:
-            print("[validateOutputDir] Directory '%s' (%s) doesn't exists. New representation." % (Dir, k))
+            print("[validateOutputDir] Directory '%s' (%s/%s) doesn't exists. New representation." % (Dir, group, name))
 
         Dir.mkdir(exist_ok=True)
-        yaml.safe_dump(v, open(thisCfgFile, "w"))
-        validRepresentations[k] = v
+        yaml.safe_dump(representation, open(thisCfgFile, "w"))
+        validRepresentations.append(representation)
     return validRepresentations
+
+def updateRepresentations(representations):
+    # Some representations are not lists (like RGB, which is unique). We create a list in order to process all
+    #  representations the same. For example, depthEstimation has many potential solutions and we can provide a list of
+    #  depth estimation methods.
+    # We end up with a list of representations. Should look like this:
+    #  [
+    #    {'name': 'rgb', 'method': 'rgb', 'group': 'rgb'},
+    #    {'name': 'hsv', 'method': 'hsv', 'group': 'hsv'},
+    #    {'name': 'edges1', 'method': 'dexined', 'group': 'edgeDetection'},
+    #    {'name': 'depth1', 'method': 'jiaw', 'group': 'depthEstimation'},
+    #    {'name': 'depth2', 'method': 'dpt', 'group': 'depthEstimation'}
+    #  ]
+    result = []
+    for k, v in representations.items():
+        if not "name" in v:
+            assert isinstance(v, dict)
+            for k2, v2 in v.items():
+                assert "name" in v2
+                assert not "method" in v2
+                item = v2
+                item["method"] = k2
+                item["group"] = k
+                result.append(item)
+        else:
+            assert not "method" in v
+            item = v
+            item["method"] = k
+            item["group"] = k
+            result.append(item)
+    return result
 
 def validateArgs(args):
     args.video = tryReadVideo(args.videoPath, vidLib="pims")
     args.N = len(args.video) if args.N is None else args.N
     args.cfg = yaml.safe_load(open(args.cfgPath, "r"))
     args.cfg["resolution"] = list(map(lambda x : float(x), args.cfg["resolution"].split(",")))
-    for k, v in args.cfg["representations"].items():
-        v["method"] = k if not "method" in v else v["method"]
+    args.cfg["representations"] = updateRepresentations(args.cfg["representations"])
     return args
 
 def main():
@@ -75,8 +107,8 @@ def main():
     print("[main] Num representations: %d. Num frames to be exported: %d. Skipping first %d frames." % \
         (len(args.cfg["validRepresentations"]), args.N, args.skip))
 
-    names = [v["name"] for k, v in args.cfg["validRepresentations"].items()]
-    representations = [getRepresentation(k, v) for k, v in args.cfg["validRepresentations"].items()]
+    names = [item["name"] for item in args.cfg["validRepresentations"]]
+    representations = [getRepresentation(item) for item in args.cfg["validRepresentations"]]
     for i in trange(args.skip, args.skip + args.N):
         frame = np.array(args.video[i])
         frame = imgResize(frame, height=args.cfg["resolution"][0], width=args.cfg["resolution"][1])

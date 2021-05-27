@@ -16,8 +16,8 @@ def main():
     assert args.outputDir.exists()
     video = tryReadVideo(args.videoPath, vidLib="pims")
 
-    names = [v["name"] for k, v in args.cfg["representations"].items()]
-    representations = [getRepresentation(k, v) for k, v in args.cfg["representations"].items()]
+    names = [item["name"] for item in args.cfg["representations"]]
+    representations = [getRepresentation(item) for item in args.cfg["representations"]]
     (args.outputDir / "collage").mkdir(exist_ok=True)
     for i in trange(len(video)):
         inPaths = ["%s/%s/%d.npz" % (args.outputDir, name, i) for name in names]
