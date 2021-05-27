@@ -8,5 +8,8 @@ media-processing-lib
 natsort
 gitpython
 gdown
+torch
+torchvision
+timm
 git+https://gitlab.com/neuralwrappers/nwdata.git#egg=nwdata
 git+https://gitlab.com/neuralwrappers/nwmodule.git#egg=nwmodule

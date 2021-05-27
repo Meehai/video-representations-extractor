@@ -29,9 +29,8 @@ def getRepresentation(item) -> Representation:
             from .depth_jiaw import DepthJiaw
             obj = DepthJiaw(**item["parameters"])
         elif method == "dpt":
-            # TODO
-            from .rgb import RGB
-            obj = RGB()
+            from .depth_dpt import DepthDpt
+            obj = DepthDpt(**item["parameters"])
     else:
         assert False, "Unknown method: %s/%s" % (group, method)
     
