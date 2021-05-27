@@ -49,7 +49,8 @@ class DepthDpt(Representation):
 		self.originalScaling = False
 
 
-	def make(self, x):
+	def make(self, video, t):
+		x = video[t]
 		img_input = self.transform({"image": x / 255.})["image"]
 		# print('tile shape postproc', img_input.shape)
 		# compute

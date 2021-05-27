@@ -49,7 +49,8 @@ class DepthJiaw(Representation):
 		self.trainSize = (trainHeight, trainWidth)
 		self.scale = (minDepth, maxDepth)
 
-	def make(self, x):
+	def make(self, video, t):
+		x = video[t]
 		x_ = preprocessImage(x, trainSize=self.trainSize, multiples=self.multiples, device=device)
 		with torch.no_grad():
 			y = self.model(x_)
