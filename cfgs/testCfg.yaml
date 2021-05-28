@@ -7,7 +7,7 @@ representations:
 
   hsv:
     method: hsv
-    dependencies: [rgb]
+    dependencies: []
     parameters: None
 
   halftone1:
@@ -28,7 +28,7 @@ representations:
 
   depth1:
     method: jiaw
-    dependencies: [edges3]
+    dependencies: []
     parameters:
       weightsFile: weights/dispnet_checkpoint.pth.tar
       resNetLayers: 18

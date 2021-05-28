@@ -70,19 +70,25 @@ def validateArgs(args):
 # Example: 9: 3*3; 12 -> 4*4 -> 3*4 (3 rows). 65 => -> 9*9 -> 9*8
 def makeCollage(images):
 	N = len(images)
+	imageShape = images[0].shape
 	x = int(np.sqrt(N))
 	r, c = x, x
 	# There are only 2 rows possible between x^2 and (x+1)^2 becuae (x+1)^2 = x^2 + 2*x + 1, thus we can add 2 columns
 	#  at most. If a 3rd column is needed, then closest lower bound is (x+1)^2 and we must use that.
-	if (c + 1) * r <= N:
+	if c * r < N:
 		c += 1
-	if (c + 1) * r <= N:
+	if c * r < N:
 		c += 1
 	assert (c + 1) * r > N
 	images = np.array(images)
-	images = images.reshape((r, c, *images.shape[1: ]))
-	images = np.concatenate(np.concatenate(images, axis=1), axis=1)
-	return images
+	assert images.dtype == np.uint8
+
+	# Add black images if needed
+	result = np.zeros((r * c, *imageShape), dtype=np.uint8)
+	result[0 : N] = images
+	result = result.reshape((r, c, *imageShape))
+	result = np.concatenate(np.concatenate(result, axis=1), axis=1)
+	return result
 
 def main():
 	args = getArgs()
