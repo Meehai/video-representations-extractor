@@ -2,8 +2,10 @@ import numpy as np
 import torch
 from skimage.transform import resize as imresize
 from media_processing_lib.image import imgResize
+from media_processing_lib.video import MPLVideo
 from nwmodule.utilities import device
 from matplotlib.cm import hot
+from typing import Dict
 
 from .dpt_depth import DPTDepthModel
 from .transforms import Resize, NormalizeImage, PrepareForNet
@@ -49,7 +51,7 @@ class DepthDpt(Representation):
 		self.originalScaling = False
 
 
-	def make(self, video, t):
+	def make(self, video:MPLVideo, t:int, depenedencyInputs:Dict[str, np.ndarray]) -> np.ndarray:
 		x = video[t]
 		img_input = self.transform({"image": x / 255.})["image"]
 		# print('tile shape postproc', img_input.shape)

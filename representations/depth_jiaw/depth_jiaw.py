@@ -1,9 +1,10 @@
 import numpy as np
 import torch
-from skimage.transform import resize as imresize
 from media_processing_lib.image import imgResize
+from media_processing_lib.video import MPLVideo
 from nwmodule.utilities import device
 from matplotlib.cm import hot
+from typing import Dict
 
 from .DispResNet import DispResNet
 from ..representation import Representation
@@ -27,8 +28,7 @@ def postprocessImage(y, size=None, scale=(0, 2)):
 	y = y.cpu().numpy()[0, 0]
 	dph = 1 / y
 
-	# dph = imgResize(dph, height=size[0], width=size[1])
-	dph = imresize(dph, size)
+	dph = imgResize(dph, height=size[0], width=size[1], onlyUint8=False)
 	dph = (dph - scale[0]) / (scale[1] - scale[0])
 	dph = np.clip(dph, 0, 1)
 
@@ -49,7 +49,7 @@ class DepthJiaw(Representation):
 		self.trainSize = (trainHeight, trainWidth)
 		self.scale = (minDepth, maxDepth)
 
-	def make(self, video, t):
+	def make(self, video:MPLVideo, t:int, depenedencyInputs:Dict[str, np.ndarray]) -> np.ndarray:
 		x = video[t]
 		x_ = preprocessImage(x, trainSize=self.trainSize, multiples=self.multiples, device=device)
 		with torch.no_grad():

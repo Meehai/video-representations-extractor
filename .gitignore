@@ -1,3 +1,7 @@
 *.yaml
 *.pyc
 *.mp4
+*.pth
+weights/
+vids/
+
