@@ -28,7 +28,7 @@ representations:
 
   depth1:
     method: jiaw
-    dependencies: [edges1]
+    dependencies: [edges3]
     parameters:
       weightsFile: weights/dispnet_checkpoint.pth.tar
       resNetLayers: 18

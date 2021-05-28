@@ -45,22 +45,31 @@ The config file will have the hyperparameters required to instantiate each suppo
 Example cfg file:
 ```
 resolution: 256,256
-representations:
-  halftone:
-    method: python-halftone
-    name: halftone1
+  rgb:
+    method: rgb
+    dependenceies: []
+    parameters: None
+
+  edges1:
+    method: dexined
+    dependencies: []
+    parameters: None
+
+  depth1:
+    method: jiaw
+    dependencies: [edges1]
     parameters:
-      sample: 3
-      scale: 1
-      percentage: 91
-  depth:
-    method: sfmlearner
-    name: depth1
-    parameters:
-      weightsFile: /path/to/model.pkl
+      weightsFile: weights/dispnet_checkpoint.pth.tar
+      resNetLayers: 18
+      trainHeight: 256
+      trainWidth: 448
+      minDepth: 0
+      maxDepth: 2
 ```
 
-The above file will output 2 representations, named `halftone1` and `depth1`, the first one based on `python-halftone` package with the specified parameters, the second one based on SfmLearner pre-trained neural network, given the path to the model.
+The above file will output 3 representations, named `rgb`, `edges1` and `depth1`, the second one based on `dexined` package with the specified parameters, while the third one based on `Jiaw` unsupervised depth pre-trained neural network, given the path to the model. The third one has as a dependency the second one, thus the second one will be computed in advance at every step.
+
+Note: If the topological sort fails (because cycle dependencies), an error will be thrown.
 
 ## 4. Output format
 All the outputs are going to be stored as [0-1] float32 npz files, one for each frame in a directory specified by `--outputDir`. A subdirectory will be created for each representation.
@@ -68,10 +77,10 @@ All the outputs are going to be stored as [0-1] float32 npz files, one for each 
 For the above CFG file, 2 subdirectories will be created:
 ```
 /path/to/outputDir/
-  
-  halftone1/
+  rgb/
     1.npz, ..., N.npz + cfg.yaml
-  
+  edges1/
+    1.npz, ..., N.npz + cfg.yaml
   depth1/
     1.npz, ..., N.npz + cfg.yaml
 ```
@@ -79,15 +88,11 @@ For the above CFG file, 2 subdirectories will be created:
 The `cfg.yaml` file for each representation is created so that we know what parameters were used for that representation.
 
 ## 5. Export PNGs
-Given a exported video, as npz files, we can create a collage of stacked image representations, which is useful to present the outputs in a human viewable format.
-
-Usage:
-`python main_make_collage.py --videoPath /path/to/mp4 --cfgPath /path/to/cfg.yaml --outputDir /path/to/outputDir`
+We can also export images as a grid collage of all exported representations by adding the CMD argument `--exportCollage=1` to the `main.py` script.
 
 This yields a new directory with PNGs:
 ```
 /path/to/outputDir/
-
   collage/
     1.png, ..., N.png
 ```
