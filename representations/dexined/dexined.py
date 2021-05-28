@@ -5,8 +5,10 @@ import torch as tr
 from shutil import copyfile
 from nwdata.utils import fullPath
 from nwmodule.utilities import device, trModuleWrapper
-from media_processing_lib.image import imgResize, tryWriteImage
+from media_processing_lib.image import imgResize
+from media_processing_lib.video import MPLVideo
 from scipy.special import expit as sigmoid
+from typing import Dict
 
 from .model_dexined import DexiNed as Model
 from ..representation import Representation
@@ -44,7 +46,7 @@ class DexiNed(Representation):
             print("[DexiNed::setup] Downloading weights for dexined from %s" % urlWeights)
             gdown.download(urlWeights, self.weightsFile)
 
-    def make(self, video, t):
+    def make(self, video:MPLVideo, t:int, depenedencyInputs:Dict[str, np.ndarray]) -> np.ndarray:
         A, coordinates = preprocessImage(video[t])
         with tr.no_grad():
             B = self.model.npForward(A)

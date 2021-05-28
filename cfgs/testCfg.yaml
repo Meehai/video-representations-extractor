@@ -1,26 +1,46 @@
 resolution: 240,426
 representations:
   rgb:
-    name: rgb
+    method: rgb
+    dependencies: []
+    parameters: None
+
   hsv:
-    name: hsv
-  halftone:
+    method: hsv
+    dependencies: []
+    parameters: None
+
+  halftone1:
     method: python-halftone
-    name: halftone1
+    dependencies: []
     parameters:
       sample: 3
       scale: 1
       percentage: 91
-  edgeDetection:
+      angles: [0, 15, 30, 45]
+      antialias: False
+      resolution: 240,426
+
+  edges1:
     method: dexined
-    name: edges1
-  depthEstimation:
+    dependencies: []
+    parameters: None
+
+  depth1:
     method: jiaw
-    name: depth1
+    dependencies: []
     parameters:
-      weightsFile: /Date2/hpc/depth_seg/code/SC-SfMLearner-Release/checkpoints/jian_slanic_overfit_096_noval_s32/03-24-12:13/dispnet_checkpoint.pth.tar
+      weightsFile: weights/dispnet_checkpoint.pth.tar
       resNetLayers: 18
       trainHeight: 256
       trainWidth: 448
       minDepth: 0
       maxDepth: 2
+
+  depth2:
+    method: dpt
+    dependencies: []
+    parameters:
+      weightsFile: weights/dpt_large-midas-2f21e586.pt
+      trainHeight: 256
+      trainWidth: 448
