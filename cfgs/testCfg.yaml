@@ -44,3 +44,10 @@ representations:
       weightsFile: weights/dpt_large-midas-2f21e586.pt
       trainHeight: 256
       trainWidth: 448
+
+  opticalflow1:
+    method: rife
+    dependencies: []
+    parameters:
+      weightsPath: weights/trained_RIFE_models
+      computeBackwardFlow: False
