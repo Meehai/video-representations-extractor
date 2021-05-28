@@ -98,7 +98,8 @@ def main():
 	print("[main] Num representations: %d. Num frames to be exported: %d. Skipping first %d frames." % \
 		(len(args.cfg["representations"]), args.N, args.skip))
 
-	representations = {k : getRepresentation(v) for k, v in args.cfg["topoSortedRepresentations"].items()}
+	# representations = {k : getRepresentation(v) for k, v in args.cfg["topoSortedRepresentations"].items()}
+	representations = {k : None for k in args.cfg["topoSortedRepresentations"].keys()}
 	height, width = args.cfg["resolution"]
 	for t in trange(args.skip, args.skip + args.N):
 		rawOutputs, finalOutputs, resizedImages = {}, {}, {}
@@ -118,6 +119,10 @@ def main():
 			# TODO: Receive the representation itself and update __getattr__ to look into disk so we can access
 			#  representation[t-k] (precomputted) or representation[t+k], not just representation[t]
 			else:
+				# Instantiate only if/when neeeded
+				if representation is None:
+					representation = getRepresentation(args.cfg["representations"][name])
+					representations[name] = representation
 				output = representation(args.video, t, depInputs)
 				rawOutputs[name] = output
 				resizedOutput = imgResize(output, height=height, width=width, onlyUint8=False)
@@ -126,9 +131,15 @@ def main():
 			finalOutputs[name] = resizedOutput
 
 		if args.exportCollage:
+			images = []
 			notTopoSortedNames = list(args.cfg["representations"].keys())
-			notTopoSortedRepresentations = [representations[k] for k in args.cfg["representations"].keys()]
-			images = [r.makeImage(finalOutputs[k]) for k, r in zip(notTopoSortedNames, notTopoSortedRepresentations)]
+			for name in notTopoSortedNames:
+				representation = representations[name]
+				if representation is None:
+					representation = getRepresentation(args.cfg["representations"][name])
+					representations[name] = representation
+				image = representation.makeImage(finalOutputs[name])
+				images.append(image)
 			images = makeCollage(images)
 			tryWriteImage(images, outImagePath)
 
