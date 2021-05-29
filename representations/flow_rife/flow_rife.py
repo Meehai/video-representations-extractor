@@ -2,9 +2,11 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 import flow_vis
+import gdown
 from typing import Dict
 from torchvision import transforms
 from nwmodule.utilities import device
+from nwdata.utils import fullPath
 from media_processing_lib.image import imgResize
 from media_processing_lib.video import MPLVideo
 
@@ -12,17 +14,49 @@ from ..representation import Representation
 from .RIFE_HDv2 import Model
 
 class FlowRife(Representation):
-	def __init__(self, weightsPath:str, computeBackwardFlow:bool):
-		model = Model()
-		model.load_model(weightsPath, -1)
-		model.eval()
-		model.device()
-		torch.set_grad_enabled(False)
-		self.model = model
+	def __init__(self, computeBackwardFlow:bool):
+		self.model = None
 		self.UHD = False
 		self.no_backward_flow = True if computeBackwardFlow is None else not computeBackwardFlow
+		self.weightsDir = fullPath(__file__).parents[2] / "weights/rife"
+		self.setup()
+
+	def instantiate(self):
+		if not self.model is None:
+			return
+		model = Model()
+		model.load_model(self.weightsDir, -1)
+		model.eval()
+		model.device()
+		self.model = model
+
+	def setup(self):
+		self.weightsDir.mkdir(exist_ok=True)
+
+		# original files
+		# urlWeights = "https://drive.google.com/u/0/uc?id=1wsQIhHZ3Eg4_AfCXItFKqqyDMB4NS0Yd"
+		# our backup / dragos' better/sharper version
+		contextNetUrl = "https://drive.google.com/u/0/uc?id=1x2_inKGBxjTYvdn58GyRnog0C7YdzE7-"
+		flowNetUrl = "https://drive.google.com/u/0/uc?id=1aqR0ciMzKcD-N4bwkTK8go5FW4WAKoWc"
+		uNetUrl = "https://drive.google.com/u/0/uc?id=1Fv27pNAbrmqQJolCFkD1Qm1RgKBRotME"
+
+		contextNetPath = self.weightsDir / "contextnet.pkl"
+		if not contextNetPath.exists():
+			print("[DexiNed::setup] Downloading contextnet weights for RIFE")
+			gdown.download(contextNetUrl, str(contextNetPath))
+
+		flowNetPath = self.weightsDir / "flownet.pkl"
+		if not flowNetPath.exists():
+			print("[DexiNed::setup] Downloading flownet weights for RIFE")
+			gdown.download(flowNetUrl, str(flowNetPath))
+
+		uNetPath = self.weightsDir / "unet.pkl"
+		if not uNetPath.exists():
+			print("[DexiNed::setup] Downloading unet weights for RIFE")
+			gdown.download(uNetUrl, str(uNetPath))
 
 	def make(self, video:MPLVideo, t:int, depenedencyInputs:Dict[str, np.ndarray]) -> np.ndarray:
+		self.instantiate()
 		frame1 = video[t]
 		frame2 = video[t + 1] if t < len(video) - 2 else frame1.copy()
 		
@@ -36,7 +70,8 @@ class FlowRife(Representation):
 		I0 = F.pad(I0, padding)
 		I1 = F.pad(I1, padding)
 
-		flow = self.model.inference(I0, I1, self.UHD, self.no_backward_flow)
+		with torch.no_grad():
+			flow = self.model.inference(I0, I1, self.UHD, self.no_backward_flow)
 
 		# Convert, postprocess and remove pad
 		flow = flow[0].cpu().numpy().transpose(1, 2, 0)
@@ -55,7 +90,3 @@ class FlowRife(Representation):
 		x = x * 2 - 1
 		y = flow_vis.flow_to_color(x)
 		return y
-
-	def setup(self):
-		pass
-

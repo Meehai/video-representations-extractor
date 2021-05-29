@@ -33,6 +33,8 @@ The purpose of this repository is to export the standard NGC representations fro
     - Semantic Segmentation
       - TODO: methods
 
+Weights repository for pretrained networks is [here](https://drive.google.com/drive/folders/1bWKEAiTXDpgaY2YOAFBvMqqyOGSafoIm?usp=sharing).
+
 ## 2. Usage
 
 `python main.py --videoPath /path/to/mp4 --cfgPath /path/to/cfg.yaml --outputDir /path/to/outputDir [--N n]`

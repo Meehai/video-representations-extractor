@@ -63,6 +63,12 @@ def validateArgs(args):
 	args.N = len(args.video) if args.N is None else args.N
 	args.cfg = yaml.safe_load(open(args.cfgPath, "r"))
 	args.cfg["resolution"] = list(map(lambda x : float(x), args.cfg["resolution"].split(",")))
+	for name in args.cfg["representations"]:
+		representation = args.cfg["representations"][name]
+		assert len(representation.keys()) == 3
+		assert "method" in representation
+		assert "dependencies" in representation
+		assert "parameters" in representation
 	args.cfg["topoSortedRepresentations"] = topoSortRepresentations(args.cfg["representations"])
 	return args
 

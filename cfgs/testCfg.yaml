@@ -49,5 +49,4 @@ representations:
     method: rife
     dependencies: []
     parameters:
-      weightsPath: weights/trained_RIFE_models
       computeBackwardFlow: False

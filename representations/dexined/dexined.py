@@ -39,7 +39,10 @@ class DexiNed(Representation):
         self.model = trModuleWrapper(model)
 
     def setup(self):
-        urlWeights = "https://drive.google.com/u/0/uc?id=1MRUlg_mRwDiBiQLKFVuEfuvkzs65JFVe"
+        # original files
+        # urlWeights = "https://drive.google.com/u/0/uc?id=1MRUlg_mRwDiBiQLKFVuEfuvkzs65JFVe"
+        # our backup
+        urlWeights = "https://drive.google.com/u/0/uc?id=1oT1iKdRRKJpQO-DTYWUnZSK51QnJ-mnP"
 
         weightsPath = fullPath(self.weightsFile)
         if not weightsPath.exists():
