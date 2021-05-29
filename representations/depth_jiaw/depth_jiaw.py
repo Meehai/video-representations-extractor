@@ -39,18 +39,18 @@ def closest_fit(size, multiples):
 
 
 class DepthJiaw(Representation):
-	def __init__(self, weightsFile:str, resNetLayers:int, trainHeight:int, trainWidth:int, minDepth:int, maxDepth:int):
-		model = DispResNet(resNetLayers, False).to(device)
-		weights = torch.load(weightsFile, map_location=device)
-		model.load_state_dict(weights['state_dict'])
-		model.eval()
-		self.model = model
+	def __init__(self, baseDir, name, dependencies, video, outShape, weightsFile:str, resNetLayers:int, \
+		trainHeight:int, trainWidth:int, minDepth:int, maxDepth:int):
+		super().__init__(baseDir, name, dependencies, video, outShape)
+		self.model = None
+		self.weightsFile = weightsFile
+		self.resNetLayers = resNetLayers
 		self.multiples = (64, 64)   # is it 32 tho?
 		self.trainSize = (trainHeight, trainWidth)
 		self.scale = (minDepth, maxDepth)
 
-	def make(self, video:MPLVideo, t:int, depenedencyInputs:Dict[str, np.ndarray]) -> np.ndarray:
-		x = video[t]
+	def make(self, t:int) -> np.ndarray:
+		x = self.video[t]
 		x_ = preprocessImage(x, trainSize=self.trainSize, multiples=self.multiples, device=device)
 		with torch.no_grad():
 			y = self.model(x_)
@@ -63,5 +63,10 @@ class DepthJiaw(Representation):
 		return y
 
 	def setup(self):
-		pass
-
+		if not self.model is None:
+			return
+		model = DispResNet(self.resNetLayers, False).to(device)
+		weights = torch.load(self.weightsFile, map_location=device)
+		model.load_state_dict(weights['state_dict'])
+		model.eval()
+		self.model = model

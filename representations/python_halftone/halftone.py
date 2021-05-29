@@ -34,8 +34,9 @@ class Halftone(Representation):
 		angles: A list of 4 angles that each screen channel should be rotated by.
 		antialias: boolean.
 	"""
-	def __init__(self, sample:float, scale:float, percentage:float, \
+	def __init__(self, baseDir, name, dependencies, video, outShape, sample:float, scale:float, percentage:float, \
 		angles:List[int], antialias:bool, resolution:Tuple[str,str]):
+		super().__init__(baseDir, name, dependencies, video, outShape)
 		self.sample = sample
 		self.scale = scale
 		self.percentage = percentage
@@ -45,8 +46,8 @@ class Halftone(Representation):
 		self.check_arguments()
 
 	@overrides
-	def make(self, video:MPLVideo, t:int, depenedencyInputs:Dict[str, np.ndarray]) -> np.ndarray:
-		frame = video[t]
+	def make(self, t:int) -> np.ndarray:
+		frame = self.video[t]
 		frame = imgResize(frame, height=self.resolution[0], width=self.resolution[1])
 
 		im = Image.fromarray(frame, "RGB")
