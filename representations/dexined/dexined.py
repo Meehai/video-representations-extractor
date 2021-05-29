@@ -33,10 +33,7 @@ def postprocessImage(img, coordinates):
 class DexiNed(Representation):
     def __init__(self):
         self.weightsFile = str(fullPath(__file__).parents[2] / "weights/dexined.pth")
-        self.setup()
-        model = Model().to(device)
-        model.load_state_dict(tr.load(self.weightsFile, map_location=device))
-        self.model = trModuleWrapper(model)
+        self.model = None
 
     def setup(self):
         # original files
@@ -48,6 +45,11 @@ class DexiNed(Representation):
         if not weightsPath.exists():
             print("[DexiNed::setup] Downloading weights for dexined from %s" % urlWeights)
             gdown.download(urlWeights, self.weightsFile)
+
+        if self.model is None:
+            model = Model().to(device)
+            model.load_state_dict(tr.load(self.weightsFile, map_location=device))
+            self.model = trModuleWrapper(model)
 
     def make(self, video:MPLVideo, t:int, depenedencyInputs:Dict[str, np.ndarray]) -> np.ndarray:
         A, coordinates = preprocessImage(video[t])

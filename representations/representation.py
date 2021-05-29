@@ -17,12 +17,14 @@ class Representation(ABC):
     def makeImage(self, x:np.ndarray) -> np.ndarray:
         pass
 
-    # @brief Method that should automate the entire download/instantiate/resolve any issues with a representation
+    # @brief Method that should automate the entire download/instantiate/resolve any issues with a representation.
+    #  Since this is called at every __call__, we should be careful to not instantiate objects for every frame.
     @abstractmethod
     def setup(self):
         pass
 
     def __call__(self, video:MPLVideo, t:int, dependencyInputs:Dict[str, np.ndarray]) -> np.ndarray:
+        self.setup()
         result = self.make(video, t, dependencyInputs)
         assert result.dtype == np.float32 and result.min() >= 0 and result.max() <= 1, \
             "%s: Dtype: %s. Min: %2.2f. Max: %2.2f" % (self, result.dtype, result.min(), result.max())

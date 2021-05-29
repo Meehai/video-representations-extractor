@@ -19,16 +19,6 @@ class FlowRife(Representation):
 		self.UHD = False
 		self.no_backward_flow = True if computeBackwardFlow is None else not computeBackwardFlow
 		self.weightsDir = fullPath(__file__).parents[2] / "weights/rife"
-		self.setup()
-
-	def instantiate(self):
-		if not self.model is None:
-			return
-		model = Model()
-		model.load_model(self.weightsDir, -1)
-		model.eval()
-		model.device()
-		self.model = model
 
 	def setup(self):
 		self.weightsDir.mkdir(exist_ok=True)
@@ -55,8 +45,14 @@ class FlowRife(Representation):
 			print("[DexiNed::setup] Downloading unet weights for RIFE")
 			gdown.download(uNetUrl, str(uNetPath))
 
+		if self.model is None:
+			model = Model()
+			model.load_model(self.weightsDir, -1)
+			model.eval()
+			model.device()
+			self.model = model
+
 	def make(self, video:MPLVideo, t:int, depenedencyInputs:Dict[str, np.ndarray]) -> np.ndarray:
-		self.instantiate()
 		frame1 = video[t]
 		frame2 = video[t + 1] if t < len(video) - 2 else frame1.copy()
 		

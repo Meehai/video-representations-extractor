@@ -41,7 +41,6 @@ representations:
     method: dpt
     dependencies: []
     parameters:
-      weightsFile: weights/dpt_large-midas-2f21e586.pt
       trainHeight: 256
       trainWidth: 448
 
