@@ -49,3 +49,8 @@ representations:
     dependencies: []
     parameters:
       computeBackwardFlow: False
+
+  semantic1:
+    method: semantic-safeuav-keras
+    dependencies: []
+    parameters: null

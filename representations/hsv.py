@@ -6,7 +6,6 @@ from .representation import Representation
 
 class HSV(Representation):
     def make(self, t:int):
-        breakpoint()
         return np.float32(rgb2hsv(self.video[t]))
          
     def makeImage(self, x):

@@ -25,6 +25,9 @@ def getRepresentation(method) -> Representation:
     elif method == "rife":
         from .flow_rife import FlowRife
         obj = FlowRife
+    elif method == "semantic-safeuav-keras":
+        from .sseg_safeuav_keras import SSegSafeUAVKeras
+        obj = SSegSafeUAVKeras
     else:
         assert False, "Unknown method: %s" % method
     
