@@ -32,7 +32,7 @@ def postprocessImage(img, coordinates):
 
 class DexiNed(Representation):
     def __init__(self):
-        self.weightsFile = str(fullPath(__file__).parents[0] / "weights.pth")
+        self.weightsFile = str(fullPath(__file__).parents[2] / "weights/dexined.pth")
         self.setup()
         model = Model().to(device)
         model.load_state_dict(tr.load(self.weightsFile, map_location=device))
