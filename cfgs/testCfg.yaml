@@ -3,49 +3,49 @@ representations:
   rgb:
     method: rgb
     dependencies: []
-    parameters: None
+    parameters: null
 
   hsv:
     method: hsv
-    dependencies: []
-    parameters: None
+    dependencies: [rgb]
+    parameters: null
 
-  halftone1:
-    method: python-halftone
-    dependencies: []
-    parameters:
-      sample: 3
-      scale: 1
-      percentage: 91
-      angles: [0, 15, 30, 45]
-      antialias: False
-      resolution: 240,426
+  # halftone1:
+  #   method: python-halftone
+  #   dependencies: []
+  #   parameters:
+  #     sample: 3
+  #     scale: 1
+  #     percentage: 91
+  #     angles: [0, 15, 30, 45]
+  #     antialias: False
+  #     resolution: 240,426
 
-  edges1:
-    method: dexined
-    dependencies: []
-    parameters: None
+  # edges1:
+  #   method: dexined
+  #   dependencies: []
+  #   parameters: null
 
-  depth1:
-    method: jiaw
-    dependencies: []
-    parameters:
-      weightsFile: weights/dispnet_checkpoint.pth.tar
-      resNetLayers: 18
-      trainHeight: 256
-      trainWidth: 448
-      minDepth: 0
-      maxDepth: 2
+  # depth1:
+  #   method: jiaw
+  #   dependencies: []
+  #   parameters:
+  #     weightsFile: weights/dispnet_checkpoint.pth.tar
+  #     resNetLayers: 18
+  #     trainHeight: 256
+  #     trainWidth: 448
+  #     minDepth: 0
+  #     maxDepth: 2
 
-  depth2:
-    method: dpt
-    dependencies: []
-    parameters:
-      trainHeight: 256
-      trainWidth: 448
+  # depth2:
+  #   method: dpt
+  #   dependencies: []
+  #   parameters:
+  #     trainHeight: 256
+  #     trainWidth: 448
 
   opticalflow1:
     method: rife
-    dependencies: []
+    dependencies: [hsv]
     parameters:
       computeBackwardFlow: False

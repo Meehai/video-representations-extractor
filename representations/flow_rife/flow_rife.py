@@ -14,7 +14,8 @@ from ..representation import Representation
 from .RIFE_HDv2 import Model
 
 class FlowRife(Representation):
-	def __init__(self, computeBackwardFlow:bool):
+	def __init__(self, baseDir, name, dependencies, video, outShape, computeBackwardFlow:bool):
+		super().__init__(baseDir, name, dependencies, video, outShape)
 		self.model = None
 		self.UHD = False
 		self.no_backward_flow = True if computeBackwardFlow is None else not computeBackwardFlow

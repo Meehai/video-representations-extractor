@@ -3,6 +3,7 @@ import yaml
 import numpy as np
 from argparse import ArgumentParser
 from tqdm import trange
+from functools import partial
 from collections import OrderedDict
 from media_processing_lib.video import tryReadVideo
 from media_processing_lib.image import imgResize, tryWriteImage
@@ -103,6 +104,17 @@ def main():
 	print(args.video)
 	print("[main] Num representations: %d. Num frames to be exported: %d. Skipping first %d frames." % \
 		(len(args.cfg["representations"]), args.N, args.skip))
+
+	# Instantiating objects in correct oder
+	representations = {}
+	for name, values in args.cfg["topoSortedRepresentations"].items():
+		dependencies = [representations[k] for k in values["dependencies"]]
+		objType = getRepresentation(values["method"])
+		objType = partial(objType, baseDir=args.outputDir, name=name, dependencies=dependencies, \
+			video=args.video, outShape=args.cfg["resolution"])
+		obj = objType(**values["parameters"]) if not values["parameters"] is None else objType()
+		representations[name] = obj
+	breakpoint()
 
 	# representations = {k : getRepresentation(v) for k, v in args.cfg["topoSortedRepresentations"].items()}
 	representations = {k : None for k in args.cfg["topoSortedRepresentations"].keys()}
