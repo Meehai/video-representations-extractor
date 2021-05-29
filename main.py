@@ -1,4 +1,3 @@
-import sys
 import yaml
 import numpy as np
 from argparse import ArgumentParser
@@ -6,7 +5,7 @@ from tqdm import trange
 from functools import partial
 from collections import OrderedDict
 from media_processing_lib.video import tryReadVideo
-from media_processing_lib.image import imgResize, tryWriteImage
+from media_processing_lib.image import tryWriteImage
 from nwdata.utils import fullPath, topologicalSort
 
 from representations import getRepresentation
@@ -74,7 +73,7 @@ def validateArgs(args):
 	return args
 
 # Given a stack of N images, find the closest square X>=N*N and then remove rows 1 by 1 until it still fits X
-# Example: 9: 3*3; 12 -> 4*4 -> 3*4 (3 rows). 65 => -> 9*9 -> 9*8
+# Example: 9: 3*3; 12 -> 3*3 -> 3*4 (3 rows). 65 -> 8*8 -> 8*9. 73 -> 8*8 -> 8*9 -> 9*9
 def makeCollage(images):
 	N = len(images)
 	imageShape = images[0].shape
