@@ -5,8 +5,8 @@ from typing import Dict
 from .representation import Representation
 
 class HSV(Representation):
-    def make(self, video:MPLVideo, t:int, depenedencyInputs:Dict[str, np.ndarray]):
-        return np.float32(rgb2hsv(video[t]))
+    def make(self, t:int):
+        return np.float32(rgb2hsv(self.video[t]))
          
     def makeImage(self, x):
         return np.uint8(x * 255)

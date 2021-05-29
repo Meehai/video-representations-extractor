@@ -3,6 +3,7 @@ import yaml
 import numpy as np
 from argparse import ArgumentParser
 from tqdm import trange
+from functools import partial
 from collections import OrderedDict
 from media_processing_lib.video import tryReadVideo
 from media_processing_lib.image import imgResize, tryWriteImage
@@ -104,49 +105,26 @@ def main():
 	print("[main] Num representations: %d. Num frames to be exported: %d. Skipping first %d frames." % \
 		(len(args.cfg["representations"]), args.N, args.skip))
 
-	# representations = {k : getRepresentation(v) for k, v in args.cfg["topoSortedRepresentations"].items()}
-	representations = {k : None for k in args.cfg["topoSortedRepresentations"].keys()}
-	height, width = args.cfg["resolution"]
+	# Instantiating objects in correct oder
+	representations = {}
+	for name, values in args.cfg["topoSortedRepresentations"].items():
+		dependencies = [representations[k] for k in values["dependencies"]]
+		objType = getRepresentation(values["method"])
+		objType = partial(objType, baseDir=args.outputDir, name=name, dependencies=dependencies, \
+			video=args.video, outShape=args.cfg["resolution"])
+		obj = objType(**values["parameters"]) if not values["parameters"] is None else objType()
+		representations[name] = obj
+
 	for t in trange(args.skip, args.skip + args.N):
-		rawOutputs, finalOutputs, resizedImages = {}, {}, {}
-		outPaths = {name : args.outputDir / name / ("%d.npz" % (t - args.skip)) for name in representations.keys()}
-		outImagePath = args.outputDir / "collage" / ("%d.png" % (t-args.skip))
-
-		# Topo sorted
+		finalOutputs, resizedImages = {}, {}
 		for name, representation in representations.items():
-			depInputs = {k : finalOutputs[k] for k in args.cfg["representations"][name]["dependencies"]}
-			outPath = outPaths[name]
-
-			# Load if already computted
-			if outPath.exists():
-				resizedOutput = np.load(outPath)["arr_0"]
-			# The current representation receives the current frame video[t] as well as the outputs of all
-			#  dependencies of the current timestep.
-			# TODO: Receive the representation itself and update __getattr__ to look into disk so we can access
-			#  representation[t-k] (precomputted) or representation[t+k], not just representation[t]
-			else:
-				# Instantiate only if/when neeeded
-				if representation is None:
-					representation = getRepresentation(args.cfg["representations"][name])
-					representations[name] = representation
-				output = representation(args.video, t, depInputs)
-				rawOutputs[name] = output
-				resizedOutput = imgResize(output, height=height, width=width, onlyUint8=False)
-				np.savez_compressed(outPath, resizedOutput)
-
-			finalOutputs[name] = resizedOutput
-
+			finalOutputs[name] = representation[t]
+	
 		if args.exportCollage:
-			images = []
 			notTopoSortedNames = list(args.cfg["representations"].keys())
-			for name in notTopoSortedNames:
-				representation = representations[name]
-				if representation is None:
-					representation = getRepresentation(args.cfg["representations"][name])
-					representations[name] = representation
-				image = representation.makeImage(finalOutputs[name])
-				images.append(image)
+			images = [representations[k].makeImage(finalOutputs[k]) for k in notTopoSortedNames]
 			images = makeCollage(images)
+			outImagePath = args.outputDir / "collage" / ("%d.png" % t)
 			tryWriteImage(images, outImagePath)
 
 if __name__ == "__main__":

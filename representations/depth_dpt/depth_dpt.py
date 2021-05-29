@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+import torch.nn.functional as F
 import cv2
 import gdown
 from skimage.transform import resize as imresize
@@ -21,7 +22,8 @@ def closest_fit(size, multiples):
 
 
 class DepthDpt(Representation):
-	def __init__(self, trainHeight:int, trainWidth:int):
+	def __init__(self, baseDir, name, dependencies, video, outShape, trainHeight, trainWidth):
+		super().__init__(baseDir, name, dependencies, video, outShape)
 		net_w, net_h = 384, 384
 		resize_mode = "minimal"
 		normalization = NormalizeImage(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
@@ -64,25 +66,17 @@ class DepthDpt(Representation):
 			model.to(device)
 			self.model = model
 
-	def make(self, video:MPLVideo, t:int, depenedencyInputs:Dict[str, np.ndarray]) -> np.ndarray:
-		x = video[t]
+	def make(self, t:int) -> np.ndarray:
+		x = self.video[t]
 		img_input = self.transform({"image": x / 255.})["image"]
 		# print('tile shape postproc', img_input.shape)
 		# compute
 		with torch.no_grad():
 			sample = torch.from_numpy(img_input).to(device).unsqueeze(0)
-			prediction = self.model.forward(sample)
-			prediction = (
-				torch.nn.functional.interpolate(
-					prediction.unsqueeze(1),
-					size=x.shape[:2],
-					mode="bicubic",
-					align_corners=False,
-				)
-					.squeeze()
-					.cpu()
-					.numpy()
-			)
+			prediction = self.model.forward(sample).squeeze(dim=1)
+			# breakpoint()
+			# prediction = F.interpolate(prediction, size=x.shape[0:2], mode="bicubic", align_corners=False)
+			prediction = prediction.squeeze().cpu().numpy()
 
 			depth_min = prediction.min()
 			depth_max = prediction.max()

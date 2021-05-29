@@ -1,31 +1,31 @@
 from typing import Dict
 from .representation import Representation
 
-def getRepresentation(item) -> Representation:
-    print("[getRepresentation] Instantiating Method='%s'..." % item["method"])
+def getRepresentation(method) -> Representation:
+    print("[getRepresentation] Instantiating Method='%s'..." % method)
     obj = None
-    if item["method"] == "rgb":
+    if method == "rgb":
         from .rgb import RGB
-        obj = RGB()
-    elif item["method"] == "hsv":
+        obj = RGB
+    elif method == "hsv":
         from .hsv import HSV
-        obj = HSV()
-    elif item["method"] == "python-halftone":
+        obj = HSV
+    elif method == "python-halftone":
         from .python_halftone import Halftone
-        obj = Halftone(**item["parameters"])
-    elif item["method"] == "dexined":
+        obj = Halftone
+    elif method == "dexined":
         from .dexined import DexiNed
-        obj = DexiNed()
-    elif item["method"] == "jiaw":
+        obj = DexiNed
+    elif method == "jiaw":
         from .depth_jiaw import DepthJiaw
-        obj = DepthJiaw(**item["parameters"])
-    elif item["method"] == "dpt":
+        obj = DepthJiaw
+    elif method == "dpt":
         from .depth_dpt import DepthDpt
-        obj = DepthDpt(**item["parameters"])
-    elif item["method"] == "rife":
+        obj = DepthDpt
+    elif method == "rife":
         from .flow_rife import FlowRife
-        obj = FlowRife(**item["parameters"])
+        obj = FlowRife
     else:
-        assert False, "Unknown method: %s/%s" % (group, method)
+        assert False, "Unknown method: %s" % method
     
     return obj

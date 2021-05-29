@@ -3,12 +3,12 @@ representations:
   rgb:
     method: rgb
     dependencies: []
-    parameters: None
+    parameters: null
 
   hsv:
     method: hsv
-    dependencies: []
-    parameters: None
+    dependencies: [rgb]
+    parameters: null
 
   halftone1:
     method: python-halftone
@@ -24,7 +24,7 @@ representations:
   edges1:
     method: dexined
     dependencies: []
-    parameters: None
+    parameters: null
 
   depth1:
     method: jiaw
@@ -46,6 +46,6 @@ representations:
 
   opticalflow1:
     method: rife
-    dependencies: []
+    dependencies: [hsv]
     parameters:
       computeBackwardFlow: False
