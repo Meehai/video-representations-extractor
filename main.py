@@ -78,8 +78,8 @@ def makeCollage(images):
 	if c * r < N:
 		c += 1
 	if c * r < N:
-		c += 1
-	assert (c + 1) * r > N
+		r += 1
+	assert (c + 1) * r > N and c * (r + 1) > N
 	images = np.array(images)
 	assert images.dtype == np.uint8
 
