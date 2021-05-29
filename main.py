@@ -114,51 +114,17 @@ def main():
 			video=args.video, outShape=args.cfg["resolution"])
 		obj = objType(**values["parameters"]) if not values["parameters"] is None else objType()
 		representations[name] = obj
-	breakpoint()
 
-	# representations = {k : getRepresentation(v) for k, v in args.cfg["topoSortedRepresentations"].items()}
-	representations = {k : None for k in args.cfg["topoSortedRepresentations"].keys()}
-	height, width = args.cfg["resolution"]
 	for t in trange(args.skip, args.skip + args.N):
-		rawOutputs, finalOutputs, resizedImages = {}, {}, {}
-		outPaths = {name : args.outputDir / name / ("%d.npz" % (t - args.skip)) for name in representations.keys()}
-		outImagePath = args.outputDir / "collage" / ("%d.png" % (t-args.skip))
-
-		# Topo sorted
+		finalOutputs, resizedImages = {}, {}
 		for name, representation in representations.items():
-			depInputs = {k : finalOutputs[k] for k in args.cfg["representations"][name]["dependencies"]}
-			outPath = outPaths[name]
-
-			# Load if already computted
-			if outPath.exists():
-				resizedOutput = np.load(outPath)["arr_0"]
-			# The current representation receives the current frame video[t] as well as the outputs of all
-			#  dependencies of the current timestep.
-			# TODO: Receive the representation itself and update __getattr__ to look into disk so we can access
-			#  representation[t-k] (precomputted) or representation[t+k], not just representation[t]
-			else:
-				# Instantiate only if/when neeeded
-				if representation is None:
-					representation = getRepresentation(args.cfg["representations"][name])
-					representations[name] = representation
-				output = representation(args.video, t, depInputs)
-				rawOutputs[name] = output
-				resizedOutput = imgResize(output, height=height, width=width, onlyUint8=False)
-				np.savez_compressed(outPath, resizedOutput)
-
-			finalOutputs[name] = resizedOutput
-
+			finalOutputs[name] = representation[t]
+	
 		if args.exportCollage:
-			images = []
 			notTopoSortedNames = list(args.cfg["representations"].keys())
-			for name in notTopoSortedNames:
-				representation = representations[name]
-				if representation is None:
-					representation = getRepresentation(args.cfg["representations"][name])
-					representations[name] = representation
-				image = representation.makeImage(finalOutputs[name])
-				images.append(image)
+			images = [representations[k].makeImage(finalOutputs[k]) for k in notTopoSortedNames]
 			images = makeCollage(images)
+			outImagePath = args.outputDir / "collage" / ("%d.png" % t)
 			tryWriteImage(images, outImagePath)
 
 if __name__ == "__main__":

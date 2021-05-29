@@ -4,8 +4,8 @@ from typing import Dict
 from .representation import Representation
 
 class RGB(Representation):
-    def make(self, video:MPLVideo, t:int, depenedencyInputs:Dict[str, np.ndarray]) -> np.ndarray:
-        return np.float32(video[t]) / 255
+    def make(self, t:int) -> np.ndarray:
+        return np.float32(self.video[t]) / 255
     
     def makeImage(self, x:np.ndarray) -> np.ndarray:
         return np.uint8(x * 255)

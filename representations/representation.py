@@ -42,10 +42,10 @@ class Representation(ABC):
         path = fullPath(self.baseDir / self.name / ("%d.npz" % t))
         # TODO: Cache[t]
         if path.exists():
-            rawResult = np.load(path)["arr_0"]
-            result = imgResize(rawResult, height=self.outShape[0], width=self.outShape[1], onlyUint8=False)
+            result = np.load(path)["arr_0"]
         else:
-            result = self.make(t)
+            rawResult = self.make(t)
+            result = imgResize(rawResult, height=self.outShape[0], width=self.outShape[1], onlyUint8=False)
             np.savez_compressed(path, result)
 
         assert result.shape[0] == self.outShape[0] and result.shape[1] == self.outShape[1], "%s vs %s" % \
