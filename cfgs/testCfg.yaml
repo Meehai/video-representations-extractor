@@ -7,7 +7,7 @@ representations:
 
   hsv:
     method: hsv
-    dependencies: [rgb]
+    dependencies: []
     parameters: null
 
   halftone1:
@@ -46,6 +46,6 @@ representations:
 
   opticalflow1:
     method: rife
-    dependencies: [hsv]
+    dependencies: []
     parameters:
       computeBackwardFlow: False

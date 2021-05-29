@@ -2,7 +2,7 @@ from __future__ import annotations
 import numpy as np
 from pathlib import Path
 from abc import ABC, abstractmethod
-from typing import Dict, Tuple, List
+from typing import Dict, Tuple
 from media_processing_lib.image import imgResize
 from media_processing_lib.video import MPLVideo
 from pathlib import Path
@@ -10,7 +10,7 @@ from nwdata.utils import fullPath
 
 # @brief Generic video/image representation
 class Representation(ABC):
-    def __init__(self, baseDir:Path, name:str, dependencies:List[Representation], \
+    def __init__(self, baseDir:Path, name:str, dependencies:Dict[str, Representation], \
         video:MPLVideo, outShape:Tuple[int, int]):
         self.baseDir = baseDir
         self.name = name

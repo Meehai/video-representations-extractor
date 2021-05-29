@@ -108,7 +108,7 @@ def main():
 	# Instantiating objects in correct oder
 	representations = {}
 	for name, values in args.cfg["topoSortedRepresentations"].items():
-		dependencies = [representations[k] for k in values["dependencies"]]
+		dependencies = {k : representations[k] for k in values["dependencies"]}
 		objType = getRepresentation(values["method"])
 		objType = partial(objType, baseDir=args.outputDir, name=name, dependencies=dependencies, \
 			video=args.video, outShape=args.cfg["resolution"])
