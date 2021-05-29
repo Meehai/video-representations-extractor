@@ -53,4 +53,13 @@ representations:
   semantic1:
     method: semantic-safeuav-keras
     dependencies: []
-    parameters: null
+    parameters:
+      weightsFile: weights/EPOCH_13_TRAIN_loss_0.05107_dice_0.9654_VALID_loss_0.19600_dice_0.8877.hdf5
+      init_nb: 24
+      trainHeight: 1080
+      trainWidth: 1920
+      numClasses: 12
+      colorMap: [
+        [0, 255, 0], [0, 127, 0], [0, 255, 255], [0, 127, 255], [255, 255, 255], [255, 0, 255],
+        [127, 127, 127], [255, 0, 0], [255, 255, 0], [63, 127, 127], [0, 0, 255], [0, 127, 127]
+      ]
