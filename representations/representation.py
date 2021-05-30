@@ -3,9 +3,9 @@ import numpy as np
 from pathlib import Path
 from abc import ABC, abstractmethod
 from typing import Dict, Tuple
+from functools import lru_cache
 from media_processing_lib.image import imgResize
 from media_processing_lib.video import MPLVideo
-from pathlib import Path
 from nwdata.utils import fullPath
 
 # @brief Generic video/image representation
@@ -36,14 +36,13 @@ class Representation(ABC):
     def setup(self):
         pass
 
+    @lru_cache(maxsize=32)
     def __getitem__(self, t:int) -> np.ndarray:
-        self.setup()
-
         path = fullPath(self.baseDir / self.name / ("%d.npz" % t))
-        # TODO: Cache[t]
         if path.exists():
             result = np.load(path)["arr_0"]
         else:
+            self.setup()
             rawResult = self.make(t)
             result = imgResize(rawResult, height=self.outShape[0], width=self.outShape[1], onlyUint8=False)
             np.savez_compressed(path, result)

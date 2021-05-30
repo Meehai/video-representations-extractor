@@ -101,5 +101,5 @@ This yields a new directory with PNGs:
 
 **Bonus**: Exporting video from PNGs
 ```
-oldPath=`pwd`; cd /path/to/outputDir/collage; ffmpeg -framerate 30 -i %d.png -c:v libx264 -pix_fmt yuv420p $oldPath/collage.mp4; cd -;
+oldPath=`pwd`; cd /path/to/outputDir/collage; ffmpeg -start_number 1 -framerate 30 -i %d.png -c:v libx264 -pix_fmt yuv420p $oldPath/collage.mp4; cd -;
 ```
