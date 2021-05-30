@@ -30,6 +30,15 @@ representations:
       apertureSize: 3
       L2gradient: False
 
+  softseg1:
+    method: kmeans
+    dependencies: []
+    parameters:
+      nClusters: 20
+      epsilon: 2
+      maxIterations: 10
+      attempts: 3
+
   edges1:
     method: dexined
     dependencies: []

@@ -17,6 +17,7 @@ class Representation(ABC):
         self.video = video
         self.dependencies = dependencies
         self.outShape = outShape
+        self.t = None
 
     # @brief Main method of the project. Calls the algorithm's internal logic to transform the current RGB frame into
     # a [0-1] float32 representation.
@@ -39,16 +40,19 @@ class Representation(ABC):
     @lru_cache(maxsize=32)
     def __getitem__(self, t:int) -> np.ndarray:
         path = fullPath(self.baseDir / self.name / ("%d.npz" % t))
+        self.t = t
         if path.exists():
             result = np.load(path)["arr_0"]
         else:
             self.setup()
             rawResult = self.make(t)
-            result = imgResize(rawResult, height=self.outShape[0], width=self.outShape[1], onlyUint8=False)
+            interpolation = "bilinear" if rawResult.dtype == np.float32 else "nearest"
+            result = imgResize(rawResult, height=self.outShape[0], width=self.outShape[1], \
+                onlyUint8=False, interpolation=interpolation)
             np.savez_compressed(path, result)
 
         assert result.shape[0] == self.outShape[0] and result.shape[1] == self.outShape[1], "%s vs %s" % \
             (result.shape, self.outShape)
-        assert result.dtype == np.float32 and result.min() >= 0 and result.max() <= 1, \
+        assert result.dtype in (np.float32, np.uint8) and result.min() >= 0 and result.max() <= 1, \
             "%s: Dtype: %s. Min: %2.2f. Max: %2.2f" % (self, result.dtype, result.min(), result.max())
         return result

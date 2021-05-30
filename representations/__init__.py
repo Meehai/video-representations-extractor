@@ -31,6 +31,9 @@ def getRepresentation(method) -> Representation:
     elif method == "canny":
         from .canny import Canny
         obj = Canny
+    elif method == "kmeans":
+        from .kmeans import KMeans
+        obj = KMeans
     else:
         assert False, "Unknown method: %s" % method
     
