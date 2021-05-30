@@ -21,6 +21,15 @@ representations:
       antialias: False
       resolution: 240,426
 
+  edges2:
+    method: canny
+    dependencies: []
+    parameters:
+      threshold1: 150
+      threshold2: 200
+      apertureSize: 3
+      L2gradient: False
+
   edges1:
     method: dexined
     dependencies: []

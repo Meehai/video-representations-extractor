@@ -28,6 +28,9 @@ def getRepresentation(method) -> Representation:
     elif method == "semantic-safeuav-keras":
         from .sseg_safeuav_keras import SSegSafeUAVKeras
         obj = SSegSafeUAVKeras
+    elif method == "canny":
+        from .canny import Canny
+        obj = Canny
     else:
         assert False, "Unknown method: %s" % method
     
