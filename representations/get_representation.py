@@ -31,6 +31,9 @@ def getRepresentation(method:str) -> Representation:
     elif method == "semantic-safeuav-keras":
         from .sseg_safeuav_keras import SSegSafeUAVKeras
         objType = SSegSafeUAVKeras
+    elif method == "semantic-safeuav":
+        from .sseg_safeuav import SSegSafeUAV
+        objType = SSegSafeUAV
     elif method == "depth-dispresnet":
         from .depth_dispresnet import DepthDispResNet
         objType = DepthDispResNet
