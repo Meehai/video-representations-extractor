@@ -84,6 +84,6 @@ class DepthDpt(Representation):
 		return prediction
 
 	def makeImage(self, x):
-		y = hot(x)[..., 0:3]
+		y = hot(x["data"])[..., 0:3]
 		y = np.uint8(y * 255)
 		return y

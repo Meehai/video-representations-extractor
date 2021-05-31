@@ -60,5 +60,5 @@ class DexiNed(Representation):
 		return C
 
 	def makeImage(self, x):
-		x = np.repeat(np.expand_dims(x, axis=-1), 3, axis=-1)
+		x = np.repeat(np.expand_dims(x["data"], axis=-1), 3, axis=-1)
 		return np.uint8(x * 255)

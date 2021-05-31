@@ -84,6 +84,6 @@ class FlowRife(Representation):
 
 	def makeImage(self, x):
 		# [0 : 1] => [-1 : 1]
-		x = x * 2 - 1
+		x = x["data"] * 2 - 1
 		y = flow_vis.flow_to_color(x)
 		return y

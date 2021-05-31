@@ -34,7 +34,7 @@ representations:
     method: kmeans
     dependencies: []
     parameters:
-      nClusters: 20
+      nClusters: 6
       epsilon: 2
       maxIterations: 10
       attempts: 3

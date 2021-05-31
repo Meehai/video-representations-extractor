@@ -39,8 +39,8 @@ class SSegSafeUAVKeras(Representation):
 		return result
 
 	def makeImage(self, x:np.ndarray) -> np.ndarray:
-		predicted_label = get_disjoint_prediction_fast(x)
-		predicted_colormap = np.zeros((x.shape[0], x.shape[1], 3), dtype=np.uint8)
+		predicted_label = get_disjoint_prediction_fast(x["data"])
+		predicted_colormap = np.zeros((self.outShape[0], self.outShape[1], 3), dtype=np.uint8)
 		label_indices = predicted_label.argmax(axis=2)
 
 		for current_prediction_idx in range(self.numClasses):

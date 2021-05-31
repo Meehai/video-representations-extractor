@@ -38,21 +38,36 @@ class Representation(ABC):
         pass
 
     @lru_cache(maxsize=32)
-    def __getitem__(self, t:int) -> np.ndarray:
+    def __getitem__(self, t:int) -> Dict[str, np.ndarray]:
         path = fullPath(self.baseDir / self.name / ("%d.npz" % t))
-        self.t = t
         if path.exists():
-            result = np.load(path)["arr_0"]
+            result = np.load(path, allow_pickle=True)["arr_0"].item()
         else:
             self.setup()
             rawResult = self.make(t)
-            interpolation = "bilinear" if rawResult.dtype == np.float32 else "nearest"
-            result = imgResize(rawResult, height=self.outShape[0], width=self.outShape[1], \
+            if isinstance(rawResult, np.ndarray):
+                rawResult = {"data" : rawResult, "extra" : {}}
+            rawData, extra = rawResult["data"], rawResult["extra"]
+            interpolation = "nearest" if rawData.dtype == np.uint8 else "bilinear"
+            resizedData = imgResize(rawData, height=self.outShape[0], width=self.outShape[1], \
                 onlyUint8=False, interpolation=interpolation)
+
+            result = {
+                "data" : resizedData,
+                "rawData" : rawData,
+                "extra" : extra
+            }
             np.savez_compressed(path, result)
 
-        assert result.shape[0] == self.outShape[0] and result.shape[1] == self.outShape[1], "%s vs %s" % \
-            (result.shape, self.outShape)
-        assert result.dtype in (np.float32, np.uint8) and result.min() >= 0 and result.max() <= 1, \
-            "%s: Dtype: %s. Min: %2.2f. Max: %2.2f" % (self, result.dtype, result.min(), result.max())
+        # The format of each representation is a dict:
+        #  - data: a raw np.ndarray of shape (outShape[0], outShape[1], C)
+        #  - rawData: a raw np.ndarray of whatever shape the representation decided to spit out for current frame
+        #  - extra: whatever extra stuff this representation needs (i.e. cluster centroids, perhaps useful for t+1)
+        assert isinstance(result, dict) and "data" in result and "rawData" in result and "extra" in result, \
+            "Representation: %s. Type: %s. Keys: %s" % (self, type(result), result.keys())
+        data = result["data"]
+        assert data.shape[0] == self.outShape[0] and data.shape[1] == self.outShape[1], \
+            "%s vs %s" % (data.shape, self.outShape)
+        assert data.dtype in (np.float32, np.uint8) and data.min() >= 0 and data.max() <= 1, \
+            "%s: Dtype: %s. Min: %2.2f. Max: %2.2f" % (self, data.dtype, data.min(), data.max())
         return result

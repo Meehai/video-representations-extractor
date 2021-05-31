@@ -7,8 +7,8 @@ class RGB(Representation):
     def make(self, t:int) -> np.ndarray:
         return np.float32(self.video[t]) / 255
     
-    def makeImage(self, x:np.ndarray) -> np.ndarray:
-        return np.uint8(x * 255)
+    def makeImage(self, x:Dict) -> np.ndarray:
+        return np.uint8(x["data"] * 255)
 
     def setup(self):
         pass

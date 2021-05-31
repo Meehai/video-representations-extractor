@@ -22,18 +22,17 @@ class KMeans(Representation):
         initialization = cv2.KMEANS_PP_CENTERS
         compactness, labels, centers = cv2.kmeans(Z, self.nClusters, None, criteria, self.attempts, initialization)
         labels = toCategorical(labels[:, 0], self.nClusters)
-        res = labels.reshape(frame.shape[0], frame.shape[1], self.nClusters)
-        self.currentFrame = frame
+        data = labels.reshape(frame.shape[0], frame.shape[1], self.nClusters)
+        res = {"data" : data, "extra" : {"centers" : centers}}
         return res
          
     def makeImage(self, x):
-        currentFrame = self.video[self.t]
-        res = np.zeros((x.shape[0], x.shape[1], 3), dtype=np.uint8)
-        x = np.argmax(x, axis=-1)
+        res = np.zeros((self.outShape[0], self.outShape[1], 3), dtype=np.uint8)
+        centers = x["extra"]["centers"]
+        x = np.argmax(x["data"], axis=-1)
         for i in range(self.nClusters):
             Where = np.where(x == i)
-            colors = np.median(currentFrame[Where], axis=0)
-            res[Where] = colors
+            res[Where] = centers[i]
         return res
 
     def setup(self):

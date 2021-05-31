@@ -60,7 +60,7 @@ class Halftone(Representation):
 
 	@overrides
 	def makeImage(self, x):
-		return np.uint8(x * 255)
+		return np.uint8(x["data"] * 255)
 
 	def check_arguments(self):
 		assert isinstance(self.angles, list), "The angles argument must be a list of 4 integers, not '%s'." % self.angles

@@ -23,7 +23,7 @@ class Canny(Representation):
         return res
          
     def makeImage(self, x):
-        return np.uint8(255 * gray(x)[..., 0 : 3])
+        return np.uint8(255 * gray(x["data"])[..., 0 : 3])
 
     def setup(self):
         pass

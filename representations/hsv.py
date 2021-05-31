@@ -9,7 +9,7 @@ class HSV(Representation):
         return np.float32(rgb2hsv(self.video[t]))
          
     def makeImage(self, x):
-        return np.uint8(x * 255)
+        return np.uint8(x["data"] * 255)
 
     def setup(self):
         pass

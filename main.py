@@ -62,7 +62,7 @@ def validateArgs(args):
 	args.video = tryReadVideo(args.videoPath, vidLib="pims")
 	args.N = len(args.video) if args.N is None else args.N
 	args.cfg = yaml.safe_load(open(args.cfgPath, "r"))
-	args.cfg["resolution"] = list(map(lambda x : float(x), args.cfg["resolution"].split(",")))
+	args.cfg["resolution"] = list(map(lambda x : int(x), args.cfg["resolution"].split(",")))
 	for name in args.cfg["representations"]:
 		representation = args.cfg["representations"][name]
 		assert len(representation.keys()) == 3
