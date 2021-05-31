@@ -38,7 +38,7 @@ def closest_fit(size, multiples):
 	return [round(size[i] / multiples[i]) * multiples[i] for i in range(len(multiples))]
 
 
-class DepthJiaw(Representation):
+class DepthDispResNet(Representation):
 	def __init__(self, baseDir, name, dependencies, video, outShape, weightsFile:str, resNetLayers:int, \
 		trainHeight:int, trainWidth:int, minDepth:int, maxDepth:int):
 		super().__init__(baseDir, name, dependencies, video, outShape)

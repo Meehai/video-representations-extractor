@@ -45,17 +45,6 @@ representations:
     parameters: null
 
   depth1:
-    method: jiaw
-    dependencies: []
-    parameters:
-      weightsFile: weights/dispnet_checkpoint.pth.tar
-      resNetLayers: 18
-      trainHeight: 256
-      trainWidth: 448
-      minDepth: 0
-      maxDepth: 2
-
-  depth2:
     method: dpt
     dependencies: []
     parameters:
@@ -67,6 +56,17 @@ representations:
     dependencies: []
     parameters:
       computeBackwardFlow: False
+
+  depth2:
+    method: depth-dispresnet
+    dependencies: []
+    parameters:
+      weightsFile: weights/dispnet_checkpoint.pth.tar
+      resNetLayers: 18
+      trainHeight: 256
+      trainWidth: 448
+      minDepth: 0
+      maxDepth: 2
 
   semantic1:
     method: semantic-safeuav-keras
