@@ -65,14 +65,8 @@ class DepthOdoFlow(Representation):
 		batch_inds = list(range(t, t+self.batchSize))
 		# flows = [remove_padding(make_flow_inference(self.flowModel, x[ind], x[ind + 1]), self.flow_pad)
 		# 		 for ind in range(len(batch_inds))]
-		# flows = [(self.flow[ind]['data'] * 2 - 1) * self.flow[ind]['data'].shape[0:2] for ind in range(len(batch_inds))]
-		flows = []
-		for ind in range(len(batch_inds)):
-			flow_minus_plus_one = self.flow[ind]['data'] * 2 - 1
-			# print('flow minus plus one', flow_minus_plus_one.min(), flow_minus_plus_one.max())
-			flow_minus_plus_one *= self.flow[ind]['data'].shape[0:2]
-			# print('flow final', flow_minus_plus_one.min(), flow_minus_plus_one.max())
-			flows.append(flow_minus_plus_one)
+		flows = [(self.flow[batch_inds[ind]]['data'] * 2 - 1) * self.flow[batch_inds[ind]]['data'].shape[0:2]
+					for ind in range(len(batch_inds))]
 
 		batched_flow = np.array(flows) / self.dt
 
@@ -86,12 +80,12 @@ class DepthOdoFlow(Representation):
 
 		valid = filter_depth_from_flow(Zs, As, bs, derotating_flows, thresholds=self.thresholds)
 		Zs[~valid] = np.nan
-		print('zs shape', Zs.shape, Zs.min(), Zs.max())
+		Zs = Zs[0] # hopefully we won't waste batchSize -1 in the future
 		depth_limits = (0, 400)
 		depth = np.clip(Zs.astype(np.float32), depth_limits[0], depth_limits[1])
 		depth = 1 - depth / depth_limits[1]
 
-		return Zs[0]
+		return depth
 
 
 	def makeImage(self, x):
