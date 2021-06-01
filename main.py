@@ -10,6 +10,9 @@ from nwdata.utils import fullPath, topologicalSort
 
 from representations import getRepresentation
 
+import os
+os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+
 def getArgs():
 	parser = ArgumentParser()
 	parser.add_argument("--videoPath", required=True, help="Path to the scene video we are processing")
@@ -124,7 +127,7 @@ def main():
 			images = [representations[k].makeImage(finalOutputs[k]) for k in notTopoSortedNames]
 			images = makeCollage(images)
 			outImagePath = args.outputDir / "collage" / ("%d.png" % t)
-			tryWriteImage(images, outImagePath)
+			tryWriteImage(images, str(outImagePath))
 
 if __name__ == "__main__":
 	main()

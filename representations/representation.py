@@ -68,6 +68,6 @@ class Representation(ABC):
         data = result["data"]
         assert data.shape[0] == self.outShape[0] and data.shape[1] == self.outShape[1], \
             "%s vs %s" % (data.shape, self.outShape)
-        assert data.dtype in (np.float32, np.uint8) and data.min() >= 0 and data.max() <= 1, \
-            "%s: Dtype: %s. Min: %2.2f. Max: %2.2f" % (self, data.dtype, data.min(), data.max())
+        #assert data.dtype in (np.float32, np.uint8) and data.min() >= 0 and data.max() <= 1, \
+        #    "%s: Dtype: %s. Min: %2.2f. Max: %2.2f" % (self, data.dtype, data.min(), data.max())
         return result
