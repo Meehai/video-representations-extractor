@@ -3,13 +3,14 @@ import numpy as np
 from ..representation import Representation
 
 from .cam import fov_diag_to_intrinsic
-from pathlib import Path
 
 from matplotlib import pyplot as plt
 import matplotlib as mpl
 import matplotlib.cm as cm
 
-from .utils import map_timed, depth_from_flow, remove_padding, filter_depth_from_flow
+from .utils import depth_from_flow, filter_depth_from_flow
+
+import cv2
 
 
 class DepthOdoFlow(Representation):
@@ -50,12 +51,13 @@ class DepthOdoFlow(Representation):
 		self.fov = 75
 		self.fps = fps
 		self.dt = 1. / self.fps
-		self.K = fov_diag_to_intrinsic(self.fov, (3840, 2160), (flowWidth, flowHeight))
 		self.batchSize = batchSize
 		self.flow_pad = (0, 0, 0, 0)
 		self.startFrame = 0
 		self.depth_axis = 'xy'
 		self.correct_ang_vel = True
+		self.flowHeight = flowHeight
+		self.flowWidth = flowWidth
 
 		self.flow = dependencies['opticalflow1']
 
@@ -65,8 +67,13 @@ class DepthOdoFlow(Representation):
 		batch_inds = list(range(t, t+self.batchSize))
 		# flows = [remove_padding(make_flow_inference(self.flowModel, x[ind], x[ind + 1]), self.flow_pad)
 		# 		 for ind in range(len(batch_inds))]
-		flows = [(self.flow[batch_inds[ind]]['data'] * 2 - 1) * self.flow[batch_inds[ind]]['data'].shape[0:2]
+		flows = [(self.flow[batch_inds[ind]]['rawData'] * 2 - 1) * self.flow[batch_inds[ind]]['rawData'].shape[0:2]
 					for ind in range(len(batch_inds))]
+
+		flowWidth = flows[0].shape[1]
+		flowHeight = flows[0].shape[0]
+		K = fov_diag_to_intrinsic(self.fov, (3840, 2160), (flowWidth, flowHeight))
+
 
 		batched_flow = np.array(flows) / self.dt
 
@@ -75,7 +82,7 @@ class DepthOdoFlow(Representation):
 		batch_lin_vel = self.linear_velocity[batch_inds]
 		batch_ang_vel = self.angular_velocity[batch_inds]
 		Zs, As, bs, derotating_flows, batch_ang_velc = depth_from_flow(batched_flow, batch_lin_vel, batch_ang_vel,
-																	   self.K,
+																	   K,
 																	   self.depth_axis, self.correct_ang_vel)
 
 		valid = filter_depth_from_flow(Zs, As, bs, derotating_flows, thresholds=self.thresholds)
@@ -96,6 +103,7 @@ class DepthOdoFlow(Representation):
 		depth_to_image = lambda x: (mapper.to_rgba(x)[:, :, :3] * 255).astype(np.uint8)
 
 		y = depth_to_image(x['data'])
+		y = cv2.resize(y, (self.flowWidth, self.flowHeight))
 		return y
 
 	def setup(self):
