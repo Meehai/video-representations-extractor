@@ -92,6 +92,8 @@ class DepthOdoFlow(Representation):
 		depth = np.clip(Zs.astype(np.float32), depth_limits[0], depth_limits[1])
 		depth = 1 - depth / depth_limits[1]
 
+		depth[~np.isfinite(depth)] = 0
+
 		return depth
 
 
