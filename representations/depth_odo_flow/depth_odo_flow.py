@@ -1,21 +1,16 @@
 import numpy as np
-
-from ..representation import Representation
-
-from .cam import fov_diag_to_intrinsic
-
-from matplotlib import pyplot as plt
 import matplotlib as mpl
 import matplotlib.cm as cm
+import matplotlib.pyplot as plt
 
+from .cam import fov_diag_to_intrinsic
 from .utils import depth_from_flow, filter_depth_from_flow
-
-import cv2
+from ..representation import Representation
 
 
 class DepthOdoFlow(Representation):
-	def __init__(self, baseDir, name, dependencies, video, outShape, velocitiesPath:str, batchSize:int, flowHeight:int,
-				flowWidth:int, fps:int, velocitiesType:str):
+	def __init__(self, baseDir, name, dependencies, video, outShape, velocitiesPath:str, velocitiesType:str, \
+		depth_axis:str, flowDirection:str, correct_ang_vel:bool, half_size:bool, fov:int):
 		super().__init__(baseDir, name, dependencies, video, outShape)
 		self.velocities = np.load(velocitiesPath)
 		self.velocities_type = velocitiesType
@@ -36,10 +31,11 @@ class DepthOdoFlow(Representation):
 				tag_angular_velocity = 'angular_velocity_c'
 		self.linear_velocity = self.velocities[tag_linear_velocity]
 		self.angular_velocity = self.velocities[tag_angular_velocity]
-		self.depth_axis = 'xy'
-		self.flow = 'forward'
-		self.correct_ang_vel = True
-		self.half_size = True,
+		self.depth_axis = depth_axis
+		self.flowDirection = flowDirection
+		self.correct_ang_vel = correct_ang_vel
+		self.half_size = half_size
+		self.fov = fov
 		# thresholds picked for flow at 960x540; scaled correspondingly in filter function
 		self.thresholds = {
 			"Z": 0,
@@ -48,54 +44,35 @@ class DepthOdoFlow(Representation):
 			"optical flow norm (pixels/s)": 20,
 			"A norm (pixels*m/s)": 1,
 		}
-		self.fov = 75
-		self.fps = fps
+		self.fps = self.video.fps
 		self.dt = 1. / self.fps
-		self.batchSize = batchSize
-		self.flow_pad = (0, 0, 0, 0)
-		self.startFrame = 0
-		self.depth_axis = 'xy'
-		self.correct_ang_vel = True
-		self.flowHeight = flowHeight
-		self.flowWidth = flowWidth
-
-		self.flow = dependencies['opticalflow1']
-
-
+		assert len(dependencies) == 1, "Expected one optical flow method!"
+		self.flow = dependencies[list(dependencies.keys())[0]]
 
 	def make(self, t):
-		batch_inds = list(range(t, t+self.batchSize))
-		# flows = [remove_padding(make_flow_inference(self.flowModel, x[ind], x[ind + 1]), self.flow_pad)
-		# 		 for ind in range(len(batch_inds))]
-		flows = [(self.flow[batch_inds[ind]]['rawData'] * 2 - 1) * self.flow[batch_inds[ind]]['rawData'].shape[0:2]
-					for ind in range(len(batch_inds))]
-
-		flowWidth = flows[0].shape[1]
-		flowHeight = flows[0].shape[0]
+		# [0:1] -> [-1:1]
+		flow = self.flow[t]["rawData"] * 2 - 1
+		flowHeight, flowWidth = flow.shape[0 : 2]
+		# [-1:1] -> [-px:px]
+		flow = flow * [flowHeight, flowWidth]
 		K = fov_diag_to_intrinsic(self.fov, (3840, 2160), (flowWidth, flowHeight))
+		flow = flow / self.dt
 
+		batched_flow = np.expand_dims(flow, axis=0).transpose(0, 3, 1, 2)
+		batch_lin_vel = np.expand_dims(self.linear_velocity[t], axis=0)
+		batch_ang_vel = np.expand_dims(self.angular_velocity[t], axis=0)
 
-		batched_flow = np.array(flows) / self.dt
-
-		batched_flow = np.transpose(batched_flow, (0, 3, 1, 2))
-
-		batch_lin_vel = self.linear_velocity[batch_inds]
-		batch_ang_vel = self.angular_velocity[batch_inds]
-		Zs, As, bs, derotating_flows, batch_ang_velc = depth_from_flow(batched_flow, batch_lin_vel, batch_ang_vel,
-																	   K,
-																	   self.depth_axis, self.correct_ang_vel)
-
+		Zs, As, bs, derotating_flows, batch_ang_velc = \
+			depth_from_flow(batched_flow, batch_lin_vel, batch_ang_vel, K, self.depth_axis, self.correct_ang_vel)
 		valid = filter_depth_from_flow(Zs, As, bs, derotating_flows, thresholds=self.thresholds)
+
 		Zs[~valid] = np.nan
-		Zs = Zs[0] # hopefully we won't waste batchSize -1 in the future
+		Zs = Zs[0]
 		depth_limits = (0, 400)
 		depth = np.clip(Zs.astype(np.float32), depth_limits[0], depth_limits[1])
 		depth = 1 - depth / depth_limits[1]
-
 		depth[~np.isfinite(depth)] = 0
-
 		return depth
-
 
 	def makeImage(self, x):
 		normalizer = mpl.colors.Normalize(vmin=0, vmax=1)
@@ -105,7 +82,6 @@ class DepthOdoFlow(Representation):
 		depth_to_image = lambda x: (mapper.to_rgba(x)[:, :, :3] * 255).astype(np.uint8)
 
 		y = depth_to_image(x['data'])
-		y = cv2.resize(y, (self.flowWidth, self.flowHeight))
 		return y
 
 	def setup(self):

@@ -11,5 +11,7 @@ gdown
 torch
 torchvision
 timm
+opencv-python
+tensorflow==2.5.0
 git+https://gitlab.com/neuralwrappers/nwdata.git#egg=nwdata
 git+https://gitlab.com/neuralwrappers/nwmodule.git#egg=nwmodule
