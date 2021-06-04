@@ -123,5 +123,5 @@ representations:
     method: raft
     dependencies: []
     parameters:
-      trainHeight: 1080
-      trainWidth: 1920
+      inputHeight: 1080
+      inputWidth: 1920
