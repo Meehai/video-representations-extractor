@@ -18,6 +18,8 @@ from .raft import RAFT
 class FlowRaft(Representation):
 	def __init__(self, baseDir, name, dependencies, video, outShape, inputWidth:int, inputHeight:int):
 		super().__init__(baseDir, name, dependencies, video, outShape)
+		# Pointless to upsample with bilinear, it's better we fix the video input.
+		assert video.shape[1] >= inputHeight and video.shape[2] >= inputWidth
 		self.model = None
 		self.weightsDir = fullPath(__file__).parents[2] / "weights/raft"
 		self.inputWidth = inputWidth
