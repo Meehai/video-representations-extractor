@@ -41,7 +41,7 @@ class FlowRaft(Representation):
 
 		if self.model is None:
 			model = torch.nn.DataParallel(RAFT(self))
-			model.load_state_dict(torch.load(raftThingsPath))
+			model.load_state_dict(torch.load(raftThingsPath, map_location=device))
 
 			model = model.module
 			model.to(device)
