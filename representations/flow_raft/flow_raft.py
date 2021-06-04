@@ -16,15 +16,14 @@ from .raft import RAFT
 
 
 class FlowRaft(Representation):
-	def __init__(self, baseDir, name, dependencies, video, outShape, outputWidth:int, outputHeight:int):
+	def __init__(self, baseDir, name, dependencies, video, outShape, inputWidth:int, inputHeight:int):
 		super().__init__(baseDir, name, dependencies, video, outShape)
 		self.model = None
 		self.weightsDir = fullPath(__file__).parents[2] / "weights/raft"
-		self.outputWidth = outputWidth
-		self.outputHeight = outputHeight
+		self.inputWidth = inputWidth
+		self.inputHeight = inputHeight
 
 		self.output_downsample_step = 2
-		self.input_resolution = (self.outputWidth, self.outputHeight)
 		self.small = False
 		self.mixed_precision = False
 
@@ -53,8 +52,8 @@ class FlowRaft(Representation):
 		frame1 = self.video[t]
 		frame2 = self.video[t + 1] if t < len(self.video) - 2 else frame1.copy()
 
-		frame1 = imgResize(frame1, height=self.outputHeight, width=self.outputWidth, interpolation="bilinear")
-		frame2 = imgResize(frame2, height=self.outputHeight, width=self.outputWidth, interpolation="bilinear")
+		frame1 = imgResize(frame1, height=self.inputHeight, width=self.inputWidth, interpolation="bilinear")
+		frame2 = imgResize(frame2, height=self.inputHeight, width=self.inputWidth, interpolation="bilinear")
 
 		# Convert, preprocess & pad
 		frame1 = torch.from_numpy(np.transpose(frame1, (2,0,1))).to(device, non_blocking=True).unsqueeze(0).float()

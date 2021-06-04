@@ -15,8 +15,8 @@ representations:
     method: raft
     dependencies: []
     parameters:
-      outputWidth: 1920
-      outputHeight: 1080
+      inputWidth: 1920
+      inputHeight: 1080
 
   depth3:
     method: depth-odo-flow

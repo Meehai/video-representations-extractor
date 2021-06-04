@@ -31,6 +31,10 @@ class DepthOdoFlow(Representation):
 				tag_angular_velocity = 'angular_velocity_c'
 		self.linear_velocity = self.velocities[tag_linear_velocity]
 		self.angular_velocity = self.velocities[tag_angular_velocity]
+		assert len(self.linear_velocity) == len(self.video), "%d vs %d" % \
+			(self.linear_velocity.shape, len(self.video))
+		assert len(self.angular_velocity) == len(self.video), "%d vs %d" % \
+			(self.angular_velocity.shape, len(self.video))
 		self.depth_axis = depth_axis
 		self.flowDirection = flowDirection
 		self.correct_ang_vel = correct_ang_vel
