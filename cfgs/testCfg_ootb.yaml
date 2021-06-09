@@ -1,0 +1,63 @@
+rgb:
+  method: rgb
+  dependencies: []
+  parameters: null
+
+hsv:
+  method: hsv
+  dependencies: []
+  parameters: null
+
+halftone1:
+  method: python-halftone
+  dependencies: []
+  parameters:
+    sample: 3
+    scale: 1
+    percentage: 91
+    angles: [0, 15, 30, 45]
+    antialias: False
+    resolution: 240,426
+
+edges1:
+  method: dexined
+  dependencies: []
+  parameters: null
+
+edges2:
+  method: canny
+  dependencies: []
+  parameters:
+    threshold1: 150
+    threshold2: 200
+    apertureSize: 3
+    L2gradient: False
+
+softseg1:
+  method: kmeans
+  dependencies: []
+  parameters:
+    nClusters: 6
+    epsilon: 2
+    maxIterations: 10
+    attempts: 3
+
+depth1:
+  method: dpt
+  dependencies: []
+  parameters:
+    trainHeight: 256
+    trainWidth: 448
+
+opticalflow1:
+  method: rife
+  dependencies: []
+  parameters:
+    computeBackwardFlow: False
+
+opticalflow2:
+  method: raft
+  dependencies: []
+  parameters:
+    inputHeight: 720
+    inputWidth: 1280

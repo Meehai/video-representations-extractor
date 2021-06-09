@@ -21,6 +21,9 @@ def getRepresentation(method:str) -> Representation:
     elif method == "rife":
         from .flow_rife import FlowRife
         objType = FlowRife
+    elif method == "raft":
+        from .flow_raft import FlowRaft
+        objType = FlowRaft
     elif method == "depth-odo-flow":
         from .depth_odo_flow import DepthOdoFlow
         objType = DepthOdoFlow
