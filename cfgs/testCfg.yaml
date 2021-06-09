@@ -1,108 +1,106 @@
-resolution: 240,426
-representations:
-  rgb:
-    method: rgb
-    dependencies: []
-    parameters: null
+rgb:
+  method: rgb
+  dependencies: []
+  parameters: null
 
-  hsv:
-    method: hsv
-    dependencies: []
-    parameters: null
+hsv:
+  method: hsv
+  dependencies: []
+  parameters: null
 
-  halftone1:
-    method: python-halftone
-    dependencies: []
-    parameters:
-      sample: 3
-      scale: 1
-      percentage: 91
-      angles: [0, 15, 30, 45]
-      antialias: False
-      resolution: 240,426
+halftone1:
+  method: python-halftone
+  dependencies: []
+  parameters:
+    sample: 3
+    scale: 1
+    percentage: 91
+    angles: [0, 15, 30, 45]
+    antialias: False
+    resolution: 240,426
 
-  edges2:
-    method: canny
-    dependencies: []
-    parameters:
-      threshold1: 150
-      threshold2: 200
-      apertureSize: 3
-      L2gradient: False
+edges2:
+  method: canny
+  dependencies: []
+  parameters:
+    threshold1: 150
+    threshold2: 200
+    apertureSize: 3
+    L2gradient: False
 
-  softseg1:
-    method: kmeans
-    dependencies: []
-    parameters:
-      nClusters: 6
-      epsilon: 2
-      maxIterations: 10
-      attempts: 3
+softseg1:
+  method: kmeans
+  dependencies: []
+  parameters:
+    nClusters: 6
+    epsilon: 2
+    maxIterations: 10
+    attempts: 3
 
-  edges1:
-    method: dexined
-    dependencies: []
-    parameters: null
+edges1:
+  method: dexined
+  dependencies: []
+  parameters: null
 
-  depth1:
-    method: dpt
-    dependencies: []
-    parameters:
-      trainHeight: 256
-      trainWidth: 448
+depth1:
+  method: dpt
+  dependencies: []
+  parameters:
+    trainHeight: 256
+    trainWidth: 448
 
-  opticalflow1:
-    method: rife
-    dependencies: []
-    parameters:
-      computeBackwardFlow: False
+opticalflow1:
+  method: rife
+  dependencies: []
+  parameters:
+    computeBackwardFlow: False
 
-  depth2:
-    method: depth-dispresnet
-    dependencies: []
-    parameters:
-      weightsFile: weights/dispnet_checkpoint.pth.tar
-      resNetLayers: 18
-      trainHeight: 256
-      trainWidth: 448
-      minDepth: 0
-      maxDepth: 2
+depth2:
+  method: depth-dispresnet
+  dependencies: []
+  parameters:
+    weightsFile: weights/dispnet_checkpoint.pth.tar
+    resNetLayers: 18
+    trainHeight: 256
+    trainWidth: 448
+    minDepth: 0
+    maxDepth: 2
 
-  # semantic1:
-  #   method: semantic-safeuav-keras
-  #   dependencies: []
-  #   parameters:
-  #     weightsFile: weights/EPOCH_13_TRAIN_loss_0.05107_dice_0.9654_VALID_loss_0.19600_dice_0.8877.hdf5
-  #     init_nb: 24
-  #     trainHeight: 1080
-  #     trainWidth: 1920
-  #     numClasses: 12
-  #     colorMap: [
-  #       [0, 255, 0], [0, 127, 0], [255, 255, 0], [255, 127, 0], [255, 255, 255], [255, 0, 255],
-  #       [127, 127, 127], [0, 0, 255], [0, 255, 255], [127, 127, 63], [255, 0, 0], [127, 127, 0]
-  #     ]
+# semantic1:
+#   method: semantic-safeuav-keras
+#   dependencies: []
+#   parameters:
+#     weightsFile: weights/EPOCH_13_TRAIN_loss_0.05107_dice_0.9654_VALID_loss_0.19600_dice_0.8877.hdf5
+#     init_nb: 24
+#     trainHeight: 1080
+#     trainWidth: 1920
+#     numClasses: 12
+#     colorMap: [
+#       [0, 255, 0], [0, 127, 0], [255, 255, 0], [255, 127, 0], [255, 255, 255], [255, 0, 255],
+#       [127, 127, 127], [0, 0, 255], [0, 255, 255], [127, 127, 63], [255, 0, 0], [127, 127, 0]
+#     ]
 
-  # semantic2:
-  #   method: semantic-safeuav
-  #   dependencies: []
-  #   parameters:
-  #     weightsFile: weights/safeuav_semantic_0056.pkl
-  #     trainHeight: 240
-  #     trainWidth: 426
-  #     numClasses: 11
-  #     colorMap: [
-  #       [0, 255, 0], [0, 127, 0], [255, 255, 0], [255, 255, 255], [255, 0, 255],
-  #       [127, 127, 127], [0, 0, 255], [0, 255, 255], [127, 127, 63], [255, 0, 0], [127, 127, 0]
-  #     ]
+# semantic2:
+#   method: semantic-safeuav
+#   dependencies: []
+#   parameters:
+#     weightsFile: weights/safeuav_semantic_0056.pkl
+#     trainHeight: 240
+#     trainWidth: 426
+#     numClasses: 11
+#     colorMap: [
+#       [0, 255, 0], [0, 127, 0], [255, 255, 0], [255, 255, 255], [255, 0, 255],
+#       [127, 127, 127], [0, 0, 255], [0, 255, 255], [127, 127, 63], [255, 0, 0], [127, 127, 0]
+#     ]
 
-  depth3:
-    method: depth-odo-flow
-    dependencies: [ opticalflow1 ]
-    parameters:
-        velocitiesPath: weights/DJI_0956-003.npz
-        velocitiesType: gt_direct
-        depth_axis: xy
-        flowDirection: forward
-        correct_ang_vel: True
-        half_size: True
-        fov: 75
+depth3:
+  method: depth-odo-flow
+  dependencies: [ opticalflow1 ]
+  parameters:
+      velocitiesPath: weights/DJI_0956-003.npz
+      velocitiesType: gt_direct
+      depth_axis: xy
+      flowDirection: forward
+      correct_ang_vel: True
+      half_size: True
+      fov: 75
