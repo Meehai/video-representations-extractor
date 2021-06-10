@@ -58,7 +58,8 @@ class DepthDispResNet(Representation):
 		return y
 
 	def makeImage(self, x):
-		y = hot(x["data"])[..., 0:3]
+		y = x["data"] / x["data"].max()
+		y = hot(y)[..., 0:3]
 		y = np.uint8(y * 255)
 		return y
 

@@ -69,21 +69,17 @@ class DepthDpt(Representation):
 	def make(self, t:int) -> np.ndarray:
 		x = self.video[t]
 		img_input = self.transform({"image": x / 255.})["image"]
-		# print('tile shape postproc', img_input.shape)
 		# compute
 		with torch.no_grad():
 			sample = torch.from_numpy(img_input).to(device).unsqueeze(0)
 			prediction = self.model.forward(sample).squeeze(dim=1)
-			# breakpoint()
-			# prediction = F.interpolate(prediction, size=x.shape[0:2], mode="bicubic", align_corners=False)
 			prediction = prediction.squeeze().cpu().numpy()
-
-			depth_min = prediction.min()
-			depth_max = prediction.max()
-			prediction = (prediction - depth_min) / (depth_max - depth_min)
+			prediction = 1 / prediction
+			prediction = np.clip(prediction, 0, 1)
 		return prediction
 
 	def makeImage(self, x):
-		y = hot(x["data"])[..., 0:3]
+		y = x["data"] / x["data"].max()
+		y = hot(y)[..., 0 : 3]
 		y = np.uint8(y * 255)
 		return y

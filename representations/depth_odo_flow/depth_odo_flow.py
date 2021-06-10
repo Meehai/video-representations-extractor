@@ -1,12 +1,9 @@
 import numpy as np
-import matplotlib as mpl
-import matplotlib.cm as cm
-import matplotlib.pyplot as plt
+from matplotlib.cm import hot
 
 from .cam import fov_diag_to_intrinsic
 from .utils import depth_from_flow, filter_depth_from_flow
 from ..representation import Representation
-
 
 class DepthOdoFlow(Representation):
 	def __init__(self, baseDir, name, dependencies, video, outShape, velocitiesPath:str, velocitiesType:str, \
@@ -74,18 +71,17 @@ class DepthOdoFlow(Representation):
 		Zs = Zs[0]
 		depth_limits = (0, 400)
 		depth = np.clip(Zs.astype(np.float32), depth_limits[0], depth_limits[1])
-		depth = 1 - depth / depth_limits[1]
+		depth = depth / depth_limits[1]
 		depth[~np.isfinite(depth)] = 0
 		return depth
 
 	def makeImage(self, x):
-		normalizer = mpl.colors.Normalize(vmin=0, vmax=1)
-		cmap = plt.get_cmap("hot")
-		cmap.set_bad(color=(0.0, 0.0, 0.0, 1.0))
-		mapper = cm.ScalarMappable(norm=normalizer, cmap=cmap)
-		depth_to_image = lambda x: (mapper.to_rgba(x)[:, :, :3] * 255).astype(np.uint8)
-
-		y = depth_to_image(x['data'])
+		Where = np.where(x["data"] == 0)
+		y = x["data"]
+		assert y.min() >= 0 and y.max() <= 1
+		y = hot(y)[..., 0:3]
+		y = np.uint8(y * 255)
+		y[Where] = [0, 0, 0]
 		return y
 
 	def setup(self):
