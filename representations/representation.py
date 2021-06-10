@@ -41,7 +41,12 @@ class Representation(ABC):
     def __getitem__(self, t:int) -> Dict[str, np.ndarray]:
         path = fullPath(self.baseDir / self.name / ("%d.npz" % t))
         try:
-            result = np.load(path, allow_pickle=True)["arr_0"].item()
+            result = np.load(path, allow_pickle=True)["arr_0"]
+            # Support for legacy storing only the array, not raw results.
+            if result.dtype != np.object:
+                result = {"data":result, "rawData":result, "extra":{}}
+            else:
+                result = result.item()
         except Exception:
             self.setup()
             rawResult = self.make(t)
@@ -69,5 +74,5 @@ class Representation(ABC):
         assert data.shape[0] == self.outShape[0] and data.shape[1] == self.outShape[1], \
             "%s vs %s" % (data.shape, self.outShape)
         assert data.dtype in (np.float32, np.uint8) and data.min() >= 0 and data.max() <= 1, \
-            "%s: Dtype: %s. Min: %2.2f. Max: %2.2f" % (self, data.dtype, data.min(), data.max())
+            "%s: Dtype: %s. Min: %2.2f. Max: %2.2f" % (self.name, data.dtype, data.min(), data.max())
         return result

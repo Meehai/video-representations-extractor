@@ -56,7 +56,7 @@ class VideoRepresentationsExporter:
 		else:
 			assert rowsCols is None
 			r, c = getSquareRowsColumns(N)
-		assert r * c <= N
+		assert r * c >= N
 		# Add black images if needed
 		result = np.zeros((r * c, *imageShape), dtype=np.uint8)
 		result[0 : N] = images

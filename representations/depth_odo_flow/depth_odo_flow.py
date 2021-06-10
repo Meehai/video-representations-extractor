@@ -72,11 +72,11 @@ class DepthOdoFlow(Representation):
 		depth_limits = (0, 400)
 		depth = np.clip(Zs.astype(np.float32), depth_limits[0], depth_limits[1])
 		depth = depth / depth_limits[1]
-		depth[~np.isfinite(depth)] = 0
+		depth[~np.isfinite(depth)] = 1
 		return depth
 
 	def makeImage(self, x):
-		Where = np.where(x["data"] == 0)
+		Where = np.where(x["data"] == 1)
 		y = x["data"]
 		assert y.min() >= 0 and y.max() <= 1
 		y = hot(y)[..., 0:3]
