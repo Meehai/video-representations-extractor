@@ -5,11 +5,11 @@ from functools import partial
 from typing import Dict, Tuple
 from pathlib import Path
 from collections import OrderedDict
-from nwdata.utils import topologicalSort
-from media_processing_lib.image import tryWriteImage
+from nwdata.utils import topologicalSort, fullPath
 from media_processing_lib.video import MPLVideo
 
 from representations import getRepresentation
+from video_representations_exporter import VideoRepresentationsExporter
 
 def validateCfg(cfg):
 	for name in cfg:
@@ -18,30 +18,6 @@ def validateCfg(cfg):
 		assert "method" in representation
 		assert "dependencies" in representation
 		assert "parameters" in representation
-
-# Given a stack of N images, find the closest square X>=N*N and then remove rows 1 by 1 until it still fits X
-# Example: 9: 3*3; 12 -> 3*3 -> 3*4 (3 rows). 65 -> 8*8 -> 8*9. 73 -> 8*8 -> 8*9 -> 9*9
-def makeCollage(images):
-	N = len(images)
-	imageShape = images[0].shape
-	x = int(np.sqrt(N))
-	r, c = x, x
-	# There are only 2 rows possible between x^2 and (x+1)^2 because (x+1)^2 = x^2 + 2*x + 1, thus we can add 2 columns
-	#  at most. If a 3rd column is needed, then closest lower bound is (x+1)^2 and we must use that.
-	if c * r < N:
-		c += 1
-	if c * r < N:
-		r += 1
-	assert (c + 1) * r > N and c * (r + 1) > N
-	images = np.array(images)
-	assert images.dtype == np.uint8
-
-	# Add black images if needed
-	result = np.zeros((r * c, *imageShape), dtype=np.uint8)
-	result[0 : N] = images
-	result = result.reshape((r, c, *imageShape))
-	result = np.concatenate(np.concatenate(result, axis=1), axis=1)
-	return result
 
 def topoSortRepresentations(representations):
 	depGraph = {k : representations[k]["dependencies"] for k in representations}
@@ -74,6 +50,7 @@ def makeOutputDirs(cfg:Dict, outputDir:Path, outputResolution:Tuple[int,int], ex
 def doExport(video:MPLVideo, cfg:Dict, outputDir:Path, outputResolution:Tuple[int, int], \
 	exportCollage:bool, N:int=None, skip:int=None):
 	validateCfg(cfg)
+	outputDir = fullPath(outputDir)
 	makeOutputDirs(cfg, outputDir, outputResolution, exportCollage)
 
 	skip = 0 if skip is None else skip
@@ -86,7 +63,7 @@ def doExport(video:MPLVideo, cfg:Dict, outputDir:Path, outputResolution:Tuple[in
 		len(representations), N, skip, outputDir, outputResolution))
 
 	# Instantiating objects in correct oder
-	tsr = {}
+	tsr = OrderedDict()
 	for name in topoSortedRepresentations:
 		r = representations[name]
 		dependencies = {k : tsr[k] for k in r["dependencies"]}
@@ -97,14 +74,6 @@ def doExport(video:MPLVideo, cfg:Dict, outputDir:Path, outputResolution:Tuple[in
 		tsr[name] = obj
 
 	startIx, endIx = skip, skip + N
-	for t in trange(startIx, endIx):
-		finalOutputs, resizedImages = {}, {}
-		for name, representation in tsr.items():
-			finalOutputs[name] = representation[t]
-	
-		if exportCollage:
-			notTopoSortedNames = list(cfg.keys())
-			images = [tsr[k].makeImage(finalOutputs[k]) for k in notTopoSortedNames]
-			images = makeCollage(images)
-			outImagePath = outputDir / "collage" / ("%d.png" % t)
-			tryWriteImage(images, str(outImagePath))
+	notTopoSortedNames = list(cfg.keys())
+	vre = VideoRepresentationsExporter(tsr, exportCollage, outputDir / "collage", notTopoSortedNames)
+	vre.doExport(startIx, endIx)
