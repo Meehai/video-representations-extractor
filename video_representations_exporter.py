@@ -12,12 +12,16 @@ class VideoRepresentationsExporter:
 	def __init__(self, representations:Dict[str, Representation], exportCollage:bool, \
         collageOutputDir:Optional[Path]=None, collageOrder:Optional[List[str]]=None):
 		assert len(representations) > 0
+		firstKey = list(representations.keys())[0]
 		self.representations = representations
 		self.exportCollage = exportCollage
+		self.video = self.representations[firstKey].video
+		self.outputResolution = self.representations[firstKey].outShape
+		self.outputDir = self.representations[firstKey].baseDir
 		if exportCollage:
 			assert not collageOutputDir is None
 			if collageOutputDir is None:
-				collageOutputDir = representations[0].baseDir / "collage"
+				collageOutputDir = self.outputDir / "collage"
 			if collageOrder is None:
 				collageOrder = list(representations.keys())
 			self.collageOutputDir = collageOutputDir
@@ -53,6 +57,12 @@ class VideoRepresentationsExporter:
 		return result
 
 	def doExport(self, startIx:int, endIx:int):
+		print(("[VideoRepresentationsExporter::doExport] Video: %s. Start frame: %d. End frame: %d. Output dir: " + \
+			"%s. Output resolution: %s") % (self.video, startIx, endIx, self.outputDir, self.outputResolution))
+		nameRepresentations = ", ".join(["'%s'" % x.name for x in self.representations.values()])
+		print("[VideoRepresentationsExporter::doExport] Representations (%d): %s" % \
+			(len(self.representations), nameRepresentations))
+
 		assert startIx < endIx and startIx >= 0
 		for t in trange(startIx, endIx, desc="[VideoRepresentationsExporter::doExport]"):
 			finalOutputs = {}

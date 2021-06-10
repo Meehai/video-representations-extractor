@@ -58,9 +58,6 @@ def doExport(video:MPLVideo, cfg:Dict, outputDir:Path, outputResolution:Tuple[in
 	assert N > 0
 	representations = cfg
 	topoSortedRepresentations = topoSortRepresentations(representations)
-	print(("[Video-Representations-Exporter::doExport] Video: %s. Num representations: %d." + \
-		" Num frames to be exported: %d. Skipping first %d frames. Output dir: %s. Output resolution: %s") % (video, \
-		len(representations), N, skip, outputDir, outputResolution))
 
 	# Instantiating objects in correct oder
 	tsr = OrderedDict()
