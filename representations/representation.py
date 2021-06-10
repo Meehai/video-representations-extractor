@@ -40,9 +40,9 @@ class Representation(ABC):
     @lru_cache(maxsize=32)
     def __getitem__(self, t:int) -> Dict[str, np.ndarray]:
         path = fullPath(self.baseDir / self.name / ("%d.npz" % t))
-        if path.exists():
+        try:
             result = np.load(path, allow_pickle=True)["arr_0"].item()
-        else:
+        except Exception:
             self.setup()
             rawResult = self.make(t)
             if isinstance(rawResult, np.ndarray):
