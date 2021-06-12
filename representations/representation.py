@@ -39,6 +39,8 @@ class Representation(ABC):
 
     @lru_cache(maxsize=32)
     def __getitem__(self, t:int) -> Dict[str, np.ndarray]:
+        t = t in t >= 0 else len(self.video) - t
+        assert t >= 0
         path = fullPath(self.baseDir / self.name / ("%d.npz" % t))
         try:
             result = np.load(path, allow_pickle=True)["arr_0"]

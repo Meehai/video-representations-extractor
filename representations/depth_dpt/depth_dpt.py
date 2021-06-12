@@ -75,11 +75,12 @@ class DepthDpt(Representation):
 			prediction = self.model.forward(sample).squeeze(dim=1)
 			prediction = prediction.squeeze().cpu().numpy()
 			prediction = 1 / prediction
+
 			prediction = np.clip(prediction, 0, 1)
 		return prediction
 
 	def makeImage(self, x):
-		y = x["data"] / x["data"].max()
+		y = x["data"]
 		y = hot(y)[..., 0 : 3]
 		y = np.uint8(y * 255)
 		return y
