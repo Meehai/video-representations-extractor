@@ -18,26 +18,16 @@ class DepthNormals(Representation):
         self.max_dist = maxDistance if maxDistance is not None else -1
         self.min_valid = minValidCount if minValidCount is not None else 0
 
-        self.sampling_grid = None
-        self.normalized_grid = None
-        self.K = None
-
         assert len(dependencies) == 1, "Expected one depth method!"
         self.depth = dependencies[list(dependencies.keys())[0]]
 
+        depthHeight, depthWidth = self.depth[0]["rawData"].shape[:2]
+        self.sampling_grid = get_sampling_grid(depthWidth, depthHeight, self.window_size)
+        self.K = fov_diag_to_intrinsic(self.fov, (3840, 2160), (depthWidth, depthHeight))
+        self.normalized_grid = get_normalized_coords(depthWidth, depthHeight, self.K)
+
     def make(self, t:int):
         depth = self.depth[t]["rawData"]
-        depthHeight, depthWidth = depth.shape[0:2]
-
-        if self.sampling_grid is None:
-            self.sampling_grid = get_sampling_grid(depthWidth, depthHeight, self.window_size)
-
-        if self.K is None:
-            self.K = fov_diag_to_intrinsic(self.fov, (3840, 2160), (depthWidth, depthHeight))
-
-        if self.normalized_grid is None:
-            self.normalized_grid = get_normalized_coords(depthWidth, depthHeight, self.K)
-
         normals = depth_to_normals(depth, self.sampling_grid, self.normalized_grid, self.max_dist, self.min_valid)
         normals = (normals.astype(np.float32) + 1) / 2
         return normals
