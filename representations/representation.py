@@ -12,7 +12,7 @@ from nwdata.utils import fullPath
 class Representation(ABC):
     def __init__(self, baseDir:Path, name:str, dependencies:Dict[str, Representation], \
         video:MPLVideo, outShape:Tuple[int, int]):
-        self.baseDir = baseDir
+        self.baseDir = fullPath(baseDir)
         self.name = name
         self.video = video
         self.dependencies = dependencies
@@ -39,9 +39,9 @@ class Representation(ABC):
 
     @lru_cache(maxsize=32)
     def __getitem__(self, t:int) -> Dict[str, np.ndarray]:
-        t = t in t >= 0 else len(self.video) - t
-        assert t >= 0
+        t = t % len(self.video)
         path = fullPath(self.baseDir / self.name / ("%d.npz" % t))
+        assert t >= 0 and t < len(self.video)
         try:
             result = np.load(path, allow_pickle=True)["arr_0"]
             # Support for legacy storing only the array, not raw results.
@@ -49,6 +49,8 @@ class Representation(ABC):
                 result = {"data":result, "rawData":result, "extra":{}}
             else:
                 result = result.item()
+            result["data"] = result["data"][0] if result["data"].shape[0] == 1 else result["data"]
+            result["data"] = result["data"][..., 0] if result["data"].shape[-1] == 1 else result["data"]
         except Exception:
             self.setup()
             rawResult = self.make(t)

@@ -18,7 +18,7 @@ class VideoRepresentationsExporter:
 		self.exportCollage = exportCollage
 		self.video = self.representations[firstKey].video
 		self.outputResolution = self.representations[firstKey].outShape
-		self.outputDir = self.representations[firstKey].baseDir
+		self.outputDir = Path(self.representations[firstKey].baseDir)
 		self.rowsCols = rowsCols
 		if exportCollage:
 			assert not collageOutputDir is None
@@ -26,7 +26,7 @@ class VideoRepresentationsExporter:
 				collageOutputDir = self.outputDir / "collage"
 			if collageOrder is None:
 				collageOrder = list(representations.keys())
-			self.collageOutputDir = collageOutputDir
+			self.collageOutputDir = Path(collageOutputDir)
 			self.collageOrder = collageOrder
 	
 	# Given a stack of N images, find the closest square X>=N*N and then remove rows 1 by 1 until it still fits X
@@ -64,7 +64,9 @@ class VideoRepresentationsExporter:
 		result = np.concatenate(np.concatenate(result, axis=1), axis=1)
 		return result
 
-	def doExport(self, startIx:int, endIx:int):
+	def doExport(self, startIx:int=0, endIx:int=None):
+		if endIx is None:
+			endIx = len(self.video)
 		print(("[VideoRepresentationsExporter::doExport] Video: %s. Start frame: %d. End frame: %d. Output dir: " + \
 			"%s. Output resolution: %s") % (self.video, startIx, endIx, self.outputDir, self.outputResolution))
 		nameRepresentations = ", ".join(["'%s'" % x.name for x in self.representations.values()])
