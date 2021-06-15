@@ -10,13 +10,13 @@ from .utils import get_sampling_grid, get_normalized_coords, depth_to_normals
 
 class DepthNormals(Representation):
     def __init__(self, baseDir:Path, name:str, dependencies:List, video:MPLVideo, outShape:Tuple[int, int],
-                 fov:int, windowSize:int, maxDistance:float, minValidCount:int):
+                 fov:int, windowSize:int, maxDistance:float=None, minValidCount:int=None):
         super().__init__(baseDir, name, dependencies, video, outShape)
         self.fov = fov
         assert windowSize % 2 == 1, "Expected odd window size!"
         self.window_size = windowSize
-        self.max_dist = maxDistance
-        self.min_valid = minValidCount
+        self.max_dist = maxDistance if maxDistance is not None else -1
+        self.min_valid = minValidCount if minValidCount is not None else 0
 
         self.sampling_grid = None
         self.normalized_grid = None
@@ -38,8 +38,7 @@ class DepthNormals(Representation):
         if self.normalized_grid is None:
             self.normalized_grid = get_normalized_coords(depthWidth, depthHeight, self.K)
 
-        depth_limits = (0, 400)
-        normals = depth_to_normals(depth * depth_limits[1], self.sampling_grid, self.normalized_grid, self.max_dist, self.min_valid)
+        normals = depth_to_normals(depth, self.sampling_grid, self.normalized_grid, self.max_dist, self.min_valid)
         normals = (normals.astype(np.float32) + 1) / 2
         return normals
 
