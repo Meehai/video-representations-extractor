@@ -37,7 +37,7 @@ Weights repository for pretrained networks is [here](https://drive.google.com/dr
 
 ## 2. Usage
 
-`python main.py --videoPath /path/to/mp4 --cfgPath /path/to/cfg.yaml --outputDir /path/to/outputDir [--N n]`
+`python main.py --videoPath /path/to/mp4 --cfgPath /path/to/cfg.yaml --outputDir /path/to/outputDir [--skip skip] [--N n]`
 
 The optional parameter N can be used in order to compute the first N frames of the video for debugging purposes.
 
