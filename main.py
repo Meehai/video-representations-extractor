@@ -34,7 +34,8 @@ def main():
 
 	representations = args.cfg
 	vre = VideoRepresentationsExtractor(video, args.outputDir, args.outputResolution, representations, False)
-	vre.doExport(startIx, endIx)
+	endIx = len(video) - args.skip if args.N is None else min(len(video) - args.skip, args.N)
+	vre.doExport(args.skip, endIx)
 
 	# doExport(video, args.cfg, args.outputDir, args.outputResolution, args.exportCollage, args.N, args.skip)
 

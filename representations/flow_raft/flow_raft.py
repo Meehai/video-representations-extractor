@@ -29,8 +29,8 @@ class FlowRaft(Representation):
 
 	def setup(self):
 		# Pointless to upsample with bilinear, it's better we fix the video input.
-		assert self.video.shape[1] >= inputHeight and self.video.shape[2] >= inputWidth, "%s vs %dx%d" \
-			% (self.video.shape, inputHeight, inputWidth)
+		assert self.video.shape[1] >= self.inputHeight and self.video.shape[2] >= self.inputWidth, "%s vs %dx%d" \
+			% (self.video.shape, self.inputHeight, self.inputWidth)
 		self.weightsDir.mkdir(exist_ok=True)
 
 		# original files

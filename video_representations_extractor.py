@@ -34,6 +34,7 @@ def makeOutputDirs(cfg:Dict, outputDir:Path, outputResolution:Tuple[int,int], ex
 			yaml.safe_dump(thisCfg, open(thisCfgPath, "w"))
 
 def topoSortRepresentations(representations:Dict[str, Union[str, Representation]]) -> List[str]:
+	print("[VideoRepresentationsExtractor::topoSortRepresentations] Doing topological sort...")
 	depGraph = {}
 	for k in representations:
 		if isinstance(representations[k], Representation):
@@ -55,24 +56,6 @@ def getSquareRowsColumns(N):
 		r += 1
 	assert (c + 1) * r > N and c * (r + 1) > N
 	return r, c
-
-def doInstantiation(representations:Dict[str, Union[str, Representation]]) -> Dict[str, Representation]:
-	res = {}
-	for name in representations:
-		r = representations[name]
-		if isinstance(r, Representation):
-			print("[doInstantation] Representation='%s' already instantiated. Skipping." % name)
-			obj = r
-		else:
-			assert isinstance(r, dict)
-			print("[doInstantation] Representation='%s'. Instantiating..." % name)
-
-			dependencies = {k : res[k] for k in r["dependencies"]}
-			objType = getRepresentation(r["method"])
-			objType = partial(objType, name=name, dependencies=dependencies)
-			obj = objType(**r["parameters"]) if not r["parameters"] is None else objType()
-		res[name] = obj
-	return res
 
 class VideoRepresentationsExtractor:
 	# @param[in] representations An not topological sorted ordered dict (name, obj/str). If they are str, we assume
@@ -97,9 +80,30 @@ class VideoRepresentationsExtractor:
 		self.collageOrder = collageOrder = list(representations.keys())
 
 		# Topo sorted and not topo sorted representations (for collage)
-		self.tsr = doInstantiation(topoSortedRepresentations)
+		self.tsr = self.doInstantiation(topoSortedRepresentations)
 		self.representations = {k : self.tsr[k] for k in representations}
-		breakpoint()
+
+	def doInstantiation(self, topoSortedRepresentations) -> Dict[str, Representation]:
+		res = {}
+		for name in topoSortedRepresentations:
+			r = topoSortedRepresentations[name]
+			if isinstance(r, Representation):
+				print(("[VideoRepresentationsExtractor::doInstantation] Representation='%s' already ") + \
+					("instantiated. Skipping.") % name)
+				obj = r
+			else:
+				assert isinstance(r, dict)
+				print("[VideoRepresentationsExtractor::doInstantation] Representation='%s'. Instantiating..." % name)
+
+				dependencies = {k : res[k] for k in r["dependencies"]}
+				objType = getRepresentation(r["method"])
+				objType = partial(objType, name=name, dependencies=dependencies)
+				obj = objType(**r["parameters"]) if not r["parameters"] is None else objType()
+			obj.setVideo(self.video)
+			obj.setBaseDir(self.outputDir)
+			obj.setOutShape(self.outputResolution)
+			res[name] = obj
+		return res
 
 	# Given a stack of N images, find the closest square X>=N*N and then remove rows 1 by 1 until it still fits X
 	# Example: 9: 3*3; 12 -> 3*3 -> 3*4 (3 rows). 65 -> 8*8 -> 8*9. 73 -> 8*8 -> 8*9 -> 9*9
@@ -127,8 +131,9 @@ class VideoRepresentationsExtractor:
 	def doExport(self, startIx:int=0, endIx:int=None):
 		if endIx is None:
 			endIx = len(self.video)
-		print(("[VideoRepresentationsExtractor::doExport] Video: %s. Start frame: %d. End frame: %d. Output dir: " + \
-			"%s. Output resolution: %s") % (self.video, startIx, endIx, self.outputDir, self.outputResolution))
+		print(("[VideoRepresentationsExtractor::doExport]\n - Video: %s \n - Start frame: %d. End frame: %d " + \
+			"\n - Output dir: %s \n - Output resolution: %s") % \
+			(self.video, startIx, endIx, self.outputDir, self.outputResolution))
 		nameRepresentations = ", ".join(["'%s'" % x.name for x in self.representations.values()])
 		print("[VideoRepresentationsExtractor::doExport] Representations (%d): %s" % \
 			(len(self.representations), nameRepresentations))
@@ -136,7 +141,7 @@ class VideoRepresentationsExtractor:
 		assert startIx < endIx and startIx >= 0
 		for t in trange(startIx, endIx, desc="[VideoRepresentationsExtractor::doExport]"):
 			finalOutputs = {}
-			for name, representation in self.representations.items():
+			for name, representation in self.tsr.items():
 				finalOutputs[name] = representation[t]
 		
 			if self.exportCollage:
