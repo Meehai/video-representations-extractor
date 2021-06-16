@@ -9,7 +9,7 @@ from nwdata.utils import topologicalSort, fullPath
 from media_processing_lib.video import MPLVideo
 
 from representations import getRepresentation
-from video_representations_exporter import VideoRepresentationsExporter
+from video_representations_extractor import VideoRepresentationsExtractor
 
 def validateCfg(cfg):
 	for name in cfg:
@@ -39,9 +39,9 @@ def makeOutputDirs(cfg:Dict, outputDir:Path, outputResolution:Tuple[int,int], ex
 		Dir = outputDir / name
 		thisCfgFile = Dir / "cfg.yaml"
 		values["outputResolution"] = outputResolution
-		if Dir.exists():
+		if Dir.exists() and thisCfgFile.exists():
 			loadedCfg = yaml.safe_load(open(thisCfgFile, "r"))
-			assert loadedCfg == values, "Wrong cfg file. Loaded: %s. This: %s" % (loadedCfg, values)
+			assert loadedCfg == values, "Wrong cfg file.\n - Loaded: %s.\n - This: %s" % (loadedCfg, values)
 			N = len([x for x in Dir.glob("*.npz")])
 		else:
 			Dir.mkdir(exist_ok=True)
@@ -72,5 +72,5 @@ def doExport(video:MPLVideo, cfg:Dict, outputDir:Path, outputResolution:Tuple[in
 
 	startIx, endIx = skip, skip + N
 	notTopoSortedNames = list(cfg.keys())
-	vre = VideoRepresentationsExporter(tsr, exportCollage, outputDir / "collage", notTopoSortedNames)
+	vre = VideoRepresentationsExtractor(tsr, exportCollage, outputDir / "collage", notTopoSortedNames)
 	vre.doExport(startIx, endIx)

@@ -61,3 +61,10 @@ opticalflow2:
   parameters:
     inputHeight: 720
     inputWidth: 1280
+
+normals1:
+  method: depth-normals-svd
+  dependencies: [depth1]
+  parameters:
+    fov: 75
+    windowSize: 11

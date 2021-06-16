@@ -8,7 +8,7 @@ from representations.representation import Representation
 from .utils import get_sampling_grid, get_normalized_coords, depth_to_normals
 
 
-class DepthNormals(Representation):
+class DepthNormalsSVD(Representation):
     def __init__(self, baseDir:Path, name:str, dependencies:List, video:MPLVideo, outShape:Tuple[int, int],
                  fov:int, windowSize:int, maxDistance:float=None, minValidCount:int=None):
         super().__init__(baseDir, name, dependencies, video, outShape)

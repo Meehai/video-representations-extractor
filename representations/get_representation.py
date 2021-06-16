@@ -43,9 +43,9 @@ def getRepresentation(method:str) -> Representation:
     elif method == "depth-dispresnet":
         from .depth_dispresnet import DepthDispResNet
         objType = DepthDispResNet
-    elif method == 'depth-normals':
-        from .depth_normals import DepthNormals
-        objType = DepthNormals
+    elif method == "depth-normals-svd":
+        from .depth_normals_svd import DepthNormalsSVD
+        objType = DepthNormalsSVD
     else:
         assert False, "Unknown method: %s" % method
     return objType
