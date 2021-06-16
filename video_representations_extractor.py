@@ -5,7 +5,7 @@ from representations import Representation
 from tqdm import trange
 from media_processing_lib.image import tryWriteImage
 
-class VideoRepresentationsExporter:
+class VideoRepresentationsExtractor:
 	# @param[in] representations An topological sorted ordered dict (name, obj) with all instantiated representations
 	# @param[in] exportCollage Whether to export a PNG file at each time step
 	# @param[in] collageOrder A list with the order for the collage. If none provided, use the order of 1st param
@@ -67,20 +67,20 @@ class VideoRepresentationsExporter:
 	def doExport(self, startIx:int=0, endIx:int=None):
 		if endIx is None:
 			endIx = len(self.video)
-		print(("[VideoRepresentationsExporter::doExport] Video: %s. Start frame: %d. End frame: %d. Output dir: " + \
+		print(("[VideoRepresentationsExtractor::doExport] Video: %s. Start frame: %d. End frame: %d. Output dir: " + \
 			"%s. Output resolution: %s") % (self.video, startIx, endIx, self.outputDir, self.outputResolution))
 		nameRepresentations = ", ".join(["'%s'" % x.name for x in self.representations.values()])
-		print("[VideoRepresentationsExporter::doExport] Representations (%d): %s" % \
+		print("[VideoRepresentationsExtractor::doExport] Representations (%d): %s" % \
 			(len(self.representations), nameRepresentations))
 
 		assert startIx < endIx and startIx >= 0
-		for t in trange(startIx, endIx, desc="[VideoRepresentationsExporter::doExport]"):
+		for t in trange(startIx, endIx, desc="[VideoRepresentationsExtractor::doExport]"):
 			finalOutputs = {}
 			for name, representation in self.representations.items():
 				finalOutputs[name] = representation[t]
 		
 			if self.exportCollage:
 				images = [self.representations[k].makeImage(finalOutputs[k]) for k in self.collageOrder]
-				images = VideoRepresentationsExporter.makeCollage(images, self.rowsCols)
+				images = VideoRepresentationsExtractor.makeCollage(images, self.rowsCols)
 				outImagePath = self.collageOutputDir / ("%d.png" % t)
 				tryWriteImage(images, str(outImagePath))
