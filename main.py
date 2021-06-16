@@ -33,7 +33,7 @@ def main():
 	# makeOutputDirs(args.cfg, args.outputDir, args.outputResolution, args.exportCollage)
 
 	representations = args.cfg
-	vre = VideoRepresentationsExtractor(video, args.outputDir, args.outputResolution, representations, False)
+	vre = VideoRepresentationsExtractor(video, args.outputDir, args.outputResolution, representations)
 	endIx = len(video) - args.skip if args.N is None else min(len(video) - args.skip, args.N)
 	vre.doExport(args.skip, endIx)
 

@@ -18,10 +18,8 @@ from representations import Representation, getRepresentation
 #  duplicate work. If either the number of npz files is wrong or the cfg file is different, we throw and error and the
 #  user must change the global cfg file for that particular representation: either by changing the resulting name or
 #  updating the representation's parameters accordingly.
-def makeOutputDirs(cfg:Dict, outputDir:Path, outputResolution:Tuple[int,int], exportCollage:bool):
+def makeOutputDirs(cfg:Dict, outputDir:Path, outputResolution:Tuple[int,int]):
 	outputDir.mkdir(parents=True, exist_ok=True)
-	if exportCollage:
-		(outputDir / "collage").mkdir(exist_ok=True)
 	for name, values in cfg.items():
 		Dir = outputDir / name
 		thisCfgPath = Dir / "cfg.yaml"
@@ -57,6 +55,29 @@ def getSquareRowsColumns(N):
 	assert (c + 1) * r > N and c * (r + 1) > N
 	return r, c
 
+
+# Given a stack of N images, find the closest square X>=N*N and then remove rows 1 by 1 until it still fits X
+# Example: 9: 3*3; 12 -> 3*3 -> 3*4 (3 rows). 65 -> 8*8 -> 8*9. 73 -> 8*8 -> 8*9 -> 9*9
+def makeCollage(images:np.ndarray, rowsCols:Optional[Tuple[int, int]]=None) -> np.ndarray:
+	images = np.array(images)
+	assert images.dtype == np.uint8
+	N = len(images)
+	imageShape = images[0].shape
+
+	if isinstance(rowsCols, (tuple, list)):
+		assert len(rowsCols) == 2
+		r, c = rowsCols
+	else:
+		assert rowsCols is None
+		r, c = getSquareRowsColumns(N)
+	assert r * c >= N
+	# Add black images if needed
+	result = np.zeros((r * c, *imageShape), dtype=np.uint8)
+	result[0 : N] = images
+	result = result.reshape((r, c, *imageShape))
+	result = np.concatenate(np.concatenate(result, axis=1), axis=1)
+	return result
+
 class VideoRepresentationsExtractor:
 	# @param[in] representations An not topological sorted ordered dict (name, obj/str). If they are str, we assume
 	#  that they are uninstantiated built-in layers, so we use getRepresentation. Otherwise, we assume they are custom
@@ -64,20 +85,14 @@ class VideoRepresentationsExtractor:
 	# @param[in] exportCollage Whether to export a PNG file at each time step
 	# @param[in] collageOrder A list with the order for the collage. If none provided, use the order of 1st param
 	def __init__(self, video:MPLVideo, outputDir:Path, outputResolution:Tuple[int, int], \
-		representations:Dict[str, Union[str, Representation]], exportCollage:bool, \
-		collageOrder:Optional[List[str]]=None, rowsCols:Optional[Tuple[int, int]]=None):
+		representations:Dict[str, Union[str, Representation]]):
 		assert len(representations) > 0
-		makeOutputDirs(representations, outputDir, outputResolution, exportCollage)
+		makeOutputDirs(representations, outputDir, outputResolution)
 		topoSortedRepresentations = topoSortRepresentations(representations)
 
-		self.exportCollage = exportCollage
 		self.video = video
 		self.outputResolution = outputResolution
 		self.outputDir = outputDir
-
-		self.rowsCols = rowsCols if not rowsCols is None else getSquareRowsColumns(len(representations))
-		self.collageOutputDir = self.outputDir / "collage"
-		self.collageOrder = collageOrder = list(representations.keys())
 
 		# Topo sorted and not topo sorted representations (for collage)
 		self.tsr = self.doInstantiation(topoSortedRepresentations)
@@ -105,32 +120,11 @@ class VideoRepresentationsExtractor:
 			res[name] = obj
 		return res
 
-	# Given a stack of N images, find the closest square X>=N*N and then remove rows 1 by 1 until it still fits X
-	# Example: 9: 3*3; 12 -> 3*3 -> 3*4 (3 rows). 65 -> 8*8 -> 8*9. 73 -> 8*8 -> 8*9 -> 9*9
-	@staticmethod
-	def makeCollage(images:np.ndarray, rowsCols:Optional[Tuple[int, int]]=None) -> np.ndarray:
-		images = np.array(images)
-		assert images.dtype == np.uint8
-		N = len(images)
-		imageShape = images[0].shape
-
-		if isinstance(rowsCols, (tuple, list)):
-			assert len(rowsCols) == 2
-			r, c = rowsCols
-		else:
-			assert rowsCols is None
-			r, c = getSquareRowsColumns(N)
-		assert r * c >= N
-		# Add black images if needed
-		result = np.zeros((r * c, *imageShape), dtype=np.uint8)
-		result[0 : N] = images
-		result = result.reshape((r, c, *imageShape))
-		result = np.concatenate(np.concatenate(result, axis=1), axis=1)
-		return result
-
-	def doExport(self, startIx:int=0, endIx:int=None):
+	def doExport(self, startIx:int=0, endIx:int=None, exportCollage:bool=True, rowsCols:Tuple[int, int]=None, \
+		collageDirStr:str="collage"):
 		if endIx is None:
 			endIx = len(self.video)
+
 		print(("[VideoRepresentationsExtractor::doExport]\n - Video: %s \n - Start frame: %d. End frame: %d " + \
 			"\n - Output dir: %s \n - Output resolution: %s") % \
 			(self.video, startIx, endIx, self.outputDir, self.outputResolution))
@@ -138,14 +132,22 @@ class VideoRepresentationsExtractor:
 		print("[VideoRepresentationsExtractor::doExport] Representations (%d): %s" % \
 			(len(self.representations), nameRepresentations))
 
+		if exportCollage:
+			rowsCols = rowsCols if not rowsCols is None else getSquareRowsColumns(len(self.representations))
+			collageOrder = list(self.representations.keys())
+			collageOutputDir = self.outputDir / collageDirStr
+			collageOutputDir.mkdir(exist_ok=True)
+			print("[VideoRepresentationsExtractor::doExport] Exporting collage (%dx%d) to: %s" % \
+				(rowsCols[0], rowsCols[1], collageOutputDir))
+
 		assert startIx < endIx and startIx >= 0
 		for t in trange(startIx, endIx, desc="[VideoRepresentationsExtractor::doExport]"):
 			finalOutputs = {}
 			for name, representation in self.tsr.items():
 				finalOutputs[name] = representation[t]
 		
-			if self.exportCollage:
-				images = [self.representations[k].makeImage(finalOutputs[k]) for k in self.collageOrder]
-				images = VideoRepresentationsExtractor.makeCollage(images, self.rowsCols)
-				outImagePath = self.collageOutputDir / ("%d.png" % t)
+			if exportCollage:
+				images = [self.representations[k].makeImage(finalOutputs[k]) for k in collageOrder]
+				images = makeCollage(images, rowsCols)
+				outImagePath = collageOutputDir / ("%d.png" % t)
 				tryWriteImage(images, str(outImagePath))
