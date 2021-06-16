@@ -3,7 +3,7 @@ from argparse import ArgumentParser
 from media_processing_lib.video import tryReadVideo
 from nwdata.utils import fullPath
 
-from do_export import doExport, makeOutputDirs, validateCfg
+from do_export import *
 
 def getArgs():
 	parser = ArgumentParser()
@@ -28,7 +28,15 @@ def getArgs():
 def main():
 	args = getArgs()
 	video = tryReadVideo(args.videoPath, vidLib="pims")
-	doExport(video, args.cfg, args.outputDir, args.outputResolution, args.exportCollage, args.N, args.skip)
+
+	# validateCfg(args.cfg)
+	# makeOutputDirs(args.cfg, args.outputDir, args.outputResolution, args.exportCollage)
+
+	representations = args.cfg
+	vre = VideoRepresentationsExtractor(video, args.outputDir, args.outputResolution, representations, False)
+	vre.doExport(startIx, endIx)
+
+	# doExport(video, args.cfg, args.outputDir, args.outputResolution, args.exportCollage, args.N, args.skip)
 
 if __name__ == "__main__":
 	main()

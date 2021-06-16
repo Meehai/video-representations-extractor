@@ -16,11 +16,8 @@ from .raft import RAFT
 
 
 class FlowRaft(Representation):
-	def __init__(self, baseDir, name, dependencies, video, outShape, inputWidth:int, inputHeight:int):
-		super().__init__(baseDir, name, dependencies, video, outShape)
-		# Pointless to upsample with bilinear, it's better we fix the video input.
-		assert video.shape[1] >= inputHeight and video.shape[2] >= inputWidth, "%s vs %dx%d" \
-			% (video.shape, inputHeight, inputWidth)
+	def __init__(self, name, dependencies, inputWidth:int, inputHeight:int):
+		super().__init__(name, dependencies)
 		self.model = None
 		self.weightsDir = fullPath(__file__).parents[2] / "weights/raft"
 		self.inputWidth = inputWidth
@@ -31,6 +28,9 @@ class FlowRaft(Representation):
 		self.mixed_precision = False
 
 	def setup(self):
+		# Pointless to upsample with bilinear, it's better we fix the video input.
+		assert self.video.shape[1] >= inputHeight and self.video.shape[2] >= inputWidth, "%s vs %dx%d" \
+			% (self.video.shape, inputHeight, inputWidth)
 		self.weightsDir.mkdir(exist_ok=True)
 
 		# original files

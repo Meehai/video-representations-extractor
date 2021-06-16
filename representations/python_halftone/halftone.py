@@ -34,9 +34,9 @@ class Halftone(Representation):
 		angles: A list of 4 angles that each screen channel should be rotated by.
 		antialias: boolean.
 	"""
-	def __init__(self, baseDir, name, dependencies, video, outShape, sample:float, scale:float, percentage:float, \
+	def __init__(self, name, dependencies, sample:float, scale:float, percentage:float, \
 		angles:List[int], antialias:bool, resolution:Tuple[str,str]):
-		super().__init__(baseDir, name, dependencies, video, outShape)
+		super().__init__(name, dependencies)
 		self.sample = sample
 		self.scale = scale
 		self.percentage = percentage

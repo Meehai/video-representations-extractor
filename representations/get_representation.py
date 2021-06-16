@@ -1,7 +1,6 @@
 from .representation import Representation
 
 def getRepresentation(method:str) -> Representation:
-    print("[getRepresentation] Instantiating Method='%s'..." % method)
     objType = None
     if method == "rgb":
         from .rgb import RGB
@@ -33,6 +32,9 @@ def getRepresentation(method:str) -> Representation:
     elif method == "kmeans":
         from .kmeans import KMeans
         objType = KMeans
+    elif method == "depth-normals-svd":
+        from .depth_normals_svd import DepthNormalsSVD
+        objType = DepthNormalsSVD
     # Complex pretrained.
     elif method == "semantic-safeuav-keras":
         from .sseg_safeuav_keras import SSegSafeUAVKeras
@@ -43,9 +45,6 @@ def getRepresentation(method:str) -> Representation:
     elif method == "depth-dispresnet":
         from .depth_dispresnet import DepthDispResNet
         objType = DepthDispResNet
-    elif method == "depth-normals-svd":
-        from .depth_normals_svd import DepthNormalsSVD
-        objType = DepthNormalsSVD
     else:
         assert False, "Unknown method: %s" % method
     return objType

@@ -31,9 +31,8 @@ def postprocessImage(img, coordinates):
 	return img
 
 class DexiNed(Representation):
-	def __init__(self, baseDir, name, dependencies, video, outShape):
-		super().__init__(baseDir, name, dependencies, video, outShape)
-		self.weightsFile = str(fullPath(__file__).parents[2] / "weights/dexined.pth")
+	def __init__(self, name, dependencies):
+		super().__init__(name, dependencies)
 		self.model = None
 
 	def setup(self):
@@ -42,6 +41,7 @@ class DexiNed(Representation):
 		# our backup
 		urlWeights = "https://drive.google.com/u/0/uc?id=1oT1iKdRRKJpQO-DTYWUnZSK51QnJ-mnP"
 
+		self.weightsFile = str(fullPath(__file__).parents[2] / "weights/dexined.pth")
 		weightsPath = fullPath(self.weightsFile)
 		if not weightsPath.exists():
 			print("[DexiNed::setup] Downloading weights for dexined from %s" % urlWeights)

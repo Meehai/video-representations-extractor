@@ -7,9 +7,9 @@ from matplotlib.cm import gray
 from .representation import Representation
 
 class Canny(Representation):
-    def __init__(self, baseDir:Path, name:str, dependencies:List, video:MPLVideo, outShape:Tuple[int, int], \
+    def __init__(self, name:str, dependencies:List, \
         threshold1:float, threshold2:float, apertureSize:int, L2gradient:bool):
-        super().__init__(baseDir, name, dependencies, video, outShape)
+        super().__init__(name, dependencies)
         self.threshold1 = threshold1
         self.threshold2 = threshold2
         self.apertureSize = apertureSize
