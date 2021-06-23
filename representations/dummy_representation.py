@@ -11,9 +11,8 @@ from .representation import Representation
 #  not yet supported) algorithms, such as Sfm, SemanticGB, weird pre-trained networks etc. The only thing it needs is
 #  to provide the correct files (0.npz, ..., N.npz) as well as a function to plot the data to human viewable format.
 class DummyRepresentation(Representation):
-	def __init__(self, baseDir:Path, name:str, dependencies:Dict[str, Representation], \
-		video:MPLVideo, outShape:Tuple[int, int], makeImageFn:Callable):
-		super().__init__(baseDir, name, dependencies, video, outShape)
+	def __init__(self, name:str, makeImageFn:Callable):
+		super().__init__(name, dependencies=[], dependencyAliases=[])
 		assert isinstance(makeImageFn, Callable)
 		self.makeImageFn = makeImageFn
 

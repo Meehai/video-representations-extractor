@@ -126,16 +126,14 @@ class VideoRepresentationsExtractor:
 				objType = partial(objType, name=name, dependencies=dependencies, dependencyAliases=dependencyAliases)
 				obj = objType(**r["parameters"]) if not r["parameters"] is None else objType()
 
-			# Create a dict mapping so we can use self.dependency[name](t) instead of going through aliases.
-			obj.dependencies = dict(zip(obj.dependencyAliases, obj.dependencies))
 			obj.setVideo(self.video)
 			obj.setBaseDir(self.outputDir)
 			obj.setOutShape(self.outputResolution)
 			res[name] = obj
 		return res
 
-	def doExport(self, startIx:int=0, endIx:int=None, exportCollage:bool=True, rowsCols:Tuple[int, int]=None, \
-		collageDirStr:str="collage"):
+	def doExport(self, startIx:int=0, endIx:int=None, exportCollage:bool=True, collageOrder:List[str]=None, \
+		rowsCols:Tuple[int, int]=None, collageDirStr:str="collage"):
 		if endIx is None:
 			endIx = len(self.video)
 
@@ -147,8 +145,8 @@ class VideoRepresentationsExtractor:
 			(len(self.representations), nameRepresentations))
 
 		if exportCollage:
-			rowsCols = rowsCols if not rowsCols is None else getSquareRowsColumns(len(self.representations))
-			collageOrder = list(self.representations.keys())
+			collageOrder = list(self.representations.keys()) if collageOrder is None else collageOrder
+			rowsCols = rowsCols if not rowsCols is None else getSquareRowsColumns(len(collageOrder))
 			collageOutputDir = self.outputDir / collageDirStr
 			collageOutputDir.mkdir(exist_ok=True)
 			print("[VideoRepresentationsExtractor::doExport] Exporting collage (%dx%d) to: %s" % \
