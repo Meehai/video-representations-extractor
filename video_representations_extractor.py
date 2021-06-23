@@ -23,9 +23,17 @@ def makeOutputDirs(cfg:Dict, outputDir:Path, outputResolution:Tuple[int,int]):
 	for name, values in cfg.items():
 		Dir = outputDir / name
 		thisCfgPath = Dir / "cfg.yaml"
+		if isinstance(values, Representation):
+			values = {"method":values.name, "dependencies":values.dependencies, "parameters":values.getParameters()}
+		for v in values["dependencies"]:
+			assert isinstance(v, str)
+
 		thisCfg = {name:values, "outputResolution":outputResolution}
 		if Dir.exists() and thisCfgPath.exists():
 			loadedCfg = yaml.safe_load(open(thisCfgPath, "r"))
+			if loadedCfg != thisCfg:
+				yaml.safe_dump(thisCfg, open(thisCfgPath, "w"))
+				loadedCfg = yaml.safe_load(open(thisCfgPath, "r"))
 			assert loadedCfg == thisCfg, "Wrong cfg file.\n - Loaded: %s.\n - This: %s" % (loadedCfg, thisCfg)
 		else:
 			Dir.mkdir(exist_ok=True)
@@ -36,7 +44,7 @@ def topoSortRepresentations(representations:Dict[str, Union[str, Representation]
 	depGraph = {}
 	for k in representations:
 		if isinstance(representations[k], Representation):
-			depGraph[k] = list(representations[k].dependencies.keys())
+			depGraph[k] = representations[k].dependencies
 		else:
 			depGraph[k] = representations[k]["dependencies"]
 	topoSort = topologicalSort(depGraph)
@@ -54,7 +62,6 @@ def getSquareRowsColumns(N):
 		r += 1
 	assert (c + 1) * r > N and c * (r + 1) > N
 	return r, c
-
 
 # Given a stack of N images, find the closest square X>=N*N and then remove rows 1 by 1 until it still fits X
 # Example: 9: 3*3; 12 -> 3*3 -> 3*4 (3 rows). 65 -> 8*8 -> 8*9. 73 -> 8*8 -> 8*9 -> 9*9
@@ -103,17 +110,24 @@ class VideoRepresentationsExtractor:
 		for name in topoSortedRepresentations:
 			r = topoSortedRepresentations[name]
 			if isinstance(r, Representation):
-				print(("[VideoRepresentationsExtractor::doInstantation] Representation='%s' already ") + \
-					("instantiated. Skipping.") % name)
+				print((("[VideoRepresentationsExtractor::doInstantation] Representation='%s' already ") + \
+					("instantiated. Skipping.")) % r.name)
 				obj = r
+				# If they are already instantiated, we may send both strings to methods or the objects themselves.
+				obj.dependencies = [res[k] if isinstance(k, str) else k for k in obj.dependencies]
 			else:
 				assert isinstance(r, dict)
 				print("[VideoRepresentationsExtractor::doInstantation] Representation='%s'. Instantiating..." % name)
 
-				dependencies = {k : res[k] for k in r["dependencies"]}
+				dependencies = [res[k] for k in r["dependencies"]]
+				# If we have aliases, use these names, otherwise, use the representation's name itself.
+				dependencyAliases = r["dependencyAliases"] if "dependencyAliases" in r else r["dependencies"]
 				objType = getRepresentation(r["method"])
-				objType = partial(objType, name=name, dependencies=dependencies)
+				objType = partial(objType, name=name, dependencies=dependencies, dependencyAliases=dependencyAliases)
 				obj = objType(**r["parameters"]) if not r["parameters"] is None else objType()
+
+			# Create a dict mapping so we can use self.dependency[name](t) instead of going through aliases.
+			obj.dependencies = dict(zip(obj.dependencyAliases, obj.dependencies))
 			obj.setVideo(self.video)
 			obj.setBaseDir(self.outputDir)
 			obj.setOutShape(self.outputResolution)

@@ -9,7 +9,7 @@ from typing import Dict
 from .DispResNet import DispResNet
 from ..representation import Representation
 
-def preprocessImage(img, size=None, trainSize=(256, 448), multiples=(64, 64), device=torch.device('cuda')):
+def preprocessImage(img, size=None, trainSize=(256, 448), multiples=(64, 64)):
 	if size is None:
 		size = trainSize
 	else:
@@ -39,9 +39,9 @@ def closest_fit(size, multiples):
 
 
 class DepthDispResNet(Representation):
-	def __init__(self, baseDir, name, dependencies, video, outShape, weightsFile:str, resNetLayers:int, \
-		trainHeight:int, trainWidth:int, minDepth:int, maxDepth:int):
-		super().__init__(baseDir, name, dependencies, video, outShape)
+	def __init__(self, name, dependencies, dependencyAliases, weightsFile:str, \
+		resNetLayers:int, trainHeight:int, trainWidth:int, minDepth:int, maxDepth:int):
+		super().__init__(name, dependencies, dependencyAliases)
 		self.model = None
 		self.weightsFile = weightsFile
 		self.resNetLayers = resNetLayers
@@ -51,7 +51,7 @@ class DepthDispResNet(Representation):
 
 	def make(self, t:int) -> np.ndarray:
 		x = self.video[t]
-		x_ = preprocessImage(x, trainSize=self.trainSize, multiples=self.multiples, device=device)
+		x_ = preprocessImage(x, trainSize=self.trainSize, multiples=self.multiples)
 		with torch.no_grad():
 			y = self.model(x_)
 		y = postprocessImage(y, size=x.shape[:2], scale=self.scale)

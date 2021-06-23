@@ -2,7 +2,7 @@ from __future__ import annotations
 import numpy as np
 from pathlib import Path
 from abc import ABC, abstractmethod
-from typing import Dict, Tuple
+from typing import Dict, Tuple, Any, Union
 from functools import lru_cache
 from media_processing_lib.image import imgResize
 from media_processing_lib.video import MPLVideo
@@ -10,7 +10,10 @@ from nwdata.utils import fullPath
 
 # @brief Generic video/image representation
 class Representation(ABC):
-    def __init__(self, name:str, dependencies:Dict[str, Representation]):
+    def __init__(self, name:str, dependencies:List[Union[str, Representation]], dependencyAliases:List[str]=None):
+        assert isinstance(dependencies, (set, list))
+        self.dependencyAliases = dependencyAliases if not dependencyAliases is None else dependencies
+        assert len(self.dependencyAliases) == len(dependencies)
         self.name = name
         self.dependencies = dependencies
         self.video = None
@@ -43,6 +46,10 @@ class Representation(ABC):
     
     def setOutShape(self, outShape:Tuple[int, int]):
         self.outShape = outShape
+
+    # @brief Method used to export CFGs
+    def getParameters(self) -> Dict[str, Any]:
+        return {}
 
     # @brief The representation[t] method, which returns the data of this representation. The format is a dict:
     #  - data: a raw np.ndarray of shape (outShape[0], outShape[1], C)

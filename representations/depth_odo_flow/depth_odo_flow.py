@@ -1,14 +1,15 @@
 import numpy as np
 from matplotlib.cm import hot
+from typing import List
 
 from .cam import fov_diag_to_intrinsic
 from .utils import depth_from_flow, filter_depth_from_flow
 from ..representation import Representation
 
 class DepthOdoFlow(Representation):
-	def __init__(self, baseDir, name, dependencies, video, outShape, velocitiesPath:str, velocitiesType:str, \
-		depth_axis:str, flowDirection:str, correct_ang_vel:bool, half_size:bool, fov:int):
-		super().__init__(baseDir, name, dependencies, video, outShape)
+	def __init__(self, name, dependencies:List[Representation], dependencyAliases:List[str], velocitiesPath:str, \
+		velocitiesType:str, depth_axis:str, flowDirection:str, correct_ang_vel:bool, half_size:bool, fov:int):
+		super().__init__(name, dependencies, dependencyAliases)
 		self.velocities = np.load(velocitiesPath)
 		self.velocities_type = velocitiesType
 		if self.velocities_type == 'gt_rot':
@@ -28,10 +29,6 @@ class DepthOdoFlow(Representation):
 				tag_angular_velocity = 'angular_velocity_c'
 		self.linear_velocity = self.velocities[tag_linear_velocity]
 		self.angular_velocity = self.velocities[tag_angular_velocity]
-		assert len(self.linear_velocity) == len(self.video), "%d vs %d" % \
-			(self.linear_velocity.shape, len(self.video))
-		assert len(self.angular_velocity) == len(self.video), "%d vs %d" % \
-			(self.angular_velocity.shape, len(self.video))
 		self.depth_axis = depth_axis
 		self.flowDirection = flowDirection
 		self.correct_ang_vel = correct_ang_vel
@@ -45,10 +42,8 @@ class DepthOdoFlow(Representation):
 			"optical flow norm (pixels/s)": 20,
 			"A norm (pixels*m/s)": 1,
 		}
-		self.fps = self.video.fps
-		self.dt = 1. / self.fps
 		assert len(dependencies) == 1, "Expected one optical flow method!"
-		self.flow = dependencies[list(dependencies.keys())[0]]
+		self.flow = dependencies[0]
 
 	def make(self, t):
 		# [0:1] -> [-1:1]
@@ -85,5 +80,9 @@ class DepthOdoFlow(Representation):
 		return y
 
 	def setup(self):
-		pass
-
+		assert len(self.linear_velocity) == len(self.video), "%d vs %d" % \
+			(self.linear_velocity.shape, len(self.video))
+		assert len(self.angular_velocity) == len(self.video), "%d vs %d" % \
+			(self.angular_velocity.shape, len(self.video))
+		self.fps = self.video.fps
+		self.dt = 1. / self.fps

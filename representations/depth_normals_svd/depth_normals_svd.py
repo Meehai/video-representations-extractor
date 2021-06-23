@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Dict, Tuple
+from typing import Tuple, Union, List
 from media_processing_lib.video import MPLVideo
 import numpy as np
 
@@ -10,9 +10,9 @@ from .utils import get_sampling_grid, get_normalized_coords, depth_to_normals
 # General method for estimating normals from a depth map (+ intrinsics): a 2D window centered on each pixel is
 #  projected into 3D and then a plane is fitted on the 3D pointcloud using SVD.
 class DepthNormalsSVD(Representation):
-    def __init__(self, name:str, dependencies:Dict[str, Representation], \
+    def __init__(self, name:str, dependencies:List[Union[str, Representation]], dependencyAliases:List[str], \
         fov:int, windowSize:int, maxDistance:float=None, minValidCount:int=None):
-        super().__init__(name, dependencies)
+        super().__init__(name, dependencies, dependencyAliases)
         self.fov = fov
         assert windowSize % 2 == 1, "Expected odd window size!"
         self.window_size = windowSize

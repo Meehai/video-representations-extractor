@@ -22,8 +22,8 @@ def closest_fit(size, multiples):
 
 
 class DepthDpt(Representation):
-	def __init__(self, name, dependencies, trainHeight, trainWidth):
-		super().__init__(name, dependencies)
+	def __init__(self, name, dependencies, dependencyAliases, trainHeight, trainWidth):
+		super().__init__(name, dependencies, dependencyAliases)
 		net_w, net_h = 384, 384
 		resize_mode = "minimal"
 		normalization = NormalizeImage(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
