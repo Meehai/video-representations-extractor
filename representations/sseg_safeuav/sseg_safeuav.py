@@ -12,9 +12,9 @@ from cycleconcepts.models import SingleLinkGraph
 from ..representation import Representation
 
 class SSegSafeUAV(Representation):
-	def __init__(self, baseDir:str, name:str, dependencies:List, video:MPLVideo, outShape:Tuple[int, int], \
+	def __init__(self, baseDir:str, name:str, dependencies:List[Representation], dependencyAliases:List[str], \
 		numClasses:int, trainHeight:int, trainWidth:int, colorMap:List, weightsFile:str):
-		super().__init__(baseDir, name, dependencies, video, outShape)
+		super().__init__(name, dependency, dependencyAliases)
 		assert len(colorMap) == numClasses, "%s vs %d" % (colorMap, numClasses)
 		self.model = None
 		self.numClasses = numClasses

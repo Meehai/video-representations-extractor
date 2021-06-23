@@ -18,9 +18,9 @@ def get_disjoint_prediction_fast(prediction_map):
 	return disjoint_map
 
 class SSegSafeUAVKeras(Representation):
-	def __init__(self, baseDir:str, name:str, dependencies:List, video:MPLVideo, outShape:Tuple[int, int], \
+	def __init__(self, name:str, dependencies:List[Representation], dependencyAliases:List[str], \
 		numClasses:int, colorMap:List, trainHeight:int, trainWidth:int, init_nb:int, weightsFile:str):
-		super().__init__(baseDir, name, dependencies, video, outShape)
+		super().__init__(name, dependencies, dependencyAliases)
 		assert len(colorMap) == numClasses, "%s vs %d" % (colorMap, numClasses)
 		self.model = None
 		self.numClasses = numClasses
