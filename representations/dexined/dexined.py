@@ -31,8 +31,8 @@ def postprocessImage(img, coordinates):
 	return img
 
 class DexiNed(Representation):
-	def __init__(self, name, dependencies):
-		super().__init__(name, dependencies)
+	def __init__(self, name, dependencies, dependencyAliases):
+		super().__init__(name, dependencies, dependencyAliases)
 		self.model = None
 
 	def setup(self):

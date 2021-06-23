@@ -20,7 +20,7 @@ class DepthNormalsSVD(Representation):
         self.min_valid = minValidCount if minValidCount is not None else 0
 
         assert len(dependencies) == 1, "Expected one depth method!"
-        self.depth = dependencies[list(dependencies.keys())[0]]
+        self.depth = dependencies[0]
 
         self.sampling_grid = None
         self.K = None
