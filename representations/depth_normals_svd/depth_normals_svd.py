@@ -10,18 +10,17 @@ from .utils import get_sampling_grid, get_normalized_coords, depth_to_normals
 # General method for estimating normals from a depth map (+ intrinsics): a 2D window centered on each pixel is
 #  projected into 3D and then a plane is fitted on the 3D pointcloud using SVD.
 class DepthNormalsSVD(Representation):
-    def __init__(self, name:str, dependencies:List[Union[str, Representation]], dependencyAliases:List[str], \
+    def __init__(self, name:str, dependencies:List[Union[str, Representation]], \
         fov:int, windowSize:int, maxDistance:float=None, minValidCount:int=None):
-        super().__init__(name, dependencies, dependencyAliases)
+        assert len(dependencies) == 1, "Expected one depth method!"
+        super().__init__(name, dependencies)
         self.fov = fov
         assert windowSize % 2 == 1, "Expected odd window size!"
         self.window_size = windowSize
         self.max_dist = maxDistance if maxDistance is not None else -1
         self.min_valid = minValidCount if minValidCount is not None else 0
 
-        assert len(dependencies) == 1, "Expected one depth method!"
-        self.depth = dependencies[0]
-
+        self.depth = None
         self.sampling_grid = None
         self.K = None
         self.normalized_grid = None
@@ -38,6 +37,7 @@ class DepthNormalsSVD(Representation):
     def setup(self):
         if not self.sampling_grid is None:
             return
+        self.depth = self.dependencies[0]
         depthHeight, depthWidth = self.depth[0]["rawData"].shape[:2]
         self.sampling_grid = get_sampling_grid(depthWidth, depthHeight, self.window_size)
         self.K = fov_diag_to_intrinsic(self.fov, (3840, 2160), (depthWidth, depthHeight))

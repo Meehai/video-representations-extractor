@@ -26,7 +26,7 @@ def makeOutputDirs(cfg:Dict, outputDir:Path, outputResolution:Tuple[int,int]):
 		if isinstance(values, Representation):
 			values = {"method":values.name, "dependencies":values.dependencies, "parameters":values.getParameters()}
 		for v in values["dependencies"]:
-			assert isinstance(v, str)
+			assert isinstance(v, str), v
 
 		thisCfg = {name:values, "outputResolution":outputResolution}
 		if Dir.exists() and thisCfgPath.exists():
@@ -94,6 +94,7 @@ class VideoRepresentationsExtractor:
 	def __init__(self, video:MPLVideo, outputDir:Path, outputResolution:Tuple[int, int], \
 		representations:Dict[str, Union[str, Representation]]):
 		assert len(representations) > 0
+		outputDir = Path(outputDir)
 		makeOutputDirs(representations, outputDir, outputResolution)
 		topoSortedRepresentations = topoSortRepresentations(representations)
 
