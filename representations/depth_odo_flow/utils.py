@@ -5,11 +5,16 @@ import cv2
 import time
 from sklearn.preprocessing import MinMaxScaler
 from matplotlib import cm
+import torch
+from tqdm import tqdm
+from collections import defaultdict
+# try:
+#     import cvxpy as cp
+# except:
+#     pass
 
 import pandas as pd
 from matplotlib import pyplot as plt
-
-from .polyfit import linear_least_squares
 
 
 def reduce_list(data, mask=None, indices=None):
@@ -27,7 +32,9 @@ def get_params_from_obj(x):
 
 def write_img(path, img):
     path = Path(path).with_suffix(".png")
-    cv2.imwrite(str(path), cv2.cvtColor(img, cv2.COLOR_RGB2BGR))
+    if len(img.shape) == 3 and img.shape[2] == 3:
+        img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+    cv2.imwrite(str(path), img)
 
 
 def read_img(path):
@@ -39,220 +46,22 @@ def is_sorted(ids):
     return np.all((ids[1:] - ids[:-1]) == 1)
 
 
-def map_timed(func, iterable, size, parallel=True, max_cpu_count=4, print_step=100):
-    start = time.time()
-    results = []
+def map_timed(func, iterable, size, parallel=True, max_cpu_count=4):
+    if max_cpu_count is None:
+        max_cpu_count = 0
+    if max_cpu_count == 0:
+        parallel = False
     if parallel:
         cpu_count = min(max_cpu_count, multiprocessing.cpu_count())
         pool = multiprocessing.Pool(cpu_count)
         cpu_count = multiprocessing.cpu_count()
-        chunk_size = min(100, size // cpu_count)
-        count = 0
-        for res in pool.imap(func, iterable, chunk_size):
-            count += 1
-            results.append(res)
-            if count % print_step == 0:
-                print(f"Processed {count}/{size}; {count / (time.time() - start):.2f} items/sec")
+        chunk_size = max(1, min(100, size // cpu_count))
+        for res in tqdm(pool.imap(func, iterable, chunk_size), total=size, smoothing=0):
+            yield res
     else:
-        count = 0
-        for d in iterable:
+        for d in tqdm(iterable, total=size, smoothing=0):
             r = func(d)
-            count += 1
-            if count % print_step == 0:
-                print(f"Processed {count}/{size}; {count / (time.time() - start):.2f} items/sec")
-            results.append((r))
-    return results
-
-
-def solve_delta_ang_vel(jacobian_z, jacobian_ang_vel, b):
-    # A is 2 x W x H
-    _, W, H = jacobian_z.shape
-    Ar = np.zeros((2 * W * H, W * H + 3))
-    np.fill_diagonal(Ar[::2, :-3], jacobian_z[0].flatten())
-    np.fill_diagonal(Ar[1::2, :-3], jacobian_z[1].flatten())
-    Ar[:, -3:] = np.transpose(jacobian_ang_vel, (2, 3, 0, 1)).reshape(-1, 3)
-    # Ar = np.zeros((2 * W * H, W * H ))
-    # np.fill_diagonal(Ar[::2], jacobian_z[0].flatten())
-    # np.fill_diagonal(Ar[1::2], jacobian_z[1].flatten())
-    scale = np.max(np.abs(Ar))
-    br = np.transpose(b, [1, 2, 0]).flatten()
-    Ar = Ar / scale
-    br = br / scale
-    solution = linear_least_squares(Ar, br)
-    return solution
-
-
-def solve_delta_ang_vel_v2(jacobian_z, jacobian_ang_vel, b):
-    # A is 2 x num_pixels
-    _, num_pixels = jacobian_z.shape
-    Ar = np.zeros((2 * num_pixels, num_pixels + 3))
-    np.fill_diagonal(Ar[::2, :-3], jacobian_z[0].flatten())
-    np.fill_diagonal(Ar[1::2, :-3], jacobian_z[1].flatten())
-    Ar[:, -3:] = np.transpose(jacobian_ang_vel, (2, 0, 1)).reshape(-1, 3)
-    # Ar = np.zeros((2 * W * H, W * H ))
-    # np.fill_diagonal(Ar[::2], jacobian_z[0].flatten())
-    # np.fill_diagonal(Ar[1::2], jacobian_z[1].flatten())
-    scale = np.max(np.abs(Ar))
-    br = np.transpose(b, [1, 0]).flatten()
-    Ar = Ar / scale
-    br = br / scale
-    # if not positive_z:
-    solution = linear_least_squares(Ar, br)
-    # else:
-    #     x = cp.Variable(shape=(Ar.shape[1], ))
-    #     constraints = [x[:-3] >= 1/5000, x[:-3] <= 1/10]
-    #     obj = cp.Minimize(cp.sum_squares(Ar @ x - br))
-    #     prob = cp.Problem(obj, constraints)
-    #     prob.solve()  # Returns the optimal value.
-    #     solution = np.asarray(x.value)
-    return solution
-
-
-def depth_from_flow(batched_flow, linear_velocity, angular_velocity, K, axis=('x', 'y', 'xy')[0], adjust_ang_vel=True,
-                    mesh_grid=None):
-    f_u, f_v = K[0, 0], K[1, 1]
-    u0, v0 = K[0, 2], K[1, 2]
-
-    H, W = batched_flow.shape[2:]
-
-    if mesh_grid is not None:
-        us_bar, vs_bar = mesh_grid
-    else:
-        us_bar, vs_bar = init_mesh_grid(H, W, u0, v0)
-
-    B = len(linear_velocity)
-
-    A = get_A(linear_velocity, us_bar, vs_bar, f_u, f_v)
-
-    us_bar_sq = us_bar ** 2
-    vs_bar_sq = vs_bar ** 2
-    uv = us_bar * vs_bar
-
-    # derotating_flow = np.empty((B, 2, H, W))
-    angular_velocity = np.expand_dims(angular_velocity.copy(), axis=(2, 3))
-
-    J_w = np.array([[uv / f_v, - (f_u ** 2 + us_bar_sq) / f_u, f_u / f_v * vs_bar],
-                    [(f_v ** 2 + vs_bar_sq) / f_v, - uv / f_u, - f_v / f_u * us_bar]])
-
-    derotating_flow = get_derotating_flow(J_w, angular_velocity)
-
-    # compute b
-    b = batched_flow - derotating_flow
-    if adjust_ang_vel:
-        step = int(80 * H / 540) # for 12x7 grid at 540x960
-
-        for b_ind in range(B):
-
-            mask = np.ones_like(us_bar, dtype=bool)
-            mask_sample = mask[::step, ::step]
-            # mask_sample.fill(True)
-            A_sample = A[b_ind][:, ::step, ::step][:, mask_sample]
-            b_sample = b[b_ind][:, ::step, ::step][:, mask_sample]
-            J_w_sample = J_w[:, :, ::step, ::step][:, :, mask_sample]
-            solution = solve_delta_ang_vel_v2(A_sample, J_w_sample, b_sample)
-            if solution is not None:
-                ang_vel_correction = solution[-3:]
-                angular_velocity[b_ind] = angular_velocity[b_ind] + ang_vel_correction.reshape(-1, 1, 1)
-        derotating_flow = get_derotating_flow(J_w, angular_velocity)
-        b = batched_flow - derotating_flow
-
-    if axis == 'xy':
-        # Z = norm(A)^2 / dot(A, b) (from least squares, A, b are 2x1 matrices, so vectors)
-        norm_A_squared = np.sum(np.square(A), axis=1)
-        dot_Ab = np.sum(A * b, axis=1)
-
-        Z = norm_A_squared / dot_Ab
-    elif axis == 'x':
-        Z = A[:, 0] / b[:, 0]
-    else:
-        Z = A[:, 1] / b[:, 1]
-    return Z, A, b, derotating_flow, np.squeeze(angular_velocity, axis=(2, 3))
-
-
-def get_A(linear_velocity, us_bar, vs_bar, f_u, f_v):
-    linear_velocity = np.expand_dims(linear_velocity, axis=(2, 3))
-    linear_velocity = np.transpose(linear_velocity, [1, 0, 2, 3])
-    A0 = - f_u * linear_velocity[0] + linear_velocity[2] * us_bar
-    A1 = - f_v * linear_velocity[1] + linear_velocity[2] * vs_bar
-    A = np.stack((A0, A1), axis=0)
-    A = np.transpose(A, [1, 0, 2, 3])
-    return A
-
-
-def init_mesh_grid(H, W, u0, v0):
-    us = np.arange(W)
-    vs = np.arange(H)
-    vs, us = np.meshgrid(vs, us, indexing='ij')
-    us_bar = us - u0
-    vs_bar = vs - v0
-    return us_bar, vs_bar
-
-
-def get_derotating_flow(J_w, angular_velocity):
-    derotating_flow = np.transpose((
-            np.transpose(J_w, (2, 3, 0, 1)) @ np.transpose(angular_velocity, (2, 3, 1, 0))),
-        (3, 2, 0, 1))
-    return derotating_flow
-
-
-def filter_depth_from_flow(Zs, As, bs, derotating_flows, thresholds, virtual_height=540):
-    valid = np.full_like(Zs, True, dtype=bool)
-    for feature, threshold in thresholds.items():
-        feature_data = get_feature_from_depth_from_flow_data(Zs, As, bs, derotating_flows, feature)
-        filter_zone = None
-        if feature in ["A norm (pixels*m/s)", "optical flow norm (pixels/s)"]:
-            H = Zs.shape[1]
-            threshold = H / virtual_height * threshold  # thresholds were computed at H=540
-        if isinstance(feature, tuple):
-            feature, filter_zone = feature
-        if feature in ["angle (deg)"]:
-            cvalid = feature_data <= threshold
-        else:
-            cvalid = feature_data >= threshold
-
-        if filter_zone == 'around_focus_expansion_A':
-            A_norm = np.linalg.norm(As, axis=1)
-            for ind, mask in enumerate(cvalid):
-                num_comp, labels = cv2.connectedComponents((~mask).astype(np.uint8), connectivity=8)
-                if num_comp == 0:
-                    cvalid[ind].fill(False)
-                    continue
-                else:
-                    focus_expansion_origin = np.unravel_index(np.argmin(A_norm[ind]), A_norm[ind].shape)
-                    component_connected_to_origin_label = labels[focus_expansion_origin[0], focus_expansion_origin[1]]
-                    mask_component = labels == component_connected_to_origin_label
-                    cvalid[ind] = ~np.logical_and(~mask, mask_component)
-        valid = np.logical_and(valid, cvalid)
-
-    return valid
-
-
-def remove_padding(flow, padding):
-    left, right, bottom, top = padding
-    end_H = flow.shape[1] - bottom
-    end_W = flow.shape[2] - right
-    return flow[:, top:end_H, left:end_W]
-
-
-def get_feature_from_depth_from_flow_data(Zs, As, bs, derotating_flows, feature):
-    # mask_region = False
-    if isinstance(feature, tuple):
-        feature, mask_region = feature[:2]
-    if feature == 'Z':
-        feature_data = Zs
-    if feature == "optical flow norm (pixels/s)":
-        feature_data = np.linalg.norm(bs, axis=1)
-    elif feature == "angle (deg)":
-        cos = np.sum(As * bs, axis=1) / np.linalg.norm(As, axis=1) / np.linalg.norm(bs, axis=1)
-        cos = np.clip(cos, -1, 1)
-        feature_data = np.rad2deg(np.arccos(cos))
-    elif feature == "A norm (pixels*m/s)":
-        feature_data = np.linalg.norm(As, axis=1)
-    # if mask_region == 'top_half':
-    #     H, W, = feature_data.shape[-2:]
-    #     feature_data[:, int(H // 2):] = np.nan
-
-    return feature_data
+            yield r
 
 
 def binned_statistic_2D(xs, ys, zs, bins_x, bins_y, callbable, optimize=False, verbose=0):
@@ -364,6 +173,40 @@ def histogram_bounded(name, data, output_path, lims=None, bins=100, figsize=(12,
                      index=['stats']).to_csv(output_path / safe_name(f"{name} stats.csv"))
 
 
+class RunningHistogram:
+    def __init__(self, **kwargs):
+        self.kwargs = kwargs
+        self.count_below = 0
+        self.count_above = 0
+        self.raw_hist = None
+
+    def update(self, data):
+        h, self.bins = np.histogram(data, **self.kwargs)
+        self.kwargs['bins'] = self.bins
+        self.count_below += np.count_nonzero(data < self.bins[0])
+        self.count_above += np.count_nonzero(data > self.bins[-1])
+        if self.raw_hist is None:
+            self.raw_hist = h
+        else:
+            self.raw_hist += h
+
+    @property
+    def hist(self):
+        return self.raw_hist / np.sum(self.raw_hist)
+
+
+class PerFrameStats:
+    def __init__(self):
+        self.stats = defaultdict(lambda: [])
+
+    def update(self, frame_ind, values):
+        for tag, fn in {"mean": np.nanmean, "std": np.nanstd, "median": np.nanmedian,
+                        "min": np.nanmin, "max": np.nanmax,
+                        "not_nan_pc": lambda x: np.count_nonzero(~np.isnan(x)) / x.size}.items():
+            self.stats[tag].append(fn(values))
+        self.stats['frame_ind'].append(frame_ind)
+
+
 def bin_stats(vals):
     if len(vals) == 0:
         return [np.nan] * 11
@@ -434,124 +277,105 @@ def load_first_arr(path):
     return depth
 
 
-def focal_length_from_flow(centered_points, optical_flow, depths, linear_velocity, angular_velocity,
-                           equal_focal_length=True, axes='xy'):
-    # assert (not(equal_focal_length and axes != 'xy'))
-
-    b = np.zeros((2 * len(centered_points) + (4 if equal_focal_length else 0)))
-    A = np.zeros((2 * len(centered_points) + (4 if equal_focal_length else 0), 6))
-
-    u_dot = optical_flow[:, 0]
-    v_dot = optical_flow[:, 1]
-    u = centered_points[:, 0]
-    v = centered_points[:, 1]
-    nu_x, nu_y, nu_z = linear_velocity.T
-    omega_x, omega_y, omega_z = angular_velocity.T
-    Z = depths
-
-    end = 2 * len(centered_points)
-    b[:end:2] = u_dot - u * nu_z / depths
-    b[1:end:2] = v_dot - v * nu_z / depths
-
-    A[:end:2, 0] = - nu_x / Z - omega_y
-    A[:end:2, 2] = - u ** 2 * omega_y
-    A[:end:2, 3] = u * v * omega_x
-    A[:end:2, 4] = v * omega_z
-
-    A[1:end:2, 1] = - nu_y / Z + omega_x
-    A[1:end:2, 2] = - u * v * omega_y
-    A[1:end:2, 3] = v ** 2 * omega_x
-    A[1:end:2, 5] = - u * omega_z
-
-    if equal_focal_length:
-        b[-1] = 1
-        b[-2] = 1
-        A[-4, 0] = 1
-        A[-4, 1] = -1
-        A[-3, 2] = 1
-        A[-3, 3] = -1
-        A[-2, 4] = 1
-        A[-1, 5] = 1
-
-        weight = len(centered_points) / 4 / 100
-        b[-4:] = b[-4:] * weight
-        A[-4:] = A[-4:] * weight
-    if axes != 'xy':
-        start = 0 if axes == 'x' else 1
-        A = A[start:end:2]
-        b = b[start:end:2]
-        if equal_focal_length:
-            if axes == 'x':
-                keep_eq = [-3, -2]
-            else:
-                keep_eq = [-3, -1]
-            A = np.concatenate((A, A[keep_eq, :]), axis=0)
-            b = np.concatenate((b, b[keep_eq]), axis=0)
-
-    valid_vars = np.max(np.abs(A[:end]), axis=0) > 1.e-15
-    fulL_sol = np.full(6, np.nan)
-    if not np.any(valid_vars):
-        return fulL_sol
-    partial_sol = linear_least_squares(A[:, valid_vars], b)
-    fulL_sol[valid_vars] = partial_sol
-
-    return fulL_sol
+def load_data_extractor_compatible(path):
+    data = np.load(path, allow_pickle=True)
+    if not np.issubdtype(data[data.files[0]].dtype, np.number):
+        data = data[data.files[0]].item()
+        assert 'data' in data
+        return data['data']
+    return data[data.files[0]].astype(np.float64)
 
 
-def focal_length_from_flow_one_f(centered_points, optical_flow, depths, linear_velocity, angular_velocity, axes='xy'):
-    A, b, end = prepare_A_b(centered_points, optical_flow, linear_velocity, angular_velocity, depths, axes)
-
-    valid_vars = np.max(np.abs(A[:end]), axis=0) > 1.e-15
-    fulL_sol = np.full(2, np.nan)
-    if not np.any(valid_vars):
-        return fulL_sol
-    partial_sol = linear_least_squares(A[:, valid_vars], b)
-    fulL_sol[valid_vars] = partial_sol
-
-    map_to_f = np.full_like(fulL_sol, np.nan)
-    map_to_f[0] = fulL_sol[0]
-    map_to_f[1] = 1/ fulL_sol[1]
-    final_f = np.nanmean(map_to_f)
-    return fulL_sol, map_to_f, final_f, A, b, valid_vars
+def join_lists(lists):
+    result = []
+    for l in lists:
+        result.extend(l)
+    return result
 
 
-def prepare_A_b(centered_points, optical_flow, linear_velocity, angular_velocity, depths, axes):
-    b = np.zeros((2 * len(centered_points)))
-    A = np.zeros((2 * len(centered_points), 2))
-    u_dot = optical_flow[:, 0]
-    v_dot = optical_flow[:, 1]
-    u = centered_points[:, 0]
-    v = centered_points[:, 1]
-    nu_x, nu_y, nu_z = linear_velocity.T
-    omega_x, omega_y, omega_z = angular_velocity.T
-    Z = depths
-    end = 2 * len(centered_points)
-    b[:end:2] = u_dot - u * nu_z / depths - v * omega_z
-    b[1:end:2] = v_dot - v * nu_z / depths + u * omega_z
-    A[:end:2, 0] = - nu_x / Z - omega_y
-    A[:end:2, 1] = u * v * omega_x - u ** 2 * omega_y
-    A[1:end:2, 0] = - nu_y / Z + omega_x
-    A[1:end:2, 1] = v ** 2 * omega_x - u * v * omega_y
-    if axes != 'xy':
-        start = 0 if axes == 'x' else 1
-        A = A[start:end:2]
-        b = b[start:end:2]
-    return A, b, end
+def closest_indexes(source, target):
+    source = np.asarray(source)
+    target = np.asarray(target)
+    closest_point_indexes_right = np.searchsorted(target, source)
+    closest_point_indexes_left = closest_point_indexes_right - 1
+    closest_point_indexes_left[closest_point_indexes_left < 0] = 0
+    closest_point_indexes_right[closest_point_indexes_right >= len(target)] = len(target) - 1
+    closest_timestamps_index = np.where(
+        np.abs(target[closest_point_indexes_left] - source) <
+        np.abs(target[closest_point_indexes_right] - source),
+        closest_point_indexes_left, closest_point_indexes_right)
+    return closest_timestamps_index
 
 
-def iterative_focal_length_from_flow_one_f(centered_points, optical_flow, depths, linear_velocity, angular_velocity,
-                                           initial_value, axes='xy', max_it=100):
-    A, b, end = prepare_A_b(centered_points, optical_flow, linear_velocity, angular_velocity, depths, axes)
+def nn_interpolation(source_t, data, target_t):
+    data = data[closest_indexes(source_t, target_t)]
+    return data
 
-    previous_sol = initial_value
-    for it in range(max_it):
-        new_sol = linear_least_squares(A[:, 0:1], b - A[:, 1] * (1 / previous_sol))
-        if np.abs(previous_sol - new_sol) < 1.e-10:
-            break
-        previous_sol = new_sol
-    valid_vars = np.ones(2, dtype=bool)
-    final_f = previous_sol
-    full_sol = np.full(2, final_f)
-    full_sol[1] = 1 / final_f
-    map_to_f = np.full(2, final_f)
-    return full_sol, map_to_f, final_f, A, b, valid_vars
+
+def flow_warp(flow, target_image):
+    H, W = flow.shape[1:]
+    displacement = ((np.stack(np.meshgrid(np.arange(W), np.arange(H))) + flow) - np.array(
+        ((W - 1) / 2, (H - 1) / 2)).reshape((2, 1, 1))) / np.array(((W - 1) / 2, (H - 1) / 2)).reshape((2, 1, 1))
+    displacement = np.clip(displacement, -1, 1)
+    displacement_t = torch.unsqueeze(torch.tensor(displacement, dtype=torch.float64).permute(1, 2, 0), dim=0)
+    target_t = torch.unsqueeze(torch.tensor(target_image, dtype=torch.float64).permute(2, 0, 1), dim=0)
+    frame1_w = torch.squeeze(torch.nn.functional.grid_sample(target_t, displacement_t), dim=0).permute(1, 2, 0).numpy()
+    frame1_w = frame1_w.astype(np.uint8)
+
+
+def auto_depad(data, original_resolution=(3840, 2160)):
+    # C X H X W
+    H, W = data.shape[-2:]
+    W_f = int(round((original_resolution[0] / W)))
+    nW = original_resolution[0] // W_f
+    H_f = int(round((original_resolution[1] / H)))
+    nH = original_resolution[1] // H_f
+    assert (nW <= W and nH <= H)
+    H_pad = (H - nH) // 2
+    W_pad = (W - nW) // 2
+    return data[..., H_pad:H_pad + nH, W_pad:W_pad + nW]
+
+
+def load_first_arr_np_64(path):
+    data = np.load(path)
+    return data[data.files[0]].astype(np.float64)
+
+
+def remove_padding(flow, padding):
+    left, right, bottom, top = padding
+    end_H = flow.shape[1] - bottom
+    end_W = flow.shape[2] - right
+    return flow[..., top:end_H, left:end_W]
+
+
+def get_depadder(flow_pad):
+    if flow_pad == 'auto':
+        flow_depad = auto_depad
+    else:
+        flow_depad = lambda flow: remove_padding(flow, tuple(map(int, flow_pad)))
+    return flow_depad
+
+
+def get_video_paths(root_dir, extensions, args, pattern="{}{}"):
+    extensions = [ext if ext.startswith(".") or len(ext) == 0 else "." + ext for ext in extensions]
+    if args.video_file_names is not None:
+        all_paths = []
+        for name in args.video_file_names:
+            for ext in extensions:
+                p = Path(root_dir) / pattern.format(name, ext)
+                if p.exists() and (ext != '' or p.is_dir()):
+                    all_paths.append(p)
+        return sorted(all_paths)
+    else:
+        all_paths = [Path(root_dir).glob(pattern.format(args.name_pattern, ext)) for ext in extensions]
+        all_paths = sorted(set(join_lists(all_paths)))
+        if args.num_vids is not None:
+            all_paths = all_paths[:args.num_vids]
+        return all_paths
+
+
+def show_heatmap(depth):
+    plt.figure()
+    plt.imshow(depth)
+    plt.colorbar()
+    plt.show()

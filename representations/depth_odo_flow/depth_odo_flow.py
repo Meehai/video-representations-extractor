@@ -2,38 +2,17 @@ import numpy as np
 from matplotlib.cm import hot
 from typing import List
 
-from .cam import fov_diag_to_intrinsic
-from .utils import depth_from_flow, filter_depth_from_flow
+from .camera_info import CameraInfo, CameraSensorParams
+from .depth_from_flow import depth_from_flow, filter_depth_from_flow
 from ..representation import Representation
+
 
 class DepthOdoFlow(Representation):
 	def __init__(self, name, dependencies:List[Representation], dependencyAliases:List[str], velocitiesPath:str, \
-		velocitiesType:str, depth_axis:str, flowDirection:str, correct_ang_vel:bool, half_size:bool, fov:int):
+		velocitiesType:str, correct_ang_vel:bool, fov:int):
 		super().__init__(name, dependencies, dependencyAliases)
-		self.velocities = np.load(velocitiesPath)
-		self.velocities_type = velocitiesType
-		if self.velocities_type == 'gt_rot':
-			tag_linear_velocity = 'linear_velocity_gt_R_c'
-			tag_angular_velocity = 'angular_velocity_gt_R_c'
-		elif self.velocities_type == 'gt_direct':
-			tag_linear_velocity = 'linear_velocity_gt_d'
-			tag_angular_velocity = 'angular_velocity_gt_d'
-		else:
-			if self.velocities_type in ('gt_lin_vel', 'gt_lin_ang_vel'):
-				tag_linear_velocity = 'linear_velocity_gt_c'
-			else:
-				tag_linear_velocity = 'linear_velocity_c'
-			if self.velocities_type in ('gt_ang_vel', 'gt_lin_ang_vel'):
-				tag_angular_velocity = 'angular_velocity_gt_c'
-			else:
-				tag_angular_velocity = 'angular_velocity_c'
-		self.linear_velocity = self.velocities[tag_linear_velocity]
-		self.angular_velocity = self.velocities[tag_angular_velocity]
-		self.depth_axis = depth_axis
-		self.flowDirection = flowDirection
+		self.camera_info = CameraInfo(velocitiesPath, velocitiesType, camera_params=CameraSensorParams(fov))
 		self.correct_ang_vel = correct_ang_vel
-		self.half_size = half_size
-		self.fov = fov
 		# thresholds picked for flow at 960x540; scaled correspondingly in filter function
 		self.thresholds = {
 			"Z": 0,
@@ -51,15 +30,17 @@ class DepthOdoFlow(Representation):
 		flowHeight, flowWidth = flow.shape[0 : 2]
 		# [-1:1] -> [-px:px]
 		flow = flow * [flowHeight, flowWidth]
-		K = fov_diag_to_intrinsic(self.fov, (3840, 2160), (flowWidth, flowHeight))
-		flow = flow / self.dt
+		if not self.camera_info.has_K():
+			self.camera_info.frame_resolution = (flowWidth, flowHeight)
+		flow = flow / self.camera_info.dt
 
 		batched_flow = np.expand_dims(flow, axis=0).transpose(0, 3, 1, 2)
-		batch_lin_vel = np.expand_dims(self.linear_velocity[t], axis=0)
-		batch_ang_vel = np.expand_dims(self.angular_velocity[t], axis=0)
+		batch_lin_vel = np.expand_dims(self.camera_info.linear_velocity[t], axis=0)
+		batch_ang_vel = np.expand_dims(self.camera_info.angular_velocity[t], axis=0)
 
 		Zs, As, bs, derotating_flows, batch_ang_velc = \
-			depth_from_flow(batched_flow, batch_lin_vel, batch_ang_vel, K, self.depth_axis, self.correct_ang_vel)
+			depth_from_flow(batched_flow, batch_lin_vel, batch_ang_vel, self.camera_info.K,
+							adjust_ang_vel=self.correct_ang_vel)
 		valid = filter_depth_from_flow(Zs, As, bs, derotating_flows, thresholds=self.thresholds)
 
 		Zs[~valid] = np.nan
@@ -68,7 +49,7 @@ class DepthOdoFlow(Representation):
 		depth = np.clip(Zs.astype(np.float32), depth_limits[0], depth_limits[1])
 		depth = depth / depth_limits[1]
 		depth[~np.isfinite(depth)] = 1
-		return depth
+		return {"data": depth, "extra": {"range": depth_limits, "corrected_angular_velocity": batch_ang_velc[0]}}
 
 	def makeImage(self, x):
 		Where = np.where(x["data"] == 1)
@@ -80,9 +61,9 @@ class DepthOdoFlow(Representation):
 		return y
 
 	def setup(self):
-		assert len(self.linear_velocity) == len(self.video), "%d vs %d" % \
-			(self.linear_velocity.shape, len(self.video))
-		assert len(self.angular_velocity) == len(self.video), "%d vs %d" % \
-			(self.angular_velocity.shape, len(self.video))
+		assert len(self.camera_info.linear_velocity) == len(self.video), "%d vs %d" % \
+			(self.camera_info.linear_velocity.shape, len(self.video))
+		assert len(self.camera_info.angular_velocity) == len(self.video), "%d vs %d" % \
+			(self.camera_info.angular_velocity.shape, len(self.video))
 		self.fps = self.video.fps
-		self.dt = 1. / self.fps
+		self.camera_info.dt = 1. / self.fps
