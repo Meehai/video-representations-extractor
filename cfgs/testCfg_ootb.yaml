@@ -42,6 +42,14 @@ softseg1:
     maxIterations: 10
     attempts: 3
 
+softseg2:
+  method: seg-softseg
+  dependencies: []
+  parameters:
+    useFiltering: True
+    adjustToRGB: True
+    maxChannels: 3
+
 depth1:
   method: dpt
   dependencies: []
