@@ -3,10 +3,10 @@ import torch
 import torch.nn.functional as F
 import flow_vis
 import gdown
+from pathlib import Path
 from typing import Dict
 from torchvision import transforms
 from nwmodule.utilities import device
-from nwdata.utils import fullPath
 from media_processing_lib.image import imgResize
 from media_processing_lib.video import MPLVideo
 
@@ -19,7 +19,7 @@ class FlowRaft(Representation):
 	def __init__(self, name, dependencies, dependencyAliases, inputWidth:int, inputHeight:int):
 		super().__init__(name, dependencies, dependencyAliases)
 		self.model = None
-		self.weightsDir = fullPath(__file__).parents[2] / "weights/raft"
+		self.weightsDir = (Path(__file__).parents[2] / "weights/raft").absolute()
 		self.inputWidth = inputWidth
 		self.inputHeight = inputHeight
 
