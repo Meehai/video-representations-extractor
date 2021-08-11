@@ -66,10 +66,7 @@ depth3:
   parameters:
       velocitiesPath: weights/DJI_0956-003.npz
       velocitiesType: gt_direct
-      depth_axis: xy
-      flowDirection: forward
       correct_ang_vel: True
-      half_size: True
       fov: 75
 
 depth4:
@@ -78,10 +75,7 @@ depth4:
   parameters:
       velocitiesPath: weights/DJI_0956-003.npz
       velocitiesType: gt_direct
-      depth_axis: xy
-      flowDirection: forward
       correct_ang_vel: True
-      half_size: True
       fov: 75
 
 semantic1:

@@ -3,7 +3,6 @@ import numpy as np
 import torch
 from transforms3d import axangles
 import timeit
-import jax
 
 from .polyfit import linear_least_squares
 
