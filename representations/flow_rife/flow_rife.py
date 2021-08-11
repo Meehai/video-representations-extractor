@@ -6,7 +6,7 @@ import gdown
 from typing import Dict
 from torchvision import transforms
 from nwmodule.utilities import device
-from nwdata.utils import fullPath
+from pathlib import Path
 from media_processing_lib.image import imgResize
 from media_processing_lib.video import MPLVideo
 
@@ -19,7 +19,7 @@ class FlowRife(Representation):
 		self.model = None
 		self.UHD = False
 		self.no_backward_flow = True if computeBackwardFlow is None else not computeBackwardFlow
-		self.weightsDir = fullPath(__file__).parents[2] / "weights/rife"
+		self.weightsDir = (Path(__file__).parents[2] / "weights/rife").absolute()
 
 	def setup(self):
 		self.weightsDir.mkdir(exist_ok=True)
