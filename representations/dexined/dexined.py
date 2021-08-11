@@ -3,7 +3,7 @@ import gdown
 import numpy as np
 import torch as tr
 from shutil import copyfile
-from nwdata.utils import fullPath
+from pathlib import Path
 from nwmodule.utilities import device, trModuleWrapper
 from media_processing_lib.image import imgResize
 from media_processing_lib.video import MPLVideo
@@ -41,8 +41,8 @@ class DexiNed(Representation):
 		# our backup
 		urlWeights = "https://drive.google.com/u/0/uc?id=1oT1iKdRRKJpQO-DTYWUnZSK51QnJ-mnP"
 
-		self.weightsFile = str(fullPath(__file__).parents[2] / "weights/dexined.pth")
-		weightsPath = fullPath(self.weightsFile)
+		self.weightsFile = str((Path(__file__).parents[2] / "weights/dexined.pth").absolute())
+		weightsPath = Path(self.weightsFile).absolute()
 		if not weightsPath.exists():
 			print("[DexiNed::setup] Downloading weights for dexined from %s" % urlWeights)
 			gdown.download(urlWeights, self.weightsFile)

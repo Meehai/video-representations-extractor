@@ -7,7 +7,7 @@ from skimage.transform import resize as imresize
 from torchvision.transforms import Compose
 from media_processing_lib.video import MPLVideo
 from nwmodule.utilities import device
-from nwdata.utils import fullPath
+from pathlib import Path
 from matplotlib.cm import hot
 from typing import Dict
 
@@ -45,13 +45,13 @@ class DepthDpt(Representation):
 		self.trainSize = (trainHeight, trainWidth)
 		self.originalScaling = False
 		self.model = None
-		self.weightsFile = str(fullPath(__file__).parents[2] / "weights/depth_dpt_midas.pth")
+		self.weightsFile = str((Path(__file__).parents[2] / "weights/depth_dpt_midas.pth").absolute())
 
 	def setup(self):
 		# our backup
 		urlWeights = "https://drive.google.com/u/0/uc?id=15JbN2YSkZFSaSV2CGkU1kVSxCBrNtyhD"
 
-		weightsPath = fullPath(self.weightsFile)
+		weightsPath = Path(self.weightsFile).absolute()
 		if not weightsPath.exists():
 			print("[DexiNed::setup] Downloading weights for dexined from %s" % urlWeights)
 			gdown.download(urlWeights, self.weightsFile)

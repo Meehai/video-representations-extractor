@@ -32,6 +32,9 @@ def getRepresentation(method:str) -> Representation:
     elif method == "kmeans":
         from .kmeans import KMeans
         objType = KMeans
+    elif method == "seg-softseg":
+        from .seg_softseg import SegSoftSeg
+        objType = SegSoftSeg
     elif method == "depth-normals-svd":
         from .depth_normals_svd import DepthNormalsSVD
         objType = DepthNormalsSVD

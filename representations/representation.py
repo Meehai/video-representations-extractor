@@ -6,7 +6,6 @@ from typing import Dict, Tuple, Any, Union
 from functools import lru_cache
 from media_processing_lib.image import imgResize
 from media_processing_lib.video import MPLVideo
-from nwdata.utils import fullPath
 
 # @brief Generic video/image representation
 class Representation(ABC):
@@ -63,7 +62,7 @@ class Representation(ABC):
         assert not self.baseDir is None, "Call setBaseDir first"
         assert not self.outShape is None, "Call setOutShape first"
         t = t % len(self.video)
-        path = fullPath(self.baseDir / self.name / ("%d.npz" % t))
+        path = Path(self.baseDir / self.name / ("%d.npz" % t)).absolute()
         assert t >= 0 and t < len(self.video)
 
         # Try to load from the disk first, so we avoid computting representation[t] multiple times
@@ -100,6 +99,9 @@ class Representation(ABC):
         data = result["data"]
         assert data.shape[0] == self.outShape[0] and data.shape[1] == self.outShape[1], \
             "%s vs %s" % (data.shape, self.outShape)
-        assert data.dtype in (np.float32, np.uint8) and data.min() >= 0 and data.max() <= 1, \
-            "%s: Dtype: %s. Min: %2.2f. Max: %2.2f" % (self.name, data.dtype, data.min(), data.max())
+        assert data.dtype in (np.float32, np.uint8), "%s: Dtype: %s" % (self.name, data.dtype)
+        try:
+            assert data.min() >= 0 and data.max() <= 1, "%s: Min: %2.2f. Max: %2.2f" % (self.name, data.min(), data.max())
+        except Exception:
+            breakpoint()
         return result
