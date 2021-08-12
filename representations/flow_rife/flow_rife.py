@@ -14,8 +14,8 @@ from ..representation import Representation
 from .RIFE_HDv2 import Model
 
 class FlowRife(Representation):
-	def __init__(self, name, dependencies, dependencyAliases, computeBackwardFlow:bool):
-		super().__init__(name, dependencies, dependencyAliases)
+	def __init__(self, name, dependencies, saveResults:str, dependencyAliases, computeBackwardFlow:bool):
+		super().__init__(name, dependencies, saveResults, dependencyAliases)
 		self.model = None
 		self.UHD = False
 		self.no_backward_flow = True if computeBackwardFlow is None else not computeBackwardFlow

@@ -9,8 +9,10 @@ from media_processing_lib.video import MPLVideo
 
 # @brief Generic video/image representation
 class Representation(ABC):
-    def __init__(self, name:str, dependencies:List[Union[str, Representation]], dependencyAliases:List[str]=None):
+    def __init__(self, name:str, dependencies:List[Union[str, Representation]],
+        saveResults:str, dependencyAliases:List[str]=None):
         assert isinstance(dependencies, (set, list))
+        assert saveResults in ("all", "resized_only", "none")
         self.dependencyAliases = dependencyAliases if not dependencyAliases is None else dependencies
         assert len(self.dependencyAliases) == len(dependencies)
         self.name = name
@@ -18,6 +20,7 @@ class Representation(ABC):
         self.video = None
         self.baseDir = None
         self.outShape = None
+        self.saveResults = saveResults
 
     # @brief Main method of the project. Calls the algorithm's internal logic to transform the current RGB frame into
     # a [0-1] float32 representation.
@@ -93,8 +96,12 @@ class Representation(ABC):
                 "rawData" : rawData,
                 "extra" : extra
             }
-            # Store it to disk.
-            np.savez_compressed(path, result)
+
+            if self.saveResults != "none":
+                if self.saveResults == "resized_only":
+                    result["rawData"] = None
+                # Store it to disk.
+                np.savez_compressed(path, result)
 
         assert isinstance(result, dict) and "data" in result and "rawData" in result and "extra" in result, \
             "Representation: %s. Type: %s. Keys: %s" % (self, type(result), result.keys())
@@ -102,8 +109,6 @@ class Representation(ABC):
         assert data.shape[0] == self.outShape[0] and data.shape[1] == self.outShape[1], \
             "%s vs %s" % (data.shape, self.outShape)
         assert data.dtype in (np.float32, np.uint8), "%s: Dtype: %s" % (self.name, data.dtype)
-        try:
+        if data.dtype == np.float32:
             assert data.min() >= 0 and data.max() <= 1, "%s: Min: %2.2f. Max: %2.2f" % (self.name, data.min(), data.max())
-        except Exception:
-            breakpoint()
         return result

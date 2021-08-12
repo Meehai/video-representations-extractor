@@ -8,9 +8,9 @@ from ..representation import Representation
 
 
 class DepthOdoFlow(Representation):
-	def __init__(self, name, dependencies:List[Representation], dependencyAliases:List[str], velocitiesPath:str, \
-		velocitiesType:str, correct_ang_vel:bool, fov:int):
-		super().__init__(name, dependencies, dependencyAliases)
+	def __init__(self, name, dependencies:List[Representation], saveResults:str, \
+		dependencyAliases:List[str], velocitiesPath:str, velocitiesType:str, correct_ang_vel:bool, fov:int):
+		super().__init__(name, dependencies, saveResults, dependencyAliases)
 		self.camera_info = CameraInfo(velocitiesPath, velocitiesType, camera_params=CameraSensorParams(fov))
 		self.correct_ang_vel = correct_ang_vel
 		# thresholds picked for flow at 960x540; scaled correspondingly in filter function

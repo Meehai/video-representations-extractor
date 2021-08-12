@@ -125,7 +125,11 @@ class VideoRepresentationsExtractor:
 				dependencyAliases = r["dependencyAliases"] if "dependencyAliases" in r else r["dependencies"]
 				objType = getRepresentation(r["method"])
 				objType = partial(objType, name=name, dependencies=dependencies, dependencyAliases=dependencyAliases)
-				obj = objType(**r["parameters"]) if not r["parameters"] is None else objType()
+				# The representation parameters.
+				objParams = r["parameters"] if not r["parameters"] is None else {}
+				# saveResults in yaml cfg can be "none", "all", "resized_only" and defaults to "all" if not present.
+				objParams["saveResults"] = r["saveResults"] if "saveResults" in r else "all"
+				obj = objType(**objParams)
 
 			obj.setVideo(self.video)
 			obj.setBaseDir(self.outputDir)

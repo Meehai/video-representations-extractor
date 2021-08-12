@@ -16,8 +16,8 @@ from .raft import RAFT
 
 
 class FlowRaft(Representation):
-	def __init__(self, name, dependencies, dependencyAliases, inputWidth:int, inputHeight:int):
-		super().__init__(name, dependencies, dependencyAliases)
+	def __init__(self, name, dependencies, saveResults:str, dependencyAliases, inputWidth:int, inputHeight:int):
+		super().__init__(name, dependencies, saveResults, dependencyAliases)
 		self.model = None
 		self.weightsDir = (Path(__file__).parents[2] / "weights/raft").absolute()
 		self.inputWidth = inputWidth
