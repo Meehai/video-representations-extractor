@@ -5,14 +5,15 @@ from ..representation import Representation
 
 
 class SegSoftSeg(Representation):
-	def __init__(self, name, dependencies, dependencyAliases, useFiltering: bool, adjustToRGB: bool, maxChannels: int):
+	def __init__(self, name, dependencies, dependencyAliases, saveResults:str, \
+		useFiltering: bool, adjustToRGB: bool, maxChannels: int):
 		"""
 		Soft-seg implementation from https://link.springer.com/chapter/10.1007/978-3-642-33765-9_37
 		@param useFiltering: Apply a median filtering postprocessing pass.
 		@param adjustToRGB: Return a RGB soft segmentation image in a similar colormap as the input.
 		@param maxChannels: Max segmentation maps. Upper bounded at ~60.
 		"""
-		super().__init__(name, dependencies, dependencyAliases)
+		super().__init__(name, dependencies, saveResults, dependencyAliases)
 		self.useFiltering = useFiltering
 		self.adjustToRGB = adjustToRGB
 		self.maxChannels = maxChannels

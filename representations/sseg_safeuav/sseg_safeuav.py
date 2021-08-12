@@ -14,9 +14,9 @@ from .semantic import Semantic
 from ..representation import Representation
 
 class SSegSafeUAV(Representation):
-	def __init__(self, name:str, dependencies:List[Union[str, Representation]], dependencyAliases:List[str], \
-		numClasses:int, trainHeight:int, trainWidth:int, colorMap:List, weightsFile:str):
-		super().__init__(name, dependencies, dependencyAliases)
+	def __init__(self, name:str, dependencies:List[Union[str, Representation]], saveResults:str, \
+		dependencyAliases:List[str], numClasses:int, trainHeight:int, trainWidth:int, colorMap:List, weightsFile:str):
+		super().__init__(name, dependencies, saveResults, dependencyAliases)
 		assert len(colorMap) == numClasses, "%s vs %d" % (colorMap, numClasses)
 		self.model = None
 		self.numClasses = numClasses
@@ -30,17 +30,14 @@ class SSegSafeUAV(Representation):
 		img = imgResize(frame, height=self.trainHeight, width=self.trainWidth, interpolation="bilinear")
 		img = np.float32(frame[None]) / 255
 		res = self.model.npForward(img)[0]
-		res = (res == res.max(axis=-1, keepdims=True)).astype(np.uint8)
+		res = np.argmax(res, axis=-1).astype(np.uint8)
 		return res
 	
-	def makeImage(self, x):
-		predicted_colormap = np.zeros((self.outShape[0], self.outShape[1], 3), dtype=np.uint8)
-		label_indices = x["data"].argmax(axis=2)
-
-		for current_prediction_idx in range(self.numClasses):
-			predicted_colormap[np.nonzero(np.equal(label_indices,current_prediction_idx))] = \
-				self.colorMap[current_prediction_idx]
-		return predicted_colormap
+	def makeImage(self, x:np.ndarray) -> np.ndarray:
+		newImage = np.zeros((*x["data"].shape, 3), dtype=np.uint8)
+		for i in range(self.numClasses):
+			newImage[x["data"] == i] = self.colorMap[i]
+		return newImage
 
 	def setup(self):
 		if not self.model is None:

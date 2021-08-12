@@ -7,9 +7,9 @@ from nwdata.utils import toCategorical
 from .representation import Representation
 
 class KMeans(Representation):
-    def __init__(self, name:str, dependencies:List, dependencyAliases:List[str], \
+    def __init__(self, name:str, dependencies:List, saveResults:str, dependencyAliases:List[str], \
         nClusters:int, epsilon:float, maxIterations:int, attempts:int):
-        super().__init__(name, dependencies, dependencyAliases)
+        super().__init__(name, dependencies, saveResults, dependencyAliases)
         self.nClusters = nClusters
         self.epsilon = epsilon
         self.maxIterations = maxIterations

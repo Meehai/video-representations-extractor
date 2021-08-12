@@ -12,7 +12,7 @@ from .representation import Representation
 #  to provide the correct files (0.npz, ..., N.npz) as well as a function to plot the data to human viewable format.
 class DummyRepresentation(Representation):
 	def __init__(self, name:str, makeImageFn:Callable):
-		super().__init__(name, dependencies=[], dependencyAliases=[])
+		super().__init__(name, dependencies=[], saveResults="all", dependencyAliases=[])
 		assert isinstance(makeImageFn, Callable)
 		self.makeImageFn = makeImageFn
 

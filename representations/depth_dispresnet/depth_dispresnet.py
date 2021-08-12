@@ -39,9 +39,9 @@ def closest_fit(size, multiples):
 
 
 class DepthDispResNet(Representation):
-	def __init__(self, name, dependencies, dependencyAliases, weightsFile:str, \
+	def __init__(self, name, dependencies, saveResults:str, dependencyAliases, weightsFile:str, \
 		resNetLayers:int, trainHeight:int, trainWidth:int, minDepth:int, maxDepth:int):
-		super().__init__(name, dependencies, dependencyAliases)
+		super().__init__(name, dependencies, saveResults, dependencyAliases)
 		self.model = None
 		self.weightsFile = weightsFile
 		self.resNetLayers = resNetLayers

@@ -1,8 +1,8 @@
 from typing import Tuple
 
 def get_unet_MDCB_with_deconv_layers(input_shape:Tuple[int, int, int], init_nb:int, num_classes:int):
-	from keras.models import Model
-	from keras.layers import Input, concatenate, Conv2D, Activation, add, concatenate, Conv2DTranspose
+	from tensorflow.keras.models import Model
+	from tensorflow.keras.layers import Input, concatenate, Conv2D, Activation, add, concatenate, Conv2DTranspose
 	inputs = Input(input_shape)
 	
 	down1 = Conv2D(init_nb, (3, 3), activation='relu', padding='same')(inputs)
