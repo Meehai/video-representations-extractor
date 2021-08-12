@@ -78,19 +78,19 @@ depth4:
       correct_ang_vel: True
       fov: 75
 
-semantic1:
-  method: semantic-safeuav-keras
-  dependencies: []
-  parameters:
-    weightsFile: weights/EPOCH_13_TRAIN_loss_0.05107_dice_0.9654_VALID_loss_0.19600_dice_0.8877.hdf5
-    init_nb: 24
-    trainHeight: 1080
-    trainWidth: 1920
-    numClasses: 12
-    colorMap: [
-      [0, 255, 0], [0, 127, 0], [255, 255, 0], [255, 127, 0], [255, 255, 255], [255, 0, 255],
-      [127, 127, 127], [0, 0, 255], [0, 255, 255], [127, 127, 63], [255, 0, 0], [127, 127, 0]
-    ]
+# semantic1:
+#   method: semantic-safeuav-keras
+#   dependencies: []
+#   parameters:
+#     weightsFile: weights/EPOCH_13_TRAIN_loss_0.05107_dice_0.9654_VALID_loss_0.19600_dice_0.8877.hdf5
+#     init_nb: 24
+#     trainHeight: 1080
+#     trainWidth: 1920
+#     numClasses: 12
+#     colorMap: [
+#       [0, 255, 0], [0, 127, 0], [255, 255, 0], [255, 127, 0], [255, 255, 255], [255, 0, 255],
+#       [127, 127, 127], [0, 0, 255], [0, 255, 255], [127, 127, 63], [255, 0, 0], [127, 127, 0]
+#     ]
 
 semantic2:
   method: semantic-safeuav
@@ -115,5 +115,5 @@ opticalflow2:
   method: raft
   dependencies: []
   parameters:
-    inputHeight: 1080
-    inputWidth: 1920
+    inputHeight: 720
+    inputWidth: 1280
