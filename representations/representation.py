@@ -83,8 +83,10 @@ class Representation(ABC):
             rawData, extra = rawResult["data"], rawResult["extra"]
             # Based on the raw result, resize it to outputShape
             interpolation = "nearest" if rawData.dtype == np.uint8 else "bilinear"
-            resizedData = imgResize(rawData, height=self.outShape[0], width=self.outShape[1], \
-                onlyUint8=False, interpolation=interpolation)
+            # OpenCV bugs with uint8 and nearest, adding 255 values (in range [0-1])
+            Dtype = np.int32 if rawData.dtype == np.uint8 else rawData.dtype
+            resizedData = imgResize(rawData.astype(Dtype), height=self.outShape[0], width=self.outShape[1], \
+                onlyUint8=False, interpolation=interpolation).astype(rawData.dtype)
 
             result = {
                 "data" : resizedData,

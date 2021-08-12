@@ -1,20 +1,22 @@
 import numpy as np
 import cv2
 import warnings
-from typing import List, Tuple
+from typing import List, Tuple, Union
 from media_processing_lib.image import imgResize
 from media_processing_lib.video import MPLVideo
 from nwmodule.graph import Edge
 from nwmodule.utilities import device
-from cycleconcepts.nodes import RGB, Semantic
-from cycleconcepts.models import SingleLinkGraph
+# from ngclib.nodes import RGB, Semantic
+from ngclib.models import SingleLink
 
+from .rgb import RGB
+from .semantic import Semantic
 from ..representation import Representation
 
 class SSegSafeUAV(Representation):
-	def __init__(self, baseDir:str, name:str, dependencies:List[Representation], dependencyAliases:List[str], \
+	def __init__(self, name:str, dependencies:List[Union[str, Representation]], dependencyAliases:List[str], \
 		numClasses:int, trainHeight:int, trainWidth:int, colorMap:List, weightsFile:str):
-		super().__init__(name, dependency, dependencyAliases)
+		super().__init__(name, dependencies, dependencyAliases)
 		assert len(colorMap) == numClasses, "%s vs %d" % (colorMap, numClasses)
 		self.model = None
 		self.numClasses = numClasses
@@ -27,7 +29,8 @@ class SSegSafeUAV(Representation):
 		frame = np.array(self.video[t])
 		img = imgResize(frame, height=self.trainHeight, width=self.trainWidth, interpolation="bilinear")
 		img = np.float32(frame[None]) / 255
-		res = self.model.edges[0].model.npForward(img)[0]
+		res = self.model.npForward(img)[0]
+		res = (res == res.max(axis=-1, keepdims=True)).astype(np.uint8)
 		return res
 	
 	def makeImage(self, x):
@@ -44,10 +47,12 @@ class SSegSafeUAV(Representation):
 			return
 
 		rgbNode = RGB()
-		semanticNode = Semantic(semanticClasses=list(range(self.numClasses)), semanticUseAllMetrics=False)
-		model = SingleLinkGraph([
-			Edge(rgbNode, semanticNode, blockGradients=False)
-		])
+		semanticNode = Semantic(semanticClasses=list(range(self.numClasses)), semanticColors=self.colorMap, \
+			name="semantic")
+		# model = SingleLinkGraph([
+		# 	Edge(rgbNode, semanticNode, blockGradients=False)
+		# ])
+		model = SingleLink(rgbNode, semanticNode)
 		model.loadWeights(self.weightsFile, yolo=True)
 		model.to(device)
 		self.model = model
