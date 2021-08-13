@@ -1,8 +1,8 @@
 import numpy as np
 
 
-def get_sampling_grid(width, height, window_size):
-    window_x = np.arange(window_size) - window_size // 2
+def get_sampling_grid(width, height, window_size, stride):
+    window_x = np.arange(0, stride * window_size, stride) - window_size // 2 * stride
     window_y = window_x.copy()
     window_y, window_x = np.meshgrid(window_y, window_x, indexing='ij')
     window_x = window_x.flatten()
