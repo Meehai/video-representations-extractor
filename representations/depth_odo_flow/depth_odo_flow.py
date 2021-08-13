@@ -9,13 +9,18 @@ from ..representation import Representation
 
 class DepthOdoFlow(Representation):
 	def __init__(self, name, dependencies:List[Representation], saveResults:str, \
-		dependencyAliases:List[str], velocitiesPath:str, velocitiesType:str, correct_ang_vel:bool,
+		dependencyAliases:List[str], velocitiesPath:str, velocitiesType:str,
+		linearAngVelCorrection:bool, focusCorrection:bool, cosineCorrectionScipy:bool,cosineCorrectionGD:bool,
 		fov:int, sensorWidth:int, sensorHeight:int,
 		minDepthMeters:int, maxDepthMeters:int):
 		super().__init__(name, dependencies, saveResults, dependencyAliases)
 		self.camera_info = CameraInfo(velocitiesPath, velocitiesType,
 									  camera_params=CameraSensorParams(fov, (sensorWidth, sensorHeight)))
-		self.correct_ang_vel = correct_ang_vel
+		self.linearAngVelCorrection = linearAngVelCorrection
+		self.focusCorrection = focusCorrection
+		self.cosineCorrectionScipy = cosineCorrectionScipy
+		self.cosineCorrectionGD = cosineCorrectionGD
+		self.flowDownsampleStep = flowDownsampleStep
 		self.minDepthMeters = minDepthMeters
 		self.maxDepthMeters = maxDepthMeters
 		# thresholds picked for flow at 960x540; scaled correspondingly in filter function
@@ -45,7 +50,8 @@ class DepthOdoFlow(Representation):
 
 		Zs, As, bs, derotating_flows, batch_ang_velc = \
 			depth_from_flow(batched_flow, batch_lin_vel, batch_ang_vel, self.camera_info.K,
-							adjust_ang_vel=self.correct_ang_vel)
+							self.linearAngVelCorrection, self.focusCorrection, self.cosineCorrectionGD,
+							self.cosineCorrectionScipy)
 		valid = filter_depth_from_flow(Zs, As, bs, derotating_flows, thresholds=self.thresholds)
 
 		Zs[~valid] = np.nan
@@ -54,8 +60,12 @@ class DepthOdoFlow(Representation):
 		depth = (depth - self.minDepthMeters) / (self.maxDepthMeters - self.minDepthMeters)
 		depth[~np.isfinite(depth)] = 1
 		return {"data": depth,
-				"extra": {"range": (self.minDepthMeters, self.maxDepthMeters),
-				"corrected_angular_velocity": batch_ang_velc[0]}}
+				"extra": {
+					"rangeScaled": (self.minDepthMeters, self.maxDepthMeters),
+					"rangeValid": (0, 1),
+					"corrected_angular_velocity": batch_ang_velc[0],
+					}
+				}
 
 	def makeImage(self, x):
 		Where = np.where(x["data"] == 1)

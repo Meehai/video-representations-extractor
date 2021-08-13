@@ -3,6 +3,9 @@ import numpy as np
 import torch
 from transforms3d import axangles
 import timeit
+from skimage.filters import gaussian
+from scipy import optimize
+
 
 from .polyfit import linear_least_squares
 
@@ -294,8 +297,9 @@ def solve_scalar_linear_least_squares(A, b):
     return Z
 
 
-def depth_from_flow(batched_flow, linear_velocity, angular_velocity, K, axis=("x", "y", "xy")[2], adjust_ang_vel=True,
-                    mesh_grid=None):
+def depth_from_flow(batched_flow, linear_velocity, angular_velocity, K,
+                    adjust_ang_vel=True, use_focus_correction=False, use_cosine_correction_gd=False,
+                    use_cosine_correction_scipy=False, mesh_grid=None, axis=("x", "y", "xy")[2]):
     f_u, f_v = K[0, 0], K[1, 1]
     u0, v0 = K[0, 2], K[1, 2]
 
@@ -346,6 +350,21 @@ def depth_from_flow(batched_flow, linear_velocity, angular_velocity, K, axis=("x
                 angular_velocity[b_ind] = angular_velocity[b_ind] + ang_vel_correction
         derotating_flow = get_derotating_flow(J_w, angular_velocity)
         b = batched_flow - derotating_flow
+
+    ang_vel_correction = np.zeros_like(angular_velocity)
+    if use_focus_correction:
+        for b_ind in range(B):
+            ang_vel_correction[b_ind] = focus_corection(angular_velocity[b_ind], linear_velocity[b_ind], f_u, (int(u0), int(v0)), b[b_ind])
+    if use_cosine_correction_gd:
+        for b_ind in range(B):
+            ang_vel_correction[b_ind] = cosine_correction_torch(b[b_ind], A[b_ind], J_w, initial_delta=ang_vel_correction[b_ind], b_ind=b_ind)
+    if use_cosine_correction_scipy:
+        for b_ind in range(B):
+            ang_vel_correction[b_ind] = cosine_correction_scipy(b[b_ind], A[b_ind], J_w, initial_delta=ang_vel_correction[b_ind], b_ind=b_ind)
+
+    angular_velocity = angular_velocity - ang_vel_correction
+    derotating_flow = get_derotating_flow(J_w, angular_velocity)
+    b = batched_flow - derotating_flow
 
     if axis == "xy":
         norm_A_squared = np.sum(np.square(A), axis=1)
@@ -512,3 +531,189 @@ def get_feature_from_depth_from_flow_data(Zs, As, bs, derotating_flows, feature)
     #     feature_data[:, int(H // 2):] = np.nan
 
     return feature_data
+
+
+def focus_corection(ang_vel, lin_vel, f, c, b):
+    # speed check
+    low_axis_threshold = 0.1
+    low_ang_vel_threshold = 0.05
+    window_size = 5
+    use_real_minimum = True
+    approximate_out_of_image = True
+
+    # init
+    dw = np.zeros(3)
+    focus_correction_valid = True
+
+    # check if we can approximante ang vel along one axis to zero
+    ang_low_idx = np.argmin(np.abs(ang_vel))
+    # print(ang_low_idx)
+    ang_low_idx = 2
+    # if np.abs(ang_vel).mean() > low_ang_vel_threshold and \
+    #    np.abs(ang_vel).min() / np.abs(ang_vel).max() > low_axis_threshold:
+    #     focus_correction_valid = False
+
+    if lin_vel[2] != 0:
+        # check if focus of expansion is inside the image space
+        u, v = np.round(f * lin_vel[0:2] / lin_vel[2])
+        # print(ang_vel)
+        # print('uv', [u, v])
+        if not np.isfinite(u) or not np.isfinite(v):
+            focus_correction_valid = False
+        elif approximate_out_of_image:
+            u = np.clip(u, -c[0], c[0] - 1)
+            v = np.clip(v, -c[1], c[1] - 1)
+        elif u < -c[0] or u > c[0] - 1 or v < -c[1] or v > c[1] - 1:
+            focus_correction_valid = False
+    else:
+        focus_correction_valid = False
+
+    # if looking good
+    if focus_correction_valid:
+        xw = [int(np.max([u + c[0] - window_size // 2, 0])),
+              int(np.min([u + c[0] + window_size // 2 + 1, 2 * c[0]]))]
+        yw = [int(np.max([v + c[1] - window_size // 2, 0])),
+              int(np.min([v + c[1] + window_size // 2 + 1, 2 * c[1]]))]
+
+        jw = np.array([[u * v / f, -(f ** 2 + u ** 2) / f, v],
+                       [(f ** 2 + v ** 2) / f, -u * v / f, -u]])[None]
+
+        jw = np.delete(jw, ang_low_idx, axis=2)
+        jw = jw.reshape(jw.shape[0] * 2, 2)
+
+        # tg = np.array([-b[:, v + c[1], u + c[0]] for u, v in xy])
+        # tg = np.array([b[:, focus_real[0], focus_real[1]] - b[:, v + c[1], u + c[0]] for u, v in xy])
+        # tg = tg.mean(axis=0)
+        # tg = tg.flatten()
+
+        tg = -b[:, yw[0]:yw[1], xw[0]:xw[1]]
+        # print(tg.shape)
+        tg = tg.reshape(-1, tg.shape[1] * tg.shape[2]).mean(axis=1)
+        # tg = tg.flatten()
+        # print(tg.shape)
+        # print(tg)
+
+        if use_real_minimum:
+            norm = np.sqrt((b ** 2).sum(axis=0))
+            # idx = np.argmin(norm)
+            idx = np.argmin(gaussian(norm, sigma=2))
+            yf, xf = np.unravel_index(idx, norm.shape)
+            tg += b[:, yf, xf]
+
+        try:
+            dw = np.linalg.lstsq(jw, tg, rcond=None)[0]
+            dw = np.insert(dw, ang_low_idx, 0, axis=0)
+        except np.linalg.LinAlgError:
+            pass
+
+    return dw
+
+
+def cosine_correction_scipy(b, A, Jw, initial_delta=None, b_ind=None):
+    if initial_delta is not None:
+        dw = initial_delta
+    else:
+        dw = np.zeros(3)
+
+    A = A.transpose((1, 2, 0)).reshape(A.shape[1] * A.shape[2], 2)
+    b = b.transpose((1, 2, 0)).reshape(b.shape[1] * b.shape[2], 2)
+    Jw = Jw.transpose((2, 3, 0, 1)).reshape(Jw.shape[2] * Jw.shape[3], 2, 3)
+
+    Au, Av = A[:, :1], A[:, 1:]
+    bu, bv = b[:, :1], b[:, 1:]
+    Ju, Jv = Jw[:, 0], Jw[:, 1]
+
+    Ab = (A * b).sum(axis=1)[..., None]
+    nA2 = (A ** 2).sum(axis=1)[..., None]
+    AJ = Au * Ju + Av * Jv
+
+    def sim_loss(w):
+        w = w[..., None]
+        cos = (1 - (Ab + AJ @ w) / (np.sqrt(nA2) * np.sqrt((bu + Ju @ w) ** 2 + (bv + Jv @ w) ** 2))).mean()
+        return cos
+
+    res = optimize.minimize(sim_loss, dw, method='Nelder-Mead')
+    dw = res.x
+
+    if np.linalg.norm(dw) < 0.02:
+        dw = dw
+    else:
+        dw = np.zeros(3)
+        # print(b_ind, 'trigger norm', np.linalg.norm(dw))
+
+    return dw
+
+
+def cosine_correction_torch(b, A, Jw, initial_delta=None, b_ind=None):
+    n_optim_steps = 50
+    lr = 1e-4
+    stop_cond = 1e-5
+
+    if initial_delta is not None:
+        dw = initial_delta
+    else:
+        dw = np.zeros(3)
+
+    A = A.transpose((1, 2, 0)).reshape(A.shape[1] * A.shape[2], 2)
+    b = b.transpose((1, 2, 0)).reshape(b.shape[1] * b.shape[2], 2)
+    Jw = Jw.transpose((2, 3, 0, 1)).reshape(Jw.shape[2] * Jw.shape[3], 2, 3)
+
+    Au, Av = A[:, :1], A[:, 1:]
+    bu, bv = b[:, :1], b[:, 1:]
+    Ju, Jv = Jw[:, 0], Jw[:, 1]
+
+    Ab = (A * b).sum(axis=1)[..., None]
+    nA2 = (A ** 2).sum(axis=1)[..., None]
+    AJ = Au * Ju + Av * Jv
+    # Abx = Au * bv - Av * bu
+    # AJx = Au * Jv - Av * Ju
+
+    dw = torch.tensor(dw)
+    Ab, AJ, nA2 = torch.tensor(Ab), torch.tensor(AJ), torch.tensor(nA2)
+    # Abx, AJx = torch.tensor(Abx), torch.tensor(AJx)
+    bu, bv = torch.tensor(bu), torch.tensor(bv)
+    Ju, Jv = torch.tensor(Ju), torch.tensor(Jv)
+
+    dw.requires_grad_()
+    optimizer = torch.optim.SGD([dw], lr, momentum=0.2)
+
+    def sim_loss(w):
+        w = w[..., None]
+        cos = (1 - (Ab + AJ @ w) / (torch.sqrt(nA2) * torch.sqrt((bu + Ju @ w) ** 2 + (bv + Jv @ w) ** 2))).mean()
+        # sin = ((Abx + AJx @ w) / (torch.sqrt(nA2) * torch.sqrt((bu + Ju @ w) ** 2 + (bv + Jv @ w) ** 2))).abs().mean()
+        return cos
+
+    optimizer.zero_grad()
+    loss = sim_loss(dw)
+    # print('Step # {}, loss: {}'.format(0, loss.item()))
+    loss.backward()
+    optimizer.step()
+    # scheduler.step()
+    ll = loss.item()
+
+    if np.isnan(ll):
+        return np.zeros(3)
+
+    ii = 0
+    for ii in range(1, n_optim_steps):
+        optimizer.zero_grad()
+        loss = sim_loss(dw)
+        if np.abs(ll - loss.item()) < stop_cond:
+            break
+        # print('Step # {}, loss: {}'.format(ii, loss.item()))
+        loss.backward()
+        optimizer.step()
+        # scheduler.step()
+        ll = loss.item()
+        # print(ii, loss.item(), dw.detach().numpy())
+    # print(b_ind, ii)
+
+    dw = dw.detach().numpy()
+
+    if np.linalg.norm(dw) < 0.02:
+        dw = dw
+    else:
+        dw = np.zeros(3)
+        # print(b_ind, 'trigger norm', np.linalg.norm(dw))
+
+    return dw

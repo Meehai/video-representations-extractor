@@ -66,7 +66,10 @@ depth3:
   parameters:
       velocitiesPath: weights/DJI_0956-003.npz
       velocitiesType: gt_direct
-      correct_ang_vel: True
+      linearAngVelCorrection: True
+      focusCorrection: True
+      cosineCorrectionScipy: False
+      cosineCorrectionGD: True
       fov: 75
       sensorWidth: 3840
       sensorHeight: 2160
@@ -79,7 +82,10 @@ depth4:
   parameters:
       velocitiesPath: weights/DJI_0956-003.npz
       velocitiesType: gt_direct
-      correct_ang_vel: True
+      linearAngVelCorrection: True
+      focusCorrection: True
+      cosineCorrectionScipy: False
+      cosineCorrectionGD: True
       fov: 75
       sensorWidth: 3840
       sensorHeight: 2160
