@@ -20,7 +20,6 @@ class DepthOdoFlow(Representation):
 		self.focusCorrection = focusCorrection
 		self.cosineCorrectionScipy = cosineCorrectionScipy
 		self.cosineCorrectionGD = cosineCorrectionGD
-		self.flowDownsampleStep = flowDownsampleStep
 		self.minDepthMeters = minDepthMeters
 		self.maxDepthMeters = maxDepthMeters
 		# thresholds picked for flow at 960x540; scaled correspondingly in filter function
@@ -36,7 +35,7 @@ class DepthOdoFlow(Representation):
 
 	def make(self, t):
 		# [0:1] -> [-1:1]
-		flow = self.flow[t]["rawData"] * 2 - 1
+		flow = self.flow[t]["data"] * 2 - 1
 		flowHeight, flowWidth = flow.shape[0 : 2]
 		# [-1:1] -> [-px:px]
 		flow = flow * [flowHeight, flowWidth]

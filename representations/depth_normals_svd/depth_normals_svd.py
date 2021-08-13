@@ -29,7 +29,7 @@ class DepthNormalsSVD(Representation):
         self.normalized_grid = None
 
     def make(self, t:int):
-        depth = self.depth[t]["rawData"]
+        depth = self.depth[t]["data"]
         normals = depth_to_normals(depth, self.sampling_grid, self.normalized_grid, self.max_dist, self.min_valid)
         normals = (normals.astype(np.float32) + 1) / 2
         return normals
@@ -41,7 +41,7 @@ class DepthNormalsSVD(Representation):
         if not self.sampling_grid is None:
             return
         self.depth = self.dependencies[0]
-        depthHeight, depthWidth = self.depth[0]["rawData"].shape[:2]
+        depthHeight, depthWidth = self.depth[0]["data"].shape[:2]
         self.sampling_grid = get_sampling_grid(depthWidth, depthHeight, self.window_size)
         self.K = fov_diag_to_intrinsic(self.fov, (self.sensorWidth, self.sensorHeight), (depthWidth, depthHeight))
         self.normalized_grid = get_normalized_coords(depthWidth, depthHeight, self.K)
