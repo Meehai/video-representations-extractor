@@ -68,6 +68,10 @@ depth3:
       velocitiesType: gt_direct
       correct_ang_vel: True
       fov: 75
+      sensorWidth: 3840
+      sensorHeight: 2160
+      minDepthMeters: 0
+      maxDepthMeters: 400
 
 depth4:
   method: depth-odo-flow
@@ -77,6 +81,11 @@ depth4:
       velocitiesType: gt_direct
       correct_ang_vel: True
       fov: 75
+      sensorWidth: 3840
+      sensorHeight: 2160
+      minDepthMeters: 0
+      maxDepthMeters: 400
+
 
 semantic1:
   method: semantic-safeuav-keras

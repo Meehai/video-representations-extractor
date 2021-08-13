@@ -23,7 +23,6 @@ class FlowRaft(Representation):
 		self.inputWidth = inputWidth
 		self.inputHeight = inputHeight
 
-		self.output_downsample_step = 2
 		self.small = False
 		self.mixed_precision = False
 

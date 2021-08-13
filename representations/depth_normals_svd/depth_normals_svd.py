@@ -11,10 +11,13 @@ from .utils import get_sampling_grid, get_normalized_coords, depth_to_normals
 #  projected into 3D and then a plane is fitted on the 3D pointcloud using SVD.
 class DepthNormalsSVD(Representation):
     def __init__(self, name:str, dependencies:List[Union[str, Representation]], saveResults:str, \
-        dependencyAliases:List[str], fov:int, windowSize:int, maxDistance:float=None, minValidCount:int=None):
+        dependencyAliases:List[str], fov:int, sensorWidth:int, sensorHeight:int,
+        windowSize:int, maxDistance:float=None, minValidCount:int=None):
         assert len(dependencies) == 1, "Expected one depth method!"
         super().__init__(name, dependencies, saveResults, dependencyAliases)
         self.fov = fov
+        self.sensorWidth = sensorWidth
+        self.sensorHeight = sensorHeight
         assert windowSize % 2 == 1, "Expected odd window size!"
         self.window_size = windowSize
         self.max_dist = maxDistance if maxDistance is not None else -1
@@ -40,5 +43,5 @@ class DepthNormalsSVD(Representation):
         self.depth = self.dependencies[0]
         depthHeight, depthWidth = self.depth[0]["rawData"].shape[:2]
         self.sampling_grid = get_sampling_grid(depthWidth, depthHeight, self.window_size)
-        self.K = fov_diag_to_intrinsic(self.fov, (3840, 2160), (depthWidth, depthHeight))
+        self.K = fov_diag_to_intrinsic(self.fov, (self.sensorWidth, self.sensorHeight), (depthWidth, depthHeight))
         self.normalized_grid = get_normalized_coords(depthWidth, depthHeight, self.K)

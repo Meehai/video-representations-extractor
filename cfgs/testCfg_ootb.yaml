@@ -75,4 +75,6 @@ normals1:
   dependencies: [depth1]
   parameters:
     fov: 75
+    sensorWidth: 3840
+    sensorHeight: 2160
     windowSize: 11

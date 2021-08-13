@@ -9,10 +9,15 @@ from ..representation import Representation
 
 class DepthOdoFlow(Representation):
 	def __init__(self, name, dependencies:List[Representation], saveResults:str, \
-		dependencyAliases:List[str], velocitiesPath:str, velocitiesType:str, correct_ang_vel:bool, fov:int):
+		dependencyAliases:List[str], velocitiesPath:str, velocitiesType:str, correct_ang_vel:bool,
+		fov:int, sensorWidth:int, sensorHeight:int,
+		minDepthMeters:int, maxDepthMeters:int):
 		super().__init__(name, dependencies, saveResults, dependencyAliases)
-		self.camera_info = CameraInfo(velocitiesPath, velocitiesType, camera_params=CameraSensorParams(fov))
+		self.camera_info = CameraInfo(velocitiesPath, velocitiesType,
+									  camera_params=CameraSensorParams(fov, (sensorWidth, sensorHeight)))
 		self.correct_ang_vel = correct_ang_vel
+		self.minDepthMeters = minDepthMeters
+		self.maxDepthMeters = maxDepthMeters
 		# thresholds picked for flow at 960x540; scaled correspondingly in filter function
 		self.thresholds = {
 			"Z": 0,
@@ -45,11 +50,12 @@ class DepthOdoFlow(Representation):
 
 		Zs[~valid] = np.nan
 		Zs = Zs[0]
-		depth_limits = (0, 400)
-		depth = np.clip(Zs.astype(np.float32), depth_limits[0], depth_limits[1])
-		depth = depth / depth_limits[1]
+		depth = np.clip(Zs.astype(np.float32), self.minDepthMeters, self.maxDepthMeters)
+		depth = (depth - self.minDepthMeters) / (self.maxDepthMeters - self.minDepthMeters)
 		depth[~np.isfinite(depth)] = 1
-		return {"data": depth, "extra": {"range": depth_limits, "corrected_angular_velocity": batch_ang_velc[0]}}
+		return {"data": depth,
+				"extra": {"range": (self.minDepthMeters, self.maxDepthMeters),
+				"corrected_angular_velocity": batch_ang_velc[0]}}
 
 	def makeImage(self, x):
 		Where = np.where(x["data"] == 1)
