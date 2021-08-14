@@ -45,7 +45,7 @@ class Representation(ABC):
 
     def setBaseDir(self, baseDir:path):
         self.baseDir = baseDir
-    
+
     def setOutShape(self, outShape:Tuple[int, int]):
         self.outShape = outShape
 
@@ -85,11 +85,7 @@ class Representation(ABC):
                 rawResult = {"data" : rawResult, "extra" : {}}
             rawData, extra = rawResult["data"], rawResult["extra"]
             # Based on the raw result, resize it to outputShape
-            interpolation = "nearest" if rawData.dtype == np.uint8 else "bilinear"
-            # OpenCV bugs with uint8 and nearest, adding 255 values (in range [0-1])
-            Dtype = np.int32 if rawData.dtype == np.uint8 else rawData.dtype
-            resizedData = imgResize(rawData.astype(Dtype), height=self.outShape[0], width=self.outShape[1], \
-                onlyUint8=False, interpolation=interpolation).astype(rawData.dtype)
+            resizedData = self.resizeRawData(rawData)
 
             result = {
                 "data" : resizedData,
@@ -112,3 +108,11 @@ class Representation(ABC):
         if data.dtype == np.float32:
             assert data.min() >= 0 and data.max() <= 1, "%s: Min: %2.2f. Max: %2.2f" % (self.name, data.min(), data.max())
         return result
+
+    def resizeRawData(self, rawData):
+        interpolation = "nearest" if rawData.dtype == np.uint8 else "bilinear"
+        # OpenCV bugs with uint8 and nearest, adding 255 values (in range [0-1])
+        Dtype = np.int32 if rawData.dtype == np.uint8 else rawData.dtype
+        resizedData = imgResize(rawData.astype(Dtype), height=self.outShape[0], width=self.outShape[1], \
+                                onlyUint8=False, interpolation=interpolation).astype(rawData.dtype)
+        return resizedData

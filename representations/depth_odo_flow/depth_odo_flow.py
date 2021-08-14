@@ -35,10 +35,19 @@ class DepthOdoFlow(Representation):
 
 	def make(self, t):
 		# [0:1] -> [-1:1]
-		flow = self.flow[t]["data"] * 2 - 1
+		if t + 1 < len(self.video):
+			data = self.flow[t]["data"]
+			inverse_flow = False
+		else:
+			rawData = self.flow.get(t, t - 1)
+			data = self.flow.resizeRawData(rawData)
+			inverse_flow = True
+		flow = data * 2 - 1
 		flowHeight, flowWidth = flow.shape[0 : 2]
 		# [-1:1] -> [-px:px]
 		flow = flow * [flowHeight, flowWidth]
+		if inverse_flow:
+			flow = - flow
 		if not self.camera_info.has_K():
 			self.camera_info.frame_resolution = (flowWidth, flowHeight)
 		flow = flow / self.camera_info.dt

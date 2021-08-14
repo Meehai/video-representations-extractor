@@ -53,9 +53,15 @@ class FlowRife(Representation):
 			model.device()
 			self.model = model
 
-	def make(self, t:int) -> np.ndarray:
-		frame1 = self.video[t]
-		frame2 = self.video[t + 1] if t < len(self.video) - 2 else frame1.copy()
+	def make(self, t) -> np.ndarray:
+		t_target = t + 1 if t < len(self.video) - 1 else t
+		return self.get(t, t_target)
+
+	def get(self, t_source, t_target) -> np.ndarray:
+		self.setup()
+
+		frame1 = self.video[t_source]
+		frame2 = self.video[t_target]
 		
 		# Convert, preprocess & pad
 		I0 = torch.from_numpy(np.transpose(frame1, (2,0,1))).to(device, non_blocking=True).unsqueeze(0).float() / 255.
