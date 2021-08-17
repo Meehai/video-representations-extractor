@@ -23,11 +23,10 @@ class SegSoftSeg(Representation):
 		x = x.permute(2, 0, 1).unsqueeze(0)
 		y = soft_seg(x, use_filtering=self.useFiltering, as_image=self.adjustToRGB, max_channels=self.maxChannels)
 		y = y[0].permute(1, 2, 0).cpu().numpy()
-		y = np.uint8(y)
 		return y
 
 	def makeImage(self, x: np.ndarray) -> np.ndarray:
-		y = x["data"] * 255
+		y = np.uint8(x["data"] * 255)
 		return y
 
 	def setup(self):
