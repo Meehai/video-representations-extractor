@@ -647,7 +647,7 @@ def cosine_correction_scipy(b, A, Jw, initial_delta=None, b_ind=None):
 def cosine_correction_torch(b, A, Jw, initial_delta=None, b_ind=None):
     n_optim_steps = 50
     lr = 1e-4
-    stop_cond = 1e-5
+    stop_cond = 1e-12
 
     if initial_delta is not None:
         dw = initial_delta
@@ -658,6 +658,13 @@ def cosine_correction_torch(b, A, Jw, initial_delta=None, b_ind=None):
     b = b.transpose((1, 2, 0)).reshape(b.shape[1] * b.shape[2], 2)
     Jw = Jw.transpose((2, 3, 0, 1)).reshape(Jw.shape[2] * Jw.shape[3], 2, 3)
 
+    # import os
+    # import imageio
+    # A_norm = np.linalg.norm(A.reshape((960, 540, 2)), axis=2)
+    # b_norm = np.linalg.norm(b.reshape((960, 540, 2)), axis=2)
+    # imageio.imwrite(os.path.join('/Date2/hpc/datasets/icra21/dump', str(b_ind) + '_A_norm' + '.jpg'), A_norm)
+    # imageio.imwrite(os.path.join('/Date2/hpc/datasets/icra21/dump', str(b_ind) + '_b_norm' + '.jpg'), b_norm)
+
     Au, Av = A[:, :1], A[:, 1:]
     bu, bv = b[:, :1], b[:, 1:]
     Ju, Jv = Jw[:, 0], Jw[:, 1]
@@ -667,19 +674,25 @@ def cosine_correction_torch(b, A, Jw, initial_delta=None, b_ind=None):
     AJ = Au * Ju + Av * Jv
     # Abx = Au * bv - Av * bu
     # AJx = Au * Jv - Av * Ju
+    nb = np.sqrt(bu ** 2 + bv ** 2)
 
     dw = torch.tensor(dw)
     Ab, AJ, nA2 = torch.tensor(Ab), torch.tensor(AJ), torch.tensor(nA2)
     # Abx, AJx = torch.tensor(Abx), torch.tensor(AJx)
     bu, bv = torch.tensor(bu), torch.tensor(bv)
     Ju, Jv = torch.tensor(Ju), torch.tensor(Jv)
+    nb = torch.tensor(nb)
 
     dw.requires_grad_()
     optimizer = torch.optim.SGD([dw], lr, momentum=0.2)
 
     def sim_loss(w):
         w = w[..., None]
-        cos = (1 - (Ab + AJ @ w) / (torch.sqrt(nA2) * torch.sqrt((bu + Ju @ w) ** 2 + (bv + Jv @ w) ** 2))).mean()
+        weight = nb
+        weight[nb < torch.median(nb)] = 0
+        err = (1 - (Ab + AJ @ w) / (torch.sqrt(nA2) * torch.sqrt((bu + Ju @ w) ** 2 + (bv + Jv @ w) ** 2))) * weight
+        cos = err.mean()
+        # cos = ((1 - (Ab + AJ @ w) / (torch.sqrt(nA2) * torch.sqrt((bu + Ju @ w) ** 2 + (bv + Jv @ w) ** 2))) * (nb / torch.sqrt(nA2))).mean()
         # sin = ((Abx + AJx @ w) / (torch.sqrt(nA2) * torch.sqrt((bu + Ju @ w) ** 2 + (bv + Jv @ w) ** 2))).abs().mean()
         return cos
 
@@ -710,10 +723,10 @@ def cosine_correction_torch(b, A, Jw, initial_delta=None, b_ind=None):
 
     dw = dw.detach().numpy()
 
-    if np.linalg.norm(dw) < 0.02:
-        dw = dw
-    else:
-        dw = np.zeros(3)
+    # if np.linalg.norm(dw) < 0.02:
+    #     dw = dw
+    # else:
+    #     dw = np.zeros(3)
         # print(b_ind, 'trigger norm', np.linalg.norm(dw))
 
     return dw
