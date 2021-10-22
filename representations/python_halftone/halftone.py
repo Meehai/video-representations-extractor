@@ -59,7 +59,6 @@ class Halftone(Representation):
 		new = np.float32(new) / 255
 		return new
 
-	@overrides
 	def makeImage(self, x):
 		return np.uint8(x["data"] * 255)
 
