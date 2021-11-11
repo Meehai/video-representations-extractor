@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+device = "cuda" if torch.cuda.is_available() else "cpu"
 
 def weight_init(m):
     if isinstance(m, (nn.Conv2d,)):
@@ -264,8 +265,6 @@ if __name__ == '__main__':
     img_height = 352
     img_width = 352
 
-    # device = "cuda" if torch.cuda.is_available() else "cpu"
-    device = "cpu"
     input = torch.rand(batch_size, 3, img_height, img_width).to(device)
     # target = torch.rand(batch_size, 1, img_height, img_width).to(device)
     print(f"input shape: {input.shape}")
