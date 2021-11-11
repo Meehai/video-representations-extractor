@@ -9,7 +9,4 @@ class RGB(_RGB):
 
 	def getDecoder(self, inputNode):
 		assert False, "RGB cannot be decoded in this project."
-
-	def aggregate(self):
-		pass
 	

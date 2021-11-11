@@ -102,7 +102,7 @@ class Representation(ABC):
                 np.savez_compressed(path, result)
 
         assert isinstance(result, dict) and "data" in result and "rawData" in result and "extra" in result, \
-            "Representation: %s. Type: %s. Keys: %s" % (self, type(result), result.keys())
+            f"Representation: {self}. Type: {type(result)}. Keys: {result.keys()}"
         data = result["data"]
         assert list(data.shape[0:2]) == list(self.outShape[0:2]), f"{data.shape} vs {self.outShape}"
         assert data.dtype in (np.float32, np.uint8), f"{self.name}: Dtype: {data.dtype}"

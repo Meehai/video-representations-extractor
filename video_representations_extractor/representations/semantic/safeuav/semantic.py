@@ -3,11 +3,6 @@ from nwmodule.graph import MapNode
 from .Map2Map import EncoderMap2Map, DecoderMap2Map
 
 class Semantic(_Semantic):
-	def __init__(self, semanticClasses, semanticColors, name:str, useGlobalMetrics:bool=False):
-		super().__init__(semanticClasses, name, useGlobalMetrics)
-		self.semanticColors = semanticColors
-		assert len(self.semanticClasses) == len(self.semanticColors)
-
 	def getEncoder(self, outputNode):
 		assert isinstance(outputNode, MapNode)
 		return EncoderMap2Map(dIn=self.numDims)

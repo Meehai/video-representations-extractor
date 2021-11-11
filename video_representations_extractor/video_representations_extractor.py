@@ -123,6 +123,7 @@ class VideoRepresentationsExtractor:
 				dependencies = [res[k] for k in r["dependencies"]]
 				# If we have aliases, use these names, otherwise, use the representation's name itself.
 				dependencyAliases = r["dependencyAliases"] if "dependencyAliases" in r else r["dependencies"]
+				assert "type" in r and "method" in r, f"Broken format: {r.keys()}"
 				objType = getRepresentation(r["type"], r["method"])
 				objType = partial(objType, name=name, dependencies=dependencies, dependencyAliases=dependencyAliases)
 				# The representation parameters.

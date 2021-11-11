@@ -21,7 +21,7 @@ class SSegSafeUAVKeras(Representation):
 	def __init__(self, name:str, dependencies:List[Representation], saveResults:str, dependencyAliases:List[str], \
 		numClasses:int, colorMap:List, trainHeight:int, trainWidth:int, init_nb:int, weightsFile:str):
 		super().__init__(name, dependencies, saveResults, dependencyAliases)
-		assert len(colorMap) == numClasses, "%s vs %d" % (colorMap, numClasses)
+		assert len(colorMap) == numClasses, f"{colorMap} ({len(colorMap)}) vs {numClasses}"
 		self.model = None
 		self.numClasses = numClasses
 		self.trainHeight = trainHeight

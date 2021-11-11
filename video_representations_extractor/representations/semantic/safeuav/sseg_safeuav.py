@@ -1,6 +1,7 @@
 import numpy as np
 import torch as tr
-from typing import List, Tuple, Union
+from typing import List, Union
+from pathlib import Path
 from media_processing_lib.image import imgResize
 from media_processing_lib.video import MPLVideo
 from nwmodule.graph import Edge
@@ -16,7 +17,8 @@ class SSegSafeUAV(Representation):
 	def __init__(self, name:str, dependencies:List[Union[str, Representation]], saveResults:str, \
 		dependencyAliases:List[str], numClasses:int, trainHeight:int, trainWidth:int, colorMap:List, weightsFile:str):
 		super().__init__(name, dependencies, saveResults, dependencyAliases)
-		assert len(colorMap) == numClasses, "%s vs %d" % (colorMap, numClasses)
+		assert len(colorMap) == numClasses, f"{colorMap} ({len(colorMap)}) vs {numClasses}"
+		assert Path(weightsFile).exists(), f"Weights file '{weightsFile}' does not exist."
 		self.model = None
 		self.numClasses = numClasses
 		self.weightsFile = weightsFile

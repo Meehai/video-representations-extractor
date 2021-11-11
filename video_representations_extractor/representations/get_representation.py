@@ -62,7 +62,5 @@ def getRepresentation(type:str, method:str) -> Representation:
             from .normals.depth_svd import DepthNormalsSVD
             objType = DepthNormalsSVD
 
-    else:
-        assert False, f"Unknown type: {type}, method: {method}"
-
+    assert objType is not None, f"Unknown type: {type}, method: {method}"
     return objType
