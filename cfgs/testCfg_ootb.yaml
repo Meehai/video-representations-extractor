@@ -1,14 +1,17 @@
 rgb:
+  type: default
   method: rgb
   dependencies: []
   parameters: null
 
 hsv:
+  type: default
   method: hsv
   dependencies: []
   parameters: null
 
 halftone1:
+  type: soft-segmentation
   method: python-halftone
   dependencies: []
   parameters:
@@ -20,11 +23,13 @@ halftone1:
     resolution: 240,426
 
 edges1:
+  type: edges
   method: dexined
   dependencies: []
   parameters: null
 
 edges2:
+  type: edges
   method: canny
   dependencies: []
   parameters:
@@ -34,6 +39,7 @@ edges2:
     L2gradient: False
 
 softseg1:
+  type: soft-segmentation
   method: kmeans
   dependencies: []
   parameters:
@@ -43,6 +49,7 @@ softseg1:
     attempts: 3
 
 softseg2:
+  type: soft-segmentation
   method: seg-softseg
   dependencies: []
   parameters:
@@ -51,6 +58,7 @@ softseg2:
     maxChannels: 3
 
 depth1:
+  type: depth
   method: dpt
   dependencies: []
   parameters:
@@ -58,12 +66,14 @@ depth1:
     trainWidth: 448
 
 opticalflow1:
+  type: optical-flow
   method: rife
   dependencies: []
   parameters:
     computeBackwardFlow: False
 
 opticalflow2:
+  type: optical-flow
   method: raft
   dependencies: []
   parameters:
@@ -71,8 +81,11 @@ opticalflow2:
     inputWidth: 1280
 
 normals1:
-  method: depth-normals-svd
+  type: normals
+  method: depth-svd
   dependencies: [depth1]
   parameters:
     fov: 75
+    sensorWidth: 3840
+    sensorHeight: 2160
     windowSize: 11
