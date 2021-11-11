@@ -2,15 +2,17 @@ from __future__ import annotations
 import numpy as np
 from pathlib import Path
 from abc import ABC, abstractmethod
-from typing import Dict, Tuple, Any, Union
+from typing import Dict, Tuple, List, Union, Any
 from functools import lru_cache
+
+from numpy.core.fromnumeric import resize
 from media_processing_lib.image import imgResize
 from media_processing_lib.video import MPLVideo
 
 # @brief Generic video/image representation
 class Representation(ABC):
     def __init__(self, name:str, dependencies:List[Union[str, Representation]],
-        saveResults:str, dependencyAliases:List[str]=None):
+            saveResults:str, dependencyAliases:List[str]=None):
         assert isinstance(dependencies, (set, list))
         assert saveResults in ("all", "resized_only", "none")
         self.dependencyAliases = dependencyAliases if not dependencyAliases is None else dependencies
@@ -43,7 +45,7 @@ class Representation(ABC):
     def setVideo(self, video:MPLVideo):
         self.video = video
 
-    def setBaseDir(self, baseDir:path):
+    def setBaseDir(self, baseDir:Path):
         self.baseDir = baseDir
 
     def setOutShape(self, outShape:Tuple[int, int]):
@@ -65,7 +67,7 @@ class Representation(ABC):
         assert not self.baseDir is None, "Call setBaseDir first"
         assert not self.outShape is None, "Call setOutShape first"
         t = t % len(self.video)
-        path = Path(self.baseDir / self.name / ("%d.npz" % t)).absolute()
+        path = Path(self.baseDir / self.name / f"{t}.npz").absolute()
         assert t >= 0 and t < len(self.video)
 
         # Try to load from the disk first, so we avoid computting representation[t] multiple times
@@ -102,17 +104,17 @@ class Representation(ABC):
         assert isinstance(result, dict) and "data" in result and "rawData" in result and "extra" in result, \
             "Representation: %s. Type: %s. Keys: %s" % (self, type(result), result.keys())
         data = result["data"]
-        assert data.shape[0] == self.outShape[0] and data.shape[1] == self.outShape[1], \
-            "%s vs %s" % (data.shape, self.outShape)
-        assert data.dtype in (np.float32, np.uint8), "%s: Dtype: %s" % (self.name, data.dtype)
+        assert data.shape[0:2] == self.outShape[0:2], f"{data.shape} vs {self.outShape}"
+        assert data.dtype in (np.float32, np.uint8), f"{self.name}: Dtype: {data.dtype}"
         if data.dtype == np.float32:
-            assert data.min() >= 0 and data.max() <= 1, "%s: Min: %2.2f. Max: %2.2f" % (self.name, data.min(), data.max())
+            assert data.min() >= 0 and data.max() <= 1, f"{self.name}: Min: {data.min():.2f}. Max: {data.max():.2f}"
         return result
 
-    def resizeRawData(self, rawData):
+    def resizeRawData(self, rawData:np.ndarray) -> np.ndarray:
         interpolation = "nearest" if rawData.dtype == np.uint8 else "bilinear"
         # OpenCV bugs with uint8 and nearest, adding 255 values (in range [0-1])
-        Dtype = np.int32 if rawData.dtype == np.uint8 else rawData.dtype
-        resizedData = imgResize(rawData.astype(Dtype), height=self.outShape[0], width=self.outShape[1], \
-                                onlyUint8=False, interpolation=interpolation).astype(rawData.dtype)
+        dtype = np.int32 if rawData.dtype == np.uint8 else rawData.dtype
+        resizedData = imgResize(rawData.astype(dtype), height=self.outShape[0], width=self.outShape[1], \
+            onlyUint8=False, interpolation=interpolation)
+        resizedData = resizedData.astype(rawData.dtype)
         return resizedData

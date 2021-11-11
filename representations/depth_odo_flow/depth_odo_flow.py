@@ -1,6 +1,7 @@
 import numpy as np
 from matplotlib.cm import hot
 from typing import List
+from overrides import overrides
 
 from .camera_info import CameraInfo, CameraSensorParams
 from .depth_from_flow import depth_from_flow, filter_depth_from_flow
@@ -9,10 +10,9 @@ from ..representation import Representation
 
 class DepthOdoFlow(Representation):
 	def __init__(self, name, dependencies:List[Representation], saveResults:str, \
-		dependencyAliases:List[str], velocitiesPath:str, velocitiesType:str,
-		linearAngVelCorrection:bool, focusCorrection:bool, cosineCorrectionScipy:bool,cosineCorrectionGD:bool,
-		fov:int, sensorWidth:int, sensorHeight:int,
-		minDepthMeters:int, maxDepthMeters:int):
+			dependencyAliases:List[str], velocitiesPath:str, velocitiesType:str,
+			linearAngVelCorrection:bool, focusCorrection:bool, cosineCorrectionScipy:bool, cosineCorrectionGD:bool,
+			fov:int, sensorWidth:int, sensorHeight:int, minDepthMeters:int, maxDepthMeters:int):
 		super().__init__(name, dependencies, saveResults, dependencyAliases)
 		self.camera_info = CameraInfo(velocitiesPath, velocitiesType,
 									  camera_params=CameraSensorParams(fov, (sensorWidth, sensorHeight)))
