@@ -48,9 +48,6 @@ def getRepresentation(method:str) -> Representation:
     elif method == "depth-dispresnet":
         from .depth_dispresnet import DepthDispResNet
         objType = DepthDispResNet
-    elif method == "depth-ensemble":
-        from .depth_ensemble import DepthEnsemble
-        objType = DepthEnsemble
     else:
         assert False, "Unknown method: %s" % method
     return objType
