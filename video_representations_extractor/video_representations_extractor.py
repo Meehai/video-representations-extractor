@@ -3,7 +3,7 @@ import yaml
 from pathlib import Path
 from typing import Optional, List, Dict, Tuple, Union
 from tqdm import trange
-from media_processing_lib.image import tryWriteImage
+from media_processing_lib.image import collageFn, tryWriteImage
 from media_processing_lib.video import MPLVideo
 from nwutils.others import topologicalSort
 from collections import OrderedDict
@@ -34,7 +34,7 @@ def makeOutputDirs(cfg:Dict, outputDir:Path, outputResolution:Tuple[int,int]):
 			if loadedCfg != thisCfg:
 				yaml.safe_dump(thisCfg, open(thisCfgPath, "w"))
 				loadedCfg = yaml.safe_load(open(thisCfgPath, "r"))
-			assert loadedCfg == thisCfg, "Wrong cfg file.\n - Loaded: %s.\n - This: %s" % (loadedCfg, thisCfg)
+			assert loadedCfg == thisCfg, f"Wrong cfg file.\n - Loaded: {loadedCfg}.\n - This: {thisCfg}"
 		else:
 			Dir.mkdir(exist_ok=True)
 			yaml.safe_dump(thisCfg, open(thisCfgPath, "w"))
@@ -50,40 +50,6 @@ def topoSortRepresentations(representations:Dict[str, Union[str, Representation]
 	topoSort = topologicalSort(depGraph)
 	topoSort = OrderedDict({k : representations[k] for k in topoSort})
 	return topoSort
-
-def getSquareRowsColumns(N):
-	x = int(np.sqrt(N))
-	r, c = x, x
-	# There are only 2 rows possible between x^2 and (x+1)^2 because (x+1)^2 = x^2 + 2*x + 1, thus we can add 2 columns
-	#  at most. If a 3rd column is needed, then closest lower bound is (x+1)^2 and we must use that.
-	if c * r < N:
-		c += 1
-	if c * r < N:
-		r += 1
-	assert (c + 1) * r > N and c * (r + 1) > N
-	return r, c
-
-# Given a stack of N images, find the closest square X>=N*N and then remove rows 1 by 1 until it still fits X
-# Example: 9: 3*3; 12 -> 3*3 -> 3*4 (3 rows). 65 -> 8*8 -> 8*9. 73 -> 8*8 -> 8*9 -> 9*9
-def makeCollage(images:np.ndarray, rowsCols:Optional[Tuple[int, int]]=None) -> np.ndarray:
-	images = np.array(images)
-	assert images.dtype == np.uint8
-	N = len(images)
-	imageShape = images[0].shape
-
-	if isinstance(rowsCols, (tuple, list)):
-		assert len(rowsCols) == 2
-		r, c = rowsCols
-	else:
-		assert rowsCols is None
-		r, c = getSquareRowsColumns(N)
-	assert r * c >= N
-	# Add black images if needed
-	result = np.zeros((r * c, *imageShape), dtype=np.uint8)
-	result[0 : N] = images
-	result = result.reshape((r, c, *imageShape))
-	result = np.concatenate(np.concatenate(result, axis=1), axis=1)
-	return result
 
 class VideoRepresentationsExtractor:
 	# @param[in] representations An not topological sorted ordered dict (name, obj/str). If they are str, we assume
@@ -111,14 +77,13 @@ class VideoRepresentationsExtractor:
 		for name in topoSortedRepresentations:
 			r = topoSortedRepresentations[name]
 			if isinstance(r, Representation):
-				print((("[VideoRepresentationsExtractor::doInstantation] Representation='%s' already ") + \
-					("instantiated. Skipping.")) % r.name)
+				print(f"Representation='{r.name}' already instantiated. Skipping.")
 				obj = r
 				# If they are already instantiated, we may send both strings to methods or the objects themselves.
 				obj.dependencies = [res[k] if isinstance(k, str) else k for k in obj.dependencies]
 			else:
 				assert isinstance(r, dict)
-				print("[VideoRepresentationsExtractor::doInstantation] Representation='%s'. Instantiating..." % name)
+				print(f"Representation='{name}'. Instantiating...")
 
 				dependencies = [res[k] for k in r["dependencies"]]
 				# If we have aliases, use these names, otherwise, use the representation's name itself.
@@ -138,25 +103,21 @@ class VideoRepresentationsExtractor:
 			res[name] = obj
 		return res
 
-	def doExport(self, startIx:int=0, endIx:int=None, exportCollage:bool=True, collageOrder:List[str]=None, \
-		rowsCols:Tuple[int, int]=None, collageDirStr:str="collage"):
+	def doExport(self, startIx:int=0, endIx:int=None, exportCollage:bool=True, \
+			collageOrder:List[str]=None, collageDirStr:str="collage"):
 		if endIx is None:
 			endIx = len(self.video)
 
-		print(("[VideoRepresentationsExtractor::doExport]\n - Video: %s \n - Start frame: %d. End frame: %d " + \
-			"\n - Output dir: %s \n - Output resolution: %s") % \
-			(self.video, startIx, endIx, self.outputDir, self.outputResolution))
-		nameRepresentations = ", ".join(["'%s'" % x.name for x in self.representations.values()])
-		print("[VideoRepresentationsExtractor::doExport] Representations (%d): %s" % \
-			(len(self.representations), nameRepresentations))
+		print(f"\n - Video: {self.video} \n - Start frame: {startIx}. " + \
+			f"End frame: {endIx}\n - Output dir: {self.outputDir} \n - Output resolution: {self.outputResolution}")
+		nameRepresentations = ", ".join([f"'{x.name}'" for x in self.representations.values()])
+		print(f"Representations ({len(self.representations)}): {nameRepresentations}")
 
 		if exportCollage:
 			collageOrder = list(self.representations.keys()) if collageOrder is None else collageOrder
-			rowsCols = rowsCols if not rowsCols is None else getSquareRowsColumns(len(collageOrder))
 			collageOutputDir = self.outputDir / collageDirStr
 			collageOutputDir.mkdir(exist_ok=True)
-			print("[VideoRepresentationsExtractor::doExport] Exporting collage (%dx%d) to: %s" % \
-				(rowsCols[0], rowsCols[1], collageOutputDir))
+			print(f"Exporting collage to: {collageOutputDir}")
 
 		assert startIx < endIx and startIx >= 0
 		for t in trange(startIx, endIx, desc="[VideoRepresentationsExtractor::doExport]"):
@@ -166,6 +127,6 @@ class VideoRepresentationsExtractor:
 		
 			if exportCollage:
 				images = [self.representations[k].makeImage(finalOutputs[k]) for k in collageOrder]
-				images = makeCollage(images, rowsCols)
-				outImagePath = collageOutputDir / ("%d.png" % t)
+				images = collageFn(images, titles=collageOrder)
+				outImagePath = collageOutputDir / f"{t}.png"
 				tryWriteImage(images, str(outImagePath))
