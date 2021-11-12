@@ -12,6 +12,7 @@ from typing import Dict
 
 from .model_dexined import DexiNed as Model
 from ...representation import Representation
+from ....logger import logger
 
 device = tr.device("cuda") if tr.cuda.is_available() else tr.device("cpu")
 
@@ -36,6 +37,7 @@ class DexiNed(Representation):
 	def __init__(self, name, dependencies, saveResults:str, dependencyAliases):
 		super().__init__(name, dependencies, saveResults, dependencyAliases)
 		self.model = None
+		self.weightsFile = Path(f"{os.environ['VRE_WEIGHTS_DIR']}/deined.pth").absolute()
 
 	def setup(self):
 		# original files
@@ -43,10 +45,8 @@ class DexiNed(Representation):
 		# our backup
 		urlWeights = "https://drive.google.com/u/0/uc?id=1oT1iKdRRKJpQO-DTYWUnZSK51QnJ-mnP"
 
-		self.weightsFile = Path(f"{os.environ['VRE_WEIGHTS_DIR']}/deined.pth").absolute()
-
 		if not self.weightsFile.exists():
-			print(f"[DexiNed::setup] Downloading weights for dexined from {urlWeights}")
+			logger.debug(f"Downloading weights for dexined from {urlWeights}")
 			gdown.download(urlWeights, str(self.weightsFile))
 
 		if self.model is None:

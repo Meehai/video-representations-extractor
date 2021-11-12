@@ -28,7 +28,7 @@ def main():
 	args = getArgs()
 	video = tryReadVideo(args.videoPath, vidLib="pims")
 
-	vre = VideoRepresentationsExtractor(video, args.outputDir, args.outputResolution, representations=args.cfg)
+	vre = VideoRepresentationsExtractor(video, args.outputDir, representations=args.cfg)
 	endIx = len(video) - args.skip if args.N is None else min(len(video) - args.skip, args.N)
 	vre.doExport(args.skip, endIx)
 

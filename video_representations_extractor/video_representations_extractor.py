@@ -1,7 +1,6 @@
-import numpy as np
 import yaml
 from pathlib import Path
-from typing import Optional, List, Dict, Tuple, Union
+from typing import List, Dict, Tuple, Union, Optional
 from tqdm import trange
 from media_processing_lib.image import collageFn, tryWriteImage
 from media_processing_lib.video import MPLVideo
@@ -10,6 +9,7 @@ from collections import OrderedDict
 from functools import partial
 
 from .representations import Representation, getRepresentation
+from .logger import logger
 
 # Function that validates the output dir (args.outputDir) and each representation. By default, it just dumps the yaml
 #  file of the representation under outputDir/representationName (i.e. video1/rgb/cfg.yaml). However, if the directory
@@ -40,7 +40,7 @@ def makeOutputDirs(cfg:Dict, outputDir:Path, outputResolution:Tuple[int,int]):
 			yaml.safe_dump(thisCfg, open(thisCfgPath, "w"))
 
 def topoSortRepresentations(representations:Dict[str, Union[str, Representation]]) -> List[str]:
-	print("[VideoRepresentationsExtractor::topoSortRepresentations] Doing topological sort...")
+	logger.debug("Doing topological sort...")
 	depGraph = {}
 	for k in representations:
 		if isinstance(representations[k], Representation):
@@ -57,18 +57,21 @@ class VideoRepresentationsExtractor:
 	#  preinstantiated representations (see 3Depths project), so we just use them as is.
 	# @param[in] exportCollage Whether to export a PNG file at each time step
 	# @param[in] collageOrder A list with the order for the collage. If none provided, use the order of 1st param
-	def __init__(self, video:MPLVideo, outputDir:Path, outputResolution:Tuple[int, int], \
-		representations:Dict[str, Union[str, Representation]]):
+	def __init__(self, video:MPLVideo, outputDir:Path, representations:Dict[str, Union[str, Representation]], \
+			outputResolution:Optional[Tuple[int, int]]=None):
 		assert len(representations) > 0
 		outputDir = Path(outputDir)
+		if outputResolution is None:
+			outputResolution = video.shape[1:3]
+			logger.info(f"Output resolution not set. Infering from video shape: {outputResolution}")
 		makeOutputDirs(representations, outputDir, outputResolution)
-		topoSortedRepresentations = topoSortRepresentations(representations)
 
 		self.video = video
 		self.outputResolution = outputResolution
 		self.outputDir = outputDir
 
 		# Topo sorted and not topo sorted representations (for collage)
+		topoSortedRepresentations = topoSortRepresentations(representations)
 		self.tsr = self.doInstantiation(topoSortedRepresentations)
 		self.representations = {k : self.tsr[k] for k in representations}
 
@@ -77,13 +80,13 @@ class VideoRepresentationsExtractor:
 		for name in topoSortedRepresentations:
 			r = topoSortedRepresentations[name]
 			if isinstance(r, Representation):
-				print(f"Representation='{r.name}' already instantiated. Skipping.")
+				logger.debug(f"Representation='{r.name}' already instantiated. Skipping.")
 				obj = r
 				# If they are already instantiated, we may send both strings to methods or the objects themselves.
 				obj.dependencies = [res[k] if isinstance(k, str) else k for k in obj.dependencies]
 			else:
 				assert isinstance(r, dict)
-				print(f"Representation='{name}'. Instantiating...")
+				logger.debug(f"Representation='{name}'. Instantiating...")
 
 				dependencies = [res[k] for k in r["dependencies"]]
 				# If we have aliases, use these names, otherwise, use the representation's name itself.
@@ -108,16 +111,13 @@ class VideoRepresentationsExtractor:
 		if endIx is None:
 			endIx = len(self.video)
 
-		print(f"\n - Video: {self.video} \n - Start frame: {startIx}. " + \
-			f"End frame: {endIx}\n - Output dir: {self.outputDir} \n - Output resolution: {self.outputResolution}")
-		nameRepresentations = ", ".join([f"'{x.name}'" for x in self.representations.values()])
-		print(f"Representations ({len(self.representations)}): {nameRepresentations}")
+		logger.info(f"\n{self}\n  - Start frame: {startIx}. End frame: {endIx}.\n")
 
 		if exportCollage:
 			collageOrder = list(self.representations.keys()) if collageOrder is None else collageOrder
 			collageOutputDir = self.outputDir / collageDirStr
 			collageOutputDir.mkdir(exist_ok=True)
-			print(f"Exporting collage to: {collageOutputDir}")
+			logger.info(f"Exporting collage to: {collageOutputDir}")
 
 		assert startIx < endIx and startIx >= 0
 		for t in trange(startIx, endIx, desc="[VideoRepresentationsExtractor::doExport]"):
@@ -130,3 +130,12 @@ class VideoRepresentationsExtractor:
 				images = collageFn(images, titles=collageOrder)
 				outImagePath = collageOutputDir / f"{t}.png"
 				tryWriteImage(images, str(outImagePath))
+
+	def __str__(self) -> str:
+		nameRepresentations = ", ".join([f"'{x.name}'" for x in self.representations.values()])
+		Str = "[Video Representations Extractor]"
+		Str += f"\n  - Video: {self.video}"
+		Str += f"\n  - Output directory: {self.outputDir}"
+		Str += f"\n  - Output resolution: {self.outputResolution}"
+		Str += f"\n  - Representations: ({len(self.representations)}): {nameRepresentations}"
+		return Str

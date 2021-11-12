@@ -4,14 +4,11 @@ import torch as tr
 import torch.nn.functional as F
 import flow_vis
 import gdown
-from typing import Dict
-from torchvision import transforms
 from pathlib import Path
-from media_processing_lib.image import imgResize
-from media_processing_lib.video import MPLVideo
 
-from ...representation import Representation
 from .RIFE_HDv2 import Model
+from ...representation import Representation
+from ....logger import logger
 
 device = tr.device("cuda") if tr.cuda.is_available() else tr.device("cpu")
 
@@ -35,17 +32,17 @@ class FlowRife(Representation):
 
 		contextNetPath = self.weightsDir / "contextnet.pkl"
 		if not contextNetPath.exists():
-			print("[DexiNed::setup] Downloading contextnet weights for RIFE")
+			logger.debug("Downloading contextnet weights for RIFE")
 			gdown.download(contextNetUrl, str(contextNetPath))
 
 		flowNetPath = self.weightsDir / "flownet.pkl"
 		if not flowNetPath.exists():
-			print("[DexiNed::setup] Downloading flownet weights for RIFE")
+			logger.debug("Downloading flownet weights for RIFE")
 			gdown.download(flowNetUrl, str(flowNetPath))
 
 		uNetPath = self.weightsDir / "unet.pkl"
 		if not uNetPath.exists():
-			print("[DexiNed::setup] Downloading unet weights for RIFE")
+			logger.debug("Downloading unet weights for RIFE")
 			gdown.download(uNetUrl, str(uNetPath))
 
 		if self.model is None:

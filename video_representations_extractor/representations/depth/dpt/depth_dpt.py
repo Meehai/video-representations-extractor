@@ -13,6 +13,7 @@ from typing import Dict
 from .dpt_depth import DPTDepthModel
 from .transforms import Resize, NormalizeImage, PrepareForNet
 from ...representation import Representation
+from ....logger import logger
 
 device = tr.device("cuda") if tr.cuda.is_available() else tr.device("cpu")
 
@@ -51,7 +52,7 @@ class DepthDpt(Representation):
 		urlWeights = "https://drive.google.com/u/0/uc?id=15JbN2YSkZFSaSV2CGkU1kVSxCBrNtyhD"
 
 		if not self.weightsFile.exists():
-			print(f"[DexiNed::setup] Downloading weights for dexined from {urlWeights}")
+			logger.debug(f"Downloading weights for dexined from {urlWeights}")
 			gdown.download(urlWeights, self.weightsFile)
 
 		if self.model is None:

@@ -5,11 +5,11 @@ import flow_vis
 import gdown
 from pathlib import Path
 from media_processing_lib.image import imgResize
-from media_processing_lib.video import MPLVideo
 
-from ...representation import Representation
 from .utils import InputPadder
 from .raft import RAFT
+from ...representation import Representation
+from ....logger import logger
 
 device = tr.device("cuda") if tr.cuda.is_available() else tr.device("cpu")
 
@@ -35,7 +35,7 @@ class FlowRaft(Representation):
 
 		raftThingsPath = self.weightsDir / "raft-things.pkl"
 		if not raftThingsPath.exists():
-			print("[FlowRaft::setup] Downloading weights for RAFT")
+			logger.debug("Downloading weights for RAFT")
 			gdown.download(raftThingsUrl, str(raftThingsPath))
 
 		if self.model is None:
