@@ -8,7 +8,7 @@ test:
   - apt-get update
   - apt-get -yq install software-properties-common
   - add-apt-repository -y ppa:deadsnakes/ppa
-  - apt-get -yq install python3.8 python3.8-dev
+  - apt-get -yq install python3.8 python3.8-dev python3.8-distutils python3.8-apt
   - apt install curl wget -y
   - wget https://bootstrap.pypa.io/get-pip.py 
   - python3.8 get-pip.py
