@@ -24,7 +24,14 @@ def makeOutputDirs(cfg:Dict, outputDir:Path, outputResolution:Tuple[int,int]):
 		Dir = outputDir / name
 		thisCfgPath = Dir / "cfg.yaml"
 		if isinstance(values, Representation):
-			values = {"method":values.name, "dependencies":values.dependencies, "parameters":values.getParameters()}
+			values = {
+				"type":None,
+				"method":values.name,
+				"dependencies":values.dependencies,
+				"parameters":values.getParameters()
+			}
+		assert values is not None and "dependencies" in values and "method" in values \
+			and "type" in values and "parameters" in values, f"Malformed input for {name}: {values}"
 		for v in values["dependencies"]:
 			assert isinstance(v, str), v
 
@@ -62,7 +69,7 @@ class VideoRepresentationsExtractor:
 		assert len(representations) > 0
 		outputDir = Path(outputDir)
 		if outputResolution is None:
-			outputResolution = video.shape[1:3]
+			outputResolution = list(video.shape[1:3])
 			logger.info(f"Output resolution not set. Infering from video shape: {outputResolution}")
 		makeOutputDirs(representations, outputDir, outputResolution)
 
