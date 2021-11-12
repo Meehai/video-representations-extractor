@@ -8,6 +8,7 @@ test:
   - apt-get update
   - apt install curl wget -y
   - pip install gdown
+  - pip install -r requirements.txt
   - gdown https://drive.google.com/uc?id=158U-W-Gal6eXxYtS1ca1DAAxHvknqwAk # video
   - mkdir -p weights
   - export VRE_WEIGHTS_DIR=`pwd`/weights
