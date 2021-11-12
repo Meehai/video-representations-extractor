@@ -9,7 +9,7 @@ test:
   - apt install curl wget -y
   - pip install gdown
   - gdown https://drive.google.com/uc?id=158U-W-Gal6eXxYtS1ca1DAAxHvknqwAk # video
-  - mkdir weights
+  - mkdir -p weights
   - export VRE_WEIGHTS_DIR=`pwd`/weights
   - cd weights
   - gdown https://drive.google.com/uc?id=1ibvAcRgdPLXHL_NBrXwNu1uks8DpJUc4 # logs
