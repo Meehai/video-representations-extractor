@@ -1,0 +1,18 @@
+stages:
+  - test
+
+test:
+  stage: test
+  image: pytorch/pytorch:1.10.0-cuda11.3-cudnn8-runtime
+  script:
+  - apt install curl -y
+  - pip install gdown
+  - gdown https://drive.google.com/uc?id=158U-W-Gal6eXxYtS1ca1DAAxHvknqwAk # video
+  - mkdir weights
+  - export VRE_WEIGHTS_DIR=`pwd`/weights
+  - cd weights
+  - gdown https://drive.google.com/uc?id=1ibvAcRgdPLXHL_NBrXwNu1uks8DpJUc4 # logs
+  - gdown https://drive.google.com/uc?id=1tgni1GnshQq_zCqjreBxHropRfKBQ2HH # semantic net
+  - cd ..
+  - wget https://pastebin.com/raw/D0awQLZP -O cfg.yaml # cfg
+  - python3 main.py --videoPath DJI_0956_720p.MP4 --cfgPath cfg.yaml --outputDir test --outputResolution 240,426 --startFrame 1000 --endFrame 1001
