@@ -3,12 +3,17 @@ stages:
 
 test:
   stage: test
-  image: pytorch/pytorch:1.10.0-cuda11.3-cudnn8-runtime
+  image: ubuntu:latest
   script:
   - apt-get update
+  - apt-get -yq install software-properties-common
+  - add-apt-repository -y ppa:deadsnakes/ppa
+  - apt-get -yq install python3.8 python3.8-dev python-pip
   - apt install curl wget -y
-  - pip install gdown
-  - pip install -r requirements.txt
+  - wget https://bootstrap.pypa.io/get-pip.py 
+  - python3.8 get-pip.py
+  - pip3.8 install gdown
+  - pip3.8 install -r requirements.txt
   - gdown https://drive.google.com/uc?id=158U-W-Gal6eXxYtS1ca1DAAxHvknqwAk # video
   - mkdir -p weights
   - export VRE_WEIGHTS_DIR=`pwd`/weights
