@@ -11,6 +11,7 @@ gdown
 torch
 torchvision
 timm
+transforms3d
 opencv-python
 tensorflow==2.5.0
 pyproj
