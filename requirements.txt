@@ -13,7 +13,8 @@ torchvision
 timm
 opencv-python
 tensorflow==2.5.0
-nwutils
-nwmodule
 pyproj
 overrides
+nwutils
+nwmodule
+ngclib
