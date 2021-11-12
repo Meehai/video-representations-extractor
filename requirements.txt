@@ -16,6 +16,8 @@ opencv-python
 tensorflow==2.5.0
 pyproj
 overrides
+pandas
+matplotlib
 nwutils
 nwmodule
 git+https://gitlab.com/neural-graph-consensus/ngclib.git
