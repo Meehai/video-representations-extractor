@@ -14,7 +14,6 @@ test:
   - python3.8 get-pip.py
   - pip3.8 install gdown
   - pip3.8 install -r requirements.txt
-  - pip3.8 install git+https://gitlab.com/neural-graph-consensus/ngclib.git
   - gdown https://drive.google.com/uc?id=158U-W-Gal6eXxYtS1ca1DAAxHvknqwAk # video
   - mkdir -p weights
   - export VRE_WEIGHTS_DIR=`pwd`/weights

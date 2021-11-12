@@ -17,4 +17,4 @@ pyproj
 overrides
 nwutils
 nwmodule
-ngclib
+git+https://gitlab.com/neural-graph-consensus/ngclib.git
