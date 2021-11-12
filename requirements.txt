@@ -18,6 +18,7 @@ pyproj
 overrides
 pandas
 matplotlib
+lycon
 nwutils
 nwmodule
 git+https://gitlab.com/neural-graph-consensus/ngclib.git
