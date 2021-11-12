@@ -2,11 +2,9 @@ import os
 import gdown
 import numpy as np
 import torch as tr
-from shutil import copyfile
 from pathlib import Path
 from nwutils.nwmodule import trModuleWrapper
 from media_processing_lib.image import imgResize
-from media_processing_lib.video import MPLVideo
 from scipy.special import expit as sigmoid
 from typing import Dict
 
@@ -17,8 +15,7 @@ from ....logger import logger
 device = tr.device("cuda") if tr.cuda.is_available() else tr.device("cpu")
 
 def preprocessImage(img):
-	img, coordinates = imgResize(img, height=352, width=352, mode="black_bars", \
-		resizeLib="lycon", returnCoordinates=True)
+	img, coordinates = imgResize(img, height=352, width=352, mode="black_bars", returnCoordinates=True)
 	img = np.float32(img) / 255
 	img = img.transpose(2, 0, 1)[None]
 	return img, coordinates
