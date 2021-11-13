@@ -12,39 +12,32 @@ Weights repository for pretrained networks is [here](https://drive.google.com/dr
 
 ## 2. Usage
 
-`python main.py --videoPath /path/to/mp4 --cfgPath /path/to/cfg.yaml --outputDir /path/to/outputDir [--skip skip] [--N n]`
+`python main.py --videoPath /path/to/mp4 --cfgPath /path/to/cfg.yaml --outputDir /path/to/outputDir [--startFrame a] [--endFrame b]`
 
-The optional parameter N can be used in order to compute the first N frames of the video for debugging purposes.
+The optional parameter N can be used in order to compute just as pecific interval of the video, for testing and skipping irrelevant areas, if needed.
 
 ## 3. CFG file
 The config file will have the hyperparameters required to instantiate each supported method as well as global hyperparameters for the output. This means that if a depth method is pre-traied for 0-300m, this information will be encoded in the CFG file. Similarily, if the output resolution is 256x256, this will be encoded as a global hyperparameter.
 
-Example cfg file:
-```
-resolution: 256,256
-  rgb:
-    method: rgb
-    dependenceies: []
-    parameters: None
+High level format:
+`
+name of representation:
+  type: some high level type (such as depth, semantic, edges, etc.)
+  method: the implemented method
+  dependencies: [a list of dependencies given by their names]
+  [saveResults: resized_only] # optional parameter with possible values all, resized_only and none
+  parameters: (as defined in the constructor of the implementation)
+    param1: value1
+    param2: value2
 
-  edges1:
-    method: dexined
-    dependencies: []
-    parameters: None
+name of representation 2:
+  type: some other type
+  method: some other method
+  dependencies: [name of representation]
+  parameters: []
+`
 
-  depth1:
-    method: jiaw
-    dependencies: [edges1]
-    parameters:
-      weightsFile: weights/dispnet_checkpoint.pth.tar
-      resNetLayers: 18
-      trainHeight: 256
-      trainWidth: 448
-      minDepth: 0
-      maxDepth: 2
-```
-
-The above file will output 3 representations, named `rgb`, `edges1` and `depth1`, the second one based on `dexined` package with the specified parameters, while the third one based on `Jiaw` unsupervised depth pre-trained neural network, given the path to the model. The third one has as a dependency the second one, thus the second one will be computed in advance at every step.
+Example cfg file: See [out of the box supported representations](cfgs/testCfg_ootb.yaml)
 
 Note: If the topological sort fails (because cycle dependencies), an error will be thrown.
 
@@ -54,11 +47,9 @@ All the outputs are going to be stored as [0-1] float32 npz files, one for each 
 For the above CFG file, 2 subdirectories will be created:
 ```
 /path/to/outputDir/
-  rgb/
+  name of representation/
     1.npz, ..., N.npz + cfg.yaml
-  edges1/
-    1.npz, ..., N.npz + cfg.yaml
-  depth1/
+  name of representation 2/
     1.npz, ..., N.npz + cfg.yaml
 ```
 
