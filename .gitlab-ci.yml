@@ -15,7 +15,7 @@ install_prerequisites:
   - pip3.8 install -r requirements.txt
   - wget https://raw.githubusercontent.com/tremby/imgur.sh/main/imgur.sh # imgur upload script
   - export PYTHONPATH="$PYTHONPATH:`pwd`"
-  - pip3.9 install pytest
+  - pip3.8 install pytest
 
 run:
   stage: test
@@ -27,7 +27,7 @@ run:
   - gdown https://drive.google.com/uc?id=1tgni1GnshQq_zCqjreBxHropRfKBQ2HH # semantic net pytorch
   - cd ..
   - wget https://pastebin.com/raw/D0awQLZP -O cfg.yaml # cfg
-  - python3 main.py --videoPath DJI_0956_720p.MP4 --cfgPath cfg.yaml --outputDir test --outputResolution 240,426 --startFrame 1000 --endFrame 1001
+  - python3.8 main.py --videoPath DJI_0956_720p.MP4 --cfgPath cfg.yaml --outputDir test --outputResolution 240,426 --startFrame 1000 --endFrame 1001
   - chmod +x imgur.sh
   - convert -resize 50% test/collage/1000.png test/collage/1000.png
   - bash imgur.sh test/collage/1000.png
@@ -36,4 +36,4 @@ test:
   stage: test
   script:
   - cd test/
-  - python3.9 -m pytest .
+  - python3.8 -m pytest .
