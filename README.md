@@ -20,7 +20,7 @@ The optional parameter N can be used in order to compute just as pecific interva
 The config file will have the hyperparameters required to instantiate each supported method as well as global hyperparameters for the output. This means that if a depth method is pre-traied for 0-300m, this information will be encoded in the CFG file. Similarily, if the output resolution is 256x256, this will be encoded as a global hyperparameter.
 
 High level format:
-`
+```
 name of representation:
   type: some high level type (such as depth, semantic, edges, etc.)
   method: the implemented method
@@ -35,7 +35,7 @@ name of representation 2:
   method: some other method
   dependencies: [name of representation]
   parameters: []
-`
+```
 
 Example cfg file: See [out of the box supported representations](cfgs/testCfg_ootb.yaml)
 
