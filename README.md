@@ -6,7 +6,7 @@
 The purpose of this repository is to export the standard NGC representations from RGB alone.
 
 <u>Supported representations</u>
- - See [here](https://gitlab.com/neural-graph-consensus/video-representations-extractor/-/blob/master/video_representations_extractor/representations/get_representation.py) for a comprehensive list, since it updates faster than this README.
+ - See [here](video_representations_extractor/representations/get_representation.py) for a comprehensive list, since it updates faster than this README.
 
 Weights repository for pretrained networks is [here](https://drive.google.com/drive/folders/1bWKEAiTXDpgaY2YOAFBvMqqyOGSafoIm?usp=sharing).
 
@@ -37,7 +37,7 @@ name of representation 2:
   parameters: []
 ```
 
-Example cfg file: See [out of the box supported representations](cfgs/testCfg_ootb.yaml)
+Example cfg file: See [out of the box supported representations](cfgs/testCfg_ootb.yaml) and the CFG defined in the [CI process](.gitlab-ci.yml) for an actual export that is done at every commit on a real video.
 
 Note: If the topological sort fails (because cycle dependencies), an error will be thrown.
 
