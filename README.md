@@ -6,32 +6,7 @@
 The purpose of this repository is to export the standard NGC representations from RGB alone.
 
 <u>Supported representations</u>
-  - Low level vision
-    - RGB
-    - HSV
-    - Halftone
-       - [python-halftone](https://github.com/philgyford/python-halftone)
-    - Edges
-      - [DexiNed](https://github.com/xavysp/DexiNed/)
-  - Mid level vision
-      - Unsupervised Depth
-        - [Jiaw](TODO)
-    - n/a
-  - High level vision
-    - n/a
-
-<u>WIP representations</u>
-  - Low level vision
-    - TODO: representations & methods
-  - Mid level vision
-    - Unsupervised Depth
-      - [Sfm learner](https://github.com/ClementPinard/SfmLearner-Pytorch)
-      - TODO: more methods
-    - Optical Flow
-      - TODO: methods
-  - High level vision
-    - Semantic Segmentation
-      - TODO: methods
+ - See [here](https://gitlab.com/neural-graph-consensus/video-representations-extractor/-/blob/master/video_representations_extractor/representations/get_representation.py) for a comprehensive list, since it updates faster than this README.
 
 Weights repository for pretrained networks is [here](https://drive.google.com/drive/folders/1bWKEAiTXDpgaY2YOAFBvMqqyOGSafoIm?usp=sharing).
 
