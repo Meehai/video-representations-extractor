@@ -18,7 +18,7 @@ def getRepresentation(type:str, method:str) -> Representation:
         elif method == "kmeans":
             from .soft_segmentation.kmeans import KMeans
             objType = KMeans
-        elif method == "seg-softseg":
+        elif method == "generalized_boundaries":
             from .soft_segmentation.generalized_boundaries import GeneralizedBoundaries
             objType = GeneralizedBoundaries
 

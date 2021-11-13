@@ -22,13 +22,13 @@ halftone1:
     antialias: False
     resolution: 240,426
 
-edges1:
+edges dexined:
   type: edges
   method: dexined
   dependencies: []
   parameters: null
 
-edges2:
+edges canny:
   type: edges
   method: canny
   dependencies: []
@@ -38,7 +38,7 @@ edges2:
     apertureSize: 3
     L2gradient: False
 
-softseg1:
+softseg kmeans:
   type: soft-segmentation
   method: kmeans
   dependencies: []
@@ -48,16 +48,16 @@ softseg1:
     maxIterations: 10
     attempts: 3
 
-softseg2:
+softseg gb:
   type: soft-segmentation
-  method: seg-softseg
+  method: generalized_boundaries
   dependencies: []
   parameters:
     useFiltering: True
     adjustToRGB: True
     maxChannels: 3
 
-depth1:
+depth dpt:
   type: depth
   method: dpt
   dependencies: []
@@ -65,14 +65,14 @@ depth1:
     trainHeight: 256
     trainWidth: 448
 
-opticalflow1:
+opticalflow rife:
   type: optical-flow
   method: rife
   dependencies: []
   parameters:
     computeBackwardFlow: False
 
-opticalflow2:
+opticalflow raft:
   type: optical-flow
   method: raft
   dependencies: []
@@ -80,10 +80,10 @@ opticalflow2:
     inputHeight: 720
     inputWidth: 1280
 
-normals1:
+normals svd (dpt):
   type: normals
   method: depth-svd
-  dependencies: [depth1]
+  dependencies: [depth dpt]
   parameters:
     fov: 75
     sensorWidth: 3840
