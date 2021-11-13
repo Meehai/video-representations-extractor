@@ -18,6 +18,8 @@ install_prerequisites:
   - pip3.9 install pytest
 
 run:
+  stage: test
+  script:
   - gdown https://drive.google.com/uc?id=158U-W-Gal6eXxYtS1ca1DAAxHvknqwAk # video
   - mkdir -p weights
   - cd weights
@@ -31,5 +33,7 @@ run:
   - bash imgur.sh test/collage/1000.png
 
 test:
+  stage: test
+  script:
   - cd test/
   - python3.9 -m pytest .
