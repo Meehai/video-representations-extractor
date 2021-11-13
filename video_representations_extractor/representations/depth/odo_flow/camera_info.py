@@ -1,46 +1,26 @@
-from pathlib import Path
 
 import numpy as np
 from transforms3d import axangles
 
 from .cam import fov_diag_to_intrinsic
-from .utils_geometry import rpy_to_R, invert_pose, skew, compose_pose
+from .utils_geometry import invert_pose, skew, compose_pose
 
 
 class CameraInfo:
-    def __init__(self, velocity_path, velocities_type=None, poses_type=None, dt=None, camera_params=None,
-                 frame_resolution=None, ang_vel_path=None):
-        data = np.load(velocity_path)
-        self.velocities_type = velocities_type
-        if self.velocities_type is not None:
-            self.linear_velocity, self.angular_velocity = get_velocities_archive(data, velocities_type)
-            if ang_vel_path is not None:
-                ang_vel_path = Path(ang_vel_path) / Path(velocity_path).name
-                if Path(ang_vel_path).exists():
-                    d = np.load(ang_vel_path)
-                    inds, ang_vels = d["frame_inds"], d["ang_vel"]
-                    self.angular_velocity[inds] = ang_vels
-                else:
-                    assert False, "Angular velocity path does not exist"
+    def __init__(self, velocity_path, poses_type=None, dt=None, camera_params=None, frame_resolution=None):
+        data = np.load(velocity_path)["arr_0"]
+        assert data.shape[1] == 6, f"Velocities data must have 6 values (3 linear, 3 angular). Got {data.shape[1]}."
+        # data::(N, 6). Linear velocity is stored in first 3 components, angular in last 3.
+        self.linear_velocity, self.angular_velocity = data[:, 0:3], data[:, 3:]
         self.relative_poses_type = poses_type
         self.dt = dt
         self.camera_params = camera_params
         self._frame_resolution = frame_resolution
         self._K = None
-        if "position_w_full" in data and "orientation_rpy_rad_gt" in data:
-            ts_gt = data["position_w_full"]
-            rpy_gt = data["orientation_rpy_rad_gt"]
-            Rs_gt = [rpy_to_R(*rpy) for rpy in rpy_gt]
-
-            my_local_to_corke_local = np.array([[0., 0., 1.],
-                                                [-1., 0., 0.],
-                                                [0., -1., 0.]])
-            Rs_gt = [r @ my_local_to_corke_local for r in Rs_gt]
-            self.gt_poses = [(R, t) for R, t in zip(Rs_gt, ts_gt)]
 
     @property
-    def number_of_frames(self):
-        return len(self.gt_poses)
+    def number_of_frames(self) -> int:
+        return len(self.linear_velocity)
 
     @property
     def frame_resolution(self):
@@ -114,33 +94,3 @@ def get_delta_pose(linear_velocity, angular_velocity, K, dt, frame_ind1, frame_i
         else:
             acc_pose = (R, t)
     return acc_pose
-
-
-def get_velocities_archive(velocities, velocities_type):
-    if velocities_type == "gt_rot":
-        tag_linear_velocity = "linear_velocity_gt_R_c"
-        tag_angular_velocity = "angular_velocity_gt_R_c"
-    elif velocities_type == "gt_direct":
-        tag_linear_velocity = "linear_velocity_gt_d"
-        tag_angular_velocity = "angular_velocity_gt_d"
-    elif velocities_type == "gt_direct_rw":
-        tag_linear_velocity = "linear_velocity_camera_gt_d_rw"
-        tag_angular_velocity = "ang_velocity_camera_gt_d_rw"
-    elif velocities_type == "gt_direct_rw_avgv":
-        tag_linear_velocity = "linear_velocity_camera_gt_d_rw_avgv"
-        tag_angular_velocity = "ang_velocity_camera_gt_d_rw_avgv"
-    elif velocities_type == "gt_direct_rspl":
-        tag_linear_velocity = "linear_velocity_camera_gt_d_rspl"
-        tag_angular_velocity = "ang_velocity_camera_gt_d_rspl"
-    else:
-        if velocities_type in ("gt_lin_vel", "gt_lin_ang_vel"):
-            tag_linear_velocity = "linear_velocity_gt_c"
-        else:
-            tag_linear_velocity = "linear_velocity_c"
-        if velocities_type in ("gt_ang_vel", "gt_lin_ang_vel"):
-            tag_angular_velocity = "angular_velocity_gt_c"
-        else:
-            tag_angular_velocity = "angular_velocity_c"
-    linear_velocity = velocities[tag_linear_velocity]
-    angular_velocity = velocities[tag_angular_velocity]
-    return linear_velocity, angular_velocity
