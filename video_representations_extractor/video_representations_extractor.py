@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import List, Dict, Tuple, Union, Optional
 from tqdm import trange
 from media_processing_lib.image import collageFn, tryWriteImage
-from media_processing_lib.video import MPLVideo
+from media_processing_lib.video import MPLVideo, tryReadVideo
 from nwutils.others import topologicalSort
 from collections import OrderedDict
 from functools import partial
@@ -64,8 +64,12 @@ class VideoRepresentationsExtractor:
 	#  preinstantiated representations (see 3Depths project), so we just use them as is.
 	# @param[in] exportCollage Whether to export a PNG file at each time step
 	# @param[in] collageOrder A list with the order for the collage. If none provided, use the order of 1st param
-	def __init__(self, video:MPLVideo, outputDir:Path, representations:Dict[str, Union[str, Representation]], \
-			outputResolution:Optional[Tuple[int, int]]=None):
+	def __init__(self, video:Union[str, Path, MPLVideo], outputDir:Path, \
+			representations:Dict[str, Union[str, Representation]], outputResolution:Optional[Tuple[int, int]]=None):
+		if isinstance(video, (str, Path)):
+			logger.info(f"Path '{video}' provided, reading video using pims.")
+			video = tryReadVideo(video, vidLib="pims")
+
 		assert len(representations) > 0
 		outputDir = Path(outputDir)
 		if outputResolution is None:

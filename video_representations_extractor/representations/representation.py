@@ -74,7 +74,7 @@ class Representation(ABC):
         try:
             result = np.load(path, allow_pickle=True)["arr_0"]
             # Support for legacy storing only the array, not raw results.
-            if result.dtype != np.object:
+            if result.dtype != object:
                 result = {"data":result, "rawData":result, "extra":{}}
             else:
                 result = result.item()

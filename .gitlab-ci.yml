@@ -1,9 +1,7 @@
-stages:
-  - test
+image: ubuntu:latest
 
-test:
-  stage: test
-  image: ubuntu:latest
+install_prerequisites:
+  stage: build
   script:
   - apt-get update
   - apt-get -yq install software-properties-common
@@ -13,17 +11,25 @@ test:
   - wget https://bootstrap.pypa.io/get-pip.py 
   - python3.8 get-pip.py
   - pip3.8 install gdown
+  - export VRE_WEIGHTS_DIR=`pwd`/weights
   - pip3.8 install -r requirements.txt
+  - wget https://raw.githubusercontent.com/tremby/imgur.sh/main/imgur.sh # imgur upload script
+  - export PYTHONPATH="$PYTHONPATH:`pwd`"
+  - pip3.9 install pytest
+
+run:
   - gdown https://drive.google.com/uc?id=158U-W-Gal6eXxYtS1ca1DAAxHvknqwAk # video
   - mkdir -p weights
-  - export VRE_WEIGHTS_DIR=`pwd`/weights
   - cd weights
   - gdown https://drive.google.com/uc?id=1yafmmiHGMsgX6ym9Pbx2X2OxJtCY1xrT # velocities
   - gdown https://drive.google.com/uc?id=1tgni1GnshQq_zCqjreBxHropRfKBQ2HH # semantic net pytorch
   - cd ..
   - wget https://pastebin.com/raw/D0awQLZP -O cfg.yaml # cfg
   - python3 main.py --videoPath DJI_0956_720p.MP4 --cfgPath cfg.yaml --outputDir test --outputResolution 240,426 --startFrame 1000 --endFrame 1001
-  - wget https://raw.githubusercontent.com/tremby/imgur.sh/main/imgur.sh # imgur upload script
   - chmod +x imgur.sh
   - convert -resize 50% test/collage/1000.png test/collage/1000.png
   - bash imgur.sh test/collage/1000.png
+
+test:
+  - cd test/
+  - python3.9 -m pytest .
