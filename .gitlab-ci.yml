@@ -6,8 +6,8 @@ before_script:
   - add-apt-repository -y ppa:deadsnakes/ppa
   - apt-get -yq install python3.8 python3.8-dev python3.8-distutils python3.8-apt
   - apt install ffmpeg curl wget git fonts-open-sans imagemagick -y
-  - wget https://bootstrap.pypa.io/get-pip.py 
-  - wget https://raw.githubusercontent.com/tremby/imgur.sh/main/imgur.sh # imgur upload script
+  - test -e get-pip.py || wget https://bootstrap.pypa.io/get-pip.py 
+  - test -e imgur.sh || wget https://raw.githubusercontent.com/tremby/imgur.sh/main/imgur.sh # imgur upload script
   - python3.8 get-pip.py
   - pip3.8 install gdown
   - pip3.8 install pytest
@@ -17,17 +17,18 @@ before_script:
 
 test_run_imgur:
   script:
-  - gdown https://drive.google.com/uc?id=158U-W-Gal6eXxYtS1ca1DAAxHvknqwAk # video
+  - test -e DJI_0956_720p.MP4 || gdown https://drive.google.com/uc?id=158U-W-Gal6eXxYtS1ca1DAAxHvknqwAk # video
   - mkdir -p weights
   - cd weights
-  - gdown https://drive.google.com/uc?id=1yafmmiHGMsgX6ym9Pbx2X2OxJtCY1xrT # velocities
-  - gdown https://drive.google.com/uc?id=1tgni1GnshQq_zCqjreBxHropRfKBQ2HH # semantic net pytorch
+  - test -e  DJI_0956_velocities.npz || gdown https://drive.google.com/uc?id=1yafmmiHGMsgX6ym9Pbx2X2OxJtCY1xrT # velocities
+  - test -e safeuav_semantic_0956.pkl || gdown https://drive.google.com/uc?id=1tgni1GnshQq_zCqjreBxHropRfKBQ2HH # semantic net pytorch
   - cd ..
-  - wget https://pastebin.com/raw/D0awQLZP -O cfg.yaml # cfg
-  - python3.8 main.py --videoPath DJI_0956_720p.MP4 --cfgPath cfg.yaml --outputDir test --outputResolution 240,426 --startFrame 1000 --endFrame 1001
+  - test -e cfg.yaml || wget https://pastebin.com/raw/D0awQLZP -O cfg.yaml # cfg
+  - X=$(shuf -i 1-9000 -n 1)
+  - python3.8 main.py --videoPath DJI_0956_720p.MP4 --cfgPath cfg.yaml --outputDir test --outputResolution 240,426 --startFrame $X --endFrame $((X+1))
   - chmod +x imgur.sh
-  - convert -resize 50% test/collage/1000.png test/collage/1000.png
-  - bash imgur.sh test/collage/1000.png
+  - convert -resize 50% test/collage/$X.png test/collage/$X.png
+  - bash imgur.sh test/collage/$X.png
 
 unit_tests:
   script:
