@@ -1,5 +1,9 @@
 image: ubuntu:latest
 
+stages:
+  - build
+  - test
+
 install_prerequisites:
   stage: build
   script:
@@ -9,15 +13,15 @@ install_prerequisites:
   - apt-get -yq install python3.8 python3.8-dev python3.8-distutils python3.8-apt
   - apt install ffmpeg curl wget git fonts-open-sans imagemagick -y
   - wget https://bootstrap.pypa.io/get-pip.py 
+  - wget https://raw.githubusercontent.com/tremby/imgur.sh/main/imgur.sh # imgur upload script
   - python3.8 get-pip.py
   - pip3.8 install gdown
-  - export VRE_WEIGHTS_DIR=`pwd`/weights
-  - pip3.8 install -r requirements.txt
-  - wget https://raw.githubusercontent.com/tremby/imgur.sh/main/imgur.sh # imgur upload script
-  - export PYTHONPATH="$PYTHONPATH:`pwd`"
   - pip3.8 install pytest
+  - pip3.8 install -r requirements.txt
+  - export VRE_WEIGHTS_DIR=`pwd`/weights
+  - export PYTHONPATH="$PYTHONPATH:`pwd`"
 
-run:
+test_run_imgur:
   stage: test
   script:
   - gdown https://drive.google.com/uc?id=158U-W-Gal6eXxYtS1ca1DAAxHvknqwAk # video
@@ -32,7 +36,7 @@ run:
   - convert -resize 50% test/collage/1000.png test/collage/1000.png
   - bash imgur.sh test/collage/1000.png
 
-test:
+unit_tests:
   stage: test
   script:
   - cd test/
