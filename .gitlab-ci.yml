@@ -1,12 +1,6 @@
 image: ubuntu:latest
 
-stages:
-  - build
-  - test
-
-install_prerequisites:
-  stage: build
-  script:
+before_script:
   - apt-get update
   - apt-get -yq install software-properties-common
   - add-apt-repository -y ppa:deadsnakes/ppa
@@ -22,7 +16,6 @@ install_prerequisites:
   - export PYTHONPATH="$PYTHONPATH:`pwd`"
 
 test_run_imgur:
-  stage: test
   script:
   - gdown https://drive.google.com/uc?id=158U-W-Gal6eXxYtS1ca1DAAxHvknqwAk # video
   - mkdir -p weights
@@ -37,7 +30,6 @@ test_run_imgur:
   - bash imgur.sh test/collage/1000.png
 
 unit_tests:
-  stage: test
   script:
   - cd test/
   - python3.8 -m pytest .
