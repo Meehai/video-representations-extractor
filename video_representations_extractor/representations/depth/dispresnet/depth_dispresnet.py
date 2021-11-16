@@ -1,9 +1,8 @@
 import numpy as np
 import torch as tr
+from overrides import overrides
 from media_processing_lib.image import imgResize
-from media_processing_lib.video import MPLVideo
 from matplotlib.cm import hot
-from typing import Dict
 
 from .DispResNet import DispResNet
 from ..representation import Representation
@@ -40,9 +39,9 @@ def closest_fit(size, multiples):
 
 
 class DepthDispResNet(Representation):
-	def __init__(self, name, dependencies, saveResults:str, dependencyAliases, weightsFile:str, \
-		resNetLayers:int, trainHeight:int, trainWidth:int, minDepth:int, maxDepth:int):
-		super().__init__(name, dependencies, saveResults, dependencyAliases)
+	def __init__(self, weightsFile:str, resNetLayers:int, trainHeight:int, \
+			trainWidth:int, minDepth:int, maxDepth:int, **kwargs):
+		super().__init__(**kwargs)
 		self.model = None
 		self.weightsFile = weightsFile
 		self.resNetLayers = resNetLayers
@@ -50,7 +49,8 @@ class DepthDispResNet(Representation):
 		self.trainSize = (trainHeight, trainWidth)
 		self.scale = (minDepth, maxDepth)
 
-	def make(self, t:int) -> np.ndarray:
+	@overrides
+	def make(self, t: int) -> np.ndarray:
 		x = self.video[t]
 		x_ = preprocessImage(x, trainSize=self.trainSize, multiples=self.multiples)
 		with tr.no_grad():
@@ -58,17 +58,19 @@ class DepthDispResNet(Representation):
 		y = postprocessImage(y, size=x.shape[:2], scale=self.scale)
 		return y
 
-	def makeImage(self, x):
+	@overrides
+	def makeImage(self, x: np.ndarray) -> np.ndarray:
 		y = x["data"] / x["data"].max()
 		y = hot(y)[..., 0:3]
 		y = np.uint8(y * 255)
 		return y
 
+	@overrides
 	def setup(self):
 		if not self.model is None:
 			return
 		model = DispResNet(self.resNetLayers, False).to(device)
 		weights = tr.load(self.weightsFile, map_location=device)
-		model.load_state_dict(weights['state_dict'])
+		model.load_state_dict(weights["state_dict"])
 		model.eval()
 		self.model = model

@@ -1,14 +1,16 @@
 import numpy as np
-from media_processing_lib.video import MPLVideo
-from typing import Dict
-from .representation import Representation
+from overrides import overrides
+from .representation import Representation, RepresentationOutput
 
 class RGB(Representation):
-    def make(self, t:int) -> np.ndarray:
+    @overrides
+    def make(self, t: int) -> RepresentationOutput:
         return np.float32(self.video[t]) / 255
     
-    def makeImage(self, x:Dict) -> np.ndarray:
+    @overrides
+    def makeImage(self, x: RepresentationOutput) -> np.ndarray:
         return np.uint8(x["data"] * 255)
 
+    @overrides
     def setup(self):
         pass

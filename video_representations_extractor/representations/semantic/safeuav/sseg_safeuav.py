@@ -1,22 +1,20 @@
 import numpy as np
 import torch as tr
-from typing import List, Union
+from typing import List
+from overrides import overrides
 from pathlib import Path
 from media_processing_lib.image import imgResize
-from media_processing_lib.video import MPLVideo
-from nwmodule.graph import Edge
 from ngclib.models import SingleLink
 
 from .rgb import RGB
 from .semantic import Semantic
-from ...representation import Representation
+from ...representation import Representation, RepresentationOutput
 
 device = tr.device("cuda") if tr.cuda.is_available() else tr.device("cpu")
 
 class SSegSafeUAV(Representation):
-	def __init__(self, name:str, dependencies:List[Union[str, Representation]], saveResults:str, \
-		dependencyAliases:List[str], numClasses:int, trainHeight:int, trainWidth:int, colorMap:List, weightsFile:str):
-		super().__init__(name, dependencies, saveResults, dependencyAliases)
+	def __init__(self, numClasses:int, trainHeight:int, trainWidth:int, colorMap:List, weightsFile:str, **kwargs):
+		super().__init__(**kwargs)
 		assert len(colorMap) == numClasses, f"{colorMap} ({len(colorMap)}) vs {numClasses}"
 		assert Path(weightsFile).exists(), f"Weights file '{weightsFile}' does not exist."
 		self.model = None
@@ -26,7 +24,8 @@ class SSegSafeUAV(Representation):
 		self.trainHeight = trainHeight
 		self.trainWidth = trainWidth
 
-	def make(self, t):
+	@overrides
+	def make(self, t: int) -> RepresentationOutput:
 		frame = np.array(self.video[t])
 		img = imgResize(frame, height=self.trainHeight, width=self.trainWidth, interpolation="bilinear")
 		img = np.float32(frame[None]) / 255
@@ -34,12 +33,14 @@ class SSegSafeUAV(Representation):
 		res = np.argmax(res, axis=-1).astype(np.uint8)
 		return res
 	
-	def makeImage(self, x:np.ndarray) -> np.ndarray:
+	@overrides
+	def makeImage(self, x: RepresentationOutput) -> np.ndarray:
 		newImage = np.zeros((*x["data"].shape, 3), dtype=np.uint8)
 		for i in range(self.numClasses):
 			newImage[x["data"] == i] = self.colorMap[i]
 		return newImage
 
+	@overrides
 	def setup(self):
 		if not self.model is None:
 			return

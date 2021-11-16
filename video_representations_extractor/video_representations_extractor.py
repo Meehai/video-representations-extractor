@@ -1,3 +1,4 @@
+from os import statvfs_result
 import yaml
 from pathlib import Path
 from typing import List, Dict, Tuple, Union, Optional
@@ -96,24 +97,37 @@ class VideoRepresentationsExtractor:
 				# If they are already instantiated, we may send both strings to methods or the objects themselves.
 				obj.dependencies = [res[k] if isinstance(k, str) else k for k in obj.dependencies]
 			else:
-				assert isinstance(r, dict)
 				logger.debug(f"Representation='{name}'. Instantiating...")
+				assert isinstance(r, dict), f"Broken format (not a dict) for {name}. Type: {type(r)}."
+				assert "type" in r and "method" in r, f"Broken format: {r.keys()}"
 
 				dependencies = [res[k] for k in r["dependencies"]]
 				# If we have aliases, use these names, otherwise, use the representation's name itself.
-				dependencyAliases = r["dependencyAliases"] if "dependencyAliases" in r else r["dependencies"]
-				assert "type" in r and "method" in r, f"Broken format: {r.keys()}"
+				if "dependencyAliases" in r:
+					dependencyAliases = r["dependencyAliases"]
+				else:
+					logger.debug2("Dependency aliases not in cfg, defaulting to the depdenceny names.")
+					dependencyAliases = r["dependencies"]
+				assert len(dependencyAliases) == len(dependencies)
+
+				# If we have save results, use that, instead, use 'all'.
+				if "saveResults" in r:
+					saveResults = r["saveResults"]
+				else:
+					logger.debug2("Save results not in cfg, defaulting to 'all'.")
+					saveResults = "all"
+				assert saveResults in ("all", "none", "resized_only"), f"Got: '{saveResults}'."
+
 				objType = getRepresentation(r["type"], r["method"])
-				objType = partial(objType, name=name, dependencies=dependencies, dependencyAliases=dependencyAliases)
-				# The representation parameters.
-				objParams = r["parameters"] if not r["parameters"] is None else {}
-				# saveResults in yaml cfg can be "none", "all", "resized_only" and defaults to "all" if not present.
-				objParams["saveResults"] = r["saveResults"] if "saveResults" in r else "all"
-				obj = objType(**objParams)
+				vreParams = {"name": name, "dependencies": dependencies, \
+					"dependencyAliases": dependencyAliases, "saveResults": saveResults}
+				parameters = r["parameters"] if not r["parameters"] is None else {}
+				obj = objType(**parameters, **vreParams)
 
 			obj.setVideo(self.video)
 			obj.setBaseDir(self.outputDir)
 			obj.setOutShape(self.outputResolution)
+			assert obj.instantiated == True, f"Object {obj} (name: '{name}') not properly instantiated!"
 			res[name] = obj
 		return res
 

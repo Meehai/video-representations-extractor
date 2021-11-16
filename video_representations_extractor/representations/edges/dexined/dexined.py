@@ -5,10 +5,11 @@ import torch as tr
 import cv2
 from pathlib import Path
 from media_processing_lib.image import imgResize
-from typing import List, Tuple
+from typing import List
+from overrides import overrides
 
 from .model_dexined import DexiNed as Model
-from ...representation import Representation
+from ...representation import Representation, RepresentationOutput
 from ....logger import logger
 
 device = tr.device("cuda") if tr.cuda.is_available() else tr.device("cpu")
@@ -33,7 +34,7 @@ def image_normalization(img, img_min=0, img_max=255,
     return img
 
 def preprocessImage(image: np.ndarray) -> np.ndarray:
-    logger.debug(f"Original shape: {image.shape}")
+    logger.debug2(f"Original shape: {image.shape}")
     img = imgResize(image, width=512, height=512)
     img = np.array(img, dtype=np.float32)
     mean_pixel_values = [103.939, 116.779, 123.68]
@@ -53,15 +54,14 @@ def postprocessOutput(y:List[tr.Tensor]) -> np.ndarray:
     return average
 
 class DexiNed(Representation):
-    def __init__(self, name, dependencies, saveResults:str, dependencyAliases):
-        super().__init__(name, dependencies, saveResults, dependencyAliases)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self.model = None
         self.weightsFile = Path(f"{os.environ['VRE_WEIGHTS_DIR']}/deined.pth").absolute()
 
+    @overrides
     def setup(self):
-        # original files
-        # urlWeights = "https://drive.google.com/u/0/uc?id=1MRUlg_mRwDiBiQLKFVuEfuvkzs65JFVe"
-        # our backup
+        # our backup weights
         urlWeights = "https://drive.google.com/u/0/uc?id=1oT1iKdRRKJpQO-DTYWUnZSK51QnJ-mnP"
 
         if not self.weightsFile.exists():
@@ -74,7 +74,8 @@ class DexiNed(Representation):
             logger.debug2(f"Loaded weights from '{self.weightsFile}'")
             self.model = model
 
-    def make(self, t:int) -> np.ndarray:
+    @overrides
+    def make(self, t: int) -> RepresentationOutput:
         A = preprocessImage(self.video[t])
         trA = tr.from_numpy(A.copy()).float()[None]
         with tr.no_grad():
@@ -82,6 +83,7 @@ class DexiNed(Representation):
         C = postprocessOutput(trB)
         return C
 
-    def makeImage(self, x):
+    @overrides
+    def makeImage(self, x: RepresentationOutput) -> np.ndarray:
         x = np.repeat(np.expand_dims(x["data"], axis=-1), 3, axis=-1)
         return np.uint8(x * 255)

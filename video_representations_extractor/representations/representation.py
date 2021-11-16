@@ -5,9 +5,11 @@ from abc import ABC, abstractmethod
 from typing import Dict, Tuple, List, Union, Any
 from functools import lru_cache
 
-from numpy.core.fromnumeric import resize
 from media_processing_lib.image import imgResize
 from media_processing_lib.video import MPLVideo
+
+# Either a single np.ndarray or a dict of format {"data": np.ndarray, "extra": other stuff.}
+RepresentationOutput = Union[np.ndarray, Dict[str, np.ndarray]]
 
 # @brief Generic video/image representation
 class Representation(ABC):
@@ -23,17 +25,19 @@ class Representation(ABC):
         self.baseDir = None
         self.outShape = None
         self.saveResults = saveResults
+        # This attribute is checked in the main vre object to see that this parent constructor was called properly.
+        self.instantiated = True
 
     # @brief Main method of the project. Calls the algorithm's internal logic to transform the current RGB frame into
     # a [0-1] float32 representation.
     @abstractmethod
-    def make(self, t:int) -> np.ndarray:
+    def make(self, t:int) -> RepresentationOutput:
         pass
 
     # @brief Helper function used to create a plottable [0-255] uint8 representation from a transformed [0-1] float32
     #  representation.
     @abstractmethod
-    def makeImage(self, x:np.ndarray) -> np.ndarray:
+    def makeImage(self, x:RepresentationOutput) -> np.ndarray:
         pass
 
     # @brief Method that should automate the entire download/instantiate/resolve any issues with a representation.

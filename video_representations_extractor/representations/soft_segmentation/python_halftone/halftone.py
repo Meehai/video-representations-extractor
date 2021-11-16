@@ -1,15 +1,15 @@
 # Copy pasted from https://github.com/philgyford/python-halftone/blob/main/halftone.py in order to change constructor
 
-import os
 import sys
 import numpy as np
 
-from PIL import Image, ImageDraw, ImageOps, ImageStat
+from PIL import Image, ImageDraw, ImageStat
 from overrides import overrides
-from typing import List, Dict, Tuple
+from typing import List, Tuple
 from media_processing_lib.image import imgResize
 from media_processing_lib.video import MPLVideo
-from ...representation import Representation
+
+from ...representation import Representation, RepresentationOutput
 
 """
 Class: Halftone( path )
@@ -34,10 +34,9 @@ class Halftone(Representation):
 		angles: A list of 4 angles that each screen channel should be rotated by.
 		antialias: boolean.
 	"""
-	def __init__(self, name, dependencies, saveResults:str, \
-		dependencyAliases, sample:float, scale:float, percentage:float, \
-		angles:List[int], antialias:bool, resolution:Tuple[str,str]):
-		super().__init__(name, dependencies, saveResults, dependencyAliases)
+	def __init__(self, sample: float, scale: float, percentage: float, \
+		angles: List[int], antialias: bool, resolution: Tuple[str,str], **kwargs):
+		super().__init__(**kwargs)
 		self.sample = sample
 		self.scale = scale
 		self.percentage = percentage
@@ -47,7 +46,7 @@ class Halftone(Representation):
 		self.check_arguments()
 
 	@overrides
-	def make(self, t:int) -> np.ndarray:
+	def make(self, t: int) -> RepresentationOutput:
 		frame = self.video[t]
 		frame = imgResize(frame, height=self.resolution[0], width=self.resolution[1])
 
@@ -59,20 +58,21 @@ class Halftone(Representation):
 		new = np.float32(new) / 255
 		return new
 
-	def makeImage(self, x):
+	@overrides
+	def makeImage(self, x: RepresentationOutput) -> np.ndarray:
 		return np.uint8(x["data"] * 255)
 
 	def check_arguments(self):
-		assert isinstance(self.angles, list), "The angles argument must be a list of 4 integers, not '%s'." % self.angles
-		assert len(self.angles) == 4, "The angles argument must be a list of 4 integers, but it has %s." \
-			% len(self.angles)
+		assert isinstance(self.angles, list), f"The angles argument must be a list of 4 integers, not '{self.angles}'."
+		assert len(self.angles) == 4, \
+			f"The angles argument must be a list of 4 integers, but it has {len(self.angles)}."
 		for a in self.angles:
-			assert isinstance(a, int), "All four elements of the angles list must be integers, got: %s" % self.angles
-		assert isinstance(self.antialias, bool), "The antialias argument must be a boolean, not '%s'." % self.antialias
+			assert isinstance(a, int), f"All four elements of the angles list must be integers, got: {self.angles}"
+		assert isinstance(self.antialias, bool), f"The antialias argument must be a boolean, not '{self.antialias}'."
 		assert isinstance(self.percentage, (float, int)), \
-			"The percentage argument must be an integer or float, not '%s'." % self.percentage
-		assert isinstance(self.sample, int), "The sample argument must be an integer, not '%s'." % self.sample
-		assert isinstance(self.scale, int), "The scale argument must be an integer, not '%s'." % self.scale
+			f"The percentage argument must be an integer or float, not '{self.percentage}'."
+		assert isinstance(self.sample, int), f"The sample argument must be an integer, not '{self.sample}'."
+		assert isinstance(self.scale, int), f"The scale argument must be an integer, not '{self.scale}'."
 
 	def gcr(self, im, percentage):
 		"""

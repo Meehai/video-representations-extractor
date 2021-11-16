@@ -3,19 +3,20 @@ import numpy as np
 import torch as tr
 import flow_vis
 import gdown
+from overrides import overrides
 from pathlib import Path
 from media_processing_lib.image import imgResize
 
 from .utils import InputPadder
 from .raft import RAFT
-from ...representation import Representation
+from ...representation import Representation, RepresentationOutput
 from ....logger import logger
 
 device = tr.device("cuda") if tr.cuda.is_available() else tr.device("cpu")
 
 class FlowRaft(Representation):
-	def __init__(self, name, dependencies, saveResults:str, dependencyAliases, inputWidth:int, inputHeight:int):
-		super().__init__(name, dependencies, saveResults, dependencyAliases)
+	def __init__(self, inputWidth:int, inputHeight:int, **kwargs):
+		super().__init__(**kwargs)
 		self.model = None
 		self.weightsDir = Path(f"{os.environ['VRE_WEIGHTS_DIR']}/raft")
 		self.inputWidth = inputWidth
@@ -24,6 +25,7 @@ class FlowRaft(Representation):
 		self.small = False
 		self.mixed_precision = False
 
+	@overrides
 	def setup(self):
 		# Pointless to upsample with bilinear, it's better we fix the video input.
 		assert self.video.shape[1] >= self.inputHeight and self.video.shape[2] >= self.inputWidth, \
@@ -48,7 +50,8 @@ class FlowRaft(Representation):
 
 			self.model = model
 
-	def make(self, t) -> np.ndarray:
+	@overrides
+	def make(self, t: int) -> RepresentationOutput:
 		t_target = t + 1 if t < len(self.video) - 1 else t
 		return self.get(t, t_target)
 
@@ -82,7 +85,8 @@ class FlowRaft(Representation):
 		flow = (flow + 1) / 2
 		return flow
 
-	def makeImage(self, x):
+	@overrides
+	def makeImage(self, x: RepresentationOutput) -> np.ndarray:
 		# [0 : 1] => [-1 : 1]
 		x = x["data"] * 2 - 1
 		y = flow_vis.flow_to_color(x)

@@ -4,15 +4,14 @@ import torch as tr
 import torch.nn.functional as F
 import cv2
 import gdown
+from overrides import overrides
 from torchvision.transforms import Compose
-from media_processing_lib.video import MPLVideo
 from pathlib import Path
 from matplotlib.cm import hot
-from typing import Dict
 
 from .dpt_depth import DPTDepthModel
 from .transforms import Resize, NormalizeImage, PrepareForNet
-from ...representation import Representation
+from ...representation import Representation, RepresentationOutput
 from ....logger import logger
 
 device = tr.device("cuda") if tr.cuda.is_available() else tr.device("cpu")
@@ -22,8 +21,8 @@ def closest_fit(size, multiples):
 
 
 class DepthDpt(Representation):
-	def __init__(self, name, dependencies, saveResults:str, dependencyAliases, trainHeight, trainWidth):
-		super().__init__(name, dependencies, saveResults, dependencyAliases)
+	def __init__(self, trainHeight, trainWidth, **kwargs):
+		super().__init__(**kwargs)
 		net_w, net_h = 384, 384
 		resize_mode = "minimal"
 		normalization = NormalizeImage(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
@@ -47,6 +46,7 @@ class DepthDpt(Representation):
 		self.model = None
 		self.weightsFile = Path(f"{os.environ['VRE_WEIGHTS_DIR']}/depth_dpt_midas.pth").absolute()
 
+	@overrides
 	def setup(self):
 		# our backup
 		urlWeights = "https://drive.google.com/u/0/uc?id=15JbN2YSkZFSaSV2CGkU1kVSxCBrNtyhD"
@@ -65,7 +65,8 @@ class DepthDpt(Representation):
 			model.to(device)
 			self.model = model
 
-	def make(self, t:int) -> np.ndarray:
+	@overrides
+	def make(self, t: int) -> RepresentationOutput:
 		x = self.video[t]
 		img_input = self.transform({"image": x / 255.})["image"]
 		# compute
@@ -77,7 +78,8 @@ class DepthDpt(Representation):
 			prediction = np.clip(prediction, 0, 1)
 		return prediction
 
-	def makeImage(self, x):
+	@overrides
+	def makeImage(self, x: RepresentationOutput) -> np.ndarray:
 		y = x["data"]
 		y = hot(y)[..., 0 : 3]
 		y = np.uint8(y * 255)

@@ -18,7 +18,7 @@ class DummyRepresentation(Representation):
 
 	@overrides
 	def make(self, t:int) -> np.ndarray:
-		assert False, "Dummy representation (%s) has no precomputted npz files!" % self.name
+		assert False, f"Dummy representation ({self.name}) has no precomputted npz files!"
 	
 	@overrides
 	def makeImage(self, x:Dict) -> np.ndarray:

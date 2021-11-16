@@ -1,28 +1,29 @@
 import numpy as np
 import cv2
-from media_processing_lib.video import MPLVideo
-from typing import Dict, Tuple, List
+from overrides import overrides
 from matplotlib.cm import gray
-from ..representation import Representation
+from ..representation import Representation, RepresentationOutput
 
 class Canny(Representation):
-    def __init__(self, name:str, dependencies:List, saveResults:str, dependencyAliases:List[str], \
-        threshold1:float, threshold2:float, apertureSize:int, L2gradient:bool):
-        super().__init__(name, dependencies, saveResults, dependencyAliases)
+    def __init__(self, threshold1:float, threshold2:float, apertureSize:int, L2gradient:bool, **kwargs):
+        super().__init__(**kwargs)
         self.threshold1 = threshold1
         self.threshold2 = threshold2
         self.apertureSize = apertureSize
         self.L2gradient = L2gradient
 
-    def make(self, t:int):
+    @overrides
+    def make(self, t: int) -> RepresentationOutput:
         frame = self.video[t]
         res = frame * 0
         res = cv2.Canny(frame, self.threshold1, self.threshold2, res, self.apertureSize, self.L2gradient)
         res = np.float32(res) / 255
         return res
-         
-    def makeImage(self, x):
+
+    @overrides
+    def makeImage(self, x: RepresentationOutput) -> np.ndarray:
         return np.uint8(255 * gray(x["data"])[..., 0 : 3])
 
+    @overrides
     def setup(self):
         pass

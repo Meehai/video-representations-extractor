@@ -1,8 +1,9 @@
 import numpy as np
 import cv2
 from typing import List
+from overrides import overrides
 from nwutils.data import toCategorical
-from ..representation import Representation
+from ..representation import Representation, RepresentationOutput
 
 class KMeans(Representation):
     def __init__(self, name:str, dependencies:List, saveResults:str, dependencyAliases:List[str], \
@@ -13,7 +14,8 @@ class KMeans(Representation):
         self.maxIterations = maxIterations
         self.attempts  = attempts
 
-    def make(self, t:int):
+    @overrides
+    def make(self, t: int) -> RepresentationOutput:
         frame = self.video[t]
         Z = np.float32(frame).reshape(-1, 3)
         criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, self.maxIterations, self.epsilon)
@@ -24,7 +26,8 @@ class KMeans(Representation):
         res = {"data" : data, "extra" : {"centers" : centers}}
         return res
          
-    def makeImage(self, x):
+    @overrides
+    def makeImage(self, x: RepresentationOutput) -> np.ndarray:
         res = np.zeros((self.outShape[0], self.outShape[1], 3), dtype=np.uint8)
         centers = x["extra"]["centers"]
         x = np.argmax(x["data"], axis=-1)
@@ -33,5 +36,6 @@ class KMeans(Representation):
             res[Where] = centers[i]
         return res
 
+    @overrides
     def setup(self):
         pass

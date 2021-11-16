@@ -8,12 +8,10 @@ from ...representation import Representation
 # General method for estimating normals from a depth map (+ intrinsics): a 2D window centered on each pixel is
 #  projected into 3D and then a plane is fitted on the 3D pointcloud using SVD.
 class DepthNormalsSVD(Representation):
-    def __init__(self, name:str, dependencies:List[Union[str, Representation]], saveResults:str, \
-                 dependencyAliases:List[str], fov:int, sensorWidth:int, sensorHeight:int,
-                 windowSize:int, inputDownsampleStep:int=None, stride:int=None,
-                 maxDistance:float=None, minValidCount:int=None):
-        assert len(dependencies) == 1, "Expected one depth method!"
-        super().__init__(name, dependencies, saveResults, dependencyAliases)
+    def __init__(self, fov:int, sensorWidth:int, sensorHeight:int, windowSize:int, inputDownsampleStep:int=None, \
+                stride:int=None, maxDistance:float=None, minValidCount:int=None, **kwargs):
+        super().__init__(**kwargs)
+        assert len(self.dependencies) == 1, "Expected one depth method!"
         self.fov = fov
         self.sensorWidth = sensorWidth
         self.sensorHeight = sensorHeight

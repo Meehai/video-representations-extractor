@@ -5,16 +5,18 @@ import torch.nn.functional as F
 import flow_vis
 import gdown
 from pathlib import Path
+from overrides import overrides
+from typing import Optional
 
 from .RIFE_HDv2 import Model
-from ...representation import Representation
+from ...representation import Representation, RepresentationOutput
 from ....logger import logger
 
 device = tr.device("cuda") if tr.cuda.is_available() else tr.device("cpu")
 
 class FlowRife(Representation):
-	def __init__(self, name, dependencies, saveResults:str, dependencyAliases, computeBackwardFlow:bool):
-		super().__init__(name, dependencies, saveResults, dependencyAliases)
+	def __init__(self, computeBackwardFlow:Optional[bool] = None, **kwargs):
+		super().__init__(**kwargs)
 		self.model = None
 		self.UHD = False
 		self.no_backward_flow = True if computeBackwardFlow is None else not computeBackwardFlow
@@ -52,7 +54,7 @@ class FlowRife(Representation):
 			model.device()
 			self.model = model
 
-	def make(self, t) -> np.ndarray:
+	def make(self, t: int) -> RepresentationOutput:
 		t_target = t + 1 if t < len(self.video) - 1 else t
 		return self.get(t, t_target)
 
@@ -87,7 +89,7 @@ class FlowRife(Representation):
 		flow = (flow + 1) / 2
 		return flow
 
-	def makeImage(self, x):
+	def makeImage(self, x: RepresentationOutput) -> np.ndarray:
 		# [0 : 1] => [-1 : 1]
 		x = x["data"] * 2 - 1
 		y = flow_vis.flow_to_color(x)

@@ -5,15 +5,14 @@ from overrides import overrides
 
 from .camera_info import CameraInfo, CameraSensorParams
 from .depth_from_flow import depth_from_flow, filter_depth_from_flow
-from ...representation import Representation
+from ...representation import Representation, RepresentationOutput
 
 
 class DepthOdoFlow(Representation):
-	def __init__(self, name, dependencies:List[Representation], saveResults:str, dependencyAliases:List[str], \
-			velocitiesPath:str, linearAngVelCorrection:bool, focusCorrection:bool, cosineCorrectionScipy:bool, \
-			cosineCorrectionGD:bool, fov:int, sensorWidth:int, sensorHeight:int, \
-			minDepthMeters:int, maxDepthMeters:int):
-		super().__init__(name, dependencies, saveResults, dependencyAliases)
+	def __init__(self, velocitiesPath:str, linearAngVelCorrection:bool, focusCorrection:bool, \
+			cosineCorrectionScipy:bool, cosineCorrectionGD:bool, fov:int, sensorWidth:int, sensorHeight:int, \
+			minDepthMeters:int, maxDepthMeters:int, **kwargs):
+		super().__init__(**kwargs)
 		self.camera_info = CameraInfo(velocitiesPath, \
 			camera_params=CameraSensorParams(fov, (sensorWidth, sensorHeight)))
 		self.linearAngVelCorrection = linearAngVelCorrection
@@ -30,10 +29,11 @@ class DepthOdoFlow(Representation):
 			"optical flow norm (pixels/s)": 20,
 			"A norm (pixels*m/s)": 1,
 		}
-		assert len(dependencies) == 1, "Expected one optical flow method!"
-		self.flow = dependencies[0]
+		assert len(self.dependencies) == 1, "Expected one optical flow method!"
+		self.flow = self.dependencies[0]
 
-	def make(self, t):
+	@overrides
+	def make(self, t: int) -> RepresentationOutput:
 		# [0:1] -> [-1:1]
 		if t + 1 < len(self.video):
 			data = self.flow[t]["data"]
@@ -75,7 +75,8 @@ class DepthOdoFlow(Representation):
 					}
 				}
 
-	def makeImage(self, x):
+	@overrides
+	def makeImage(self, x: RepresentationOutput) -> np.ndarray:
 		Where = np.where(x["data"] == 1)
 		y = x["data"]
 		assert y.min() >= 0 and y.max() <= 1
@@ -84,10 +85,11 @@ class DepthOdoFlow(Representation):
 		y[Where] = [0, 0, 0]
 		return y
 
+	@overrides
 	def setup(self):
-		assert len(self.camera_info.linear_velocity) == len(self.video), "%d vs %d" % \
-			(self.camera_info.linear_velocity.shape, len(self.video))
-		assert len(self.camera_info.angular_velocity) == len(self.video), "%d vs %d" % \
-			(self.camera_info.angular_velocity.shape, len(self.video))
+		assert len(self.camera_info.linear_velocity) == len(self.video), \
+			f"{self.camera_info.linear_velocity.shape} vs {len(self.video)}"
+		assert len(self.camera_info.angular_velocity) == len(self.video), \
+			f"{self.camera_info.angular_velocity.shape} vs {len(self.video)}"
 		self.fps = self.video.fps
 		self.camera_info.dt = 1. / self.fps
