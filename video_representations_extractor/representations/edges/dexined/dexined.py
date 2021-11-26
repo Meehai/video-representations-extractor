@@ -77,7 +77,7 @@ class DexiNed(Representation):
     @overrides
     def make(self, t: int) -> RepresentationOutput:
         A = preprocessImage(self.video[t])
-        trA = tr.from_numpy(A.copy()).float()[None]
+        trA = tr.from_numpy(A.copy()).float()[None].to(device)
         with tr.no_grad():
             trB = self.model.forward(trA)
         C = postprocessOutput(trB)
