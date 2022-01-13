@@ -4,7 +4,7 @@ import numpy as np
 import torch as tr
 import cv2
 from pathlib import Path
-from media_processing_lib.image import imgResize
+from media_processing_lib.image import img_resize
 from typing import List
 from overrides import overrides
 
@@ -35,7 +35,7 @@ def image_normalization(img, img_min=0, img_max=255,
 
 def preprocessImage(image: np.ndarray) -> np.ndarray:
     logger.debug2(f"Original shape: {image.shape}")
-    img = imgResize(image, width=512, height=512)
+    img = img_resize(image, width=512, height=512)
     img = np.array(img, dtype=np.float32)
     mean_pixel_values = [103.939, 116.779, 123.68]
     img -= mean_pixel_values

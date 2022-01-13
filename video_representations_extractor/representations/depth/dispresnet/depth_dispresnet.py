@@ -1,7 +1,7 @@
 import numpy as np
 import torch as tr
 from overrides import overrides
-from media_processing_lib.image import imgResize
+from media_processing_lib.image import img_resize
 from matplotlib.cm import hot
 
 from .DispResNet import DispResNet
@@ -15,7 +15,7 @@ def preprocessImage(img, size=None, trainSize=(256, 448), multiples=(64, 64)):
 	else:
 		size = img.shape[:2]
 	size = closest_fit(size, multiples)
-	img = imgResize(img, height=size[0], width=size[1])
+	img = img_resize(img, height=size[0], width=size[1])
 	# img = imresize(img, closest_fit(size, multiples))
 	img = img.astype(np.float32)
 	img = np.transpose(img, (2, 0, 1))
@@ -28,7 +28,7 @@ def postprocessImage(y, size=None, scale=(0, 2)):
 	y = y.cpu().numpy()[0, 0]
 	dph = 1 / y
 
-	dph = imgResize(dph, height=size[0], width=size[1], onlyUint8=False)
+	dph = img_resize(dph, height=size[0], width=size[1], onlyUint8=False)
 	dph = (dph - scale[0]) / (scale[1] - scale[0])
 	dph = np.clip(dph, 0, 1)
 
