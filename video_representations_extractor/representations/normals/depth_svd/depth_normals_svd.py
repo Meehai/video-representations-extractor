@@ -3,7 +3,7 @@ import numpy as np
 
 from .cam import fov_diag_to_intrinsic
 from .utils import get_sampling_grid, get_normalized_coords, depth_to_normals
-from ...representation import Representation
+from ...representation import Representation, RepresentationOutput
 
 # General method for estimating normals from a depth map (+ intrinsics): a 2D window centered on each pixel is
 #  projected into 3D and then a plane is fitted on the 3D pointcloud using SVD.
@@ -27,7 +27,7 @@ class DepthNormalsSVD(Representation):
         self.K = None
         self.normalized_grid = None
 
-    def make(self, t:int):
+    def make(self, t:int) -> RepresentationOutput:
         depth = self.depth[t]["data"]
         if self.inputDownsampleStep is not None:
             depth = depth[::self.inputDownsampleStep, ::self.inputDownsampleStep]
@@ -35,7 +35,7 @@ class DepthNormalsSVD(Representation):
         normals = (normals.astype(np.float32) + 1) / 2
         return normals
 
-    def makeImage(self, x):
+    def makeImage(self, x: RepresentationOutput) -> np.ndarray:
         return (x['data'] * 255).astype(np.uint8)
 
     def setup(self):

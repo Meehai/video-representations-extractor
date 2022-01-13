@@ -3,8 +3,8 @@ import yaml
 from pathlib import Path
 from typing import List, Dict, Tuple, Union, Optional
 from tqdm import trange
-from media_processing_lib.image import collageFn, tryWriteImage
-from media_processing_lib.video import MPLVideo, tryReadVideo
+from media_processing_lib.image import collage_fn, image_write
+from media_processing_lib.video import MPLVideo, video_read
 from nwutils.others import topologicalSort
 from collections import OrderedDict
 from functools import partial
@@ -69,7 +69,7 @@ class VideoRepresentationsExtractor:
 			representations:Dict[str, Union[str, Representation]], outputResolution:Optional[Tuple[int, int]]=None):
 		if isinstance(video, (str, Path)):
 			logger.info(f"Path '{video}' provided, reading video using pims.")
-			video = tryReadVideo(video, vidLib="pims")
+			video = video_read(video, vid_lib="pims")
 
 		assert len(representations) > 0
 		outputDir = Path(outputDir)
@@ -152,9 +152,9 @@ class VideoRepresentationsExtractor:
 		
 			if exportCollage:
 				images = [self.representations[k].makeImage(finalOutputs[k]) for k in collageOrder]
-				images = collageFn(images, titles=collageOrder)
+				images = collage_fn(images, titles=collageOrder)
 				outImagePath = collageOutputDir / f"{t}.png"
-				tryWriteImage(images, str(outImagePath))
+				image_write(images, outImagePath)
 
 	def __str__(self) -> str:
 		nameRepresentations = ", ".join([f"'{x.name}'" for x in self.representations.values()])

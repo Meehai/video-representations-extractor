@@ -1,6 +1,6 @@
 import yaml
 from argparse import ArgumentParser
-from media_processing_lib.video import tryReadVideo
+from media_processing_lib.video import video_read
 from pathlib import Path
 from video_representations_extractor import VideoRepresentationsExtractor
 
@@ -27,7 +27,7 @@ def getArgs():
 
 def main():
 	args = getArgs()
-	video = tryReadVideo(args.videoPath, vidLib="pims")
+	video = video_read(args.videoPath, vid_lib="pims")
 
 	vre = VideoRepresentationsExtractor(video, args.outputDir, representations=args.cfg, \
 		outputResolution=args.outputResolution)

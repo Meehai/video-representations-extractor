@@ -1,9 +1,7 @@
 from __future__ import annotations
 import numpy as np
-from pathlib import Path
 from overrides import overrides
-from typing import Dict, Tuple, Callable
-from media_processing_lib.video import MPLVideo
+from typing import Dict, Callable
 
 from .representation import Representation
 

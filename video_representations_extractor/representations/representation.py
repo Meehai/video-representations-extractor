@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 from typing import Dict, Tuple, List, Union, Any
 from functools import lru_cache
 
-from media_processing_lib.image import imgResize
+from media_processing_lib.image import image_resize
 from media_processing_lib.video import MPLVideo
 
 # Either a single np.ndarray or a dict of format {"data": np.ndarray, "extra": other stuff.}
@@ -118,7 +118,7 @@ class Representation(ABC):
         interpolation = "nearest" if rawData.dtype == np.uint8 else "bilinear"
         # OpenCV bugs with uint8 and nearest, adding 255 values (in range [0-1])
         dtype = np.int32 if rawData.dtype == np.uint8 else rawData.dtype
-        resizedData = imgResize(rawData.astype(dtype), height=self.outShape[0], width=self.outShape[1], \
-            onlyUint8=False, interpolation=interpolation)
+        resizedData = image_resize(rawData.astype(dtype), height=self.outShape[0], width=self.outShape[1], \
+            only_uint8=False, interpolation=interpolation)
         resizedData = resizedData.astype(rawData.dtype)
         return resizedData
