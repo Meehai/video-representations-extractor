@@ -1,5 +1,5 @@
 from ngclib.nodes import Semantic as _Semantic
-from nwmodule.graph import MapNode
+from nwgraph import MapNode
 from .Map2Map import EncoderMap2Map, DecoderMap2Map
 
 class Semantic(_Semantic):

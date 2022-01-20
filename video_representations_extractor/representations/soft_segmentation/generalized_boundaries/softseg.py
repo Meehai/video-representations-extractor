@@ -9,11 +9,11 @@ def soft_seg(img, max_channels=3, use_filtering=False, as_image=False, internal_
 
     # rescale
     scale = internal_size / max(ny, nx)
-    img_resized = F.interpolate(img, scale_factor=scale, mode='nearest', recompute_scale_factor=False)
-    ry, rx = img_resized.shape[2:4]
+    image_resized = F.interpolate(img, scale_factor=scale, mode='nearest', recompute_scale_factor=False)
+    ry, rx = image_resized.shape[2:4]
 
     # pca data
-    img_hsv = rgb2hsv(img_resized)
+    img_hsv = rgb2hsv(image_resized)
     map_sim = get_pca_data(img_hsv)
 
     # pca over patch maps
@@ -36,7 +36,7 @@ def soft_seg(img, max_channels=3, use_filtering=False, as_image=False, internal_
 
     # chromatic adjustment to input image colors
     if as_image:
-        seg = like_an_image(seg, img_resized, sampling_step=3)
+        seg = like_an_image(seg, image_resized, sampling_step=3)
 
     # resize output segmentations
     seg = F.interpolate(seg, size=(ny, nx), mode='bicubic', align_corners=False)

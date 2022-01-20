@@ -3,7 +3,7 @@ import torch as tr
 from typing import List
 from overrides import overrides
 from pathlib import Path
-from media_processing_lib.image import img_resize
+from media_processing_lib.image import image_resize
 from ngclib.models import SingleLink
 
 from .rgb import RGB
@@ -27,7 +27,7 @@ class SSegSafeUAV(Representation):
 	@overrides
 	def make(self, t: int) -> RepresentationOutput:
 		frame = np.array(self.video[t])
-		img = img_resize(frame, height=self.trainHeight, width=self.trainWidth, interpolation="bilinear")
+		img = image_resize(frame, height=self.trainHeight, width=self.trainWidth, interpolation="bilinear")
 		img = np.float32(frame[None]) / 255
 		res = self.model.npForward(img)[0]
 		res = np.argmax(res, axis=-1).astype(np.uint8)

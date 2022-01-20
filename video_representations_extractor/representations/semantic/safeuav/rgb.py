@@ -1,5 +1,5 @@
 from ngclib.nodes import RGB as _RGB
-from nwmodule.graph import MapNode
+from nwgraph import MapNode
 from .Map2Map import EncoderMap2Map, DecoderMap2Map
 
 class RGB(_RGB):
