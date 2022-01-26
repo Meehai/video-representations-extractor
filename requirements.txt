@@ -20,4 +20,4 @@ pandas
 matplotlib
 nwutils
 nwmodule
-git+https://gitlab.com/neural-graph-consensus/ngclib.git
+ngclib
