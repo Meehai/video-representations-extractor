@@ -21,3 +21,4 @@ flow_vis
 media-processing-lib==0.52
 nwutils==0.3.3
 nwmodule==0.6
+ngclib==0.4
