@@ -1,17 +1,15 @@
-image: ubuntu:latest
+image: python:3.9-bullseye
 
 before_script:
   - apt-get update
-  - apt-get -yq install software-properties-common
-  - add-apt-repository -y ppa:deadsnakes/ppa
-  - apt-get -yq install python3.8 python3.8-dev python3.8-distutils python3.8-apt
+  - apt-get install git -y
   - apt install ffmpeg curl wget git fonts-open-sans imagemagick -y
   - test -e get-pip.py || wget https://bootstrap.pypa.io/get-pip.py 
   - test -e imgur.sh || wget https://raw.githubusercontent.com/tremby/imgur.sh/main/imgur.sh # imgur upload script
-  - python3.8 get-pip.py
-  - pip3.8 install gdown
-  - pip3.8 install pytest
-  - pip3.8 install -r requirements.txt
+  - python3 get-pip.py
+  - pip3 install gdown
+  - pip3 install pytest
+  - pip3 install -r requirements.txt
   - export VRE_WEIGHTS_DIR=`pwd`/weights
   - export PYTHONPATH="$PYTHONPATH:`pwd`"
 
@@ -25,7 +23,7 @@ test_run_imgur:
   - cd ..
   - test -e cfg.yaml || wget https://pastebin.com/raw/D0awQLZP -O cfg.yaml # cfg
   - X=$(shuf -i 1-9000 -n 1)
-  - python3.8 main.py --videoPath DJI_0956_720p.MP4 --cfgPath cfg.yaml --outputDir test --outputResolution 240,426 --startFrame $X --endFrame $((X+1))
+  - python3 main.py --videoPath DJI_0956_720p.MP4 --cfgPath cfg.yaml --outputDir test --outputResolution 240,426 --startFrame $X --endFrame $((X+1))
   - chmod +x imgur.sh
   - convert -resize 50% test/collage/$X.png test/collage/$X.png
   - bash imgur.sh test/collage/$X.png
@@ -33,4 +31,4 @@ test_run_imgur:
 unit_tests:
   script:
   - cd test/
-  - python3.8 -m pytest .
+  - python3 -m pytest .
