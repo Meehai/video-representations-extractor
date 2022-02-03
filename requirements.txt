@@ -4,7 +4,6 @@ argparse
 pims
 tqdm
 scikit-image
-media-processing-lib
 natsort
 gitpython
 gdown
@@ -18,5 +17,6 @@ pyproj
 overrides
 pandas
 matplotlib
-nwutils
-nwmodule
+media-processing-lib==0.52
+nwutils==0.3.3
+nwmodule==0.6
