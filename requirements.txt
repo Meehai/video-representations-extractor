@@ -20,7 +20,3 @@ pandas
 matplotlib
 nwutils
 nwmodule
-<<<<<<< HEAD
-=======
-ngclib
->>>>>>> 930577aa0b99e22a4d547d6352373378056b0daf
