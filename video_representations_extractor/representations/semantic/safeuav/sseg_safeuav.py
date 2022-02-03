@@ -4,7 +4,7 @@ from typing import List
 from overrides import overrides
 from pathlib import Path
 from media_processing_lib.image import image_resize
-from ngclib.models import SingleLink
+from ngclib.models.edges import SingleLink
 
 from .rgb import RGB
 from .semantic import Semantic

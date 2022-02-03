@@ -1,10 +1,10 @@
-from os import statvfs_result
 import yaml
 from pathlib import Path
 from typing import List, Dict, Tuple, Union, Optional
 from tqdm import trange
-from media_processing_lib.image import collage_fn, image_write
+from media_processing_lib.image import image_write
 from media_processing_lib.video import MPLVideo, video_read
+from media_processing_lib.collage_maker import collage_fn
 from nwutils.others import topologicalSort
 from collections import OrderedDict
 from functools import partial
