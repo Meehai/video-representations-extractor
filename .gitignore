@@ -4,4 +4,8 @@
 *.pth
 weights/
 vids/
-
+test_imgur/
+test/tmp/
+ci_imgur/*.MP4
+ci_imgur/*/
+ci_imgur/imgur.sh
