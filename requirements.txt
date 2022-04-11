@@ -23,4 +23,4 @@ media-processing-lib==0.52
 # ngclib==0.4
 git+https://gitlab.com/neuralwrappers/nwutils/#egg=nwutils
 git+https://gitlab.com/neural-graph-consensus/ngclib#egg=ngclib
-git+https://gitlab.com/neural-graph-consensus/ngclib-cv@9fd10385e9249382c43039565253724022edce0d#egg=ngclib-cv
+git+https://gitlab.com/neural-graph-consensus/ngclib-cv#egg=ngclib-cv
