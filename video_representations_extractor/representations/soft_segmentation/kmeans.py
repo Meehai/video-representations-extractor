@@ -2,7 +2,7 @@ import numpy as np
 import cv2
 from typing import List
 from overrides import overrides
-from nwutils.data import toCategorical
+from nwutils.data import to_categorical
 from ..representation import Representation, RepresentationOutput
 
 class KMeans(Representation):
@@ -21,7 +21,7 @@ class KMeans(Representation):
         criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, self.maxIterations, self.epsilon)
         initialization = cv2.KMEANS_PP_CENTERS
         compactness, labels, centers = cv2.kmeans(Z, self.nClusters, None, criteria, self.attempts, initialization)
-        labels = toCategorical(labels[:, 0], self.nClusters)
+        labels = to_categorical(labels[:, 0], self.nClusters)
         data = labels.reshape(frame.shape[0], frame.shape[1], self.nClusters)
         res = {"data" : data, "extra" : {"centers" : centers}}
         return res

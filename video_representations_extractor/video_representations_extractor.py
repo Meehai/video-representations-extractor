@@ -5,9 +5,8 @@ from tqdm import trange
 from media_processing_lib.image import image_write
 from media_processing_lib.video import MPLVideo, video_read
 from media_processing_lib.collage_maker import collage_fn
-from nwutils.others import topologicalSort
+from nwutils.data_structures import topological_sort
 from collections import OrderedDict
-from functools import partial
 
 from .representations import Representation, getRepresentation
 from .logger import logger
@@ -55,7 +54,7 @@ def topoSortRepresentations(representations:Dict[str, Union[str, Representation]
 			depGraph[k] = representations[k].dependencies
 		else:
 			depGraph[k] = representations[k]["dependencies"]
-	topoSort = topologicalSort(depGraph)
+	topoSort = topological_sort(depGraph)
 	topoSort = OrderedDict({k : representations[k] for k in topoSort})
 	return topoSort
 
