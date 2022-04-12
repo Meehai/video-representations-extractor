@@ -1,7 +1,6 @@
 import torch as tr
 import torch.nn as nn
 import torch.nn.functional as F
-from nwmodule.models import FeedForwardNetwork
 
 def conv(dIn, dOut, kernel_size, padding, stride, dilation):
     return nn.Sequential(
@@ -25,7 +24,7 @@ def fCat(a, b):
     c = tr.cat([a, b], dim=1)
     return c
 
-class EncoderMap2Map(FeedForwardNetwork):
+class EncoderMap2Map(nn.Module):
     def __init__(self, dIn, numFilters=16):
         self.dIn = dIn
         self.numFilters = numFilters
@@ -93,7 +92,7 @@ class EncoderMap2Map(FeedForwardNetwork):
     def __str__(self):
         return f"Encoder Map2Map. dIn: {self.dIn}. NF: {self.numFilters}."
 
-class DecoderMap2Map(FeedForwardNetwork):
+class DecoderMap2Map(nn.Module):
     def __init__(self, dOut, numFilters=16):
         self.dOut = dOut
         self.numFilters = numFilters
