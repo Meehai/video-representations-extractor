@@ -5,8 +5,6 @@ before_script:
   - apt-get install git -y
   - apt install ffmpeg curl wget git fonts-open-sans imagemagick -y
   - test -e get-pip.py || wget https://bootstrap.pypa.io/get-pip.py 
-  - test -e ci_imgur/imgur.sh || wget https://raw.githubusercontent.com/tremby/imgur.sh/main/imgur.sh -O ci_imgur/imgur.sh # imgur upload script
-  - chmod +x ci_imgur/imgur.sh
   - chmod +X ci_imgur/ci.sh
   - python3 get-pip.py
   - pip3 install gdown
