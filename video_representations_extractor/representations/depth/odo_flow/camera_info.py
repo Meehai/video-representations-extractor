@@ -1,13 +1,16 @@
 
 import numpy as np
 from transforms3d import axangles
+from pathlib import Path
+import os
 
 from .cam import fov_diag_to_intrinsic
 from .utils_geometry import invert_pose, skew, compose_pose
 
-
 class CameraInfo:
     def __init__(self, velocity_path, poses_type=None, dt=None, camera_params=None, frame_resolution=None):
+        velocity_path = Path(f"{os.environ['VRE_WEIGHTS_DIR']}/{velocity_path}").absolute()
+
         data = np.load(velocity_path)["arr_0"]
         assert data.shape[1] == 6, f"Velocities data must have 6 values (3 linear, 3 angular). Got {data.shape[1]}."
         # data::(N, 6). Linear velocity is stored in first 3 components, angular in last 3.
