@@ -57,7 +57,7 @@ class DexiNed(Representation):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.model = None
-        self.weightsFile = Path(f"{os.environ['VRE_WEIGHTS_DIR']}/deined.pth").absolute()
+        self.weightsFile = Path(f"{os.environ['VRE_WEIGHTS_DIR']}/dexined.pth").absolute()
 
     @overrides
     def setup(self):

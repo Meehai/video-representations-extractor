@@ -5,7 +5,6 @@ before_script:
   - apt-get install git -y
   - apt install ffmpeg curl wget git fonts-open-sans imagemagick -y
   - test -e get-pip.py || wget https://bootstrap.pypa.io/get-pip.py 
-  - chmod +X ci_imgur/ci.sh
   - python3 get-pip.py
   - pip3 install gdown
   - pip3 install pytest
@@ -15,7 +14,7 @@ before_script:
 
 test_run_imgur:
   script:
-  - cd ci_imgur
+  - cd ci_imgur/
   - bash ci.sh
 
 unit_tests:
