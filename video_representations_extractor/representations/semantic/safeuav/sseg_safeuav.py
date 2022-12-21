@@ -5,28 +5,23 @@ from typing import List
 from overrides import overrides
 from pathlib import Path
 from media_processing_lib.image import image_resize
-from ngclib.models.edges import SingleLink
-from ngclib_cv.nodes import RGB, Semantic
+from torch import nn
 
 from .Map2Map import EncoderMap2Map, DecoderMap2Map
 from ...representation import Representation, RepresentationOutput
 
 device = tr.device("cuda") if tr.cuda.is_available() else tr.device("cpu")
 
-class _RGB(RGB):
-    def get_encoder(self, outputNode):
-        return EncoderMap2Map(dIn=self.num_dims)
+class MyModel(nn.Module):
+    def __init__(self, dIn, dOut):
+        super().__init__()
+        self.encoder = EncoderMap2Map(dIn)
+        self.decoder = DecoderMap2Map(dOut)
 
-    def get_decoder(self, inputNode):
-        pass
-
-class _Semantic(Semantic):
-    def get_encoder(self, outputNode):
-        pass
-
-    def get_decoder(self, inputNode):
-        return DecoderMap2Map(dOut=self.num_dims)
-
+    def forward(self, x):
+        y_encoder = self.encoder(x)
+        y_decoder = self.decoder(y_encoder)
+        return y_decoder
 
 class SSegSafeUAV(Representation):
     def __init__(self, numClasses:int, trainHeight:int, trainWidth:int, colorMap:List, weightsFile:str, **kwargs):
@@ -45,14 +40,14 @@ class SSegSafeUAV(Representation):
     def make(self, t: int) -> RepresentationOutput:
         frame = np.array(self.video[t])
         img = image_resize(frame, height=self.trainHeight, width=self.trainWidth, interpolation="bilinear")
-        img = np.float32(frame[None]) / 255
+        img = np.float32(img[None]) / 255
         tr_img = tr.from_numpy(img).to(device)
         with tr.no_grad():
             tr_res = self.model.forward(tr_img)[0]
         np_res = tr_res.to("cpu").numpy()
         res = np.argmax(np_res, axis=-1).astype(np.uint8)
         return res
-    
+
     @overrides
     def makeImage(self, x: RepresentationOutput) -> np.ndarray:
         newImage = np.zeros((*x["data"].shape, 3), dtype=np.uint8)
@@ -65,9 +60,7 @@ class SSegSafeUAV(Representation):
         if not self.model is None:
             return
 
-        rgbNode = _RGB(name="rgb")
-        semanticNode = _Semantic(name="semantic", semantic_classes=self.numClasses, semantic_colors=self.colorMap)
-        model = SingleLink(rgbNode, semanticNode)
-        model.load_state_dict(tr.load(self.weightsFile))
+        model = MyModel(3, self.numClasses)
+        model.load_state_dict(tr.load(self.weightsFile), strict=False)
         model.to(device)
         self.model = model
