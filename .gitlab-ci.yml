@@ -1,10 +1,16 @@
 image: python:3.9-bullseye
 
+workflow:
+   rules:
+     - if: $CI_MERGE_REQUEST_ID || '$CI_COMMIT_REF_NAME == "master"'
+       when: always
+     - when: never
+
 before_script:
   - apt-get update
   - apt-get install git -y
-  - apt install ffmpeg curl wget git fonts-open-sans imagemagick -y
-  - test -e get-pip.py || wget https://bootstrap.pypa.io/get-pip.py 
+  - apt install ffmpeg curl wget git fonts-open-sans imagemagick cmake python3-numpy -y
+  - test -e get-pip.py || wget https://bootstrap.pypa.io/get-pip.py
   - python3 get-pip.py
   - pip3 install gdown
   - pip3 install pytest

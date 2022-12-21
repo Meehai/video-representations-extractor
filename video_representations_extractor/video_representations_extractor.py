@@ -1,15 +1,49 @@
 import yaml
 from pathlib import Path
-from typing import List, Dict, Tuple, Union, Optional
+from typing import List, Dict, Tuple, Union, Optional, T
 from tqdm import trange
 from media_processing_lib.image import image_write
 from media_processing_lib.video import MPLVideo, video_read
 from media_processing_lib.collage_maker import collage_fn
-from nwutils.data_structures import topological_sort
 from collections import OrderedDict
 
 from .representations import Representation, getRepresentation
 from .logger import logger
+
+
+def topological_sort(dependency_graph: Dict[T, List[T]]) -> List[T]:
+    """
+    Given a graph as a dict {Node : [Dependencies]}, returns a list [Node] ordered with a correct topological
+        sort order. Applies Kahn's algorithm: https://ocw.cs.pub.ro/courses/pa/laboratoare/laborator-07
+    """
+    L, S = [], []
+
+    # First step is to create a regular graph of {Node : [Children]}
+    graph = {k :[] for k in dependency_graph.keys()}
+    in_nodes_graph = {}
+    for key in dependency_graph:
+        for parent in dependency_graph[key]:
+            assert parent in graph, f"Node '{parent}' is not in given graph: {graph.keys()}"
+            graph[parent].append(key)
+        # Transform the depGraph into a list of number of in-nodes
+        in_nodes_graph[key] = len(dependency_graph[key])
+        # Add nodes with no dependencies and start BFS from them
+        if in_nodes_graph[key] == 0:
+            S.append(key)
+
+    while len(S) > 0:
+        u = S.pop()
+        L.append(u)
+
+        for v in graph[u]:
+            in_nodes_graph[v] -= 1
+            if in_nodes_graph[v] == 0:
+                S.insert(0, v)
+
+    for key in in_nodes_graph.keys():
+        assert in_nodes_graph[key] == 0, "Graph has cycles. Cannot do topological sort."
+    return L
+
 
 # Function that validates the output dir (args.outputDir) and each representation. By default, it just dumps the yaml
 #  file of the representation under outputDir/representationName (i.e. video1/rgb/cfg.yaml). However, if the directory
@@ -68,7 +102,7 @@ class VideoRepresentationsExtractor:
 			representations:Dict[str, Union[str, Representation]], outputResolution:Optional[Tuple[int, int]]=None):
 		if isinstance(video, (str, Path)):
 			logger.info(f"Path '{video}' provided, reading video using pims.")
-			video = video_read(video, vid_lib="pims")
+			video = video_read(video, video_lib="pims")
 
 		assert len(representations) > 0
 		outputDir = Path(outputDir)

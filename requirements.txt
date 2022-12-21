@@ -12,14 +12,10 @@ torchvision
 timm
 transforms3d
 opencv-python
-tensorflow==2.5.0
+tensorflow
 pyproj
 overrides
 pandas
 matplotlib
 flow_vis
-media-processing-lib==0.52
-git+https://gitlab.com/neuralwrappers/nwutils/#egg=nwutils
-git+https://gitlab.com/neuralwrappers/nwgraph/#egg=nwgraph
-git+https://gitlab.com/neural-graph-consensus/ngclib#egg=ngclib
-git+https://gitlab.com/neural-graph-consensus/ngclib-cv#egg=ngclib-cv
+git+https://gitlab.com/mihaicristianpirvu/media-processing-lib/#egg=media-processing-lib

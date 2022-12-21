@@ -27,7 +27,7 @@ def getArgs():
 
 def main():
 	args = getArgs()
-	video = video_read(args.videoPath, vid_lib="pims")
+	video = video_read(args.videoPath, video_lib="pims")
 
 	vre = VideoRepresentationsExtractor(video, args.outputDir, representations=args.cfg, \
 		outputResolution=args.outputResolution)
