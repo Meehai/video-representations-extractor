@@ -9,7 +9,7 @@ workflow:
 before_script:
   - apt-get update
   - apt-get install git -y
-  - apt install ffmpeg curl wget git fonts-open-sans imagemagick cmake -y
+  - apt install ffmpeg curl wget git fonts-open-sans imagemagick cmake python-numpy -y
   - test -e get-pip.py || wget https://bootstrap.pypa.io/get-pip.py
   - python3 get-pip.py
   - pip3 install gdown
