@@ -4,11 +4,11 @@ def get_unet_MDCB_with_deconv_layers(input_shape:Tuple[int, int, int], init_nb:i
 	from tensorflow.keras.models import Model
 	from tensorflow.keras.layers import Input, concatenate, Conv2D, Activation, add, concatenate, Conv2DTranspose
 	inputs = Input(input_shape)
-	
+
 	down1 = Conv2D(init_nb, (3, 3), activation='relu', padding='same')(inputs)
 	down1 = Conv2D(init_nb, (3, 3), activation='relu', padding='same')(down1)
 	down1pool = Conv2D(init_nb, (3, 3), activation='relu', padding='same', strides=(2, 2))(down1)
-	
+
 	down2 = Conv2D(init_nb*2, (3, 3), activation='relu', padding='same')(down1pool)
 	down2 = Conv2D(init_nb*2, (3, 3), activation='relu', padding='same')(down2)
 	down2pool = Conv2D(init_nb*2, (3, 3), activation='relu', padding='same', strides=(2, 2))(down2)
