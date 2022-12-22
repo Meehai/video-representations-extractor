@@ -29,7 +29,7 @@ def getRepresentation(type:str, method:str) -> Representation:
         elif method == "canny":
             from .edges.canny import Canny
             objType = Canny
-    
+
     elif type == "depth":
         if method == "dpt":
             from .depth.dpt import DepthDpt
@@ -57,7 +57,7 @@ def getRepresentation(type:str, method:str) -> Representation:
             from .semantic.safeuav import SSegSafeUAV
             objType = SSegSafeUAV
 
-    elif type == "normals": 
+    elif type == "normals":
         if method == "depth-svd":
             from .normals.depth_svd import DepthNormalsSVD
             objType = DepthNormalsSVD

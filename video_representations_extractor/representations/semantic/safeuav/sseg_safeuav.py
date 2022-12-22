@@ -60,7 +60,17 @@ class SSegSafeUAV(Representation):
         if not self.model is None:
             return
 
-        model = MyModel(3, self.numClasses)
-        model.load_state_dict(tr.load(self.weightsFile), strict=False)
-        model.to(device)
-        self.model = model
+        model = MyModel(dIn=3, dOut=self.numClasses)
+        data = tr.load(self.weightsFile, map_location="cpu")["state_dict"]
+        params = model.state_dict()
+        new_data = {}
+        for k in data.keys():
+            if k.startswith("model.0."):
+                other = k.replace("model.0.", "encoder.")
+            elif k.startswith("model.1."):
+                other = k.replace("model.1.", "decoder.")
+            else:
+                assert False, (k, params.keys())
+            new_data[other] = data[k]
+        model.load_state_dict(new_data)
+        self.model = model.eval().to(device)
