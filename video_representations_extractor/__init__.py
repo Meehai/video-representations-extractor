@@ -1,1 +1,0 @@
-from .video_representations_extractor import VideoRepresentationsExtractor
