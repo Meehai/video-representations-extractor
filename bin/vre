@@ -1,0 +1,58 @@
+#!/usr/bin/env python3
+from argparse import ArgumentParser
+from media_processing_lib.video import video_read
+from typing import List
+from pathlib import Path
+from vre import VRE
+from vre.logger import logger
+from omegaconf import OmegaConf
+
+
+def get_args():
+    parser = ArgumentParser()
+    parser.add_argument("video_path", help="Path to the scene video we are processing")
+    parser.add_argument(
+        "--output_path", "-o", required=True, help="Path to the output directory where representations are stored"
+    )
+    parser.add_argument("--cfg_path", required=True, help="Path to global YAML cfg file")
+    parser.add_argument("--output_resolution", required=False, help="height,width as two integers")
+    parser.add_argument("--start_frame", type=int, help="The first frame. If not set, defaults to first.")
+    parser.add_argument("--end_frame", type=int, help="End frame. If not set, defaults to length of video")
+
+    args = parser.parse_args()
+
+    args.video_path = Path(args.video_path).absolute()
+    args.output_path = Path(args.output_path).absolute()
+    if args.cfg_path is not None:
+        args.cfg_path = Path(args.cfg_path).absolute()
+    if args.output_resolution:
+        args.output_resolution = [int(x) for x in args.output_resolution.split(",")]
+    return args
+
+
+def get_cfg():
+    args = get_args()
+    cfg = OmegaConf.load(open(args.cfg_path, "r"))
+
+    def _update_cfg_from_args(cfg, args, items: List[str]):
+        for item in items:
+            if getattr(args, item) is None:
+                continue
+            cfg[item] = getattr(args, item)
+            logger.warning(f"--{item} is set to '{cfg[item]}'. Will update the cfg value")
+        return cfg
+
+    cfg.vre = _update_cfg_from_args(cfg.vre, args, ["output_resolution", "start_frame", "end_frame"])
+    return args, cfg
+
+
+def main():
+    args, cfg = get_cfg()
+    video = video_read(args.video_path)
+
+    vre = VRE(video, representations_dict=cfg.representations)
+    vre.run_cfg(args.output_path, cfg.vre)
+
+
+if __name__ == "__main__":
+    main()
