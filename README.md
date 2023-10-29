@@ -110,9 +110,9 @@ oldPath=`pwd`; cd /path/to/output_dir/collage; ffmpeg -start_number 1 -framerate
 mkdir example
 # move the cfg and the video in some local dir
 gdown https://drive.google.com/uc?id=158U-W-Gal6eXxYtS1ca1DAAxHvknqwAk -O example/vid.mp4
-wget https://gitlab.com/meehai/video-representations-extractor/-/raw/df15af177edf5c101bbb241428c43faac333cea4/test/end_to_end/imgur/cfg.yaml -o example/cfg.yaml
+wget https://gitlab.com/meehai/video-representations-extractor/-/raw/df15af177edf5c101bbb241428c43faac333cea4/test/end_to_end/imgur/cfg.yaml -O example/cfg.yaml
 docker run \
-  -v `pwd`/example:/app/resources/weights \
+  -v `pwd`/example:/app/resources \
   meehai/vre \
   /app/resources/vid.mp4 --cfg_path /app/resources/cfg.yaml -o /app/resources/result --start_frame 5 --end_frame 6
 ```
