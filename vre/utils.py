@@ -34,12 +34,3 @@ def topological_sort(dependency_graph: Dict[T, List[T]]) -> List[T]:
     for key in in_nodes_graph.keys():
         assert in_nodes_graph[key] == 0, "Graph has cycles. Cannot do topological sort."
     return L
-
-def load_or_save_npz(path: Path, representation_fn: Callable, export: bool):
-    """a wrapper on top of representation[t] that will only compute if the output is not already saved"""
-    if path.exists():
-        return np.load(path, allow_pickle=True)["arr_0"].item()
-    res = representation_fn()
-    if export:
-        np.savez(path, res)
-    return res

@@ -1,26 +1,26 @@
-image: meehai/vre:latest
+image: meehai/vre-ci:latest
 
 workflow:
-    rules:
-        - if: $CI_MERGE_REQUEST_ID || '$CI_COMMIT_REF_NAME == "master"'
-          when: always
-        - when: never
+  rules:
+    - if: $CI_MERGE_REQUEST_ID || '$CI_COMMIT_REF_NAME == "master"'
+      when: always
+    - when: never
 
 before_script:
-    - export VRE_ROOT=`pwd`
-    - export VRE_WEIGHTS_DIR=$VRE_ROOT/resources/weights
-    - export PYTHONPATH="$PYTHONPATH:$VRE_ROOT"
-    - export PATH="$PATH:$VRE_ROOT/bin"
-    # this is because we are unable to maintain a library properly
-    - pip uninstall -y media-processing-lib
-    - python3 -m pip install -r requirements.txt
+  - export VRE_ROOT=`pwd`
+  - export VRE_WEIGHTS_DIR=$VRE_ROOT/resources/weights
+  - export PYTHONPATH="$PYTHONPATH:$VRE_ROOT"
+  - export PATH="$PATH:$VRE_ROOT/bin"
+  # this is because we are unable to maintain a library properly
+  - pip uninstall -y media-processing-lib
+  - python3 -m pip install -r requirements.txt
 
-test_run_imgur:
-    script:
-        - cd .ci/imgur/
-        - bash ci.sh
+test_end_to_end_imgur:
+  script:
+    - cd test/end_to_end/imgur/
+    - bash run.sh
 
 unit_tests:
-    script:
-        - cd test/
-        - python3 -m pytest .
+  script:
+    - cd test/
+    - python3 -m pytest .

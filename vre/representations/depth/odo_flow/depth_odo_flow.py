@@ -9,20 +9,9 @@ from ...representation import Representation, RepresentationOutput
 
 
 class DepthOdoFlow(Representation):
-    def __init__(
-        self,
-        velocitiesPath: str,
-        linearAngVelCorrection: bool,
-        focusCorrection: bool,
-        cosineCorrectionScipy: bool,
-        cosineCorrectionGD: bool,
-        fov: int,
-        sensorWidth: int,
-        sensorHeight: int,
-        minDepthMeters: int,
-        maxDepthMeters: int,
-        **kwargs,
-    ):
+    def __init__(self, velocitiesPath: str, linearAngVelCorrection: bool, focusCorrection: bool,
+                 cosineCorrectionScipy: bool, cosineCorrectionGD: bool, fov: int, sensorWidth: int, sensorHeight: int,
+                 minDepthMeters: int, maxDepthMeters: int, **kwargs):
         self.camera_info = CameraInfo(
             velocitiesPath, camera_params=CameraSensorParams(fov, (sensorWidth, sensorHeight))
         )
@@ -41,6 +30,7 @@ class DepthOdoFlow(Representation):
             "A norm (pixels*m/s)": 1,
         }
         super().__init__(**kwargs)
+        self._setup()
         assert len(self.dependencies) == 1, "Expected one optical flow method!"
         self.flow = self.dependencies[0]
 
@@ -104,13 +94,12 @@ class DepthOdoFlow(Representation):
         y[Where] = [0, 0, 0]
         return y
 
-    @overrides
-    def setup(self):
+    def _setup(self):
         assert len(self.camera_info.linear_velocity) == len(
             self.video
         ), f"{self.camera_info.linear_velocity.shape} vs {len(self.video)}"
         assert len(self.camera_info.angular_velocity) == len(
             self.video
         ), f"{self.camera_info.angular_velocity.shape} vs {len(self.video)}"
-        self.fps = self.video.fps
+        self.fps = self.video.frame_rate
         self.camera_info.dt = 1.0 / self.fps

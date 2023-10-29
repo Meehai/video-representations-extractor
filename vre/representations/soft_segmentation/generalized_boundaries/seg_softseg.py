@@ -28,7 +28,3 @@ class GeneralizedBoundaries(Representation):
     def make_image(self, x: RepresentationOutput) -> np.ndarray:
         y = np.uint8(x["data"] * 255)
         return y
-
-    @overrides
-    def setup(self):
-        pass

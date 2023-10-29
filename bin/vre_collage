@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 from argparse import ArgumentParser
-from typing import Dict, List
 from pathlib import Path
+import pims
 from media_processing_lib.image import image_read, image_write, image_add_title
 from media_processing_lib.collage_maker import collage_fn
-from media_processing_lib.video import MPLVideo
-from media_processing_lib.video.backends import DiskBackend
+# from media_processing_lib.video.backends import DiskBackend
 from vre.logger import logger
 from natsort import natsorted
 import numpy as np
@@ -35,7 +34,7 @@ def get_args():
     return args
 
 
-def resolve_files(vre_export_dir: Path, resolution_dir: str = None) -> Dict[str, List[Path]]:
+def resolve_files(vre_export_dir: Path, resolution_dir: str = None) -> dict[str, list[Path]]:
     found_dirs = [x for x in vre_export_dir.iterdir() if (x / "png").exists()]
     resols = {}
     for potential_dir in found_dirs:
@@ -83,6 +82,7 @@ def main():
         image_write(img, f"{args.output_path}/{name}.png")
 
     if not args.no_video:
+        raise NotImplementedError("TODO")
         backend = DiskBackend([x for x in args.output_path.iterdir()])
         MPLVideo(backend, fps=args.fps).save(args.output_path / "collage.mp4")
 

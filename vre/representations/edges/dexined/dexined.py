@@ -12,9 +12,6 @@ from .model_dexined import DexiNed as Model
 from ...representation import Representation, RepresentationOutput
 from ....logger import logger
 
-device = tr.device("cuda") if tr.cuda.is_available() else tr.device("cpu")
-
-
 def image_normalization(img, img_min=0, img_max=255, epsilon=1e-12):
     """This is a typical image normalization function
     where the minimum and maximum of the image is needed
@@ -56,29 +53,31 @@ def postprocessOutput(y: List[tr.Tensor]) -> np.ndarray:
 
 
 class DexiNed(Representation):
-    def __init__(self, **kwargs):
+    def __init__(self, device: str, **kwargs):
         self.model = None
+        self.device = device
+        assert tr.cuda.is_available() or self.device == "cpu", "CUDA not available"
         super().__init__(**kwargs)
+        self._setup()
 
-    @overrides
-    def setup(self):
+    def _setup(self):
         # our backup weights
-        weightsFile = Path(f"{os.environ['VRE_WEIGHTS_DIR']}/dexined.pth").absolute()
-        urlWeights = "https://drive.google.com/u/0/uc?id=1oT1iKdRRKJpQO-DTYWUnZSK51QnJ-mnP"
+        weights_file = Path(f"{os.environ['VRE_WEIGHTS_DIR']}/dexined.pth").absolute()
+        url_weights = "https://drive.google.com/u/0/uc?id=1oT1iKdRRKJpQO-DTYWUnZSK51QnJ-mnP"
 
-        if not weightsFile.exists():
-            logger.debug(f"Downloading weights for dexined from {urlWeights}")
-            gdown.download(urlWeights, str(weightsFile))
+        if not weights_file.exists():
+            logger.debug(f"Downloading weights for dexined from {url_weights}")
+            gdown.download(url_weights, str(weights_file))
 
-        model = Model().to(device)
-        model.load_state_dict(tr.load(weightsFile, map_location=device))
-        logger.debug2(f"Loaded weights from '{weightsFile}'")
-        self.model = model
+        model = Model()
+        model.load_state_dict(tr.load(weights_file, map_location="cpu"))
+        logger.debug2(f"Loaded weights from '{weights_file}'")
+        self.model = model.to(self.device)
 
     @overrides
     def make(self, t: int) -> RepresentationOutput:
         A = preprocessImage(self.video[t])
-        trA = tr.from_numpy(A.copy()).float()[None].to(device)
+        trA = tr.from_numpy(A.copy()).float()[None].to(self.device)
         with tr.no_grad():
             trB = self.model.forward(trA)
         C = postprocessOutput(trB)

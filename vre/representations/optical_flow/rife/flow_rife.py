@@ -1,12 +1,11 @@
+from pathlib import Path
 import os
+import pims
 import numpy as np
 import torch as tr
 import torch.nn.functional as F
 import flow_vis
 import gdown
-from pathlib import Path
-from media_processing_lib.video import MPLVideo
-from typing import Optional, List
 
 try:
     from .RIFE_HDv2 import Model
@@ -17,22 +16,20 @@ except ImportError:
     from vre.representations.representation import Representation, RepresentationOutput
     from vre.logger import logger
 
-
-device = tr.device("cuda") if tr.cuda.is_available() else tr.device("cpu")
-
-
 class FlowRife(Representation):
-    def __init__(
-        self, video: MPLVideo, name: str, dependencies: List[Representation], computeBackwardFlow: Optional[bool] = None
-    ):
+    def __init__(self, video: pims.Video, name: str, dependencies: list[Representation],
+                 computeBackwardFlow: bool, device: str):
         self.model = None
         self.UHD = False
         self.no_backward_flow = True if computeBackwardFlow is None else not computeBackwardFlow
+        self.device = device
+        assert tr.cuda.is_available() or self.device == "cpu", "CUDA not available"
         super().__init__(video, name, dependencies)
+        self._setup()
 
-    def setup(self):
-        weightsDir = Path(f"{os.environ['VRE_WEIGHTS_DIR']}/rife").absolute()
-        weightsDir.mkdir(exist_ok=True)
+    def _setup(self):
+        weights_dir = Path(f"{os.environ['VRE_WEIGHTS_DIR']}/rife").absolute()
+        weights_dir.mkdir(exist_ok=True, parents=True)
 
         # original files
         # urlWeights = "https://drive.google.com/u/0/uc?id=1wsQIhHZ3Eg4_AfCXItFKqqyDMB4NS0Yd"
@@ -41,39 +38,38 @@ class FlowRife(Representation):
         flowNetUrl = "https://drive.google.com/u/0/uc?id=1aqR0ciMzKcD-N4bwkTK8go5FW4WAKoWc"
         uNetUrl = "https://drive.google.com/u/0/uc?id=1Fv27pNAbrmqQJolCFkD1Qm1RgKBRotME"
 
-        contextNetPath = weightsDir / "contextnet.pkl"
-        if not contextNetPath.exists():
+        contextnet_path = weights_dir / "contextnet.pkl"
+        if not contextnet_path.exists():
             logger.debug("Downloading contextnet weights for RIFE")
-            gdown.download(contextNetUrl, str(contextNetPath))
+            gdown.download(contextNetUrl, str(contextnet_path))
 
-        flowNetPath = weightsDir / "flownet.pkl"
-        if not flowNetPath.exists():
+        flownet_path = weights_dir / "flownet.pkl"
+        if not flownet_path.exists():
             logger.debug("Downloading flownet weights for RIFE")
-            gdown.download(flowNetUrl, str(flowNetPath))
+            gdown.download(flowNetUrl, str(flownet_path))
 
-        uNetPath = weightsDir / "unet.pkl"
-        if not uNetPath.exists():
+        unet_path = weights_dir / "unet.pkl"
+        if not unet_path.exists():
             logger.debug("Downloading unet weights for RIFE")
-            gdown.download(uNetUrl, str(uNetPath))
+            gdown.download(uNetUrl, str(unet_path))
 
         if self.model is None:
             model = Model()
-            model.load_model(weightsDir, -1)
+            model.load_model(weights_dir)
             model.eval()
-            model.device()
-            self.model = model
+            self.model = model.to(self.device)
 
     def make(self, t: int) -> RepresentationOutput:
         t_target = t + 1 if t < len(self.video) - 1 else t
         return self.get(t, t_target)
 
     def get(self, t_source, t_target) -> np.ndarray:
-        frame1 = self.video[t_source]
-        frame2 = self.video[t_target]
+        frame1 = self.video[t_source].transpose(2, 0, 1)[None]
+        frame2 = self.video[t_target].transpose(2, 0, 1)[None]
 
         # Convert, preprocess & pad
-        I0 = tr.from_numpy(np.transpose(frame1, (2, 0, 1))).to(device, non_blocking=True).unsqueeze(0).float() / 255.0
-        I1 = tr.from_numpy(np.transpose(frame2, (2, 0, 1))).to(device, non_blocking=True).unsqueeze(0).float() / 255.0
+        I0 = tr.from_numpy(frame1).to(self.device, non_blocking=True).float() / 255.0
+        I1 = tr.from_numpy(frame2).to(self.device, non_blocking=True).float() / 255.0
         n, c, h, w = I0.shape
         ph = ((h - 1) // 32 + 1) * 32
         pw = ((w - 1) // 32 + 1) * 32

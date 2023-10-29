@@ -30,7 +30,6 @@ class RAFT(nn.Module):
             self.context_dim = cdim = 64
             args.corr_levels = 4
             args.corr_radius = 3
-        
         else:
             self.hidden_dim = hdim = 128
             self.context_dim = cdim = 128
@@ -94,8 +93,8 @@ class RAFT(nn.Module):
 
         # run the feature network
         with autocast(enabled=self.args.mixed_precision):
-            fmap1, fmap2 = self.fnet([image1, image2])        
-        
+            fmap1, fmap2 = self.fnet([image1, image2])
+
         fmap1 = fmap1.float()
         fmap2 = fmap2.float()
         if self.args.alternate_corr:

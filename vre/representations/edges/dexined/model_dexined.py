@@ -2,8 +2,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-device = "cuda" if torch.cuda.is_available() else "cpu"
-
 def weight_init(m):
     if isinstance(m, (nn.Conv2d,)):
         torch.nn.init.xavier_normal_(m.weight, gain=1.0)
@@ -264,6 +262,7 @@ if __name__ == '__main__':
     batch_size = 8
     img_height = 352
     img_width = 352
+    device = "cuda" if torch.cuda.is_available() else "cpu"
 
     input = torch.rand(batch_size, 3, img_height, img_width).to(device)
     # target = torch.rand(batch_size, 1, img_height, img_width).to(device)

@@ -1,7 +1,7 @@
 """Build representation module. Updates faster than README :)"""
-from typing import Type, Dict
+from typing import Type
 from omegaconf import DictConfig, OmegaConf
-from media_processing_lib.video import MPLVideo
+import pims
 from .representation import Representation
 from ..logger import logger
 
@@ -69,11 +69,7 @@ def build_representation_type(type: str, method: str) -> Type[Representation]:
             objType = FlowRaft
 
     elif type == "semantic":
-        if method == "safeuav-keras":
-            from .semantic.safeuav_keras import SSegSafeUAVKeras
-
-            objType = SSegSafeUAVKeras
-        elif method == "safeuav":
+        if method == "safeuav":
             from .semantic.safeuav import SSegSafeUAV
 
             objType = SSegSafeUAV
@@ -88,9 +84,8 @@ def build_representation_type(type: str, method: str) -> Type[Representation]:
     return objType
 
 
-def build_representation_from_cfg(
-    video: MPLVideo, repr_cfg: DictConfig, name: str, built_so_far: Dict[str, Representation]
-) -> Representation:
+def build_representation_from_cfg(video: pims.Video, repr_cfg: DictConfig, name: str,
+                                  built_so_far: dict[str, Representation]) -> Representation:
     logger.debug(f"Representation='{name}'. Instantiating...")
     assert isinstance(repr_cfg, DictConfig), f"Broken format (not a dict) for {name}. Type: {type(repr_cfg)}."
     assert "type" in repr_cfg and "method" in repr_cfg, f"Broken format: {repr_cfg.keys()}"

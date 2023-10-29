@@ -3,9 +3,6 @@ import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-
 class EPE(nn.Module):
     def __init__(self):
         super(EPE, self).__init__()
@@ -18,13 +15,13 @@ class EPE(nn.Module):
 
 class Ternary(nn.Module):
     def __init__(self):
-        super(Ternary, self).__init__()
+        super().__init__()
         patch_size = 7
         out_channels = patch_size * patch_size
         self.w = np.eye(out_channels).reshape(
             (patch_size, patch_size, 1, out_channels))
         self.w = np.transpose(self.w, (3, 2, 0, 1))
-        self.w = torch.tensor(self.w).float().to(device)
+        self.w = torch.tensor(self.w).float()
 
     def transform(self, img):
         patches = F.conv2d(img, self.w, padding=3, bias=None)
@@ -56,15 +53,15 @@ class Ternary(nn.Module):
 
 class SOBEL(nn.Module):
     def __init__(self):
-        super(SOBEL, self).__init__()
+        super().__init__()
         self.kernelX = torch.tensor([
             [1, 0, -1],
             [2, 0, -2],
             [1, 0, -1],
         ]).float()
         self.kernelY = self.kernelX.clone().T
-        self.kernelX = self.kernelX.unsqueeze(0).unsqueeze(0).to(device)
-        self.kernelY = self.kernelY.unsqueeze(0).unsqueeze(0).to(device)
+        self.kernelX = self.kernelX.unsqueeze(0).unsqueeze(0)
+        self.kernelY = self.kernelY.unsqueeze(0).unsqueeze(0)
 
     def forward(self, pred, gt):
         N, C, H, W = pred.shape[0], pred.shape[1], pred.shape[2], pred.shape[3]
@@ -81,8 +78,7 @@ class SOBEL(nn.Module):
 
 
 if __name__ == '__main__':
-    img0 = torch.zeros(3, 3, 256, 256).float().to(device)
-    img1 = torch.tensor(np.random.normal(
-        0, 1, (3, 3, 256, 256))).float().to(device)
+    img0 = torch.zeros(3, 3, 256, 256).float()
+    img1 = torch.tensor(np.random.normal(0, 1, (3, 3, 256, 256))).float()
     ternary_loss = Ternary()
     print(ternary_loss(img0, img1).shape)
