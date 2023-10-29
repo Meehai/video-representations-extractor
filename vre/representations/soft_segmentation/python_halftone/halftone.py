@@ -41,16 +41,17 @@ class Halftone(Representation):
         percentage: float,
         angles: List[int],
         antialias: bool,
-        resolution: Tuple[str, str],
+        resolution: tuple[int, int],
         **kwargs,
     ):
         super().__init__(**kwargs)
+        assert len(resolution) == 2, resolution
         self.sample = sample
         self.scale = scale
         self.percentage = percentage
         self.angles = angles
         self.antialias = antialias
-        self.resolution = [int(x) for x in resolution.split(",")]
+        self.resolution = resolution
         self.check_arguments()
 
     @overrides
@@ -187,14 +188,8 @@ class Halftone(Representation):
             dots.append(half_tone)
         return dots
 
-    @overrides
-    def setup(self):
-        pass
-
 
 if __name__ == "__main__":
-
     path = sys.argv[1]
-
     h = Halftone(path)
     h.make()

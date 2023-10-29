@@ -4,7 +4,6 @@ import numpy as np
 from torch.optim import AdamW
 import torch.optim as optim
 import itertools
-from torch.nn.parallel import DistributedDataParallel as DDP
 import torch.nn.functional as F
 
 try:
@@ -15,9 +14,6 @@ except ImportError:
     from loss import *
     from warplayer import warp
     from IFNet_HDv2 import *
-
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
 
 def conv(in_planes, out_planes, kernel_size=3, stride=1, padding=1, dilation=1):
     return nn.Sequential(
@@ -34,12 +30,6 @@ def deconv(in_planes, out_planes, kernel_size=4, stride=2, padding=1):
         nn.PReLU(out_planes)
     )
 
-def conv_woact(in_planes, out_planes, kernel_size=3, stride=1, padding=1, dilation=1):
-    return nn.Sequential(
-        nn.Conv2d(in_planes, out_planes, kernel_size=kernel_size, stride=stride,
-                  padding=padding, dilation=dilation, bias=True),
-    )
-
 class Conv2(nn.Module):
     def __init__(self, in_planes, out_planes, stride=2):
         super(Conv2, self).__init__()
@@ -51,10 +41,9 @@ class Conv2(nn.Module):
         x = self.conv2(x)
         return x
 
-c = 32
-
 class ContextNet(nn.Module):
     def __init__(self):
+        c = 32
         super(ContextNet, self).__init__()
         self.conv0 = Conv2(3, c)
         self.conv1 = Conv2(c, c)
@@ -68,16 +57,13 @@ class ContextNet(nn.Module):
         flow = F.interpolate(flow, scale_factor=0.5, mode="bilinear", align_corners=False) * 0.5
         f1 = warp(x, flow)
         x = self.conv2(x)
-        flow = F.interpolate(flow, scale_factor=0.5, mode="bilinear",
-                             align_corners=False) * 0.5
+        flow = F.interpolate(flow, scale_factor=0.5, mode="bilinear", align_corners=False) * 0.5
         f2 = warp(x, flow)
         x = self.conv3(x)
-        flow = F.interpolate(flow, scale_factor=0.5, mode="bilinear",
-                             align_corners=False) * 0.5
+        flow = F.interpolate(flow, scale_factor=0.5, mode="bilinear", align_corners=False) * 0.5
         f3 = warp(x, flow)
         x = self.conv4(x)
-        flow = F.interpolate(flow, scale_factor=0.5, mode="bilinear",
-                             align_corners=False) * 0.5
+        flow = F.interpolate(flow, scale_factor=0.5, mode="bilinear", align_corners=False) * 0.5
         f4 = warp(x, flow)
         return [f1, f2, f3, f4]
 
@@ -85,6 +71,7 @@ class ContextNet(nn.Module):
 class FusionNet(nn.Module):
     def __init__(self):
         super(FusionNet, self).__init__()
+        c = 32
         self.conv0 = Conv2(10, c)
         self.down0 = Conv2(c, 2*c)
         self.down1 = Conv2(4*c, 4*c)
@@ -117,12 +104,12 @@ class FusionNet(nn.Module):
         return x, warped_img0, warped_img1, warped_img0_gt, warped_img1_gt
 
 
-class Model:
-    def __init__(self, local_rank=-1):
+class Model(nn.Module):
+    def __init__(self):
+        super().__init__()
         self.flownet = IFNet()
         self.contextnet = ContextNet()
         self.fusionnet = FusionNet()
-        self.device()
         self.optimG = AdamW(itertools.chain(
             self.flownet.parameters(),
             self.contextnet.parameters(),
@@ -132,52 +119,18 @@ class Model:
         self.epe = EPE()
         self.ter = Ternary()
         self.sobel = SOBEL()
-        if local_rank != -1:
-            self.flownet = DDP(self.flownet, device_ids=[
-                               local_rank], output_device=local_rank)
-            self.contextnet = DDP(self.contextnet, device_ids=[
-                                  local_rank], output_device=local_rank)
-            self.fusionnet = DDP(self.fusionnet, device_ids=[
-                                 local_rank], output_device=local_rank)
 
-    def train(self):
-        self.flownet.train()
-        self.contextnet.train()
-        self.fusionnet.train()
-
-    def eval(self):
-        self.flownet.eval()
-        self.contextnet.eval()
-        self.fusionnet.eval()
-
-    def device(self):
-        self.flownet.to(device)
-        self.contextnet.to(device)
-        self.fusionnet.to(device)
-
-    def load_model(self, path, rank):
+    def load_model(self, path):
         def convert(param):
-            if rank == -1:
-                return {
-                    k.replace("module.", ""): v
-                    for k, v in param.items()
-                    if "module." in k
-                }
-            else:
-                return param
-        if rank <= 0:
-            self.flownet.load_state_dict(
-                convert(torch.load('{}/flownet.pkl'.format(path), map_location=device)))
-            self.contextnet.load_state_dict(
-                convert(torch.load('{}/contextnet.pkl'.format(path), map_location=device)))
-            self.fusionnet.load_state_dict(
-                convert(torch.load('{}/unet.pkl'.format(path), map_location=device)))
+            return {k.replace("module.", ""): v for k, v in param.items() if "module." in k}
+        self.flownet.load_state_dict(convert(torch.load('{}/flownet.pkl'.format(path), map_location="cpu")))
+        self.contextnet.load_state_dict(convert(torch.load('{}/contextnet.pkl'.format(path), map_location="cpu")))
+        self.fusionnet.load_state_dict(convert(torch.load('{}/unet.pkl'.format(path), map_location="cpu")))
 
-    def save_model(self, path, rank):
-        if rank == 0:
-            torch.save(self.flownet.state_dict(), '{}/flownet.pkl'.format(path))
-            torch.save(self.contextnet.state_dict(), '{}/contextnet.pkl'.format(path))
-            torch.save(self.fusionnet.state_dict(), '{}/unet.pkl'.format(path))
+    def save_model(self, path):
+        torch.save(self.flownet.state_dict(), '{}/flownet.pkl'.format(path))
+        torch.save(self.contextnet.state_dict(), '{}/contextnet.pkl'.format(path))
+        torch.save(self.fusionnet.state_dict(), '{}/unet.pkl'.format(path))
 
     def predict(self, imgs, flow, training=True, flow_gt=None, UHD=False):
         img0 = imgs[:, :3]
@@ -253,6 +206,7 @@ class Model:
 
 
 if __name__ == '__main__':
+    device = tr.device("cuda" if tr.cuda.is_available() else "cpu")
     img0 = torch.zeros(3, 3, 256, 256).float().to(device)
     img1 = torch.tensor(np.random.normal(
         0, 1, (3, 3, 256, 256))).float().to(device)

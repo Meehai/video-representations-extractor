@@ -30,5 +30,5 @@ vre_collage  test_imgur/ --no_video --overwrite
 out_img=test_imgur/collage/$X.png
 test -f $out_img || ( echo "Image $out_img not found"; kill $$ )
 # xdg-open $out_img
-convert -resize 50% $out_img $out_img
+test `which convert` && convert -resize 50% $out_img $out_img
 bash imgur.sh $out_img

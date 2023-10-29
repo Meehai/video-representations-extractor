@@ -1,30 +1,28 @@
 import os
 import numpy as np
+import pims
 import torch as tr
 import flow_vis
 import gdown
 from overrides import overrides
 from pathlib import Path
 from media_processing_lib.image import image_resize
-from media_processing_lib.video import MPLVideo
-from typing import List
 
 from .utils import InputPadder
 from .raft import RAFT
 from ...representation import Representation, RepresentationOutput
 from ....logger import logger
 
-device = tr.device("cuda") if tr.cuda.is_available() else tr.device("cpu")
-
-
 class FlowRaft(Representation):
-    def __init__(
-        self, video: MPLVideo, name: str, dependencies: List[Representation], inputWidth: int, inputHeight: int
-    ):
+    def __init__(self, video: pims.Video, name: str, dependencies: list[Representation],
+                 inputWidth: int, inputHeight: int, device: str):
         self.model = None
         self.small = False
         self.mixed_precision = False
+        self.device = device
+        assert tr.cuda.is_available() or self.device == "cpu", "CUDA not available"
         super().__init__(video, name, dependencies)
+        self._setup()
         self.inputWidth = inputWidth
         self.inputHeight = inputHeight
 
@@ -33,27 +31,25 @@ class FlowRaft(Representation):
             self.video.shape[1] >= self.inputHeight and self.video.shape[2] >= self.inputWidth
         ), f"{self.video.shape} vs {self.inputHeight}x{self.inputWidth}"
 
-    @overrides
-    def setup(self):
-        weightsDir = Path(f"{os.environ['VRE_WEIGHTS_DIR']}/raft")
-        weightsDir.mkdir(exist_ok=True)
+    def _setup(self):
+        weights_dir = Path(f"{os.environ['VRE_WEIGHTS_DIR']}/raft")
+        weights_dir.mkdir(exist_ok=True, parents=True)
 
         # original files
-        raftThingsUrl = "https://drive.google.com/u/0/uc?id=1MqDajR89k-xLV0HIrmJ0k-n8ZpG6_suM"
+        raft_things_url = "https://drive.google.com/u/0/uc?id=1MqDajR89k-xLV0HIrmJ0k-n8ZpG6_suM"
 
-        raftThingsPath = weightsDir / "raft-things.pkl"
-        if not raftThingsPath.exists():
+        raft_things_path = weights_dir / "raft-things.pkl"
+        if not raft_things_path.exists():
             logger.debug("Downloading weights for RAFT")
-            gdown.download(raftThingsUrl, str(raftThingsPath))
+            gdown.download(raft_things_url, str(raft_things_path))
 
-        model = tr.nn.DataParallel(RAFT(self))
-        model.load_state_dict(tr.load(raftThingsPath, map_location=device))
-
-        model = model.module
-        model.to(device)
+        model = RAFT(self)
+        def convert(data: dict[str, tr.Tensor]) -> dict[str, tr.Tensor]:
+            return {k.replace("module.", ""): v for k, v in data.items()}
+        model.load_state_dict(convert(tr.load(raft_things_path, map_location="cpu")))
         model.eval()
 
-        self.model = model
+        self.model = model.to(self.device)
 
     @overrides
     def make(self, t: int) -> RepresentationOutput:
@@ -68,8 +64,8 @@ class FlowRaft(Representation):
         frame2 = image_resize(frame2, height=self.inputHeight, width=self.inputWidth, interpolation="bilinear")
 
         # Convert, preprocess & pad
-        frame1 = tr.from_numpy(np.transpose(frame1, (2, 0, 1))).to(device, non_blocking=True).unsqueeze(0).float()
-        frame2 = tr.from_numpy(np.transpose(frame2, (2, 0, 1))).to(device, non_blocking=True).unsqueeze(0).float()
+        frame1 = tr.from_numpy(np.transpose(frame1, (2, 0, 1))).unsqueeze(0).float().to(self.device)
+        frame2 = tr.from_numpy(np.transpose(frame2, (2, 0, 1))).unsqueeze(0).float().to(self.device)
 
         padder = InputPadder(frame1.shape)
         image1, image2 = padder.pad(frame1, frame2)

@@ -3,15 +3,17 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Dict, Tuple
 from tqdm import trange
+import pims
 from media_processing_lib.image import image_write, image_resize
-from media_processing_lib.video import MPLVideo
 from omegaconf import DictConfig, OmegaConf
 import numpy as np
+import pandas as pd
 from functools import partial
+from datetime import datetime
 
 from .representations import Representation, build_representation_from_cfg
 from .logger import logger
-from .utils import topological_sort, load_or_save_npz
+from .utils import topological_sort
 
 RepresentationsBuildDict = Dict[str, DictConfig]  # this is used to build the representations
 
@@ -19,12 +21,8 @@ RepresentationsBuildDict = Dict[str, DictConfig]  # this is used to build the re
 class VRE:
     """Video Representations Extractor class"""
 
-    def __init__(
-        self,
-        video: MPLVideo,
-        representations: Dict[str, Representation] = None,
-        representations_dict: RepresentationsBuildDict = None,
-    ):
+    def __init__(self, video: pims.Video, representations: dict[str, Representation] = None,
+                 representations_dict: RepresentationsBuildDict = None):
         """
         Parameters
         video The video we are performing VRE one
@@ -33,7 +31,7 @@ class VRE:
         # fmt: off
         assert (representations is not None) + (representations_dict is not None) == 1, \
             "Either provide a topo sorted list of representations or a config to build the representations, not both"
-        assert isinstance(video, MPLVideo), type(video)
+        assert isinstance(video, pims.Video), type(video)
         self.video = video
 
         if representations is not None:
@@ -60,14 +58,8 @@ class VRE:
             self._tsr = res
         return self._tsr
 
-    def _make_run_paths(
-        self,
-        output_dir: Path,
-        output_resolution: Tuple[int, int],
-        export_raw: bool,
-        export_npy: bool,
-        export_png: bool,
-    ) -> Tuple[Dict, Dict, Dict]:
+    def _make_run_paths(self, output_dir: Path, output_resolution: tuple[int, int],
+                        export_raw: bool, export_npy: bool, export_png: bool) -> tuple[dict, dict, dict]:
         """
         create the output dirs structure. We may have 2 types of outputs: npy and png for each, we may have
         different resolutions, so we store them under npy/HxW or png/HxW for the npy we always store the raw output
@@ -91,76 +83,21 @@ class VRE:
                 png_resz_paths[name].mkdir(exist_ok=True, parents=True)
         return npy_raw_paths, npy_resz_paths, png_resz_paths
 
-    def run(
-        self,
-        output_dir: Path,
-        start_frame: int = 0,
-        end_frame: int = None,
-        export_raw: bool = False,
-        export_npy: bool = False,
-        export_png: bool = False,
-        output_resolution: Tuple[int, int] = None,
-    ):
-        if output_resolution is None:
-            output_resolution = self.video.frame_shape
-            logger.warning(f"output resolution not set, default to video shape: {output_resolution}")
-        if end_frame is None:
-            end_frame = len(self.video)
-            logger.warning(f"end frame not set, default to the last frame of the video: {len(self.video)}")
-        assert isinstance(start_frame, int) and start_frame <= end_frame, (start_frame, end_frame)
-
-        npy_raw_paths, npy_resz_paths, png_resz_paths = self._make_run_paths(
-            output_dir, output_resolution, export_raw, export_npy, export_png
-        )
-        self._print(output_dir, start_frame, end_frame, output_resolution, export_raw, export_npy, export_png)
-
-        for t in trange(start_frame, end_frame, desc="VRE"):
-            for name, representation in self.tsr.items():
-                logger.debug2(f"t={t} representation={name}")
-                # for each representation we have 3 cases: raw npy, resized npy and resized png.
-                # the raw npy is always computed unless it was previously computed, in which case we load it from
-                #  the disk. The assumption is that it is ran with the same cfg on the same video (cli args)
-                res = load_or_save_npz(npy_raw_paths[name] / f"{t}.npz", partial(representation, t=t), export_raw)
-                assert isinstance(res, dict) and "data" in res and "extra" in res and isinstance(res["extra"], dict)
-
-                # for resized npy and resized png we only compute them if these params are provided
-                # in the same manner, if they were previosuly computed, we skip them
-                if export_npy and not (npy_resz_paths[name] / f"{t}.npz").exists():
-                    res_resized = representation.resize(res, *output_resolution, only_uint8=False)
-                    np.savez(npy_resz_paths[name] / f"{t}.npz", res_resized)
-
-                if export_png and not (png_resz_paths[name] / f"{t}.png").exists():
-                    img = representation.make_image(res)
-                    img_resized = image_resize(img, *output_resolution, only_uint8=False)
-                    image_write(img_resized, png_resz_paths[name] / f"{t}.png")
-
     def run_cfg(self, output_dir: Path, cfg: DictConfig):
-        return self.run(
-            output_dir,
-            int(cfg.get("start_frame")) if cfg.get("start_frame") is not None else 0,
-            int(cfg.get("end_frame") if cfg.get("end_frame") is not None else len(self.video)),
-            cfg.get("export_raw"),
-            cfg.get("export_npy"),
-            cfg.get("export_png"),
-            cfg.get("output_resolution"),
-        )
+        """runs VRE given a config file. This is testing the real case of using a vre config file when running"""
+        start_frame = int(cfg.get("start_frame")) if cfg.get("start_frame") is not None else 0
+        end_frame = int(cfg.get("end_frame") if cfg.get("end_frame") is not None else len(self.video))
+        return self(output_dir=output_dir, start_frame=start_frame, end_frame=end_frame,
+                    export_raw=cfg.get("export_raw"), export_npy=cfg.get("export_npy"),
+                    export_png=cfg.get("export_png"), output_resolution=cfg.get("output_resolution"))
 
-    def _print(
-        self,
-        output_dir,
-        start_frame: int,
-        end_frame: int,
-        output_resolution: Tuple[int, int],
-        export_raw: bool,
-        export_npy: bool,
-        export_png: bool,
-    ):
+    def _print(self, output_dir: Path, start_frame: int, end_frame: int, output_resolution: tuple[int, int],
+               export_raw: bool, export_npy: bool, export_png: bool):
         logger.info(
             f"""
-  - Video path: '{self.video.raw_data.path}'
+  - Video path: '{self.video.file}'
   - Output dir: '{output_dir}'
   - Representations ({len(self.representations_dict)}): {", ".join([x for x in self.representations_dict.keys()])}
-  - Video backend: {str(type(self.video.raw_data)).split(".")[-1][0:-2]}
   - Video shape: {self.video.shape}
   - Output frames ({end_frame - start_frame}): [{start_frame} : {end_frame - 1}]
   - Output resolution: {tuple(output_resolution)}
@@ -169,6 +106,62 @@ class VRE:
   - Export resized png: {export_png}
 """
         )
+
+    def __call__(self, output_dir: Path, start_frame: int | None = None, end_frame: int | None = None,
+                 export_raw: bool | None = False, export_npy: bool | None = False, export_png: bool | None = False,
+                 output_resolution: tuple[int, int] | None = None):
+        if output_resolution is None:
+            output_resolution = (self.video.frame_shape[0], self.video.frame_shape[1])
+            logger.warning(f"output resolution not set, default to video shape: {output_resolution}")
+        if end_frame is None:
+            end_frame = len(self.video)
+            logger.warning(f"end frame not set, default to the last frame of the video: {len(self.video)}")
+        if start_frame is None:
+            start_frame = 0
+            logger.warning(f"start frame not set, default to 0")
+        assert isinstance(start_frame, int) and start_frame <= end_frame, (start_frame, end_frame)
+        # run_stats will hold a dict: {repr_name: [time_taken, ...]} for all representations, for debugging/logging
+        run_stats = {repr_name: [] for repr_name in ["frame", *self.tsr.keys()]}
+
+        npy_raw_paths, npy_resz_paths, png_resz_paths = self._make_run_paths(output_dir, output_resolution,
+                                                                             export_raw, export_npy, export_png)
+        self._print(output_dir, start_frame, end_frame, output_resolution, export_raw, export_npy, export_png)
+
+        for t in (pbar := trange(start_frame, end_frame)):
+            run_stats["frame"].append(t)
+            for name, representation in self.tsr.items():
+                pbar.set_description(f"[VRE] {name}")
+                logger.debug2(f"t={t} representation={name}")
+                # for each representation we have 3 cases: raw npy, resized npy and resized png.
+                # the raw npy is always computed unless it was previously computed, in which case we load it from
+                #  the disk. The assumption is that it is ran with the same cfg on the same video (cli args)
+                raw_path, rsz_path, img_path = npy_raw_paths[name] / f"{t}.npz", npy_resz_paths[name] / f"{t}.npz", \
+                                               png_resz_paths[name] / f"{t}.png"
+
+                if raw_path.exists():
+                    raw_data = np.load(raw_path, allow_pickle=True)["arr_0"].item()
+                    run_stats[name].append(np.nan)
+                else:
+                    now = datetime.now()
+                    raw_data = representation(t)
+                    run_stats[name].append(round((datetime.now() - now).total_seconds(), 3))
+                if export_raw and not raw_path.exists():
+                    np.savez(raw_path, raw_data)
+                assert isinstance(raw_data, dict) and "data" in raw_data and "extra" in raw_data, raw_data
+                assert isinstance(raw_data["extra"], dict), raw_data
+
+                # for resized npy and resized png we only compute them if these params are provided
+                # in the same manner, if they were previosuly computed, we skip them
+                if export_npy and not rsz_path.exists():
+                    rsz_data = representation.resize(raw_data, *output_resolution, only_uint8=False)
+                    np.savez(rsz_path, rsz_data)
+
+                if export_png and not img_path.exists():
+                    img = representation.make_image(raw_data)
+                    img_resized = image_resize(img, *output_resolution, only_uint8=False)
+                    image_write(img_resized, img_path)
+
+            pd.DataFrame(run_stats).to_csv(output_dir / "run_stats.csv")
 
     def __str__(self) -> str:
         return (

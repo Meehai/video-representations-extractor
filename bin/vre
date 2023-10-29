@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 from argparse import ArgumentParser
-from media_processing_lib.video import video_read
 from typing import List
 from pathlib import Path
+import pims
 from vre import VRE
 from vre.logger import logger
 from omegaconf import OmegaConf
@@ -48,7 +48,7 @@ def get_cfg():
 
 def main():
     args, cfg = get_cfg()
-    video = video_read(args.video_path)
+    video = pims.Video(args.video_path)
 
     vre = VRE(video, representations_dict=cfg.representations)
     vre.run_cfg(args.output_path, cfg.vre)

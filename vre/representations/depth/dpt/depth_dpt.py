@@ -14,17 +14,18 @@ from .transforms import Resize, NormalizeImage, PrepareForNet
 from ...representation import Representation, RepresentationOutput
 from ....logger import logger
 
-device = tr.device("cuda") if tr.cuda.is_available() else tr.device("cpu")
-
 
 def closest_fit(size, multiples):
     return [round(size[i] / multiples[i]) * multiples[i] for i in range(len(multiples))]
 
 
 class DepthDpt(Representation):
-    def __init__(self, trainHeight, trainWidth, **kwargs):
+    def __init__(self, device: str, **kwargs):
         self.model = None
+        self.device = device
+        assert tr.cuda.is_available() or self.device == "cpu", "CUDA not available"
         super().__init__(**kwargs)
+        self._setup()
         net_w, net_h = 384, 384
         resize_mode = "minimal"
         normalization = NormalizeImage(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
@@ -43,11 +44,8 @@ class DepthDpt(Representation):
                 PrepareForNet(),
             ]
         )
-        self.trainSize = (trainHeight, trainWidth)
-        self.originalScaling = False
 
-    @overrides
-    def setup(self):
+    def _setup(self):
         # our backup
         weightsFile = Path(f"{os.environ['VRE_WEIGHTS_DIR']}/depth_dpt_midas.pth").absolute()
         urlWeights = "https://drive.google.com/u/0/uc?id=15JbN2YSkZFSaSV2CGkU1kVSxCBrNtyhD"
@@ -57,13 +55,12 @@ class DepthDpt(Representation):
             gdown.download(urlWeights, weightsFile.__str__())
 
         model = DPTDepthModel(
-            path=weightsFile,
             backbone="vitl16_384",
             non_negative=True,
         )
+        model.load_state_dict(tr.load(weightsFile, map_location="cpu"))
         model.eval()
-        model.to(device)
-        self.model = model
+        self.model = model.to(self.device)
 
     @overrides
     def make(self, t: int) -> RepresentationOutput:
@@ -71,7 +68,7 @@ class DepthDpt(Representation):
         img_input = self.transform({"image": x / 255.0})["image"]
         # compute
         with tr.no_grad():
-            sample = tr.from_numpy(img_input).to(device).unsqueeze(0)
+            sample = tr.from_numpy(img_input).unsqueeze(0).to(self.device)
             prediction = self.model.forward(sample).squeeze(dim=1)
             prediction = prediction.squeeze().cpu().numpy()
             prediction = 1 / prediction

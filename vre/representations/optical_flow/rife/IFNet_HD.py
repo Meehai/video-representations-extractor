@@ -4,9 +4,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 from model.warplayer import warp
 
-
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
 def conv_wo_act(in_planes, out_planes, kernel_size=3, stride=1, padding=1, dilation=1):
     return nn.Sequential(
         nn.Conv2d(in_planes, out_planes, kernel_size=kernel_size, stride=stride,
@@ -113,7 +110,8 @@ class IFNet(nn.Module):
         F4 = (flow0 + flow1 + flow2 + flow3)
         return F4, [F1, F2, F3, F4]
 
-if __name__ == '__main__':
+if __name__ == "__main__":
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     img0 = torch.zeros(3, 3, 256, 256).float().to(device)
     img1 = torch.tensor(np.random.normal(
         0, 1, (3, 3, 256, 256))).float().to(device)

@@ -1,25 +1,23 @@
 from __future__ import annotations
 import numpy as np
+import pims
 from pathlib import Path
 from abc import ABC, abstractmethod
-from typing import Dict, Tuple, List, Union, Any
 from functools import lru_cache
 
 from media_processing_lib.image import image_resize
-from media_processing_lib.video import MPLVideo
 
 # Either a single np.ndarray or a dict of format {"data": np.ndarray, "extra": other stuff.}
-RepresentationOutput = Union[np.ndarray, Dict[str, np.ndarray]]
+RepresentationOutput = np.ndarray | dict[str, np.ndarray]
 
 # @brief Generic video/image representation
 class Representation(ABC):
-    def __init__(self, video: MPLVideo, name: str, dependencies: List[Representation]):
+    def __init__(self, video: pims.Video, name: str, dependencies: list[Representation]):
         assert isinstance(dependencies, (set, list))
         self.name = name
         self.dependencies = dependencies
         # This attribute is checked in the main vre object to see that this parent constructor was called properly.
         self.video = video
-        self.setup()
 
     @abstractmethod
     def make(self, t: int) -> RepresentationOutput:
@@ -48,12 +46,6 @@ class Representation(ABC):
         """
         y = image_resize(x["data"], height=height, width=width, **resize_args)
         return {"data": y, "extra": x["extra"]}
-
-    # @brief Method that should automate the entire download/instantiate/resolve any issues with a representation.
-    #  Since this is called at every __call__, we should be careful to not instantiate objects for every frame.
-    @abstractmethod
-    def setup(self):
-        pass
 
     def __getitem__(self, t: int) -> RepresentationOutput:
         return self.__call__(t)

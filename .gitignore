@@ -1,7 +1,6 @@
 resources/
 weights/
 imgur.sh
-*.yaml
 *.pyc
 *.mp4
 *.pth

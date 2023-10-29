@@ -8,8 +8,6 @@ try:
 except ImportError:
     from warplayer import warp
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
 def conv_wo_act(in_planes, out_planes, kernel_size=3, stride=1, padding=1, dilation=1):
     return nn.Sequential(
         nn.Conv2d(in_planes, out_planes, kernel_size=kernel_size, stride=stride,
@@ -39,9 +37,9 @@ class IFBlock(nn.Module):
             conv(2*c, 2*c),
             conv(2*c, 2*c),
             conv(2*c, 2*c),
-        )        
+        )
         self.conv1 = nn.ConvTranspose2d(2*c, 4, 4, 2, 1)
-                    
+
     def forward(self, x):
         if self.scale != 1:
             x = F.interpolate(x, scale_factor=1. / self.scale, mode="bilinear",
@@ -86,7 +84,8 @@ class IFNet(nn.Module):
         F4 = (flow0 + flow1 + flow2 + flow3)
         return F4, [F1, F2, F3, F4]
 
-if __name__ == '__main__':
+if __name__ == "__main__":
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     img0 = torch.zeros(3, 3, 256, 256).float().to(device)
     img1 = torch.tensor(np.random.normal(
         0, 1, (3, 3, 256, 256))).float().to(device)

@@ -7,8 +7,6 @@ from matplotlib.cm import hot
 from .DispResNet import DispResNet
 from ..representation import Representation
 
-device = tr.device("cuda") if tr.cuda.is_available() else tr.device("cpu")
-
 
 def preprocessImage(img, size=None, trainSize=(256, 448), multiples=(64, 64)):
     if size is None:
@@ -20,7 +18,7 @@ def preprocessImage(img, size=None, trainSize=(256, 448), multiples=(64, 64)):
     # img = imresize(img, closest_fit(size, multiples))
     img = img.astype(np.float32)
     img = np.transpose(img, (2, 0, 1))
-    img = ((tr.from_numpy(img).unsqueeze(0) / 255 - 0.45) / 0.225).to(device)
+    img = ((tr.from_numpy(img).unsqueeze(0) / 255 - 0.45) / 0.225)
     return img
 
 
@@ -42,17 +40,10 @@ def closest_fit(size, multiples):
 
 
 class DepthDispResNet(Representation):
-    def __init__(
-        self,
-        weightsFile: str,
-        resNetLayers: int,
-        trainHeight: int,
-        trainWidth: int,
-        minDepth: int,
-        maxDepth: int,
-        **kwargs
-    ):
+    def __init__(self, weightsFile: str, resNetLayers: int, trainHeight: int, trainWidth: int,
+                 minDepth: int, maxDepth: int, **kwargs):
         super().__init__(**kwargs)
+        self._setup()
         self.model = None
         self.weightsFile = weightsFile
         self.resNetLayers = resNetLayers
@@ -76,12 +67,11 @@ class DepthDispResNet(Representation):
         y = np.uint8(y * 255)
         return y
 
-    @overrides
-    def setup(self):
+    def _setup(self):
         if not self.model is None:
             return
-        model = DispResNet(self.resNetLayers, False).to(device)
-        weights = tr.load(self.weightsFile, map_location=device)
+        model = DispResNet(self.resNetLayers, False)
+        weights = tr.load(self.weightsFile, map_location="cpu")
         model.load_state_dict(weights["state_dict"])
         model.eval()
         self.model = model

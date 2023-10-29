@@ -11,7 +11,3 @@ class RGB(Representation):
     @overrides
     def make_image(self, x: RepresentationOutput) -> np.ndarray:
         return np.uint8(x["data"] * 255)
-
-    @overrides
-    def setup(self):
-        pass

@@ -24,7 +24,3 @@ class Canny(Representation):
     @overrides
     def make_image(self, x: RepresentationOutput) -> np.ndarray:
         return np.uint8(255 * gray(x["data"])[..., 0:3])
-
-    @overrides
-    def setup(self):
-        pass

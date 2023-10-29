@@ -43,7 +43,6 @@ name of representation:
   type: some high level type (such as depth, semantic, edges, etc.)
   method: the implemented method
   dependencies: [a list of dependencies given by their names] 
-  [saveResults: resized_only] # optional parameter with possible values all, resized_only and none
   parameters: (as defined in the constructor of the implementation)
     param1: value1
     param2: value2
@@ -102,4 +101,19 @@ This yields a new directory with PNGs:
 
 ```bash
 oldPath=`pwd`; cd /path/to/output_dir/collage; ffmpeg -start_number 1 -framerate 30 -i %d.png -c:v libx264 -pix_fmt yuv420p $oldPath/collage.mp4; cd -;
+```
+
+**Run in docker**
+- use `meehai/vre:latest` from docker hub.
+
+```
+mkdir /tmp/example
+# move the cfg and the video in some local dir
+gdown https://drive.google.com/uc?id=158U-W-Gal6eXxYtS1ca1DAAxHvknqwAk -O /tmp/example/vid.mp4
+cp test/end_to_end/imgur/cfg.yaml /tmp/example
+docker run \
+  -v /tmp/example:/mnt \
+  -v `pwd`/weights:/app/resources/weights \
+  meehai/vre \
+  /mnt/vid.mp4 --cfg_path /mnt/cfg.yaml -o /mnt/result
 ```

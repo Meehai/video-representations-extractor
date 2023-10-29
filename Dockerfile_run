@@ -1,0 +1,14 @@
+# Use the latest Ubuntu base image
+FROM meehai/vre-ci:latest
+
+# Set the working directory to /app
+WORKDIR /app
+
+## === For actual dockerization of VRE ===
+
+# Copy the rest of the files to the container
+COPY vre vre
+COPY bin bin
+ENV PYTHONPATH "${PYTHONPATH}:/app/vre"
+ENV VRE_WEIGHTS_DIR /app/resources/weights
+ENTRYPOINT ["python", "bin/vre"]

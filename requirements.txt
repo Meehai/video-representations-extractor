@@ -7,14 +7,14 @@ scikit-image==0.19.3
 natsort==8.2.0
 gitpython==3.1.31
 gdown==4.7.1
-torch==1.12.1
+torch==2.1.0
 torchvision
 timm==0.6.13
 transforms3d
 opencv-python==4.7.0.68
 pyproj>=3.2.0
 overrides==7.3.1
-pandas
+pandas==1.3.5
 matplotlib
 flow_vis==0.1
 colorama==0.4.6

@@ -1,6 +1,6 @@
-from typing import Union, List
 import numpy as np
-from media_processing_lib.video import MPLVideo
+from overrides import overrides
+import pims
 
 from .cam import fov_diag_to_intrinsic
 from .utils import get_sampling_grid, get_normalized_coords, depth_to_normals
@@ -9,20 +9,9 @@ from ...representation import Representation, RepresentationOutput
 # General method for estimating normals from a depth map (+ intrinsics): a 2D window centered on each pixel is
 #  projected into 3D and then a plane is fitted on the 3D pointcloud using SVD.
 class DepthNormalsSVD(Representation):
-    def __init__(
-        self,
-        video: MPLVideo,
-        name: str,
-        dependencies: List[Representation],
-        fov: int,
-        sensorWidth: int,
-        sensorHeight: int,
-        windowSize: int,
-        inputDownsampleStep: int = None,
-        stride: int = None,
-        maxDistance: float = None,
-        minValidCount: int = None,
-    ):
+    def __init__(self, video: pims.Video, name: str, dependencies: list[Representation], fov: int,
+                 sensorWidth: int, sensorHeight: int, windowSize: int, inputDownsampleStep: int = None,
+                 stride: int = None, maxDistance: float = None, minValidCount: int = None):
         assert len(dependencies) == 1, "Expected one depth method!"
         assert windowSize % 2 == 1, "Expected odd window size!"
         self.depth = None
@@ -38,7 +27,9 @@ class DepthNormalsSVD(Representation):
         self.max_dist = maxDistance if maxDistance is not None else -1
         self.min_valid = minValidCount if minValidCount is not None else 0
         super().__init__(video, name, dependencies)
+        self._setup()
 
+    @overrides
     def make(self, t: int) -> RepresentationOutput:
         depth = self.depth[t]["data"]
         if self.inputDownsampleStep is not None:
@@ -47,10 +38,11 @@ class DepthNormalsSVD(Representation):
         normals = (normals.astype(np.float32) + 1) / 2
         return normals
 
+    @overrides
     def make_image(self, x: RepresentationOutput) -> np.ndarray:
         return (x["data"] * 255).astype(np.uint8)
 
-    def setup(self):
+    def _setup(self):
         if not self.sampling_grid is None:
             return
         self.depth = self.dependencies[0]
