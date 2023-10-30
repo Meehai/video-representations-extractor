@@ -14,7 +14,8 @@ class Canny(Representation):
         self.L2gradient = L2gradient
 
     @overrides
-    def make(self, t: int) -> np.ndarray:
+    def make(self, t: slice) -> np.ndarray:
+        raise NotImplementedError
         frame = self.video[t]
         res = frame * 0
         res = cv2.Canny(frame, self.threshold1, self.threshold2, res, self.apertureSize, self.L2gradient)

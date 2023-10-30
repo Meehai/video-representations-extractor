@@ -35,7 +35,8 @@ class DepthOdoFlow(Representation):
         self.flow = self.dependencies[0]
 
     @overrides
-    def make(self, t: int) -> np.ndarray:
+    def make(self, t: slice) -> np.ndarray:
+        raise NotImplementedError
         # [0:1] -> [-1:1]
         if t + 1 < len(self.video):
             data = self.flow[t]["data"]
@@ -88,6 +89,7 @@ class DepthOdoFlow(Representation):
 
     @overrides
     def make_image(self, x: np.ndarray) -> np.ndarray:
+        raise NotImplementedError
         Where = np.where(x["data"] == 1)
         y = x["data"]
         assert y.min() >= 0 and y.max() <= 1

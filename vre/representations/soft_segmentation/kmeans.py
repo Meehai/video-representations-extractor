@@ -31,7 +31,8 @@ class KMeans(Representation):
         self.attempts = attempts
 
     @overrides
-    def make(self, t: int) -> np.ndarray:
+    def make(self, t: slice) -> np.ndarray:
+        raise NotImplementedError
         frame = self.video[t]
         Z = np.float32(frame).reshape(-1, 3)
         criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, self.maxIterations, self.epsilon)
@@ -44,6 +45,7 @@ class KMeans(Representation):
 
     @overrides
     def make_image(self, x: np.ndarray) -> np.ndarray:
+        raise NotImplementedError
         res = np.zeros((self.video.frame_shape[0], self.video.frame_shape[1], 3), dtype=np.uint8)
         centers = x["extra"]["centers"]
         x = np.argmax(x["data"], axis=-1)

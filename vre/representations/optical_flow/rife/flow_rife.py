@@ -59,7 +59,8 @@ class FlowRife(Representation):
             model.eval()
             self.model = model.to(self.device)
 
-    def make(self, t: int) -> np.ndarray:
+    def make(self, t: slice) -> np.ndarray:
+        raise NotImplementedError
         t_target = t + 1 if t < len(self.video) - 1 else t
         return self.get(t, t_target)
 

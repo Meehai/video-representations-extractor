@@ -1,3 +1,4 @@
+"""Depth dispresnet representation."""
 import numpy as np
 import torch as tr
 from overrides import overrides
@@ -8,12 +9,12 @@ from .DispResNet import DispResNet
 from ...representation import Representation
 
 
-def preprocessImage(img, size=None, trainSize=(256, 448), multiples=(64, 64)):
+def _preprocess(img: np.ndarray, size=None, trainSize=(256, 448), multiples=(64, 64)) -> tr.Tensor:
     if size is None:
         size = trainSize
     else:
         size = img.shape[:2]
-    size = closest_fit(size, multiples)
+    size = _closest_fit(size, multiples)
     img = cv2.resize(img, (size[1], size[0]), interpolation=cv2.INTER_LINEAR)
     img = img.astype(np.float32)
     img = np.transpose(img, (2, 0, 1))
@@ -21,7 +22,7 @@ def preprocessImage(img, size=None, trainSize=(256, 448), multiples=(64, 64)):
     return img
 
 
-def postprocessImage(y, size=None, scale=(0, 2)):
+def _postprocess(y: tr.Tensor, size=None, scale=(0, 2)) -> np.ndarray:
     if size is None:
         size = y.shape[2:4]
     y = y.cpu().numpy()[0, 0]
@@ -34,7 +35,7 @@ def postprocessImage(y, size=None, scale=(0, 2)):
     return dph
 
 
-def closest_fit(size, multiples):
+def _closest_fit(size, multiples):
     return [round(size[i] / multiples[i]) * multiples[i] for i in range(len(multiples))]
 
 
@@ -51,12 +52,13 @@ class DepthDispResNet(Representation):
         self.scale = (minDepth, maxDepth)
 
     @overrides
-    def make(self, t: int) -> np.ndarray:
+    def make(self, t: slice) -> np.ndarray:
+        raise NotImplementedError
         x = self.video[t]
-        x_ = preprocessImage(x, trainSize=self.trainSize, multiples=self.multiples)
+        x_ = _preprocess(x, trainSize=self.trainSize, multiples=self.multiples)
         with tr.no_grad():
             y = self.model(x_)
-        y = postprocessImage(y, size=x.shape[:2], scale=self.scale)
+        y = _postprocess(y, size=x.shape[:2], scale=self.scale)
         return y
 
     @overrides

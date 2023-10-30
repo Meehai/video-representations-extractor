@@ -1,3 +1,4 @@
+"""HSV module"""
 import numpy as np
 from overrides import overrides
 from skimage.color import rgb2hsv
@@ -5,8 +6,10 @@ from ..representation import Representation
 
 
 class HSV(Representation):
+    """HSV representation"""
     @overrides
-    def make(self, t: int) -> np.ndarray:
+    def make(self, t: slice) -> np.ndarray:
+        raise NotImplementedError
         return np.float32(rgb2hsv(self.video[t]))
 
     @overrides

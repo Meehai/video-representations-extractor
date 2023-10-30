@@ -51,7 +51,8 @@ class FlowRaft(Representation):
         self.model = model.to(self.device)
 
     @overrides
-    def make(self, t: int) -> np.ndarray:
+    def make(self, t: slice) -> np.ndarray:
+        raise NotImplementedError
         t_target = t + 1 if t < len(self.video) - 1 else t
         return self.get(t, t_target)
 
@@ -85,6 +86,7 @@ class FlowRaft(Representation):
 
     @overrides
     def make_image(self, x: np.ndarray) -> np.ndarray:
+        raise NotImplementedError
         # [0 : 1] => [-1 : 1]
         x = x["data"] * 2 - 1
         y = flow_vis.flow_to_color(x)

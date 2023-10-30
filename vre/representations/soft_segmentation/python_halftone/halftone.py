@@ -55,7 +55,8 @@ class Halftone(Representation):
         self.check_arguments()
 
     @overrides
-    def make(self, t: int) -> np.ndarray:
+    def make(self, t: slice) -> np.ndarray:
+        raise NotImplementedError
         frame = self.video[t]
         frame = cv2.resize(frame, (self.resolution[1], self.resolution[0]), interpolation=cv2.INTER_LINEAR)
 
@@ -69,6 +70,7 @@ class Halftone(Representation):
 
     @overrides
     def make_image(self, x: np.ndarray) -> np.ndarray:
+        raise NotImplementedError
         return np.uint8(x["data"] * 255)
 
     def check_arguments(self):

@@ -30,7 +30,8 @@ class DepthNormalsSVD(Representation):
         self._setup()
 
     @overrides
-    def make(self, t: int) -> np.ndarray:
+    def make(self, t: slice) -> np.ndarray:
+        raise NotImplementedError
         depth = self.depth[t]["data"]
         if self.inputDownsampleStep is not None:
             depth = depth[:: self.inputDownsampleStep, :: self.inputDownsampleStep]
@@ -40,6 +41,7 @@ class DepthNormalsSVD(Representation):
 
     @overrides
     def make_image(self, x: np.ndarray) -> np.ndarray:
+        raise NotImplementedError
         return (x["data"] * 255).astype(np.uint8)
 
     def _setup(self):

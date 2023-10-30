@@ -60,7 +60,8 @@ class DepthDpt(Representation):
         self.model = model.to(self.device)
 
     @overrides
-    def make(self, t: int) -> np.ndarray:
+    def make(self, t: slice) -> np.ndarray:
+        raise NotImplementedError
         x = self.video[t]
         img_input = self.transform({"image": x / 255.0})["image"]
         # compute
