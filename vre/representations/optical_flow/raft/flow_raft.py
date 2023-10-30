@@ -9,7 +9,7 @@ from pathlib import Path
 
 from .utils import InputPadder
 from .raft import RAFT
-from ....representation import Representation
+from ....representation import Representation, RepresentationOutput
 from ....logger import logger
 
 class FlowRaft(Representation):
@@ -51,7 +51,7 @@ class FlowRaft(Representation):
         self.model = model.to(self.device)
 
     @overrides
-    def make(self, t: slice) -> np.ndarray:
+    def make(self, t: slice) -> RepresentationOutput:
         raise NotImplementedError
         t_target = t + 1 if t < len(self.video) - 1 else t
         return self.get(t, t_target)
@@ -85,7 +85,7 @@ class FlowRaft(Representation):
         return flow
 
     @overrides
-    def make_image(self, x: np.ndarray) -> np.ndarray:
+    def make_images(self, x: np.ndarray, extra: dict | None) -> np.ndarray:
         raise NotImplementedError
         # [0 : 1] => [-1 : 1]
         x = x["data"] * 2 - 1

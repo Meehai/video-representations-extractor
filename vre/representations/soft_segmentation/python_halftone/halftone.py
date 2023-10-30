@@ -8,7 +8,7 @@ from PIL import Image, ImageDraw, ImageStat
 from overrides import overrides
 from typing import List, Tuple
 
-from ....representation import Representation
+from ....representation import Representation, RepresentationOutput
 
 """
 Class: Halftone( path )
@@ -55,7 +55,7 @@ class Halftone(Representation):
         self.check_arguments()
 
     @overrides
-    def make(self, t: slice) -> np.ndarray:
+    def make(self, t: slice) -> RepresentationOutput:
         raise NotImplementedError
         frame = self.video[t]
         frame = cv2.resize(frame, (self.resolution[1], self.resolution[0]), interpolation=cv2.INTER_LINEAR)
@@ -69,7 +69,7 @@ class Halftone(Representation):
         return new
 
     @overrides
-    def make_image(self, x: np.ndarray) -> np.ndarray:
+    def make_images(self, x: np.ndarray, extra: dict | None) -> np.ndarray:
         raise NotImplementedError
         return np.uint8(x["data"] * 255)
 

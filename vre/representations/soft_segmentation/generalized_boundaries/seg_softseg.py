@@ -2,7 +2,7 @@ from overrides import overrides
 import torch as tr
 import numpy as np
 from .softseg import soft_seg
-from ....representation import Representation
+from ....representation import Representation, RepresentationOutput
 
 
 class GeneralizedBoundaries(Representation):
@@ -18,13 +18,13 @@ class GeneralizedBoundaries(Representation):
         self.adjustToRGB = adjustToRGB
         self.maxChannels = maxChannels
 
-    def make(self, t: slice) -> np.ndarray:
+    def make(self, t: slice) -> RepresentationOutput:
         x = tr.from_numpy(np.array(self.video[t])).type(tr.float) / 255
         x = x.permute(0, 3, 1, 2)
         y = soft_seg(x, use_filtering=self.useFiltering, as_image=self.adjustToRGB, max_channels=self.maxChannels)
         y = y.permute(0, 2, 3, 1).cpu().numpy()
         return y
 
-    def make_image(self, x: np.ndarray) -> np.ndarray:
+    def make_images(self, x: np.ndarray, extra: dict | None) -> np.ndarray:
         y = np.uint8(x * 255)
         return y

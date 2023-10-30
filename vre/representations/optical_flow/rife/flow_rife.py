@@ -9,11 +9,11 @@ import gdown
 
 try:
     from .RIFE_HDv2 import Model
-    from ....representation import Representation
+    from ....representation import Representation, RepresentationOutput
     from ....logger import logger
 except ImportError:
     from RIFE_HDv2 import Model
-    from vre.representation import Representation
+    from vre.representation import Representation, RepresentationOutput
     from vre.logger import logger
 
 class FlowRife(Representation):
@@ -59,7 +59,7 @@ class FlowRife(Representation):
             model.eval()
             self.model = model.to(self.device)
 
-    def make(self, t: slice) -> np.ndarray:
+    def make(self, t: slice) -> RepresentationOutput:
         raise NotImplementedError
         t_target = t + 1 if t < len(self.video) - 1 else t
         return self.get(t, t_target)
@@ -93,7 +93,7 @@ class FlowRife(Representation):
         flow = (flow + 1) / 2
         return flow
 
-    def make_image(self, x: np.ndarray) -> np.ndarray:
+    def make_images(self, x: np.ndarray, extra: dict | None) -> np.ndarray:
         # [0 : 1] => [-1 : 1]
         x = x["data"] * 2 - 1
         y = flow_vis.flow_to_color(x)

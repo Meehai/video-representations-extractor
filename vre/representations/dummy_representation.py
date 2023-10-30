@@ -4,7 +4,7 @@ import numpy as np
 from overrides import overrides
 from typing import Callable
 
-from ..representation import Representation
+from ..representation import Representation, RepresentationOutput
 
 class DummyRepresentation(Representation):
     """
@@ -18,9 +18,9 @@ class DummyRepresentation(Representation):
         self.make_image_fn = make_image_fn
 
     @overrides
-    def make(self, t: slice) -> np.ndarray:
+    def make(self, t: slice) -> RepresentationOutput:
         assert False, f"Dummy representation ({self.name}) has no precomputted npz files!"
 
     @overrides
-    def make_image(self, x: np.ndarray) -> np.ndarray:
+    def make_images(self, x: np.ndarray, extra: dict | None) -> np.ndarray:
         return self.make_image_fn(x)

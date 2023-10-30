@@ -8,7 +8,7 @@ from typing import List
 from overrides import overrides
 
 from .model_dexined import DexiNed as Model
-from ....representation import Representation
+from ....representation import Representation, RepresentationOutput
 from ....logger import logger
 
 def _preprocess(images: np.ndarray) -> np.ndarray:
@@ -58,7 +58,7 @@ class DexiNed(Representation):
         self.model = model.to(self.device)
 
     @overrides
-    def make(self, t: slice) -> np.ndarray:
+    def make(self, t: slice) -> RepresentationOutput:
         frames = np.array(self.video[t])
         A = _preprocess(frames)
         trA = tr.from_numpy(A).float().to(self.device)
@@ -68,6 +68,6 @@ class DexiNed(Representation):
         return C
 
     @overrides
-    def make_image(self, x: np.ndarray) -> np.ndarray:
+    def make_images(self, x: np.ndarray, extra: dict | None) -> np.ndarray:
         x = np.repeat(np.expand_dims(x, axis=-1), 3, axis=-1)
         return np.uint8(x * 255)

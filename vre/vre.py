@@ -10,7 +10,7 @@ import pims
 import numpy as np
 import pandas as pd
 
-from .representation import Representation
+from .representation import Representation, RepresentationOutput
 from .logger import logger
 
 RunPaths = tuple[dict[str, list[Path]], dict[str, list[Path]], dict[str, list[Path]]]
@@ -116,7 +116,7 @@ class VRE:
                 pbar.set_description(f"[VRE] {name}")
                 now = datetime.now()
                 # TODO: if all paths exist, skip and read from disk
-                raw_data = representation[batch_t]
+                raw_data, extra = representation[batch_t]
                 took = round((datetime.now() - now).total_seconds(), 3)
                 run_stats[name].extend([took / (r - l)] * (r - l))
 
@@ -124,9 +124,11 @@ class VRE:
                     for i, t in enumerate(range(l, r)):
                         if not npy_raw_paths[name][t].exists():
                             np.savez(npy_raw_paths[name][t], raw_data[i])
+                            if len(extra) > 0:
+                                np.savez(npy_raw_paths[name][t].parent / f"{t}_extra.npz", extra[i])
 
                 if export_png:
-                    imgs = representation.make_image(raw_data)
+                    imgs = representation.make_images(raw_data, extra)
                     for i, t in enumerate(range(l, r)):
                         img_resized = cv2.resize(imgs[i], output_resolution[::-1], interpolation=cv2.INTER_LINEAR)
                         cv2.imwrite(str(png_resz_paths[name][t]), img_resized[..., ::-1])

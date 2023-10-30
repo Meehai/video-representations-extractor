@@ -6,7 +6,7 @@ from matplotlib.cm import hot
 import cv2
 
 from .DispResNet import DispResNet
-from ...representation import Representation
+from ...representation import Representation, RepresentationOutput
 
 
 def _preprocess(img: np.ndarray, size=None, trainSize=(256, 448), multiples=(64, 64)) -> tr.Tensor:
@@ -52,7 +52,7 @@ class DepthDispResNet(Representation):
         self.scale = (minDepth, maxDepth)
 
     @overrides
-    def make(self, t: slice) -> np.ndarray:
+    def make(self, t: slice) -> RepresentationOutput:
         raise NotImplementedError
         x = self.video[t]
         x_ = _preprocess(x, trainSize=self.trainSize, multiples=self.multiples)
@@ -62,7 +62,7 @@ class DepthDispResNet(Representation):
         return y
 
     @overrides
-    def make_image(self, x: np.ndarray) -> np.ndarray:
+    def make_images(self, x: np.ndarray, extra: dict | None) -> np.ndarray:
         y = x["data"] / x["data"].max()
         y = hot(y)[..., 0:3]
         y = np.uint8(y * 255)

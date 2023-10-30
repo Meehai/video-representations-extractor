@@ -46,9 +46,9 @@ representations:
     method: kmeans
     dependencies: []
     parameters:
-      nClusters: 6
+      n_clusters: 6
       epsilon: 2
-      maxIterations: 10
+      max_iterations: 10
       attempts: 3
 
   softseg gb:

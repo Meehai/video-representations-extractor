@@ -7,7 +7,7 @@ from pathlib import Path
 from torch import nn
 
 from .Map2Map import EncoderMap2Map, DecoderMap2Map
-from ....representation import Representation
+from ....representation import Representation, RepresentationOutput
 
 
 class MyModel(nn.Module):
@@ -39,7 +39,7 @@ class SSegSafeUAV(Representation):
         self._setup()
 
     @overrides
-    def make(self, t: slice) -> np.ndarray:
+    def make(self, t: slice) -> RepresentationOutput:
         raise NotImplementedError
         frame = np.array(self.video[t])
         img = cv2.resize(frame, (self.trainWidth, self.trainHeight), interpolation=cv2.INTER_LINEAR)
@@ -52,7 +52,7 @@ class SSegSafeUAV(Representation):
         return res
 
     @overrides
-    def make_image(self, x: np.ndarray) -> np.ndarray:
+    def make_images(self, x: np.ndarray, extra: dict | None) -> np.ndarray:
         raise NotImplementedError
         newImage = np.zeros((*x["data"].shape, 3), dtype=np.uint8)
         for i in range(self.numClasses):

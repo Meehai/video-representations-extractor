@@ -5,7 +5,7 @@ from overrides import overrides
 
 from .camera_info import CameraInfo, CameraSensorParams
 from .depth_from_flow import depth_from_flow, filter_depth_from_flow
-from ....representation import Representation
+from ....representation import Representation, RepresentationOutput
 
 
 class DepthOdoFlow(Representation):
@@ -35,7 +35,7 @@ class DepthOdoFlow(Representation):
         self.flow = self.dependencies[0]
 
     @overrides
-    def make(self, t: slice) -> np.ndarray:
+    def make(self, t: slice) -> RepresentationOutput:
         raise NotImplementedError
         # [0:1] -> [-1:1]
         if t + 1 < len(self.video):
@@ -88,7 +88,7 @@ class DepthOdoFlow(Representation):
         # }
 
     @overrides
-    def make_image(self, x: np.ndarray) -> np.ndarray:
+    def make_images(self, x: np.ndarray, extra: dict | None) -> np.ndarray:
         raise NotImplementedError
         Where = np.where(x["data"] == 1)
         y = x["data"]

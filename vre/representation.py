@@ -7,6 +7,8 @@ from pathlib import Path
 from abc import ABC, abstractmethod
 from functools import lru_cache
 
+RepresentationOutput = np.ndarray | tuple[np.ndarray, dict]
+
 class Representation(ABC):
     """Generic Representation class for VRE"""
     def __init__(self, video: pims.Video, name: str, dependencies: list[Representation]):
@@ -17,7 +19,7 @@ class Representation(ABC):
         self.video = video
 
     @abstractmethod
-    def make(self, t: slice) -> np.ndarray:
+    def make(self, t: slice) -> RepresentationOutput:
         """
         Main method of this representation. Calls the internal representation's logic to transform the current provided
         RGB frame of the attached video into the output representation.
@@ -25,20 +27,15 @@ class Representation(ABC):
         Some representations may not be natively represented like that (i.e. optical flow being [-1:1]). The end-user
         must take care of this cases.
 
-        The returned value is either a simple numpy array of the same shape as the video or a dict with two entries:
-        {"data": np_data, "extra": {relevant info about this frame}}. The data is converted behind the scenes in the
-        second representation if only a numpy array is provided with an empty 'extra' dict.
+        The returned value is either a simple numpy array of the same shape as the video plus an optional tuple with
+        extra stuff. This extra stuff is whatever that representation may want to store about the frames it was given.
 
         This is also invoked for repr[t] and repr(t).
         """
 
     @abstractmethod
-    def make_image(self, x: np.ndarray) -> np.ndarray:
+    def make_images(self, x: np.ndarray, extra: dict | None) -> np.ndarray:
         """Given the output of self.make(t), which a [0:1] float32 numpy array, return a [0:255] uint8 image"""
-
-    def make_extra(self, x: np.ndarray) -> dict:
-        """Given the output of self.make(t), which a [0:1] float32 numpy array, return a dict with extra info"""
-        return {}
 
     def resize(self, x: np.ndarray, height: int, width: int) -> np.ndarray:
         """
@@ -52,15 +49,19 @@ class Representation(ABC):
         return self.__call__(t)
 
     # @lru_cache(maxsize=1000)
-    def __call__(self, t: slice | int) -> np.ndarray:
+    def __call__(self, t: slice | int) -> RepresentationOutput:
         if isinstance(t, int):
             t = slice(t, t + 1)
         assert t.start >= 0 and t.stop < len(self.video), t
         # Get the raw result of this representation
-        raw_data = self.make(t)
-        assert raw_data.dtype == np.float32
-        assert raw_data.min() >= 0 and raw_data.max() <= 1, f"{self.name}: [{raw_data.min():.2f}:{raw_data.max():.2f}]"
-        return raw_data
+        res = self.make(t)
+        raw_data, extra = res if isinstance(res, tuple) else (res, {})
+        # uint8 for semantic segmentation, float32 for everything else
+        assert raw_data.dtype in (np.float32, np.uint8), raw_data.dtype
+        if raw_data.dtype == np.float32:
+            assert raw_data.min() >= 0 and raw_data.max() <= 1, (f"{self.name}: [{raw_data.min():.2f}:"
+                                                                 f"{raw_data.max():.2f}]")
+        return raw_data, extra
 
     # TODO: see if this is needed for more special/faster resizes
     # def resizeRawData(self, rawData: np.ndarray) -> np.ndarray:
