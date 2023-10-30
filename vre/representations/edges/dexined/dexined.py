@@ -11,24 +11,6 @@ from .model_dexined import DexiNed as Model
 from ....representation import Representation
 from ....logger import logger
 
-def image_normalization(img, img_min=0, img_max=255, epsilon=1e-12):
-    """This is a typical image normalization function
-    where the minimum and maximum of the image is needed
-    source: https://en.wikipedia.org/wiki/Normalization_(image_processing)
-
-    :param img: an image could be gray scale or color
-    :param img_min:  for default is 0
-    :param img_max: for default is 255
-
-    :return: a normalized image, if max is 255 the dtype is uint8
-    """
-
-    img = np.float32(img)
-    # whenever an inconsistent image
-    img = (img - np.min(img)) * (img_max - img_min) / ((np.max(img) - np.min(img)) + epsilon) + img_min
-    return img
-
-
 def _preprocess(images: np.ndarray) -> np.ndarray:
     assert len(images.shape) == 4, images.shape
     logger.debug2(f"Original shape: {images.shape}")
@@ -41,18 +23,15 @@ def _preprocess(images: np.ndarray) -> np.ndarray:
 
 
 def _postprocess(y: list[tr.Tensor]) -> np.ndarray:
-    breakpoint()
+    # y :: (B, T, H, W)
+    y = tr.cat(y, dim=1)
     assert len(y.shape) == 4, y.shape
-    preds = []
-    breakpoint()
-    for i in range(len(y)):
-        tmp_img = tr.sigmoid(y[i]).cpu().detach().numpy().squeeze()
-        tmp_img = np.uint8(image_normalization(tmp_img, img_min=0, img_max=255))
-        tmp_img = cv2.bitwise_not(tmp_img)
-        preds.append(tmp_img)
-    average = np.array(preds, dtype=np.float32) / 255
-    average = np.mean(average, axis=0)
-    return average
+    y_s = y.sigmoid()
+    A = y_s.min(dim=-1, keepdims=True)[0].min(dim=-2, keepdims=True)[0]
+    B = y_s.max(dim=-1, keepdims=True)[0].max(dim=-2, keepdims=True)[0]
+    y_s_normed = 1 - (y_s - A) * (B - A)
+    y_s_final = y_s_normed.mean(dim=1).cpu().numpy()
+    return y_s_final
 
 
 class DexiNed(Representation):
@@ -74,11 +53,12 @@ class DexiNed(Representation):
 
         model = Model()
         model.load_state_dict(tr.load(weights_file, map_location="cpu"))
+        model.eval()
         logger.debug2(f"Loaded weights from '{weights_file}'")
         self.model = model.to(self.device)
 
     @overrides
-    def make(self, t: int) -> np.ndarray:
+    def make(self, t: slice) -> np.ndarray:
         frames = np.array(self.video[t])
         A = _preprocess(frames)
         trA = tr.from_numpy(A).float().to(self.device)
@@ -89,5 +69,5 @@ class DexiNed(Representation):
 
     @overrides
     def make_image(self, x: np.ndarray) -> np.ndarray:
-        x = np.repeat(np.expand_dims(x["data"], axis=-1), 3, axis=-1)
+        x = np.repeat(np.expand_dims(x, axis=-1), 3, axis=-1)
         return np.uint8(x * 255)

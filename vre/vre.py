@@ -27,12 +27,7 @@ class VRE:
         assert len(representations) > 0
         assert isinstance(video, pims.Video), type(video)
         self.video = video
-        self._tsr = representations
-
-    @property
-    def tsr(self) -> dict[str, Representation]:
-        """Call the representations module to build each of them, one by one, after topo sorting for dependencies"""
-        return self._tsr
+        self.representations = representations
 
     def _make_run_paths(self, output_dir: Path, output_resolution: tuple[int, int],
                         export_raw: bool, export_npy: bool, export_png: bool) -> RunPaths:
@@ -45,7 +40,7 @@ class VRE:
         out_resolution_str = f"{output_resolution[0]}x{output_resolution[1]}"
 
         npy_raw_paths, npy_resz_paths, png_resz_paths = {}, {}, {}
-        for name in self.tsr.keys():
+        for name in self.representations.keys():
             (output_dir / name).mkdir(exist_ok=True, parents=True)
             npy_raw_base_dir = output_dir / name / "npy/raw"
             npy_resz_base_dir = output_dir / name / f"npy/{out_resolution_str}"
@@ -77,7 +72,7 @@ class VRE:
             f"""
   - Video path: '{self.video.file}'
   - Output dir: '{output_dir}'
-  - Representations ({len(self.tsr)}): {", ".join([x for x in self.tsr.keys()])}
+  - Representations ({len(self.representations)}): {", ".join([x for x in self.representations.keys()])}
   - Video shape: {self.video.shape}
   - Output frames ({end_frame - start_frame}): [{start_frame} : {end_frame - 1}]
   - Output resolution: {tuple(output_resolution)}
@@ -103,7 +98,7 @@ class VRE:
             logger.warning(f"start frame not set, default to 0")
         assert isinstance(start_frame, int) and start_frame <= end_frame, (start_frame, end_frame)
         # run_stats will hold a dict: {repr_name: [time_taken, ...]} for all representations, for debugging/logging
-        run_stats = {repr_name: [] for repr_name in ["frame", *self.tsr.keys()]}
+        run_stats = {repr_name: [] for repr_name in ["frame", *self.representations.keys()]}
 
         npy_raw_paths, npy_resz_paths, png_resz_paths = self._make_run_paths(output_dir, output_resolution,
                                                                              export_raw, export_npy, export_png)
@@ -112,12 +107,12 @@ class VRE:
         batches = np.arange(start_frame, min(end_frame + batch_size, len(self.video)), batch_size)
         left, right = batches[0:-1], batches[1: ]
 
-        for l, r in (pbar := tqdm(zip(left, right), total=start_frame - end_frame)):
+        pbar = tqdm(total=end_frame - start_frame)
+        for l, r in zip(left, right):
             batch_t = slice(l, r)
             run_stats["frame"].extend(range(batch_t.start, batch_t.stop))
-            pbar.set_description(f"[VRE] t=[{l}:{r}]")
             pbar.update(r - l)
-            for name, representation in self.tsr.items():
+            for name, representation in self.representations.items():
                 pbar.set_description(f"[VRE] {name}")
                 now = datetime.now()
                 # TODO: if all paths exist, skip and read from disk
@@ -141,6 +136,7 @@ class VRE:
                     for i, t in enumerate(range(l, r)):
                         if not npy_resz_paths[name][t].exists():
                             np.savez(npy_resz_paths[name][t], rsz_data[i])
+        pbar.close()
 
         run_stats = pd.DataFrame(run_stats)
         run_stats.to_csv(output_dir / "run_stats.csv")
@@ -148,7 +144,7 @@ class VRE:
 
     def __str__(self) -> str:
         return (
-            f"VRE ({len(self.tsr)} representations). "
+            f"VRE ({len(self.representations)} representations). "
             f"Video: '{self.video.raw_data.path}' (shape: {self.video.shape})"
         )
 

@@ -5,7 +5,7 @@ from ..representation import Representation
 
 class RGB(Representation):
     @overrides
-    def make(self, t: int) -> np.ndarray:
+    def make(self, t: slice) -> np.ndarray:
         return np.float32(self.video[t]) / 255
 
     @overrides

@@ -17,7 +17,7 @@ class Representation(ABC):
         self.video = video
 
     @abstractmethod
-    def make(self, t: int) -> np.ndarray:
+    def make(self, t: slice) -> np.ndarray:
         """
         Main method of this representation. Calls the internal representation's logic to transform the current provided
         RGB frame of the attached video into the output representation.
@@ -48,11 +48,13 @@ class Representation(ABC):
         y = cv2.resize(x, (width, height), interpolation=cv2.INTER_LINEAR)
         return y
 
-    def __getitem__(self, t: slice) -> np.ndarray:
+    def __getitem__(self, t: slice | int) -> np.ndarray:
         return self.__call__(t)
 
     # @lru_cache(maxsize=1000)
-    def __call__(self, t: slice) -> np.ndarray:
+    def __call__(self, t: slice | int) -> np.ndarray:
+        if isinstance(t, int):
+            t = slice(t, t + 1)
         assert t.start >= 0 and t.stop < len(self.video), t
         # Get the raw result of this representation
         raw_data = self.make(t)
