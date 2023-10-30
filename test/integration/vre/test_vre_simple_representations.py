@@ -11,11 +11,11 @@ def setup():
     video_path = get_project_root() / "resources/testVideo.mp4"
     if not video_path.exists():
         gdown.download("https://drive.google.com/uc?id=158U-W-Gal6eXxYtS1ca1DAAxHvknqwAk", str(video_path))
+    return str(video_path)
 
-
-def test_vre_1():
-    setup()
-    video = pims.Video("testVideo.mp4")
+def test_vre_simple_representations():
+    video_path = setup()
+    video = pims.Video(video_path)
     representations_dict = {"rgb": {"type": "default", "method": "rgb", "dependencies": [], "parameters": {}}}
     representations = build_representations_from_cfg(video, representations_dict)
     vre = VRE(video, representations)

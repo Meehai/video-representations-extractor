@@ -49,10 +49,10 @@ class Representation(ABC):
     def __getitem__(self, t: int) -> RepresentationOutput:
         return self.__call__(t)
 
-    @lru_cache(maxsize=1000)
-    def __call__(self, t: int) -> RepresentationOutput:
+    # @lru_cache(maxsize=1000)
+    def __call__(self, t: slice) -> RepresentationOutput:
         # t = t % len(self.video) # TODO: needed?
-        assert t >= 0 and t < len(self.video)
+        assert t.start >= 0 and t.stop < len(self.video), t
         # Get the raw result of this representation
         raw_result = self.make(t)
         raw_result = {"data": raw_result, "extra": {}} if isinstance(raw_result, np.ndarray) else raw_result
