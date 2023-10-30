@@ -112,10 +112,11 @@ class VRE:
         batches = np.arange(start_frame, min(end_frame + batch_size, len(self.video)), batch_size)
         left, right = batches[0:-1], batches[1: ]
 
-        for l, r in (pbar := tqdm(zip(left, right))):
+        for l, r in (pbar := tqdm(zip(left, right), total=start_frame - end_frame)):
             batch_t = slice(l, r)
             run_stats["frame"].extend(range(batch_t.start, batch_t.stop))
             pbar.set_description(f"[VRE] t=[{l}:{r}]")
+            pbar.update(r - l)
             for name, representation in self.tsr.items():
                 pbar.set_description(f"[VRE] {name}")
                 now = datetime.now()
@@ -129,45 +130,17 @@ class VRE:
                         if not npy_raw_paths[name][t].exists():
                             np.savez(npy_raw_paths[name][t], raw_data[i])
 
-                # if export_npy:
-                #     rsz_data = representation.resize(raw_data, *output_resolution, only_uint8=False)
-                #     for t in range(l, r):
-                #         if not npy_resz_paths[name][t].exists():
-                #             rsz_data = representation.resize(raw_data[t], *output_resolution, only_uint8=False)
-                #             np.savez(npy_resz_paths[name][t], rsz_data)
+                if export_png:
+                    imgs = representation.make_image(raw_data)
+                    for i, t in enumerate(range(l, r)):
+                        img_resized = cv2.resize(imgs[i], output_resolution[::-1], interpolation=cv2.INTER_LINEAR)
+                        cv2.imwrite(str(png_resz_paths[name][t]), img_resized[..., ::-1])
 
-                # for each representation we have 3 cases: raw npy, resized npy and resized png.
-                # the raw npy is always computed unless it was previously computed, in which case we load it from
-                #  the disk. The assumption is that it is ran with the same cfg on the same video (cli args)
-                # raw_path, rsz_path, img_path = (npy_raw_paths[name] / f"{t}.npz", npy_resz_paths[name] / f"{t}.npz",
-                #                                 png_resz_paths[name] / f"{t}.png")
-
-                # if raw_path.exists():
-                #     raw_data = np.load(raw_path, allow_pickle=True)["arr_0"].item()
-                #     run_stats[name].append(np.nan)
-                # else:
-                #     now = datetime.now()
-                #     if not isinstance(representation, Representation) and isinstance(representation, Callable):
-                #         logger.info(f"Instantiating representation '{name}'")
-                #         representation = representation()
-                #         self.tsr[name] = representation
-                #     raw_data = representation(t)
-                #     run_stats[name].append(round((datetime.now() - now).total_seconds(), 3))
-                # if export_raw and not raw_path.exists():
-                #     np.savez(raw_path, raw_data)
-                # assert isinstance(raw_data, dict) and "data" in raw_data and "extra" in raw_data, raw_data
-                # assert isinstance(raw_data["extra"], dict), raw_data
-
-                # for resized npy and resized png we only compute them if these params are provided
-                # in the same manner, if they were previosuly computed, we skip them
-                # if export_npy and not rsz_path.exists():
-                #     rsz_data = representation.resize(raw_data, *output_resolution, only_uint8=False)
-                #     np.savez(rsz_path, rsz_data)
-
-                # if export_png and not img_path.exists():
-                #     img = representation.make_image(raw_data)
-                #     img_resized = cv2.resize(img, output_resolution[::-1], interpolation=cv2.INTER_LINEAR)
-                #     cv2.imwrite(str(img_path), img_resized[..., ::-1])
+                if export_npy:
+                    rsz_data = representation.resize(raw_data, height=output_resolution[0], width=output_resolution[1])
+                    for i, t in enumerate(range(l, r)):
+                        if not npy_resz_paths[name][t].exists():
+                            np.savez(npy_resz_paths[name][t], rsz_data[i])
 
         run_stats = pd.DataFrame(run_stats)
         run_stats.to_csv(output_dir / "run_stats.csv")

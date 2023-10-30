@@ -1,3 +1,4 @@
+"""VRE Representation module"""
 from __future__ import annotations
 import numpy as np
 import pims
@@ -6,8 +7,8 @@ from pathlib import Path
 from abc import ABC, abstractmethod
 from functools import lru_cache
 
-# @brief Generic video/image representation
 class Representation(ABC):
+    """Generic Representation class for VRE"""
     def __init__(self, video: pims.Video, name: str, dependencies: list[Representation]):
         assert isinstance(dependencies, (set, list))
         self.name = name

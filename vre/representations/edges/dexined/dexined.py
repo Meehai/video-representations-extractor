@@ -29,18 +29,22 @@ def image_normalization(img, img_min=0, img_max=255, epsilon=1e-12):
     return img
 
 
-def preprocessImage(image: np.ndarray) -> np.ndarray:
-    logger.debug2(f"Original shape: {image.shape}")
-    img = cv2.resize(image, (512, 512), interpolation=cv2.INTER_LINEAR)
-    img = np.array(img, dtype=np.float32)
+def _preprocess(images: np.ndarray) -> np.ndarray:
+    assert len(images.shape) == 4, images.shape
+    logger.debug2(f"Original shape: {images.shape}")
+    images_resize = np.array([cv2.resize(image, (512, 512), interpolation=cv2.INTER_LINEAR) for image in images])
     mean_pixel_values = [103.939, 116.779, 123.68]
-    img -= mean_pixel_values
-    img = img.transpose((2, 0, 1))
-    return img
+    images_norm = images_resize.astype(np.float32) - mean_pixel_values
+    # N, H, W, C -> N, C, H, W
+    images_norm = images_norm.transpose((0, 3, 1, 2))
+    return images_norm
 
 
-def postprocessOutput(y: List[tr.Tensor]) -> np.ndarray:
+def _postprocess(y: list[tr.Tensor]) -> np.ndarray:
+    breakpoint()
+    assert len(y.shape) == 4, y.shape
     preds = []
+    breakpoint()
     for i in range(len(y)):
         tmp_img = tr.sigmoid(y[i]).cpu().detach().numpy().squeeze()
         tmp_img = np.uint8(image_normalization(tmp_img, img_min=0, img_max=255))
@@ -75,11 +79,12 @@ class DexiNed(Representation):
 
     @overrides
     def make(self, t: int) -> np.ndarray:
-        A = preprocessImage(self.video[t])
-        trA = tr.from_numpy(A.copy()).float()[None].to(self.device)
+        frames = np.array(self.video[t])
+        A = _preprocess(frames)
+        trA = tr.from_numpy(A).float().to(self.device)
         with tr.no_grad():
             trB = self.model.forward(trA)
-        C = postprocessOutput(trB)
+        C = _postprocess(trB)
         return C
 
     @overrides
