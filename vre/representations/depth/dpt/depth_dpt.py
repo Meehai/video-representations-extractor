@@ -47,18 +47,15 @@ class DepthDpt(Representation):
 
     def _setup(self):
         # our backup
-        weightsFile = Path(f"{os.environ['VRE_WEIGHTS_DIR']}/depth_dpt_midas.pth").absolute()
+        weights_file = Path(f"{os.environ['VRE_WEIGHTS_DIR']}/depth_dpt_midas.pth").absolute()
         urlWeights = "https://drive.google.com/u/0/uc?id=15JbN2YSkZFSaSV2CGkU1kVSxCBrNtyhD"
 
-        if not weightsFile.exists():
+        if not weights_file.exists():
             logger.debug(f"Downloading weights for dexined from {urlWeights}")
-            gdown.download(urlWeights, weightsFile.__str__())
+            gdown.download(urlWeights, str(weights_file))
 
-        model = DPTDepthModel(
-            backbone="vitl16_384",
-            non_negative=True,
-        )
-        model.load_state_dict(tr.load(weightsFile, map_location="cpu"))
+        model = DPTDepthModel(backbone="vitl16_384", non_negative=True)
+        model.load_state_dict(tr.load(weights_file, map_location="cpu"))
         model.eval()
         self.model = model.to(self.device)
 

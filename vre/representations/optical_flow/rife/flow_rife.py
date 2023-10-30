@@ -34,24 +34,24 @@ class FlowRife(Representation):
         # original files
         # urlWeights = "https://drive.google.com/u/0/uc?id=1wsQIhHZ3Eg4_AfCXItFKqqyDMB4NS0Yd"
         # our backup / dragos' better/sharper version
-        contextNetUrl = "https://drive.google.com/u/0/uc?id=1x2_inKGBxjTYvdn58GyRnog0C7YdzE7-"
-        flowNetUrl = "https://drive.google.com/u/0/uc?id=1aqR0ciMzKcD-N4bwkTK8go5FW4WAKoWc"
-        uNetUrl = "https://drive.google.com/u/0/uc?id=1Fv27pNAbrmqQJolCFkD1Qm1RgKBRotME"
+        contextnet_url = "https://drive.google.com/u/0/uc?id=1x2_inKGBxjTYvdn58GyRnog0C7YdzE7-"
+        flownet_url = "https://drive.google.com/u/0/uc?id=1aqR0ciMzKcD-N4bwkTK8go5FW4WAKoWc"
+        unet_url = "https://drive.google.com/u/0/uc?id=1Fv27pNAbrmqQJolCFkD1Qm1RgKBRotME"
 
         contextnet_path = weights_dir / "contextnet.pkl"
         if not contextnet_path.exists():
             logger.debug("Downloading contextnet weights for RIFE")
-            gdown.download(contextNetUrl, str(contextnet_path))
+            gdown.download(contextnet_url, str(contextnet_path))
 
         flownet_path = weights_dir / "flownet.pkl"
         if not flownet_path.exists():
             logger.debug("Downloading flownet weights for RIFE")
-            gdown.download(flowNetUrl, str(flownet_path))
+            gdown.download(flownet_url, str(flownet_path))
 
         unet_path = weights_dir / "unet.pkl"
         if not unet_path.exists():
             logger.debug("Downloading unet weights for RIFE")
-            gdown.download(uNetUrl, str(unet_path))
+            gdown.download(unet_url, str(unet_path))
 
         if self.model is None:
             model = Model()
