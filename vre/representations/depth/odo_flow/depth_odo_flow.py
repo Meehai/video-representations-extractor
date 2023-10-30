@@ -5,7 +5,7 @@ from overrides import overrides
 
 from .camera_info import CameraInfo, CameraSensorParams
 from .depth_from_flow import depth_from_flow, filter_depth_from_flow
-from ...representation import Representation, RepresentationOutput
+from ....representation import Representation, RepresentationOutput
 
 
 class DepthOdoFlow(Representation):

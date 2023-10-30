@@ -4,12 +4,11 @@ import numpy as np
 import torch as tr
 import cv2
 from pathlib import Path
-from media_processing_lib.image import image_resize
 from typing import List
 from overrides import overrides
 
 from .model_dexined import DexiNed as Model
-from ...representation import Representation, RepresentationOutput
+from ....representation import Representation, RepresentationOutput
 from ....logger import logger
 
 def image_normalization(img, img_min=0, img_max=255, epsilon=1e-12):
@@ -32,7 +31,7 @@ def image_normalization(img, img_min=0, img_max=255, epsilon=1e-12):
 
 def preprocessImage(image: np.ndarray) -> np.ndarray:
     logger.debug2(f"Original shape: {image.shape}")
-    img = image_resize(image, width=512, height=512)
+    img = cv2.resize(image, (512, 512), interpolation=cv2.INTER_LINEAR)
     img = np.array(img, dtype=np.float32)
     mean_pixel_values = [103.939, 116.779, 123.68]
     img -= mean_pixel_values

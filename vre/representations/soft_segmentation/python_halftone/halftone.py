@@ -2,13 +2,13 @@
 
 import sys
 import numpy as np
+import cv2
 
 from PIL import Image, ImageDraw, ImageStat
 from overrides import overrides
 from typing import List, Tuple
-from media_processing_lib.image import image_resize
 
-from ...representation import Representation, RepresentationOutput
+from ....representation import Representation, RepresentationOutput
 
 """
 Class: Halftone( path )
@@ -57,7 +57,7 @@ class Halftone(Representation):
     @overrides
     def make(self, t: int) -> RepresentationOutput:
         frame = self.video[t]
-        frame = image_resize(frame, height=self.resolution[0], width=self.resolution[1])
+        frame = cv2.resize(frame, (self.resolution[1], self.resolution[0]), interpolation=cv2.INTER_LINEAR)
 
         im = Image.fromarray(frame, "RGB")
         cmyk = self.gcr(im, self.percentage)

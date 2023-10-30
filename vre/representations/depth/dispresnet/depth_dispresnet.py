@@ -1,11 +1,11 @@
 import numpy as np
 import torch as tr
 from overrides import overrides
-from media_processing_lib.image import image_resize
 from matplotlib.cm import hot
+import cv2
 
 from .DispResNet import DispResNet
-from ..representation import Representation
+from ...representation import Representation
 
 
 def preprocessImage(img, size=None, trainSize=(256, 448), multiples=(64, 64)):
@@ -14,8 +14,7 @@ def preprocessImage(img, size=None, trainSize=(256, 448), multiples=(64, 64)):
     else:
         size = img.shape[:2]
     size = closest_fit(size, multiples)
-    img = image_resize(img, height=size[0], width=size[1])
-    # img = imresize(img, closest_fit(size, multiples))
+    img = cv2.resize(img, (size[1], size[0]), interpolation=cv2.INTER_LINEAR)
     img = img.astype(np.float32)
     img = np.transpose(img, (2, 0, 1))
     img = ((tr.from_numpy(img).unsqueeze(0) / 255 - 0.45) / 0.225)
@@ -28,7 +27,7 @@ def postprocessImage(y, size=None, scale=(0, 2)):
     y = y.cpu().numpy()[0, 0]
     dph = 1 / y
 
-    dph = image_resize(dph, height=size[0], width=size[1], onlyUint8=False)
+    dph = cv2.resize(dph, (size[1], size[0]), interpolation=cv2.INTER_LINEAR)
     dph = (dph - scale[0]) / (scale[1] - scale[0])
     dph = np.clip(dph, 0, 1)
 

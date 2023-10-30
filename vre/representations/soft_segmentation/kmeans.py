@@ -2,7 +2,7 @@ import numpy as np
 import pims
 import cv2
 from overrides import overrides
-from ..representation import Representation, RepresentationOutput
+from ...representation import Representation, RepresentationOutput
 
 
 def to_categorical(data: np.ndarray, num_classes: int = None) -> np.ndarray:

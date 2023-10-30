@@ -1,6 +1,6 @@
 import numpy as np
 from overrides import overrides
-from .representation import Representation, RepresentationOutput
+from ..representation import Representation, RepresentationOutput
 
 
 class RGB(Representation):
