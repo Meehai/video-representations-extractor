@@ -20,7 +20,8 @@ def test_vre_batched():
     video = pims.Video(video_path)
     representations_dict = {
         "rgb": {"type": "default", "method": "rgb", "dependencies": [], "parameters": {}},
-        "dexined": {"type": "edges", "method": "dexined", "dependencies": [], "parameters": {"device": "cuda"}},
+        "hsv": {"type": "default", "method": "hsv", "dependencies": [], "parameters": {}},
+        # "dexined": {"type": "edges", "method": "dexined", "dependencies": [], "parameters": {"device": "cuda"}},
     }
     representations = build_representations_from_cfg(video, representations_dict)
     representations2 = build_representations_from_cfg(video, representations_dict)
