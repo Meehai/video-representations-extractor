@@ -2,7 +2,7 @@ import numpy as np
 import cv2
 from overrides import overrides
 from matplotlib.cm import gray
-from ...representation import Representation, RepresentationOutput
+from ...representation import Representation
 
 
 class Canny(Representation):
@@ -14,7 +14,7 @@ class Canny(Representation):
         self.L2gradient = L2gradient
 
     @overrides
-    def make(self, t: int) -> RepresentationOutput:
+    def make(self, t: int) -> np.ndarray:
         frame = self.video[t]
         res = frame * 0
         res = cv2.Canny(frame, self.threshold1, self.threshold2, res, self.apertureSize, self.L2gradient)
@@ -22,5 +22,5 @@ class Canny(Representation):
         return res
 
     @overrides
-    def make_image(self, x: RepresentationOutput) -> np.ndarray:
+    def make_image(self, x: np.ndarray) -> np.ndarray:
         return np.uint8(255 * gray(x["data"])[..., 0:3])

@@ -5,7 +5,7 @@ from overrides import overrides
 
 from .camera_info import CameraInfo, CameraSensorParams
 from .depth_from_flow import depth_from_flow, filter_depth_from_flow
-from ....representation import Representation, RepresentationOutput
+from ....representation import Representation
 
 
 class DepthOdoFlow(Representation):
@@ -35,7 +35,7 @@ class DepthOdoFlow(Representation):
         self.flow = self.dependencies[0]
 
     @overrides
-    def make(self, t: int) -> RepresentationOutput:
+    def make(self, t: int) -> np.ndarray:
         # [0:1] -> [-1:1]
         if t + 1 < len(self.video):
             data = self.flow[t]["data"]
@@ -75,17 +75,19 @@ class DepthOdoFlow(Representation):
         depth = np.clip(Zs.astype(np.float32), self.minDepthMeters, self.maxDepthMeters)
         depth = (depth - self.minDepthMeters) / (self.maxDepthMeters - self.minDepthMeters)
         depth[~np.isfinite(depth)] = 1
-        return {
-            "data": depth,
-            "extra": {
-                "rangeScaled": (self.minDepthMeters, self.maxDepthMeters),
-                "rangeValid": (0, 1),
-                "corrected_angular_velocity": batch_ang_velc[0],
-            },
-        }
+        return depth
+        # TODO: make_extra
+        # return {
+        #     "data": depth,
+        #     "extra": {
+        #         "rangeScaled": (self.minDepthMeters, self.maxDepthMeters),
+        #         "rangeValid": (0, 1),
+        #         "corrected_angular_velocity": batch_ang_velc[0],
+        #     },
+        # }
 
     @overrides
-    def make_image(self, x: RepresentationOutput) -> np.ndarray:
+    def make_image(self, x: np.ndarray) -> np.ndarray:
         Where = np.where(x["data"] == 1)
         y = x["data"]
         assert y.min() >= 0 and y.max() <= 1

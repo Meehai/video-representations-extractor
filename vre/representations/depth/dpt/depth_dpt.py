@@ -11,7 +11,7 @@ from matplotlib.cm import hot
 
 from .dpt_depth import DPTDepthModel
 from .transforms import Resize, NormalizeImage, PrepareForNet
-from ....representation import Representation, RepresentationOutput
+from ....representation import Representation
 from ....logger import logger
 
 
@@ -60,7 +60,7 @@ class DepthDpt(Representation):
         self.model = model.to(self.device)
 
     @overrides
-    def make(self, t: int) -> RepresentationOutput:
+    def make(self, t: int) -> np.ndarray:
         x = self.video[t]
         img_input = self.transform({"image": x / 255.0})["image"]
         # compute
@@ -73,7 +73,7 @@ class DepthDpt(Representation):
         return prediction
 
     @overrides
-    def make_image(self, x: RepresentationOutput) -> np.ndarray:
+    def make_image(self, x: np.ndarray) -> np.ndarray:
         y = x["data"]
         y = hot(y)[..., 0:3]
         y = np.uint8(y * 255)

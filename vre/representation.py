@@ -6,9 +6,6 @@ from pathlib import Path
 from abc import ABC, abstractmethod
 from functools import lru_cache
 
-# Either a single np.ndarray or a dict of format {"data": np.ndarray, "extra": other stuff.}
-RepresentationOutput = np.ndarray | dict[str, np.ndarray]
-
 # @brief Generic video/image representation
 class Representation(ABC):
     def __init__(self, video: pims.Video, name: str, dependencies: list[Representation]):
@@ -19,7 +16,7 @@ class Representation(ABC):
         self.video = video
 
     @abstractmethod
-    def make(self, t: int) -> RepresentationOutput:
+    def make(self, t: int) -> np.ndarray:
         """
         Main method of this representation. Calls the internal representation's logic to transform the current provided
         RGB frame of the attached video into the output representation.
@@ -35,32 +32,32 @@ class Representation(ABC):
         """
 
     @abstractmethod
-    def make_image(self, x: RepresentationOutput) -> np.ndarray:
+    def make_image(self, x: np.ndarray) -> np.ndarray:
         """Given the output of self.make(t), which a [0:1] float32 numpy array, return a [0:255] uint8 image"""
 
-    def resize(self, x: RepresentationOutput, height: int, width: int, **resize_args) -> RepresentationOutput:
+    def make_extra(self, x: np.ndarray) -> dict:
+        """Given the output of self.make(t), which a [0:1] float32 numpy array, return a dict with extra info"""
+        return {}
+
+    def resize(self, x: np.ndarray, height: int, width: int) -> np.ndarray:
         """
         Resizes a representation output made from self.make(t). Info about time may be passed via 'extra' dict.
         Update this for more complex cases.
         """
-        y = cv2.resize(x["data"], (width, height), interpolation=cv2.INTER_LINEAR)
-        return {"data": y, "extra": x["extra"]}
+        y = cv2.resize(x, (width, height), interpolation=cv2.INTER_LINEAR)
+        return y
 
-    def __getitem__(self, t: int) -> RepresentationOutput:
+    def __getitem__(self, t: slice) -> np.ndarray:
         return self.__call__(t)
 
     # @lru_cache(maxsize=1000)
-    def __call__(self, t: slice) -> RepresentationOutput:
-        # t = t % len(self.video) # TODO: needed?
+    def __call__(self, t: slice) -> np.ndarray:
         assert t.start >= 0 and t.stop < len(self.video), t
         # Get the raw result of this representation
-        raw_result = self.make(t)
-        raw_result = {"data": raw_result, "extra": {}} if isinstance(raw_result, np.ndarray) else raw_result
-        data = raw_result["data"]
-        assert data.dtype in (np.float32, np.uint8), f"{self.name}: Dtype: {data.dtype}"
-        if data.dtype == np.float32:
-            assert data.min() >= 0 and data.max() <= 1, f"{self.name}: Min: {data.min():.2f}. Max: {data.max():.2f}"
-        return raw_result
+        raw_data = self.make(t)
+        assert raw_data.dtype == np.float32
+        assert raw_data.min() >= 0 and raw_data.max() <= 1, f"{self.name}: [{raw_data.min():.2f}:{raw_data.max():.2f}]"
+        return raw_data
 
     # TODO: see if this is needed for more special/faster resizes
     # def resizeRawData(self, rawData: np.ndarray) -> np.ndarray:

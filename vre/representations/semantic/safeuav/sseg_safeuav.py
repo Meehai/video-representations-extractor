@@ -7,7 +7,7 @@ from pathlib import Path
 from torch import nn
 
 from .Map2Map import EncoderMap2Map, DecoderMap2Map
-from ....representation import Representation, RepresentationOutput
+from ....representation import Representation
 
 
 class MyModel(nn.Module):
@@ -39,7 +39,7 @@ class SSegSafeUAV(Representation):
         self._setup()
 
     @overrides
-    def make(self, t: int) -> RepresentationOutput:
+    def make(self, t: int) -> np.ndarray:
         frame = np.array(self.video[t])
         img = cv2.resize(frame, (self.trainWidth, self.trainHeight), interpolation=cv2.INTER_LINEAR)
         img = np.float32(img[None]) / 255
@@ -51,7 +51,7 @@ class SSegSafeUAV(Representation):
         return res
 
     @overrides
-    def make_image(self, x: RepresentationOutput) -> np.ndarray:
+    def make_image(self, x: np.ndarray) -> np.ndarray:
         newImage = np.zeros((*x["data"].shape, 3), dtype=np.uint8)
         for i in range(self.numClasses):
             newImage[x["data"] == i] = self.colorMap[i]

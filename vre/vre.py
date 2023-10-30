@@ -13,6 +13,8 @@ import pandas as pd
 from .representation import Representation
 from .logger import logger
 
+RunPaths = tuple[dict[str, list[Path]], dict[str, list[Path]], dict[str, list[Path]]]
+
 class VRE:
     """Video Representations Extractor class"""
 
@@ -33,7 +35,7 @@ class VRE:
         return self._tsr
 
     def _make_run_paths(self, output_dir: Path, output_resolution: tuple[int, int],
-                        export_raw: bool, export_npy: bool, export_png: bool) -> tuple[dict, dict, dict]:
+                        export_raw: bool, export_npy: bool, export_png: bool) -> RunPaths:
         """
         create the output dirs structure. We may have 2 types of outputs: npy and png for each, we may have
         different resolutions, so we store them under npy/HxW or png/HxW for the npy we always store the raw output
@@ -45,15 +47,20 @@ class VRE:
         npy_raw_paths, npy_resz_paths, png_resz_paths = {}, {}, {}
         for name in self.tsr.keys():
             (output_dir / name).mkdir(exist_ok=True, parents=True)
-            npy_raw_paths[name] = output_dir / name / "npy/raw"
-            npy_resz_paths[name] = output_dir / name / f"npy/{out_resolution_str}"
-            png_resz_paths[name] = output_dir / name / f"png/{out_resolution_str}"
+            npy_raw_base_dir = output_dir / name / "npy/raw"
+            npy_resz_base_dir = output_dir / name / f"npy/{out_resolution_str}"
+            png_resz_base_dir = output_dir / name / f"png/{out_resolution_str}"
+
+            npy_raw_paths[name] = [npy_raw_base_dir / f"{t}.npz" for t in range(len(self.video))]
+            npy_resz_paths[name] = [npy_resz_base_dir / f"{t}.npz" for t in range(len(self.video))]
+            png_resz_paths[name] = [png_resz_base_dir / f"{t}.png" for t in range(len(self.video))]
+
             if export_raw:
-                npy_raw_paths[name].mkdir(exist_ok=True, parents=True)
+                npy_raw_base_dir.mkdir(exist_ok=True, parents=True)
             if export_npy:
-                npy_resz_paths[name].mkdir(exist_ok=True)
+                npy_resz_base_dir.mkdir(exist_ok=True)
             if export_png:
-                png_resz_paths[name].mkdir(exist_ok=True, parents=True)
+                png_resz_base_dir.mkdir(exist_ok=True, parents=True)
         return npy_raw_paths, npy_resz_paths, png_resz_paths
 
     def run_cfg(self, output_dir: Path, cfg: DictConfig):
@@ -106,16 +113,28 @@ class VRE:
         left, right = batches[0:-1], batches[1: ]
 
         for l, r in (pbar := tqdm(zip(left, right))):
-            t = slice(l, r)
-            run_stats["frame"].extend(range(t.start, t.stop))
+            batch_t = slice(l, r)
+            run_stats["frame"].extend(range(batch_t.start, batch_t.stop))
             pbar.set_description(f"[VRE] t=[{l}:{r}]")
             for name, representation in self.tsr.items():
                 pbar.set_description(f"[VRE] {name}")
-                logger.debug2(f"t={t} representation={name}")
                 now = datetime.now()
-                raw_data = representation(t)
+                # TODO: if all paths exist, skip and read from disk
+                raw_data = representation[batch_t]
                 took = round((datetime.now() - now).total_seconds(), 3)
                 run_stats[name].extend([took / (r - l)] * (r - l))
+
+                if export_raw:
+                    for i, t in enumerate(range(l, r)):
+                        if not npy_raw_paths[name][t].exists():
+                            np.savez(npy_raw_paths[name][t], raw_data[i])
+
+                # if export_npy:
+                #     rsz_data = representation.resize(raw_data, *output_resolution, only_uint8=False)
+                #     for t in range(l, r):
+                #         if not npy_resz_paths[name][t].exists():
+                #             rsz_data = representation.resize(raw_data[t], *output_resolution, only_uint8=False)
+                #             np.savez(npy_resz_paths[name][t], rsz_data)
 
                 # for each representation we have 3 cases: raw npy, resized npy and resized png.
                 # the raw npy is always computed unless it was previously computed, in which case we load it from

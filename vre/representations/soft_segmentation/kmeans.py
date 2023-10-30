@@ -2,7 +2,7 @@ import numpy as np
 import pims
 import cv2
 from overrides import overrides
-from ...representation import Representation, RepresentationOutput
+from ...representation import Representation
 
 
 def to_categorical(data: np.ndarray, num_classes: int = None) -> np.ndarray:
@@ -31,7 +31,7 @@ class KMeans(Representation):
         self.attempts = attempts
 
     @overrides
-    def make(self, t: int) -> RepresentationOutput:
+    def make(self, t: int) -> np.ndarray:
         frame = self.video[t]
         Z = np.float32(frame).reshape(-1, 3)
         criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, self.maxIterations, self.epsilon)
@@ -43,7 +43,7 @@ class KMeans(Representation):
         return res
 
     @overrides
-    def make_image(self, x: RepresentationOutput) -> np.ndarray:
+    def make_image(self, x: np.ndarray) -> np.ndarray:
         res = np.zeros((self.video.frame_shape[0], self.video.frame_shape[1], 3), dtype=np.uint8)
         centers = x["extra"]["centers"]
         x = np.argmax(x["data"], axis=-1)
