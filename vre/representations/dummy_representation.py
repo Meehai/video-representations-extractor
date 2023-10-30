@@ -3,7 +3,7 @@ import numpy as np
 from overrides import overrides
 from typing import Callable
 
-from .representation import Representation
+from ..representation import Representation
 
 # @brief A representation that is a placeholder for a set of npz files that were precomputted by other (not yet
 #  not yet supported) algorithms, such as Sfm, SemanticGB, weird pre-trained networks etc. The only thing it needs is

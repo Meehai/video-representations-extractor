@@ -9,11 +9,11 @@ import gdown
 
 try:
     from .RIFE_HDv2 import Model
-    from ...representation import Representation, RepresentationOutput
+    from ....representation import Representation, RepresentationOutput
     from ....logger import logger
 except ImportError:
     from RIFE_HDv2 import Model
-    from vre.representations.representation import Representation, RepresentationOutput
+    from vre.representation import Representation, RepresentationOutput
     from vre.logger import logger
 
 class FlowRife(Representation):

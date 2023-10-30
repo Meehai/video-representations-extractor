@@ -1,7 +1,7 @@
 import numpy as np
 from overrides import overrides
 from skimage.color import rgb2hsv
-from .representation import Representation, RepresentationOutput
+from ..representation import Representation, RepresentationOutput
 
 
 class HSV(Representation):

@@ -11,7 +11,7 @@ from matplotlib.cm import hot
 
 from .dpt_depth import DPTDepthModel
 from .transforms import Resize, NormalizeImage, PrepareForNet
-from ...representation import Representation, RepresentationOutput
+from ....representation import Representation, RepresentationOutput
 from ....logger import logger
 
 

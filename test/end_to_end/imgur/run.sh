@@ -13,17 +13,11 @@ test -e safeuav_semantic_0956_pytorch.ckpt || gdown https://drive.google.com/uc?
 
 cd $CWD
 test -f cfg.yaml || ( echo "cfg.yaml does not exist"; kill $$ ) # cfg
-# TODO: CLI in this case is better than cfg
 X=$(shuf -i 1-9000 -n 1)
-export VRE_START_IX=$X
-export VRE_END_IX=$((X+1))
-export MPL_VIDEO_READ_BACKEND=pims
-export MPL_IMAGE_BACKEND=opencv
-echo $PATH
 rm -rf test_imgur/
 
 # run VRE
-vre DJI_0956_720p.MP4 --cfg_path cfg.yaml -o test_imgur/
+vre DJI_0956_720p.MP4 --cfg_path cfg.yaml -o test_imgur/ --start_frame $X --end_frame $((X+1))
 test "$?" -eq 0 || ( echo "VRE failed"; kill $$ )
 vre_collage  test_imgur/ --no_video --overwrite
 

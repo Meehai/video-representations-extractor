@@ -4,7 +4,7 @@ import pims
 
 from .cam import fov_diag_to_intrinsic
 from .utils import get_sampling_grid, get_normalized_coords, depth_to_normals
-from ...representation import Representation, RepresentationOutput
+from ....representation import Representation, RepresentationOutput
 
 # General method for estimating normals from a depth map (+ intrinsics): a 2D window centered on each pixel is
 #  projected into 3D and then a plane is fitted on the 3D pointcloud using SVD.

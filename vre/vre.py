@@ -1,61 +1,35 @@
 """Video Representations Extractor module"""
 from __future__ import annotations
 from pathlib import Path
-from typing import Dict, Tuple
+from typing import Callable
+from datetime import datetime
 from tqdm import trange
+import cv2
+from omegaconf import DictConfig
 import pims
-from media_processing_lib.image import image_write, image_resize
-from omegaconf import DictConfig, OmegaConf
 import numpy as np
 import pandas as pd
-from functools import partial
-from datetime import datetime
 
-from .representations import Representation, build_representation_from_cfg
+from .representation import Representation
 from .logger import logger
-from .utils import topological_sort
-
-RepresentationsBuildDict = Dict[str, DictConfig]  # this is used to build the representations
-
 
 class VRE:
     """Video Representations Extractor class"""
 
-    def __init__(self, video: pims.Video, representations: dict[str, Representation] = None,
-                 representations_dict: RepresentationsBuildDict = None):
+    def __init__(self, video: pims.Video, representations: dict[str, Representation | type[Representation]]):
         """
-        Parameters
-        video The video we are performing VRE one
-        representations_dict The dict of uninstantiated representations with their constructor args
+        Parameters:
+        - video The video we are performing VRE one
+        - representations The dict of instantiated and topo sorted representations (or callable to instantiate them)
         """
-        # fmt: off
-        assert (representations is not None) + (representations_dict is not None) == 1, \
-            "Either provide a topo sorted list of representations or a config to build the representations, not both"
+        assert len(representations) > 0
         assert isinstance(video, pims.Video), type(video)
         self.video = video
-
-        if representations is not None:
-            self._tsr = representations
-        else:
-            representations_dict = DictConfig(representations_dict)
-            assert len(representations_dict) > 0 and isinstance(representations_dict, DictConfig), representations_dict
-            self.representations_dict = representations_dict
-            self._tsr: Dict[str, Representation] = None
+        self._tsr = representations
 
     @property
-    def tsr(self) -> Dict[str, Representation]:
+    def tsr(self) -> dict[str, Representation]:
         """Call the representations module to build each of them, one by one, after topo sorting for dependencies"""
-        if self._tsr is None:
-            logger.debug("Doing topological sort...")
-            res, dep_graph = {}, {}
-            for repr_name, repr_cfg_values in self.representations_dict.items():
-                assert isinstance(repr_cfg_values, DictConfig), f"{repr_name} not a dict cfg: {type(repr_cfg_values)}"
-                dep_graph[repr_name] = repr_cfg_values["dependencies"]
-            topo_sorted = {k: self.representations_dict[k] for k in topological_sort(dep_graph)}
-            for name, r in topo_sorted.items():
-                obj = build_representation_from_cfg(self.video, r, name, res)
-                res[name] = obj
-            self._tsr = res
         return self._tsr
 
     def _make_run_paths(self, output_dir: Path, output_resolution: tuple[int, int],
@@ -71,7 +45,6 @@ class VRE:
         npy_raw_paths, npy_resz_paths, png_resz_paths = {}, {}, {}
         for name in self.tsr.keys():
             (output_dir / name).mkdir(exist_ok=True, parents=True)
-            OmegaConf.save(self.representations_dict[name], output_dir / name / "cfg.yaml")
             if export_raw:
                 npy_raw_paths[name] = output_dir / name / "npy/raw"
                 npy_raw_paths[name].mkdir(exist_ok=True, parents=True)
@@ -97,7 +70,7 @@ class VRE:
             f"""
   - Video path: '{self.video.file}'
   - Output dir: '{output_dir}'
-  - Representations ({len(self.representations_dict)}): {", ".join([x for x in self.representations_dict.keys()])}
+  - Representations ({len(self.tsr)}): {", ".join([x for x in self.tsr.keys()])}
   - Video shape: {self.video.shape}
   - Output frames ({end_frame - start_frame}): [{start_frame} : {end_frame - 1}]
   - Output resolution: {tuple(output_resolution)}
@@ -135,14 +108,18 @@ class VRE:
                 # for each representation we have 3 cases: raw npy, resized npy and resized png.
                 # the raw npy is always computed unless it was previously computed, in which case we load it from
                 #  the disk. The assumption is that it is ran with the same cfg on the same video (cli args)
-                raw_path, rsz_path, img_path = npy_raw_paths[name] / f"{t}.npz", npy_resz_paths[name] / f"{t}.npz", \
-                                               png_resz_paths[name] / f"{t}.png"
+                raw_path, rsz_path, img_path = (npy_raw_paths[name] / f"{t}.npz", npy_resz_paths[name] / f"{t}.npz",
+                                                png_resz_paths[name] / f"{t}.png")
 
                 if raw_path.exists():
                     raw_data = np.load(raw_path, allow_pickle=True)["arr_0"].item()
                     run_stats[name].append(np.nan)
                 else:
                     now = datetime.now()
+                    if not isinstance(representation, Representation) and isinstance(representation, Callable):
+                        logger.info(f"Instantiating representation '{name}'")
+                        representation = representation()
+                        self.tsr[name] = representation
                     raw_data = representation(t)
                     run_stats[name].append(round((datetime.now() - now).total_seconds(), 3))
                 if export_raw and not raw_path.exists():
@@ -158,14 +135,14 @@ class VRE:
 
                 if export_png and not img_path.exists():
                     img = representation.make_image(raw_data)
-                    img_resized = image_resize(img, *output_resolution, only_uint8=False)
-                    image_write(img_resized, img_path)
+                    img_resized = cv2.resize(img, output_resolution[::-1], interpolation=cv2.INTER_LINEAR)
+                    cv2.imwrite(str(img_path), img_resized[..., ::-1])
 
             pd.DataFrame(run_stats).to_csv(output_dir / "run_stats.csv")
 
     def __str__(self) -> str:
         return (
-            f"VRE ({len(self.representations_dict)} representations). "
+            f"VRE ({len(self.tsr)} representations). "
             f"Video: '{self.video.raw_data.path}' (shape: {self.video.shape})"
         )
 

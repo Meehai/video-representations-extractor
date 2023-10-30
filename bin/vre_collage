@@ -2,9 +2,9 @@
 from argparse import ArgumentParser
 from pathlib import Path
 import pims
-from media_processing_lib.image import image_read, image_write, image_add_title
+import cv2
+from media_processing_lib.image import image_add_title
 from media_processing_lib.collage_maker import collage_fn
-# from media_processing_lib.video.backends import DiskBackend
 from vre.logger import logger
 from natsort import natsorted
 import numpy as np
@@ -13,7 +13,7 @@ from tqdm import tqdm
 
 def get_args():
     parser = ArgumentParser()
-    parser.add_argument("vre_export_dir", help="Path to the scene video we are processing")
+    parser.add_argument("vre_export_dir", type=lambda p: Path(p).absolute(), help="Path to the dir where VRE exported")
     parser.add_argument("--output_path", "-o", required=False, help="Path to the collage is stored")
     parser.add_argument("--no_video", action="store_true")
     parser.add_argument("--resolution_dir", help="If more png exports are done by VRE, this will pin one resolution")
@@ -22,13 +22,11 @@ def get_args():
     # TODO: add order of collage
     args = parser.parse_args()
 
-    args.vre_export_dir = Path(args.vre_export_dir).absolute()
     if args.output_path is None:
         args.output_path = args.vre_export_dir / "collage"
         logger.warning(f"--output_path not provided, defaulting to '{args.output_path}'")
     args.output_path = Path(args.output_path).absolute()
-    if args.output_path.exists():
-        assert args.overwrite, f"output path '{args.output_path}' exists. Use --overwrite"
+    assert not args.output_path.exists() or args.overwrite, f"Output path '{args.output_path}' exists. Use --overwrite."
     if not args.no_video:
         assert args.fps, "--fps must be provided when exporting a video."
     return args
@@ -77,9 +75,10 @@ def main():
     for current_frame_paths in tqdm(values, desc="collage images"):
         # export the png with the same name as all the other png from which it is constructed
         name = current_frame_paths[0].stem
-        current_frames = [image_add_title(image_read(x), title) for x, title in zip(current_frame_paths, keys)]
-        img = collage_fn(current_frames, pad_right=10, pad_bottom=10)
-        image_write(img, f"{args.output_path}/{name}.png")
+        current_frames = [cv2.cvtColor(cv2.imread(str(x)), cv2.COLOR_BGR2RGB) for x in current_frame_paths]
+        titled_frames = [image_add_title(img, title) for img, title in zip(current_frames, keys)]
+        img = collage_fn(titled_frames, pad_right=10, pad_bottom=10)
+        cv2.imwrite(f"{args.output_path}/{name}.png", img[:, :, ::-1])
 
     if not args.no_video:
         raise NotImplementedError("TODO")

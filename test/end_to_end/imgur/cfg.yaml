@@ -1,6 +1,6 @@
 vre:
   start_frame: ${oc.env:VRE_START_IX}
-  end_frame: ${oc.env:VRE_END_IX, null}
+  end_frame: ${oc.env:VRE_END_IX,null}
   output_resolution: [240, 426]
   export_raw: True
   export_npy: True
@@ -65,7 +65,7 @@ representations:
     method: safeuav
     dependencies: []
     parameters:
-      device: cpu
+      device: ${oc.env:VRE_DEVICE,cpu}
       weights_file: safeuav_semantic_0956_pytorch.ckpt
       trainHeight: 240
       trainWidth: 428
@@ -78,7 +78,7 @@ representations:
     method: dexined
     dependencies: []
     parameters:
-      device: cpu
+      device: ${oc.env:VRE_DEVICE,cpu}
 
   opticalflow rife:
     type: optical-flow
@@ -86,7 +86,7 @@ representations:
     dependencies: []
     parameters:
       computeBackwardFlow: False
-      device: cpu
+      device: ${oc.env:VRE_DEVICE,cpu}
 
   depth odoflow (rife):
     type: depth
@@ -120,7 +120,7 @@ representations:
   #   method: raft
   #   dependencies: []
   #   parameters:
-  #     device: cpu
+  #     device: ${oc.env:VRE_DEVICE,cpu}
   #     inputHeight: 720
   #     inputWidth: 1280
 
@@ -156,7 +156,7 @@ representations:
   #   method: dpt
   #   dependencies: []
   #   parameters:
-  #     device: cpu
+  #     device: ${oc.env:VRE_DEVICE,cpu}
 
   # normals svd (dpt):
   #   type: normals

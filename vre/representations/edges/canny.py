@@ -2,7 +2,7 @@ import numpy as np
 import cv2
 from overrides import overrides
 from matplotlib.cm import gray
-from ..representation import Representation, RepresentationOutput
+from ...representation import Representation, RepresentationOutput
 
 
 class Canny(Representation):

@@ -4,18 +4,17 @@ from typing import List
 from pathlib import Path
 import pims
 from vre import VRE
+from vre.representations import build_representations_from_cfg
 from vre.logger import logger
 from omegaconf import OmegaConf
-
 
 def get_args():
     parser = ArgumentParser()
     parser.add_argument("video_path", help="Path to the scene video we are processing")
-    parser.add_argument(
-        "--output_path", "-o", required=True, help="Path to the output directory where representations are stored"
-    )
+    parser.add_argument("--output_path", "-o", required=True,
+                        help="Path to the output directory where representations are stored")
     parser.add_argument("--cfg_path", required=True, help="Path to global YAML cfg file")
-    parser.add_argument("--output_resolution", required=False, help="height,width as two integers")
+    parser.add_argument("--output_resolution", required=False, type=int, nargs="+", help="height,width as two integers")
     parser.add_argument("--start_frame", type=int, help="The first frame. If not set, defaults to first.")
     parser.add_argument("--end_frame", type=int, help="End frame. If not set, defaults to length of video")
 
@@ -26,7 +25,7 @@ def get_args():
     if args.cfg_path is not None:
         args.cfg_path = Path(args.cfg_path).absolute()
     if args.output_resolution:
-        args.output_resolution = [int(x) for x in args.output_resolution.split(",")]
+        assert len(args.output_resolution) == 2, args.output_resolution
     return args
 
 
@@ -49,10 +48,9 @@ def get_cfg():
 def main():
     args, cfg = get_cfg()
     video = pims.Video(args.video_path)
-
-    vre = VRE(video, representations_dict=cfg.representations)
-    vre.run_cfg(args.output_path, cfg.vre)
-
+    representations = build_representations_from_cfg(video, cfg.representations)
+    vre = VRE(video, representations)
+    vre(args.output_path, **cfg.vre)
 
 if __name__ == "__main__":
     main()

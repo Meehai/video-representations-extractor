@@ -6,11 +6,10 @@ import flow_vis
 import gdown
 from overrides import overrides
 from pathlib import Path
-from media_processing_lib.image import image_resize
 
 from .utils import InputPadder
 from .raft import RAFT
-from ...representation import Representation, RepresentationOutput
+from ....representation import Representation, RepresentationOutput
 from ....logger import logger
 
 class FlowRaft(Representation):
@@ -60,8 +59,8 @@ class FlowRaft(Representation):
         frame1 = self.video[t_source]
         frame2 = self.video[t_target]
 
-        frame1 = image_resize(frame1, height=self.inputHeight, width=self.inputWidth, interpolation="bilinear")
-        frame2 = image_resize(frame2, height=self.inputHeight, width=self.inputWidth, interpolation="bilinear")
+        frame1 = cv2.resize(frame1, (self.inputWidth, self.inputHeight), interpolation=cv2.INTER_LINEAR)
+        frame2 = cv2.resize(frame2, (self.inputWidth, self.inputHeight), interpolation=cv2.INTER_LINEAR)
 
         # Convert, preprocess & pad
         frame1 = tr.from_numpy(np.transpose(frame1, (2, 0, 1))).unsqueeze(0).float().to(self.device)

@@ -1,11 +1,10 @@
 from __future__ import annotations
 import numpy as np
 import pims
+import cv2
 from pathlib import Path
 from abc import ABC, abstractmethod
 from functools import lru_cache
-
-from media_processing_lib.image import image_resize
 
 # Either a single np.ndarray or a dict of format {"data": np.ndarray, "extra": other stuff.}
 RepresentationOutput = np.ndarray | dict[str, np.ndarray]
@@ -44,7 +43,7 @@ class Representation(ABC):
         Resizes a representation output made from self.make(t). Info about time may be passed via 'extra' dict.
         Update this for more complex cases.
         """
-        y = image_resize(x["data"], height=height, width=width, **resize_args)
+        y = cv2.resize(x["data"], (width, height), interpolation=cv2.INTER_LINEAR)
         return {"data": y, "extra": x["extra"]}
 
     def __getitem__(self, t: int) -> RepresentationOutput:

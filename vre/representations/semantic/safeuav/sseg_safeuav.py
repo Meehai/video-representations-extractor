@@ -1,14 +1,13 @@
 import os
+import cv2
 import numpy as np
 import torch as tr
-from typing import List
 from overrides import overrides
 from pathlib import Path
-from media_processing_lib.image import image_resize
 from torch import nn
 
 from .Map2Map import EncoderMap2Map, DecoderMap2Map
-from ...representation import Representation, RepresentationOutput
+from ....representation import Representation, RepresentationOutput
 
 
 class MyModel(nn.Module):
@@ -42,7 +41,7 @@ class SSegSafeUAV(Representation):
     @overrides
     def make(self, t: int) -> RepresentationOutput:
         frame = np.array(self.video[t])
-        img = image_resize(frame, height=self.trainHeight, width=self.trainWidth, interpolation="bilinear")
+        img = cv2.resize(frame, (self.trainWidth, self.trainHeight), interpolation=cv2.INTER_LINEAR)
         img = np.float32(img[None]) / 255
         tr_img = tr.from_numpy(img).to(self.device)
         with tr.no_grad():

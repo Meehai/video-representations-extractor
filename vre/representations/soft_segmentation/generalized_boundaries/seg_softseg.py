@@ -2,7 +2,7 @@ from overrides import overrides
 import torch as tr
 import numpy as np
 from .softseg import soft_seg
-from ...representation import Representation, RepresentationOutput
+from ....representation import Representation, RepresentationOutput
 
 
 class GeneralizedBoundaries(Representation):
