@@ -22,7 +22,10 @@ def test_vre_batched():
         "rgb": {"type": "default", "method": "rgb", "dependencies": [], "parameters": {}},
         "hsv": {"type": "default", "method": "hsv", "dependencies": [], "parameters": {}},
         # "dexined": {"type": "edges", "method": "dexined", "dependencies": [], "parameters": {"device": "cuda"}},
+        "softseg gb": {"type": "soft-segmentation", "method": "generalized_boundaries", "dependencies": [],
+                        "parameters": {"useFiltering": True, "adjustToRGB": True, "maxChannels": 3}},
     }
+
     representations = build_representations_from_cfg(video, representations_dict)
     representations2 = build_representations_from_cfg(video, representations_dict)
 
