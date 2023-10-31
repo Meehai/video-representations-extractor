@@ -35,8 +35,15 @@ def test_vre_batched():
         # "normals svd (dpth)": {"type": "normals", "method": "depth-svd", "dependencies": ["depth dpt"],
         #                        "parameters": {"sensor_fov": 75, "sensor_width": 3840,
         #                                       "sensor_height": 2160, "window_size": 11}},
-        "opticalflow rife": {"type": "optical-flow", "method": "rife", "dependencies": [],
-                             "parameters": {"compute_backward_flow": False, "device": device}},
+        # "opticalflow rife": {"type": "optical-flow", "method": "rife", "dependencies": [],
+        #                      "parameters": {"compute_backward_flow": False, "device": device}},
+        "semantic safeuav torch": {"type": "semantic", "method": "safeuav", "dependencies": [],
+                                   "parameters": {"device": device,
+                                                  "weights_file": "safeuav_semantic_0956_pytorch.ckpt",
+                                                  "train_height": 240, "train_width": 428, "num_classes": 8,
+                                                  "color_map": [[0, 255, 0], [0, 127, 0], [255, 255, 0],
+                                                               [255, 255, 255], [255, 0, 0], [0, 0, 255],
+                                                               [0, 255, 255], [127, 127, 63]]}},
     }
 
     representations = build_representations_from_cfg(video, representations_dict)

@@ -67,11 +67,11 @@ representations:
     parameters:
       device: ${oc.env:VRE_DEVICE,cpu}
       weights_file: safeuav_semantic_0956_pytorch.ckpt
-      trainHeight: 240
-      trainWidth: 428
-      numClasses: 8
-      colorMap: [[0, 255, 0], [0, 127, 0], [255, 255, 0], [255, 255, 255],
-                 [255, 0, 0], [0, 0, 255], [0, 255, 255], [127, 127, 63]]
+      train_height: 240
+      train_width: 428
+      num_classes: 8
+      color_map: [[0, 255, 0], [0, 127, 0], [255, 255, 0], [255, 255, 255],
+                  [255, 0, 0], [0, 0, 255], [0, 255, 255], [127, 127, 63]]
 
   edges dexined:
     type: edges

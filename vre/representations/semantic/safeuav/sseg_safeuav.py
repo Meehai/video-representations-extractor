@@ -5,6 +5,7 @@ import torch as tr
 from overrides import overrides
 from pathlib import Path
 from torch import nn
+from torch.nn import functional as F
 
 from .Map2Map import EncoderMap2Map, DecoderMap2Map
 from ....representation import Representation, RepresentationOutput
@@ -23,44 +24,43 @@ class MyModel(nn.Module):
 
 
 class SSegSafeUAV(Representation):
-    def __init__(self, numClasses: int, trainHeight: int, trainWidth: int, colorMap: list[tuple[int, int, int]],
+    def __init__(self, num_classes: int, train_height: int, train_width: int, color_map: list[tuple[int, int, int]],
                  weights_file: str, device: str, **kwargs):
         self.model = None
-        self.numClasses = numClasses
-        assert len(colorMap) == numClasses, f"{colorMap} ({len(colorMap)}) vs {numClasses}"
+        self.num_classes = num_classes
+        assert len(color_map) == num_classes, f"{color_map} ({len(color_map)}) vs {num_classes}"
         weights_file = Path(f"{os.environ['VRE_WEIGHTS_DIR']}/{weights_file}").absolute()
         assert Path(weights_file).exists(), f"Weights file '{weights_file}' does not exist."
         self.weights_file = weights_file
-        self.colorMap = colorMap
-        self.trainHeight = trainHeight
-        self.trainWidth = trainWidth
+        self.color_map = color_map
+        self.train_height = train_height
+        self.train_width = train_width
         self.device = device
         super().__init__(**kwargs)
         self._setup()
 
     @overrides
     def make(self, t: slice) -> RepresentationOutput:
-        raise NotImplementedError
-        frame = np.array(self.video[t])
-        img = cv2.resize(frame, (self.trainWidth, self.trainHeight), interpolation=cv2.INTER_LINEAR)
-        img = np.float32(img[None]) / 255
-        tr_img = tr.from_numpy(img).to(self.device)
+        frames = np.array(self.video[t])
+        tr_frames = tr.from_numpy(frames).to(self.device)
+        frames_norm = tr_frames.permute(0, 3, 1, 2) / 255
+        frames_resized = F.interpolate(frames_norm, (self.train_height, self.train_width), mode="bilinear")
         with tr.no_grad():
-            tr_res = self.model.forward(tr_img)[0]
-        np_res = tr_res.to("cpu").numpy()
-        res = np.argmax(np_res, axis=-1).astype(np.uint8)
-        return res
+            prediction = self.model.forward(frames_resized)
+        np_pred = prediction.permute(0, 2, 3, 1).cpu().numpy()
+        # we need to argmax here because VRE expects [0:1] values for float or a uint8 for semantic (for now?)
+        np_pred_argmax = np.argmax(np_pred, axis=-1).astype(np.uint8)
+        return np_pred_argmax
 
     @overrides
     def make_images(self, x: np.ndarray, extra: dict | None) -> np.ndarray:
-        raise NotImplementedError
-        newImage = np.zeros((*x["data"].shape, 3), dtype=np.uint8)
-        for i in range(self.numClasses):
-            newImage[x["data"] == i] = self.colorMap[i]
-        return newImage
+        new_images = np.zeros((*x.shape, 3), dtype=np.uint8)
+        for i in range(self.num_classes):
+            new_images[x == i] = self.color_map[i]
+        return new_images
 
     def _setup(self):
-        model = MyModel(dIn=3, dOut=self.numClasses)
+        model = MyModel(dIn=3, dOut=self.num_classes)
         data = tr.load(self.weights_file, map_location="cpu")["state_dict"]
         params = model.state_dict()
         def convert(data: dict[str, tr.Tensor]) -> dict[str, tr.Tensor]:
