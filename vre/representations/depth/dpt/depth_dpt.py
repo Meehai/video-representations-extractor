@@ -5,7 +5,6 @@ import torch.nn.functional as F
 import cv2
 import gdown
 from overrides import overrides
-from torchvision.transforms import Compose
 from pathlib import Path
 from matplotlib.cm import hot
 

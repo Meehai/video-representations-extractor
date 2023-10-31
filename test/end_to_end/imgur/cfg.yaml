@@ -98,9 +98,9 @@ representations:
       focusCorrection: True
       cosineCorrectionScipy: False
       cosineCorrectionGD: True
-      fov: 75
-      sensorWidth: 3840
-      sensorHeight: 2160
+      sensor_fov: 75
+      sensor_width: 3840
+      sensor_height: 2160
       minDepthMeters: 0
       maxDepthMeters: 400
 
@@ -109,10 +109,10 @@ representations:
     method: depth-svd
     dependencies: [depth odoflow (rife)]
     parameters:
-      fov: 75
-      sensorWidth: 3840
-      sensorHeight: 2160
-      windowSize: 11
+      sensor_fov: 75
+      sensor_width: 3840
+      sensor_height: 2160
+      window_size: 11
 
   # # SUCKY BECAUSE SUPERSLOW. Adds like 2-3 mins in CI. Rife is good enough.
   # opticalflow raft:
@@ -134,9 +134,9 @@ representations:
   #     focusCorrection: True
   #     cosineCorrectionScipy: False
   #     cosineCorrectionGD: True
-  #     fov: 75
-  #     sensorWidth: 3840
-  #     sensorHeight: 2160
+  #     sensor_fov: 75
+  #     sensor_width: 3840
+  #     sensor_height: 2160
   #     minDepthMeters: 0
   #     maxDepthMeters: 400
 
@@ -145,10 +145,10 @@ representations:
   #   method: depth-svd
   #   dependencies: [depth odoflow (raft)]
   #   parameters:
-  #     fov: 75
-  #     sensorWidth: 3840
-  #     sensorHeight: 2160
-  #     windowSize: 11
+  #     sensor_fov: 75
+  #     sensor_width: 3840
+  #     sensor_height: 2160
+  #     window_size: 11
 
   # # sucky because slow, but it's good/pretrained
   # depth dpt:
@@ -163,7 +163,7 @@ representations:
   #   method: depth-svd
   #   dependencies: [depth dpt]
   #   parameters:
-  #     fov: 75
-  #     sensorWidth: 3840
-  #     sensorHeight: 2160
-  #     windowSize: 11
+  #     sensor_fov: 75
+  #     sensor_width: 3840
+  #     sensor_height: 2160
+  #     window_size: 11

@@ -32,6 +32,9 @@ def test_vre_batched():
         # "canny": {"type": "edges", "method": "canny", "dependencies": [],
         #           "parameters": {"threshold1": 100, "threshold2": 200, "aperture_size": 3, "l2_gradient": True}},
         "depth dpt": {"type": "depth", "method": "dpt", "dependencies": [], "parameters": {"device": device}},
+        "normals svd (dpth)": {"type": "normals", "method": "depth-svd", "dependencies": ["depth dpt"],
+                               "parameters": {"sensor_fov": 75, "sensor_width": 3840,
+                                              "sensor_height": 2160, "window_size": 11}},
     }
 
     representations = build_representations_from_cfg(video, representations_dict)
