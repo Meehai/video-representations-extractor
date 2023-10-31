@@ -36,10 +36,10 @@ representations:
     method: canny
     dependencies: []
     parameters:
-      threshold1: 150
+      threshold1: 100
       threshold2: 200
-      apertureSize: 3
-      L2gradient: False
+      aperture_size: 3
+      l2_gradient: True
 
   softseg kmeans:
     type: soft-segmentation

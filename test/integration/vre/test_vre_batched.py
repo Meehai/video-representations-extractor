@@ -1,6 +1,7 @@
 import gdown
 import pims
 import numpy as np
+import shutil
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from datetime import datetime
@@ -24,8 +25,10 @@ def test_vre_batched():
         # "dexined": {"type": "edges", "method": "dexined", "dependencies": [], "parameters": {"device": "cuda"}},
         # "softseg gb": {"type": "soft-segmentation", "method": "generalized_boundaries", "dependencies": [],
         #                 "parameters": {"useFiltering": True, "adjustToRGB": True, "maxChannels": 3}},
-        "softseg kmeans": {"type": "soft-segmentation", "method": "kmeans", "dependencies": [],
-                            "parameters": {"n_clusters": 6, "epsilon": 2, "max_iterations": 10, "attempts": 3}},
+        # "softseg kmeans": {"type": "soft-segmentation", "method": "kmeans", "dependencies": [],
+        #                     "parameters": {"n_clusters": 6, "epsilon": 2, "max_iterations": 10, "attempts": 3}},
+        "canny": {"type": "edges", "method": "canny", "dependencies": [],
+                 "parameters": {"threshold1": 100, "threshold2": 200, "aperture_size": 3, "l2_gradient": True}},
     }
 
     representations = build_representations_from_cfg(video, representations_dict)
@@ -33,12 +36,14 @@ def test_vre_batched():
 
     tmp_dir = Path("here1" if __name__ == "__main__" else TemporaryDirectory().name)
     tmp_dir2 = Path("here2" if __name__ == "__main__" else TemporaryDirectory().name)
+    shutil.rmtree(tmp_dir, ignore_errors=True)
+    shutil.rmtree(tmp_dir2, ignore_errors=True)
 
-    start_frame, end_frame = 1000, 1020
+    start_frame, end_frame = 1000, 1100
     vre = VRE(video, representations)
     took1 = vre(tmp_dir, start_frame=start_frame, end_frame=end_frame, export_raw=True, export_png=True, batch_size=1)
     vre2 = VRE(video, representations2)
-    took2 = vre2(tmp_dir2, start_frame=start_frame, end_frame=end_frame, export_raw=True, export_png=True, batch_size=5)
+    took2 = vre2(tmp_dir2, start_frame=start_frame, end_frame=end_frame, export_raw=True, export_png=True, batch_size=20)
 
     for representation in vre.representations.keys():
         for t in range(start_frame, end_frame):

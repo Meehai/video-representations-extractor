@@ -6,22 +6,25 @@ from ...representation import Representation, RepresentationOutput
 
 
 class Canny(Representation):
-    def __init__(self, threshold1: float, threshold2: float, apertureSize: int, L2gradient: bool, **kwargs):
+    def __init__(self, threshold1: float, threshold2: float, aperture_size: int, l2_gradient: bool, **kwargs):
         super().__init__(**kwargs)
         self.threshold1 = threshold1
         self.threshold2 = threshold2
-        self.apertureSize = apertureSize
-        self.L2gradient = L2gradient
+        self.aperture_size = aperture_size
+        self.l2_gradient = l2_gradient
 
-    @overrides
-    def make(self, t: slice) -> RepresentationOutput:
-        raise NotImplementedError
-        frame = self.video[t]
-        res = frame * 0
-        res = cv2.Canny(frame, self.threshold1, self.threshold2, res, self.apertureSize, self.L2gradient)
+    def _make_one(self, x: np.ndarray) -> np.ndarray:
+        # res = np.zeros_like(x)
+        res = cv2.Canny(x, threshold1=self.threshold1, threshold2=self.threshold2,
+                        apertureSize=self.aperture_size, L2gradient=self.l2_gradient)
         res = np.float32(res) / 255
         return res
 
     @overrides
+    def make(self, t: slice) -> RepresentationOutput:
+        frames = self.video[t]
+        return np.array([self._make_one(frame) for frame in frames])
+
+    @overrides
     def make_images(self, x: np.ndarray, extra: dict | None) -> np.ndarray:
-        return np.uint8(255 * gray(x["data"])[..., 0:3])
+        return np.uint8(255 * gray(x)[..., 0:3])
