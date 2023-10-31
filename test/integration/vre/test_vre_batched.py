@@ -31,10 +31,12 @@ def test_vre_batched():
         #                     "parameters": {"n_clusters": 6, "epsilon": 2, "max_iterations": 10, "attempts": 3}},
         # "canny": {"type": "edges", "method": "canny", "dependencies": [],
         #           "parameters": {"threshold1": 100, "threshold2": 200, "aperture_size": 3, "l2_gradient": True}},
-        "depth dpt": {"type": "depth", "method": "dpt", "dependencies": [], "parameters": {"device": device}},
-        "normals svd (dpth)": {"type": "normals", "method": "depth-svd", "dependencies": ["depth dpt"],
-                               "parameters": {"sensor_fov": 75, "sensor_width": 3840,
-                                              "sensor_height": 2160, "window_size": 11}},
+        # "depth dpt": {"type": "depth", "method": "dpt", "dependencies": [], "parameters": {"device": device}},
+        # "normals svd (dpth)": {"type": "normals", "method": "depth-svd", "dependencies": ["depth dpt"],
+        #                        "parameters": {"sensor_fov": 75, "sensor_width": 3840,
+        #                                       "sensor_height": 2160, "window_size": 11}},
+        "opticalflow rife": {"type": "optical-flow", "method": "rife", "dependencies": [],
+                             "parameters": {"compute_backward_flow": False, "device": device}},
     }
 
     representations = build_representations_from_cfg(video, representations_dict)
@@ -50,6 +52,8 @@ def test_vre_batched():
     took1 = vre(tmp_dir, start_frame=start_frame, end_frame=end_frame, export_raw=True, export_png=True, batch_size=1)
     vre2 = VRE(video, representations2)
     took2 = vre2(tmp_dir2, start_frame=start_frame, end_frame=end_frame, export_raw=True, export_png=True, batch_size=5)
+    print(took1.mean())
+    print(took2.mean())
 
     for representation in vre.representations.keys():
         for t in range(start_frame, end_frame):

@@ -85,7 +85,7 @@ representations:
     method: rife
     dependencies: []
     parameters:
-      computeBackwardFlow: False
+      compute_backward_flow: False
       device: ${oc.env:VRE_DEVICE,cpu}
 
   depth odoflow (rife):
