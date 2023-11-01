@@ -60,7 +60,7 @@ def test_vre_batched():
     }
     # we'll just pick 2 random representations to test here
     representations_dict = {k: v for k, v in representations_dict.items()
-                            if k in np.random.choice(list(representations_dict.keys()), 2)}
+                            if k in np.random.choice(list(representations_dict.keys()), size=2, replace=False)}
 
     representations = build_representations_from_cfg(video, representations_dict)
     representations2 = build_representations_from_cfg(video, representations_dict)
