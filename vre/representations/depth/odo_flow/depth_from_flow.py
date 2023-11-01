@@ -303,7 +303,7 @@ def depth_from_flow(batched_flow, linear_velocity, angular_velocity, K,
     f_u, f_v = K[0, 0], K[1, 1]
     u0, v0 = K[0, 2], K[1, 2]
 
-    H, W = batched_flow.shape[2:]
+    H, W = batched_flow.shape[-2:]
 
     if mesh_grid is not None:
         us_bar, vs_bar = mesh_grid

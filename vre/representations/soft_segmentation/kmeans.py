@@ -73,12 +73,12 @@ class KMeans(Representation):
     def make(self, t: slice) -> RepresentationOutput:
         frames = np.array(self.video[t])
         res = np.zeros((frames.shape[0], frames.shape[1], frames.shape[2], self.n_clusters), dtype=np.uint8)
-        centers = {}
+        centers = []
         for i in range(frames.shape[0]):
             np.random.seed(t.start + i)
             one_frame = self._make_one_frame(frames[i])
             res[i] = one_frame[0]
-            centers[i] = one_frame[1]
+            centers.append({"frame": t.start + i, "centers": one_frame[1]})
         return res, centers
 
     def _make_one_image(self, x: np.ndarray, centers: np.ndarray) -> np.ndarray:
@@ -96,6 +96,6 @@ class KMeans(Representation):
         assert extra is not None
         assert len(extra) == len(x), (len(extra), len(x))
         imgs = []
-        for _x, centers in zip(x, extra.values()):
-            imgs.append(self._make_one_image(_x, centers))
+        for _x, _extra in zip(x, extra):
+            imgs.append(self._make_one_image(_x, extra["centers"]))
         return np.array(imgs)
