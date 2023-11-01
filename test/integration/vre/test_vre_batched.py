@@ -44,8 +44,10 @@ def test_vre_batched():
         #                                           "color_map": [[0, 255, 0], [0, 127, 0], [255, 255, 0],
         #                                                        [255, 255, 255], [255, 0, 0], [0, 0, 255],
         #                                                        [0, 255, 255], [127, 127, 63]]}},
+        # "halftone": {"type": "soft-segmentation", "method": "python-halftone", "dependencies": [],
+                        # "parameters": {"sample": 3, "scale": 1, "percentage": 91, "angles": [0, 15, 30, 45],
+                        #                 "antialias": False, "resolution": [240, 426]}},
     }
-
     representations = build_representations_from_cfg(video, representations_dict)
     representations2 = build_representations_from_cfg(video, representations_dict)
 
