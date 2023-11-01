@@ -24,7 +24,9 @@ def sample_representations(all_representations_dict: dict, n: int) -> dict:
     while True:
         deps = set()
         for v in representations_dict.values():
-            deps.update(v["dependencies"])
+            for _dep in v["dependencies"]:
+                if _dep not in representations_dict:
+                    deps.add(_dep)
         if len(deps) == 0:
             break
         for dep in deps:
