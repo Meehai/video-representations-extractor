@@ -18,11 +18,24 @@ def setup():
         gdown.download("https://drive.google.com/uc?id=158U-W-Gal6eXxYtS1ca1DAAxHvknqwAk", str(video_path))
     return str(video_path)
 
+def sample_representations(all_representations_dict: dict, n: int) -> dict:
+    chosen_ones = np.random.choice(list(all_representations_dict.keys()), size=2, replace=False).tolist()
+    representations_dict = {k: all_representations_dict[k] for k in chosen_ones}
+    while True:
+        deps = set()
+        for v in representations_dict.values():
+            deps.update(v["dependencies"])
+        if len(deps) == 0:
+            break
+        for dep in deps:
+            representations_dict[dep] = all_representations_dict[dep]
+    return representations_dict
+
 def test_vre_batched():
     video_path = setup()
     video = pims.Video(video_path)
     device = "cuda" if tr.cuda.is_available() else "cpu"
-    representations_dict = {
+    all_representations_dict = {
         "rgb": {"type": "default", "method": "rgb", "dependencies": [], "parameters": {}},
         "hsv": {"type": "default", "method": "hsv", "dependencies": [], "parameters": {}},
         "dexined": {"type": "edges", "method": "dexined", "dependencies": [], "parameters": {"device": device}},
@@ -59,9 +72,7 @@ def test_vre_batched():
                                                 "min_depth_meters": 0, "max_depth_meters": 400}},
     }
     # we'll just pick 2 random representations to test here
-    representations_dict = {k: v for k, v in representations_dict.items()
-                            if k in np.random.choice(list(representations_dict.keys()), size=2, replace=False)}
-
+    representation_dict = sample_representations(all_representations_dict, n=2)
     representations = build_representations_from_cfg(video, representations_dict)
     representations2 = build_representations_from_cfg(video, representations_dict)
 
