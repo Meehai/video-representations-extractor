@@ -1,3 +1,4 @@
+"""VRE Representation module"""
 from __future__ import annotations
 import numpy as np
 import pims
@@ -6,11 +7,10 @@ from pathlib import Path
 from abc import ABC, abstractmethod
 from functools import lru_cache
 
-# Either a single np.ndarray or a dict of format {"data": np.ndarray, "extra": other stuff.}
-RepresentationOutput = np.ndarray | dict[str, np.ndarray]
+RepresentationOutput = np.ndarray | tuple[np.ndarray, dict]
 
-# @brief Generic video/image representation
 class Representation(ABC):
+    """Generic Representation class for VRE"""
     def __init__(self, video: pims.Video, name: str, dependencies: list[Representation]):
         assert isinstance(dependencies, (set, list))
         self.name = name
@@ -19,7 +19,7 @@ class Representation(ABC):
         self.video = video
 
     @abstractmethod
-    def make(self, t: int) -> RepresentationOutput:
+    def make(self, t: slice) -> RepresentationOutput:
         """
         Main method of this representation. Calls the internal representation's logic to transform the current provided
         RGB frame of the attached video into the output representation.
@@ -27,40 +27,41 @@ class Representation(ABC):
         Some representations may not be natively represented like that (i.e. optical flow being [-1:1]). The end-user
         must take care of this cases.
 
-        The returned value is either a simple numpy array of the same shape as the video or a dict with two entries:
-        {"data": np_data, "extra": {relevant info about this frame}}. The data is converted behind the scenes in the
-        second representation if only a numpy array is provided with an empty 'extra' dict.
+        The returned value is either a simple numpy array of the same shape as the video plus an optional tuple with
+        extra stuff. This extra stuff is whatever that representation may want to store about the frames it was given.
 
         This is also invoked for repr[t] and repr(t).
         """
 
     @abstractmethod
-    def make_image(self, x: RepresentationOutput) -> np.ndarray:
+    def make_images(self, x: np.ndarray, extra: dict | None) -> np.ndarray:
         """Given the output of self.make(t), which a [0:1] float32 numpy array, return a [0:255] uint8 image"""
 
-    def resize(self, x: RepresentationOutput, height: int, width: int, **resize_args) -> RepresentationOutput:
+    def resize(self, x: np.ndarray, height: int, width: int) -> np.ndarray:
         """
         Resizes a representation output made from self.make(t). Info about time may be passed via 'extra' dict.
         Update this for more complex cases.
         """
-        y = cv2.resize(x["data"], (width, height), interpolation=cv2.INTER_LINEAR)
-        return {"data": y, "extra": x["extra"]}
+        y = np.array([cv2.resize(_x, (width, height), interpolation=cv2.INTER_LINEAR) for _x in x])
+        return y
 
-    def __getitem__(self, t: int) -> RepresentationOutput:
+    def __getitem__(self, t: slice | int) -> np.ndarray:
         return self.__call__(t)
 
-    @lru_cache(maxsize=1000)
-    def __call__(self, t: int) -> RepresentationOutput:
-        # t = t % len(self.video) # TODO: needed?
-        assert t >= 0 and t < len(self.video)
+    # @lru_cache(maxsize=1000)
+    def __call__(self, t: slice | int) -> RepresentationOutput:
+        if isinstance(t, int):
+            t = slice(t, t + 1)
+        assert t.start >= 0 and t.stop < len(self.video), t
         # Get the raw result of this representation
-        raw_result = self.make(t)
-        raw_result = {"data": raw_result, "extra": {}} if isinstance(raw_result, np.ndarray) else raw_result
-        data = raw_result["data"]
-        assert data.dtype in (np.float32, np.uint8), f"{self.name}: Dtype: {data.dtype}"
-        if data.dtype == np.float32:
-            assert data.min() >= 0 and data.max() <= 1, f"{self.name}: Min: {data.min():.2f}. Max: {data.max():.2f}"
-        return raw_result
+        res = self.make(t)
+        raw_data, extra = res if isinstance(res, tuple) else (res, {})
+        # uint8 for semantic segmentation, float32 for everything else
+        assert raw_data.dtype in (np.float32, np.uint8), raw_data.dtype
+        if raw_data.dtype == np.float32:
+            assert raw_data.min() >= 0 and raw_data.max() <= 1, (f"{self.name}: [{raw_data.min():.2f}:"
+                                                                 f"{raw_data.max():.2f}]")
+        return raw_data, extra
 
     # TODO: see if this is needed for more special/faster resizes
     # def resizeRawData(self, rawData: np.ndarray) -> np.ndarray:

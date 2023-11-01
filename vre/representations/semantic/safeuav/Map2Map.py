@@ -59,9 +59,8 @@ class EncoderMap2Map(nn.Module):
             padding=1, stride=2, dilation=1)
         self.conv15 = conv(dIn=numFilters * 2, dOut=numFilters, kernel_size=3, padding=1, stride=1, dilation=1)
 
-    def forward(self, x):
+    def forward(self, x: tr.Tensor) -> tr.Tensor:
         # x::dInxHxW
-        x = x.transpose(1, 3).transpose(2, 3)
         y_1 = self.conv1(x)
         y_2 = self.conv2(y_1)
         y_3 = self.conv3(y_2)
@@ -103,8 +102,7 @@ class DecoderMap2Map(nn.Module):
 
     def forward(self, x):
         y = self.decoderConv(x)
-        out = y.transpose(1, 3).transpose(1, 2)
-        return out
+        return y
 
     def __str__(self):
         return f"Decoder Map2Map. dOut: {self.dOut}. NF: {self.numFilters}."

@@ -19,4 +19,5 @@ matplotlib
 flow_vis==0.1
 colorama==0.4.6
 omegaconf==2.3.0
-git+https://gitlab.com/meehai/media-processing-lib@v0.2#egg=media-processing-lib
+lovely_tensors==0.1.15
+media-processing-lib==0.63

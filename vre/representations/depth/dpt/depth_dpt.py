@@ -5,18 +5,36 @@ import torch.nn.functional as F
 import cv2
 import gdown
 from overrides import overrides
-from torchvision.transforms import Compose
 from pathlib import Path
 from matplotlib.cm import hot
 
 from .dpt_depth import DPTDepthModel
-from .transforms import Resize, NormalizeImage, PrepareForNet
 from ....representation import Representation, RepresentationOutput
 from ....logger import logger
 
+def constrain_to_multiple_of(x, multiple_of: int, min_val=0, max_val=None):
+    y = (np.round(x / multiple_of) * multiple_of).astype(int)
+    if max_val is not None and y > max_val:
+        y = (np.floor(x / multiple_of) * multiple_of).astype(int)
+    if y < min_val:
+        y = (np.ceil(x / multiple_of) * multiple_of).astype(int)
+    return y
 
-def closest_fit(size, multiples):
-    return [round(size[i] / multiples[i]) * multiples[i] for i in range(len(multiples))]
+def get_size(__height, __width, height, width, multiple_of):
+    # determine new height and width
+    scale_height = __height / height
+    scale_width = __width / width
+    # keep aspect ratio
+    if abs(1 - scale_width) < abs(1 - scale_height):
+        # fit width
+        scale_height = scale_width
+    else:
+        # fit height
+        scale_width = scale_height
+    new_height = constrain_to_multiple_of(scale_height * height, multiple_of)
+    new_width = constrain_to_multiple_of(scale_width * width, multiple_of)
+
+    return new_height, new_width
 
 
 class DepthDpt(Representation):
@@ -26,58 +44,46 @@ class DepthDpt(Representation):
         assert tr.cuda.is_available() or self.device == "cpu", "CUDA not available"
         super().__init__(**kwargs)
         self._setup()
-        net_w, net_h = 384, 384
-        resize_mode = "minimal"
-        normalization = NormalizeImage(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
-        self.transform = Compose(
-            [
-                Resize(
-                    net_w,
-                    net_h,
-                    resize_target=None,
-                    keep_aspect_ratio=True,
-                    ensure_multiple_of=32,
-                    resize_method=resize_mode,
-                    image_interpolation_method=cv2.INTER_CUBIC,
-                ),
-                normalization,
-                PrepareForNet(),
-            ]
-        )
+        self.net_w, self.net_h = 384, 384
+        self.multiple_of = 32
+
+    def _preprocess(self, x: np.ndarray) -> tr.Tensor:
+        tr_frames = tr.from_numpy(x).to(self.device)
+        tr_frames_perm = tr_frames.permute(0, 3, 1, 2).float() / 255
+        curr_h, curr_w = tr_frames.shape[1], tr_frames.shape[2]
+        h, w = get_size(self.net_h, self.net_w, curr_h, curr_w, multiple_of=self.multiple_of)
+        tr_frames_resized = F.interpolate(tr_frames_perm, size=(int(h), int(w)), mode="bicubic")
+        tr_frames_norm = (tr_frames_resized - 0.5) / 0.5
+        return tr_frames_norm
+
+    def _postprocess(self, y: tr.Tensor) -> np.ndarray:
+        return (1 / y).clip(0, 1).cpu().numpy()
 
     def _setup(self):
         # our backup
-        weightsFile = Path(f"{os.environ['VRE_WEIGHTS_DIR']}/depth_dpt_midas.pth").absolute()
-        urlWeights = "https://drive.google.com/u/0/uc?id=15JbN2YSkZFSaSV2CGkU1kVSxCBrNtyhD"
+        weights_file = Path(f"{os.environ['VRE_WEIGHTS_DIR']}/depth_dpt_midas.pth").absolute()
+        url_weights = "https://drive.google.com/u/0/uc?id=15JbN2YSkZFSaSV2CGkU1kVSxCBrNtyhD"
 
-        if not weightsFile.exists():
-            logger.debug(f"Downloading weights for dexined from {urlWeights}")
-            gdown.download(urlWeights, weightsFile.__str__())
+        if not weights_file.exists():
+            logger.debug(f"Downloading weights for dexined from {url_weights}")
+            gdown.download(url_weights, f"{weights_file}")
 
-        model = DPTDepthModel(
-            backbone="vitl16_384",
-            non_negative=True,
-        )
-        model.load_state_dict(tr.load(weightsFile, map_location="cpu"))
+        model = DPTDepthModel(backbone="vitl16_384", non_negative=True)
+        model.load_state_dict(tr.load(weights_file, map_location="cpu"))
         model.eval()
         self.model = model.to(self.device)
 
     @overrides
-    def make(self, t: int) -> RepresentationOutput:
-        x = self.video[t]
-        img_input = self.transform({"image": x / 255.0})["image"]
-        # compute
+    def make(self, t: slice) -> RepresentationOutput:
+        frames = np.array(self.video[t])
+        tr_frames = self._preprocess(frames)
         with tr.no_grad():
-            sample = tr.from_numpy(img_input).unsqueeze(0).to(self.device)
-            prediction = self.model.forward(sample).squeeze(dim=1)
-            prediction = prediction.squeeze().cpu().numpy()
-            prediction = 1 / prediction
-            prediction = np.clip(prediction, 0, 1)
-        return prediction
+            predictions = self.model(tr_frames)
+        res = self._postprocess(predictions)
+        return res
 
     @overrides
-    def make_image(self, x: RepresentationOutput) -> np.ndarray:
-        y = x["data"]
-        y = hot(y)[..., 0:3]
+    def make_images(self, x: np.ndarray, extra: dict | None) -> np.ndarray:
+        y = hot(x)[..., 0:3]
         y = np.uint8(y * 255)
         return y

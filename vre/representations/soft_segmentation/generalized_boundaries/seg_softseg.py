@@ -18,13 +18,13 @@ class GeneralizedBoundaries(Representation):
         self.adjustToRGB = adjustToRGB
         self.maxChannels = maxChannels
 
-    def make(self, t: int) -> RepresentationOutput:
-        x = tr.from_numpy(self.video[t]).type(tr.float) / 255
-        x = x.permute(2, 0, 1).unsqueeze(0)
+    def make(self, t: slice) -> RepresentationOutput:
+        x = tr.from_numpy(np.array(self.video[t])).type(tr.float) / 255
+        x = x.permute(0, 3, 1, 2)
         y = soft_seg(x, use_filtering=self.useFiltering, as_image=self.adjustToRGB, max_channels=self.maxChannels)
-        y = y[0].permute(1, 2, 0).cpu().numpy()
+        y = y.permute(0, 2, 3, 1).cpu().numpy()
         return y
 
-    def make_image(self, x: RepresentationOutput) -> np.ndarray:
-        y = np.uint8(x["data"] * 255)
+    def make_images(self, x: np.ndarray, extra: dict | None) -> np.ndarray:
+        y = np.uint8(x * 255)
         return y

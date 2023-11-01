@@ -15,10 +15,11 @@ class InputPadder:
         else:
             self._pad = [pad_wd//2, pad_wd - pad_wd//2, 0, pad_ht]
 
-    def pad(self, *inputs):
-        return [F.pad(x, self._pad, mode='replicate') for x in inputs]
+    def pad(self, x: torch.Tensor) -> torch.Tensor:
+        assert isinstance(x, torch.Tensor), type(x)
+        return F.pad(x, self._pad, mode="replicate")
 
-    def unpad(self,x):
+    def unpad(self, x: torch.Tensor) -> torch.Tensor:
         ht, wd = x.shape[-2:]
         c = [self._pad[2], ht-self._pad[3], self._pad[0], wd-self._pad[1]]
         return x[..., c[0]:c[1], c[2]:c[3]]
@@ -32,7 +33,7 @@ def forward_interpolate(flow):
 
     x1 = x0 + dx
     y1 = y0 + dy
-    
+
     x1 = x1.reshape(-1)
     y1 = y1.reshape(-1)
     dx = dx.reshape(-1)

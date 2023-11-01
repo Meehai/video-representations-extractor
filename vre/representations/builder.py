@@ -54,10 +54,6 @@ def build_representation_type(type: str, method: str) -> Type[Representation]:
             from .depth.odo_flow import DepthOdoFlow
 
             objType = DepthOdoFlow
-        elif method == "depth-dispresnet":
-            from .depth.dispresnet import DepthDispResNet
-
-            objType = DepthDispResNet
 
     elif type == "optical-flow":
         if method == "rife":
@@ -92,7 +88,7 @@ def build_representation_from_cfg(video: pims.Video, repr_cfg: dict, name: str,
     repr_type, repr_method = repr_cfg["type"], repr_cfg["method"]
     dependencies = [built_so_far[dep] for dep in repr_cfg["dependencies"]]
     assert isinstance(repr_cfg["parameters"], dict), type(repr_cfg["parameters"])
-    logger.info(f"Building '{repr_type}/'{name}'")
+    logger.info(f"Building '{repr_type}'/'{name}'")
 
     obj_type = build_representation_type(repr_type, repr_method)
     # this is here because omegaconf transforms [1, 2, 3, 4] in a ListConfig, not a simple list

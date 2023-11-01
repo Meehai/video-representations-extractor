@@ -34,16 +34,8 @@ class Halftone(Representation):
             antialias: boolean.
     """
 
-    def __init__(
-        self,
-        sample: float,
-        scale: float,
-        percentage: float,
-        angles: List[int],
-        antialias: bool,
-        resolution: tuple[int, int],
-        **kwargs,
-    ):
+    def __init__(self, sample: float, scale: float, percentage: float, angles: list[int],
+                 antialias: bool, resolution: tuple[int, int], **kwargs):
         super().__init__(**kwargs)
         assert len(resolution) == 2, resolution
         self.sample = sample
@@ -54,11 +46,8 @@ class Halftone(Representation):
         self.resolution = resolution
         self.check_arguments()
 
-    @overrides
-    def make(self, t: int) -> RepresentationOutput:
-        frame = self.video[t]
+    def make_one_image(self, frame: np.ndarray) -> np.ndarray:
         frame = cv2.resize(frame, (self.resolution[1], self.resolution[0]), interpolation=cv2.INTER_LINEAR)
-
         im = Image.fromarray(frame, "RGB")
         cmyk = self.gcr(im, self.percentage)
         channel_images = self.halftone(im, cmyk)
@@ -68,8 +57,13 @@ class Halftone(Representation):
         return new
 
     @overrides
-    def make_image(self, x: RepresentationOutput) -> np.ndarray:
-        return np.uint8(x["data"] * 255)
+    def make(self, t: slice) -> RepresentationOutput:
+        frames = np.array(self.video[t])
+        return np.array([self.make_one_image(frame) for frame in frames])
+
+    @overrides
+    def make_images(self, x: np.ndarray, extra: dict | None) -> np.ndarray:
+        return np.uint8(x * 255)
 
     def check_arguments(self):
         assert (

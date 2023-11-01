@@ -36,19 +36,19 @@ representations:
     method: canny
     dependencies: []
     parameters:
-      threshold1: 150
+      threshold1: 100
       threshold2: 200
-      apertureSize: 3
-      L2gradient: False
+      aperture_size: 3
+      l2_gradient: True
 
   softseg kmeans:
     type: soft-segmentation
     method: kmeans
     dependencies: []
     parameters:
-      nClusters: 6
+      n_clusters: 6
       epsilon: 2
-      maxIterations: 10
+      max_iterations: 10
       attempts: 3
 
   softseg gb:
@@ -67,11 +67,11 @@ representations:
     parameters:
       device: ${oc.env:VRE_DEVICE,cpu}
       weights_file: safeuav_semantic_0956_pytorch.ckpt
-      trainHeight: 240
-      trainWidth: 428
-      numClasses: 8
-      colorMap: [[0, 255, 0], [0, 127, 0], [255, 255, 0], [255, 255, 255],
-                 [255, 0, 0], [0, 0, 255], [0, 255, 255], [127, 127, 63]]
+      train_height: 240
+      train_width: 428
+      num_classes: 8
+      color_map: [[0, 255, 0], [0, 127, 0], [255, 255, 0], [255, 255, 255],
+                  [255, 0, 0], [0, 0, 255], [0, 255, 255], [127, 127, 63]]
 
   edges dexined:
     type: edges
@@ -85,7 +85,7 @@ representations:
     method: rife
     dependencies: []
     parameters:
-      computeBackwardFlow: False
+      compute_backward_flow: False
       device: ${oc.env:VRE_DEVICE,cpu}
 
   depth odoflow (rife):
@@ -93,26 +93,26 @@ representations:
     method: odo-flow
     dependencies: [opticalflow rife]
     parameters:
-      velocitiesPath: DJI_0956_velocities.npz
+      velocities_path: DJI_0956_velocities.npz
       linearAngVelCorrection: True
-      focusCorrection: True
-      cosineCorrectionScipy: False
-      cosineCorrectionGD: True
-      fov: 75
-      sensorWidth: 3840
-      sensorHeight: 2160
-      minDepthMeters: 0
-      maxDepthMeters: 400
+      focus_correction: True
+      cosine_correction_scipy: False
+      cosine_correction_GD: True
+      sensor_fov: 75
+      sensor_width: 3840
+      sensor_height: 2160
+      min_depth_meters: 0
+      max_depth_meters: 400
 
   normals svd (rife):
     type: normals
     method: depth-svd
     dependencies: [depth odoflow (rife)]
     parameters:
-      fov: 75
-      sensorWidth: 3840
-      sensorHeight: 2160
-      windowSize: 11
+      sensor_fov: 75
+      sensor_width: 3840
+      sensor_height: 2160
+      window_size: 11
 
   # # SUCKY BECAUSE SUPERSLOW. Adds like 2-3 mins in CI. Rife is good enough.
   # opticalflow raft:
@@ -121,34 +121,34 @@ representations:
   #   dependencies: []
   #   parameters:
   #     device: ${oc.env:VRE_DEVICE,cpu}
-  #     inputHeight: 720
-  #     inputWidth: 1280
+  #     inference_height: 720
+  #     inference_width: 1280
 
   # depth odoflow (raft):
   #   type: depth
   #   method: odo-flow
   #   dependencies: [opticalflow raft]
   #   parameters:
-  #     velocitiesPath: DJI_0956_velocities.npz
+  #     velocities_path: DJI_0956_velocities.npz
   #     linearAngVelCorrection: True
-  #     focusCorrection: True
-  #     cosineCorrectionScipy: False
-  #     cosineCorrectionGD: True
-  #     fov: 75
-  #     sensorWidth: 3840
-  #     sensorHeight: 2160
-  #     minDepthMeters: 0
-  #     maxDepthMeters: 400
+  #     focus_correction: True
+  #     cosine_correction_scipy: False
+  #     cosine_correction_GD: True
+  #     sensor_fov: 75
+  #     sensor_width: 3840
+  #     sensor_height: 2160
+  #     min_depth_meters: 0
+  #     max_depth_meters: 400
 
   # normals svd (raft):
   #   type: normals
   #   method: depth-svd
   #   dependencies: [depth odoflow (raft)]
   #   parameters:
-  #     fov: 75
-  #     sensorWidth: 3840
-  #     sensorHeight: 2160
-  #     windowSize: 11
+  #     sensor_fov: 75
+  #     sensor_width: 3840
+  #     sensor_height: 2160
+  #     window_size: 11
 
   # # sucky because slow, but it's good/pretrained
   # depth dpt:
@@ -163,7 +163,7 @@ representations:
   #   method: depth-svd
   #   dependencies: [depth dpt]
   #   parameters:
-  #     fov: 75
-  #     sensorWidth: 3840
-  #     sensorHeight: 2160
-  #     windowSize: 11
+  #     sensor_fov: 75
+  #     sensor_width: 3840
+  #     sensor_height: 2160
+  #     window_size: 11
