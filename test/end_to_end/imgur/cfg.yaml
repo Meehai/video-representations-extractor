@@ -121,8 +121,8 @@ representations:
   #   dependencies: []
   #   parameters:
   #     device: ${oc.env:VRE_DEVICE,cpu}
-  #     inputHeight: 720
-  #     inputWidth: 1280
+  #     inference_height: 720
+  #     inference_width: 1280
 
   # depth odoflow (raft):
   #   type: depth

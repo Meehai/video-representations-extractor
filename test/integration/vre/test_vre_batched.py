@@ -4,6 +4,7 @@ from tempfile import TemporaryDirectory
 from datetime import datetime
 import gdown
 import pims
+import pandas as pd
 import numpy as np
 import torch as tr
 
@@ -47,7 +48,12 @@ def test_vre_batched():
         # "halftone": {"type": "soft-segmentation", "method": "python-halftone", "dependencies": [],
                         # "parameters": {"sample": 3, "scale": 1, "percentage": 91, "angles": [0, 15, 30, 45],
                         #                 "antialias": False, "resolution": [240, 426]}},
+        "opticalflow raft": {"type": "optical-flow", "method": "raft", "dependencies": [],
+                             "parameters": {"device": device, "inference_height": 360, "inference_width": 640,
+                                            "small": False, "mixed_precision": False, "iters": 20}},
+
     }
+
     representations = build_representations_from_cfg(video, representations_dict)
     representations2 = build_representations_from_cfg(video, representations_dict)
 
@@ -57,12 +63,15 @@ def test_vre_batched():
     shutil.rmtree(tmp_dir2, ignore_errors=True)
 
     start_frame, end_frame = 1000, 1020
+    batch_size = 5
     vre = VRE(video, representations)
     took1 = vre(tmp_dir, start_frame=start_frame, end_frame=end_frame, export_raw=True, export_png=True, batch_size=1)
     vre2 = VRE(video, representations2)
-    took2 = vre2(tmp_dir2, start_frame=start_frame, end_frame=end_frame, export_raw=True, export_png=True, batch_size=5)
-    print(took1.mean())
-    print(took2.mean())
+    took2 = vre2(tmp_dir2, start_frame=start_frame, end_frame=end_frame, export_raw=True, export_png=True,
+                 batch_size=batch_size)
+    both = pd.concat([took1.drop(columns=["frame"]).mean().rename("unbatched"),
+                      took2.drop(columns=["frame"]).mean().rename(f"batch={batch_size}")], axis=1)
+    both.loc["total"] = both.sum() * (end_frame - start_frame)
 
     for representation in vre.representations.keys():
         for t in range(start_frame, end_frame):
