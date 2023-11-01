@@ -20,4 +20,4 @@ flow_vis==0.1
 colorama==0.4.6
 omegaconf==2.3.0
 lovely_tensors==0.1.15
-media-processiglib==0.63
+media-processing-lib==0.63
