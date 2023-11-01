@@ -74,7 +74,7 @@ def test_vre_batched():
                                                 "min_depth_meters": 0, "max_depth_meters": 400}},
     }
     # we'll just pick 2 random representations to test here
-    representation_dict = sample_representations(all_representations_dict, n=2)
+    representations_dict = sample_representations(all_representations_dict, n=2)
     representations = build_representations_from_cfg(video, representations_dict)
     representations2 = build_representations_from_cfg(video, representations_dict)
 
