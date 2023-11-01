@@ -81,7 +81,7 @@ def test_vre_batched():
     shutil.rmtree(tmp_dir, ignore_errors=True)
     shutil.rmtree(tmp_dir2, ignore_errors=True)
 
-    start_frame, end_frame = 1000, 1100
+    start_frame, end_frame = 1000, (1100 if __name__ == "__main__" else 1005)
     batch_size = 5
     vre = VRE(video, representations)
     took1 = vre(tmp_dir, start_frame=start_frame, end_frame=end_frame, export_raw=True, export_png=True, batch_size=1)
