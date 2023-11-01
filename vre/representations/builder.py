@@ -54,10 +54,6 @@ def build_representation_type(type: str, method: str) -> Type[Representation]:
             from .depth.odo_flow import DepthOdoFlow
 
             objType = DepthOdoFlow
-        elif method == "depth-dispresnet":
-            from .depth.dispresnet import DepthDispResNet
-
-            objType = DepthDispResNet
 
     elif type == "optical-flow":
         if method == "rife":
