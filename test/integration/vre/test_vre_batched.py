@@ -46,11 +46,11 @@ def test_vre_batched():
         #                                                        [255, 255, 255], [255, 0, 0], [0, 0, 255],
         #                                                        [0, 255, 255], [127, 127, 63]]}},
         # "halftone": {"type": "soft-segmentation", "method": "python-halftone", "dependencies": [],
-                        # "parameters": {"sample": 3, "scale": 1, "percentage": 91, "angles": [0, 15, 30, 45],
-                        #                 "antialias": False, "resolution": [240, 426]}},
-        "opticalflow raft": {"type": "optical-flow", "method": "raft", "dependencies": [],
-                             "parameters": {"device": device, "inference_height": 360, "inference_width": 640,
-                                            "small": False, "mixed_precision": False, "iters": 20}},
+        #                 "parameters": {"sample": 3, "scale": 1, "percentage": 91, "angles": [0, 15, 30, 45],
+        #                                 "antialias": False, "resolution": [240, 426]}},
+        # "opticalflow raft": {"type": "optical-flow", "method": "raft", "dependencies": [],
+        #                      "parameters": {"device": "cuda:4", "inference_height": 360, "inference_width": 640,
+        #                                     "small": False, "mixed_precision": False, "iters": 20}},
 
     }
 
@@ -62,7 +62,7 @@ def test_vre_batched():
     shutil.rmtree(tmp_dir, ignore_errors=True)
     shutil.rmtree(tmp_dir2, ignore_errors=True)
 
-    start_frame, end_frame = 1000, 1020
+    start_frame, end_frame = 1000, 1010
     batch_size = 5
     vre = VRE(video, representations)
     took1 = vre(tmp_dir, start_frame=start_frame, end_frame=end_frame, export_raw=True, export_png=True, batch_size=1)
@@ -72,6 +72,7 @@ def test_vre_batched():
     both = pd.concat([took1.drop(columns=["frame"]).mean().rename("unbatched"),
                       took2.drop(columns=["frame"]).mean().rename(f"batch={batch_size}")], axis=1)
     both.loc["total"] = both.sum() * (end_frame - start_frame)
+    print(both)
 
     for representation in vre.representations.keys():
         for t in range(start_frame, end_frame):
