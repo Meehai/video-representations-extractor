@@ -97,5 +97,5 @@ class KMeans(Representation):
         assert len(extra) == len(x), (len(extra), len(x))
         imgs = []
         for _x, _extra in zip(x, extra):
-            imgs.append(self._make_one_image(_x, extra["centers"]))
+            imgs.append(self._make_one_image(_x, _extra["centers"]))
         return np.array(imgs)

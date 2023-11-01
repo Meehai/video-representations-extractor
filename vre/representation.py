@@ -42,7 +42,7 @@ class Representation(ABC):
         Resizes a representation output made from self.make(t). Info about time may be passed via 'extra' dict.
         Update this for more complex cases.
         """
-        y = cv2.resize(x, (width, height), interpolation=cv2.INTER_LINEAR)
+        y = np.array([cv2.resize(_x, (width, height), interpolation=cv2.INTER_LINEAR) for _x in x])
         return y
 
     def __getitem__(self, t: slice | int) -> np.ndarray:
