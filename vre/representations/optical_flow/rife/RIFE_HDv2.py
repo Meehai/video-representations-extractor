@@ -206,11 +206,10 @@ class Model(nn.Module):
 
 
 if __name__ == '__main__':
-    device = tr.device("cuda" if tr.cuda.is_available() else "cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     img0 = torch.zeros(3, 3, 256, 256).float().to(device)
-    img1 = torch.tensor(np.random.normal(
-        0, 1, (3, 3, 256, 256))).float().to(device)
+    img1 = torch.tensor(np.random.normal(0, 1, (3, 3, 256, 256))).float().to(device)
     imgs = torch.cat((img0, img1), 1)
-    model = Model()
+    model = Model().to(device)
     model.eval()
     print(model.inference(imgs).shape)

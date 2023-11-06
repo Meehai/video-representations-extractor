@@ -1,5 +1,5 @@
+"""SafeUAVG semanetic segmentation representation"""
 import os
-import cv2
 import numpy as np
 import torch as tr
 from overrides import overrides
@@ -11,11 +11,12 @@ from .Map2Map import EncoderMap2Map, DecoderMap2Map
 from ....representation import Representation, RepresentationOutput
 
 
-class MyModel(nn.Module):
-    def __init__(self, dIn, dOut):
+class _SafeUavWrapper(nn.Module):
+    """Wrapper. TODO: Replace with nn.Sequential"""
+    def __init__(self, ch_in: int, ch_out: int):
         super().__init__()
-        self.encoder = EncoderMap2Map(dIn)
-        self.decoder = DecoderMap2Map(dOut)
+        self.encoder = EncoderMap2Map(ch_in)
+        self.decoder = DecoderMap2Map(ch_out)
 
     def forward(self, x):
         y_encoder = self.encoder(x)
@@ -24,20 +25,41 @@ class MyModel(nn.Module):
 
 
 class SSegSafeUAV(Representation):
-    def __init__(self, num_classes: int, train_height: int, train_width: int, color_map: list[tuple[int, int, int]],
-                 weights_file: str, device: str, **kwargs):
-        self.model = None
+    def __init__(self, num_classes: int, train_height: int, train_width: int,
+                 color_map: list[tuple[int, int, int]], **kwargs):
+        self.model: _SafeUavWrapper | None = None
         self.num_classes = num_classes
         assert len(color_map) == num_classes, f"{color_map} ({len(color_map)}) vs {num_classes}"
-        weights_file = Path(f"{os.environ['VRE_WEIGHTS_DIR']}/{weights_file}").absolute()
-        assert Path(weights_file).exists(), f"Weights file '{weights_file}' does not exist."
-        self.weights_file = weights_file
         self.color_map = color_map
         self.train_height = train_height
         self.train_width = train_width
-        self.device = device
+        self.device = "cpu"
         super().__init__(**kwargs)
-        self._setup()
+        self.model = _SafeUavWrapper(ch_in=3, ch_out=self.num_classes).eval()
+
+    @overrides(check_signature=False)
+    def vre_setup(self, weights_file: str, device: str, **kwargs):
+        self.device = device
+        weights_dir = Path(f"{os.environ['VRE_WEIGHTS_DIR']}").absolute()
+        weights_file_abs = weights_dir / weights_file
+        assert weights_file_abs.exists(), f"Weights file '{weights_file_abs}' does not exist."
+        data = tr.load(weights_file_abs, map_location="cpu")["state_dict"]
+        params = self.model.state_dict()
+
+        def convert(data: dict[str, tr.Tensor]) -> dict[str, tr.Tensor]:
+            new_data = {}
+            for k in data.keys():
+                if k.startswith("model.0."):
+                    other = k.replace("model.0.", "encoder.")
+                elif k.startswith("model.1."):
+                    other = k.replace("model.1.", "decoder.")
+                else:
+                    assert False, (k, params.keys())
+                new_data[other] = data[k]
+            return new_data
+
+        self.model.load_state_dict(convert(data))
+        self.model = self.model.eval().to(self.device)
 
     @overrides
     def make(self, t: slice) -> RepresentationOutput:
@@ -59,21 +81,3 @@ class SSegSafeUAV(Representation):
             new_images[x == i] = self.color_map[i]
         return new_images
 
-    def _setup(self):
-        model = MyModel(dIn=3, dOut=self.num_classes)
-        data = tr.load(self.weights_file, map_location="cpu")["state_dict"]
-        params = model.state_dict()
-        def convert(data: dict[str, tr.Tensor]) -> dict[str, tr.Tensor]:
-            new_data = {}
-            for k in data.keys():
-                if k.startswith("model.0."):
-                    other = k.replace("model.0.", "encoder.")
-                elif k.startswith("model.1."):
-                    other = k.replace("model.1.", "decoder.")
-                else:
-                    assert False, (k, params.keys())
-                new_data[other] = data[k]
-            return new_data
-
-        model.load_state_dict(convert(data))
-        self.model = model.eval().to(self.device)

@@ -2,7 +2,6 @@ import os
 import numpy as np
 import torch as tr
 import torch.nn.functional as F
-import cv2
 import gdown
 from overrides import overrides
 from pathlib import Path
@@ -38,14 +37,14 @@ def get_size(__height, __width, height, width, multiple_of):
 
 
 class DepthDpt(Representation):
-    def __init__(self, device: str, **kwargs):
+    def __init__(self, **kwargs):
         self.model = None
-        self.device = device
-        assert tr.cuda.is_available() or self.device == "cpu", "CUDA not available"
         super().__init__(**kwargs)
-        self._setup()
+        # VRE setup stuff
         self.net_w, self.net_h = 384, 384
         self.multiple_of = 32
+        self.device: str = "cpu"
+        self._setup()
 
     def _preprocess(self, x: np.ndarray) -> tr.Tensor:
         tr_frames = tr.from_numpy(x).to(self.device)
@@ -60,6 +59,11 @@ class DepthDpt(Representation):
         return (1 / y).clip(0, 1).cpu().numpy()
 
     def _setup(self):
+        self.model = DPTDepthModel(backbone="vitl16_384", non_negative=True)
+
+    @overrides(check_signature=False)
+    def vre_setup(self, device: str):
+        assert tr.cuda.is_available() or device == "cpu", "CUDA not available"
         # our backup
         weights_file = Path(f"{os.environ['VRE_WEIGHTS_DIR']}/depth_dpt_midas.pth").absolute()
         url_weights = "https://drive.google.com/u/0/uc?id=15JbN2YSkZFSaSV2CGkU1kVSxCBrNtyhD"
@@ -68,10 +72,9 @@ class DepthDpt(Representation):
             logger.debug(f"Downloading weights for dexined from {url_weights}")
             gdown.download(url_weights, f"{weights_file}")
 
-        model = DPTDepthModel(backbone="vitl16_384", non_negative=True)
-        model.load_state_dict(tr.load(weights_file, map_location="cpu"))
-        model.eval()
-        self.model = model.to(self.device)
+        self.device = device
+        self.model.load_state_dict(tr.load(weights_file, map_location="cpu"))
+        self.model = self.model.eval().to(self.device)
 
     @overrides
     def make(self, t: slice) -> RepresentationOutput:

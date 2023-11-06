@@ -1,12 +1,11 @@
-from typing import List, Dict, T, Callable
+from typing import T, Callable
 from pathlib import Path
-import numpy as np
 
 def get_project_root() -> Path:
     """gets the root of this project"""
     return Path(__file__).parents[1]
 
-def topological_sort(dependency_graph: Dict[T, List[T]]) -> List[T]:
+def topological_sort(dependency_graph: dict[T, list[T]]) -> list[T]:
     """
     Given a graph as a dict {Node : [Dependencies]}, returns a list [Node] ordered with a correct topological
         sort order. Applies Kahn's algorithm: https://ocw.cs.pub.ro/courses/pa/laboratoare/laborator-07

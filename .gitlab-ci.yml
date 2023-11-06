@@ -2,7 +2,7 @@ image: meehai/vre-ci:latest
 
 workflow:
   rules:
-    - if: $CI_MERGE_REQUEST_ID || '$CI_COMMIT_REF_NAME == "master"'
+    - if: $CI_MERGE_REQUEST_ID && '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master"'
       when: always
     - when: never
 

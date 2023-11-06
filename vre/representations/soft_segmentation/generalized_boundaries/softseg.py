@@ -3,7 +3,7 @@ import torch.nn.functional as F
 from .util import rgb2hsv, normalize_channels, median_filter, like_an_image
 
 
-def soft_seg(img, max_channels=3, use_filtering=False, as_image=False, internal_size=300):
+def soft_seg(img, max_channels=3, use_median_filtering=False, as_image=False, internal_size=300):
     nb, _, ny, nx = img.shape
     img = normalize_channels(img)
 
@@ -31,7 +31,7 @@ def soft_seg(img, max_channels=3, use_filtering=False, as_image=False, internal_
     seg = seg.view(nb, ry, rx, -1).permute(0, 3, 1, 2)
 
     # median filtering
-    if use_filtering:
+    if use_median_filtering:
         seg = median_filter(seg, kernel_size=3)
 
     # chromatic adjustment to input image colors

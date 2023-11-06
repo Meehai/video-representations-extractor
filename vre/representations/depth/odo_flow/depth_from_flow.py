@@ -354,13 +354,16 @@ def depth_from_flow(batched_flow, linear_velocity, angular_velocity, K,
     ang_vel_correction = np.zeros_like(angular_velocity)
     if use_focus_correction:
         for b_ind in range(B):
-            ang_vel_correction[b_ind] = focus_corection(angular_velocity[b_ind], linear_velocity[b_ind], f_u, (int(u0), int(v0)), b[b_ind])
+            ang_vel_correction[b_ind] = focus_corection(angular_velocity[b_ind], linear_velocity[b_ind],
+                                                        f_u, (int(u0), int(v0)), b[b_ind])
     if use_cosine_correction_gd:
         for b_ind in range(B):
-            ang_vel_correction[b_ind] = cosine_correction_torch(b[b_ind], A[b_ind], J_w, initial_delta=ang_vel_correction[b_ind], b_ind=b_ind)
+            ang_vel_correction[b_ind] = cosine_correction_torch(b[b_ind], A[b_ind], J_w,
+                                                                initial_delta=ang_vel_correction[b_ind], b_ind=b_ind)
     if use_cosine_correction_scipy:
         for b_ind in range(B):
-            ang_vel_correction[b_ind] = cosine_correction_scipy(b[b_ind], A[b_ind], J_w, initial_delta=ang_vel_correction[b_ind], b_ind=b_ind)
+            ang_vel_correction[b_ind] = cosine_correction_scipy(b[b_ind], A[b_ind], J_w,
+                                                                initial_delta=ang_vel_correction[b_ind], b_ind=b_ind)
 
     angular_velocity = angular_velocity - ang_vel_correction
     derotating_flow = get_derotating_flow(J_w, angular_velocity)

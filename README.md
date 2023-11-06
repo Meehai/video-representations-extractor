@@ -4,15 +4,18 @@
 
 ## 1. Description
 
-The purpose of this repository is to export various representations starting from RGB images only. Representationds are
-defined as ways of looking at the world.
+The purpose of this repository is to export various representations starting from RGB videos only. Representations are
+defined as ways of 'looking at the world'. One can watch at various levels of information:
+- low level: colors, edges
+- mid level: depth, orientation of planes (normals)
+- high level: semantics and actions
 
 For GitHub users: this is a mirror of the
 [gitlab repository](https://gitlab.com/meehai/video-representations-extractor).
 
 <u>Supported representations</u>
 
--   See [here](vre/representations/get_representation.py) for a comprehensive list, since it updates faster
+-   See [here](vre/representations/__init__.py) for a comprehensive list, since it updates faster
 than this README.
 
 Weights repository for supported pretrained neural-network based representations is
@@ -41,15 +44,15 @@ High level format:
 ```
 name of representation:
   type: some high level type (such as depth, semantic, edges, etc.)
-  method: the implemented method
-  dependencies: [a list of dependencies given by their names] 
+  name: the implemented method's name (i.e. dexined, dpt, odoflow etc.)
+  dependencies: [a list of dependencies given by their names]
   parameters: (as defined in the constructor of the implementation)
     param1: value1
     param2: value2
 
 name of representation 2:
   type: some other type
-  method: some other method
+  name: some other method
   dependencies: [name of representation]
   parameters: []
 ```

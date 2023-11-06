@@ -6,6 +6,7 @@ import torch as tr
 import torch.nn.functional as F
 import flow_vis
 import gdown
+from overrides import overrides
 
 try:
     from .RIFE_HDv2 import Model
@@ -18,16 +19,17 @@ except ImportError:
 
 class FlowRife(Representation):
     def __init__(self, video: pims.Video, name: str, dependencies: list[Representation],
-                 compute_backward_flow: bool, device: str):
-        self.model = None
-        self.UHD = False
+                 compute_backward_flow: bool, uhd: bool):
+        self.model: Model = Model().eval()
+        self.uhd = uhd
         self.no_backward_flow = True if compute_backward_flow is None else not compute_backward_flow
-        self.device = device
+        self.device = "cpu"
         assert tr.cuda.is_available() or self.device == "cpu", "CUDA not available"
         super().__init__(video, name, dependencies)
-        self._setup()
 
-    def _setup(self):
+    @overrides(check_signature=False)
+    def vre_setup(self, device: str):
+        self.device = device
         weights_dir = Path(f"{os.environ['VRE_WEIGHTS_DIR']}/rife").absolute()
         weights_dir.mkdir(exist_ok=True, parents=True)
 
@@ -53,11 +55,30 @@ class FlowRife(Representation):
             logger.debug("Downloading unet weights for RIFE")
             gdown.download(unet_url, str(unet_path))
 
-        if self.model is None:
-            model = Model()
-            model.load_model(weights_dir)
-            model.eval()
-            self.model = model.to(self.device)
+        self.model.load_model(weights_dir)
+        self.model = self.model.eval().to(self.device)
+
+    @overrides
+    def make(self, t: slice) -> RepresentationOutput:
+        # add t+1 to have one more frame in targets. If it's the last frame, we add the same frame.
+        ts = [*list(range(t.start, t.stop)), min(t.stop + 1, len(self.video) - 1)]
+        frames = np.array(self.video[ts])
+
+        sources = frames[0: -1].transpose(0, 3, 1, 2)
+        targets = frames[1:].transpose(0, 3, 1, 2)
+
+        x_s, x_t, padding = self._preprocess(sources, targets)
+        with tr.no_grad():
+            prediction = self.model.inference(x_s, x_t, self.uhd, self.no_backward_flow)
+        flow = self._postprocess(prediction, padding)
+        return flow
+
+    @overrides
+    def make_images(self, x: np.ndarray, extra: dict | None) -> np.ndarray:
+        # [0 : 1] => [-1 : 1]
+        x = x * 2 - 1
+        y = np.array([flow_vis.flow_to_color(_pred) for _pred in x])
+        return y
 
     def _preprocess(self, sources: np.ndarray, targets: np.ndarray) -> (tr.Tensor, tr.Tensor, tuple):
         # Convert, preprocess & pad
@@ -76,29 +97,9 @@ class FlowRife(Representation):
         returned_shape = flow.shape[1:3]
         # Remove the padding to keep original shape
         half_ph, half_pw = padding[3] // 2, padding[1] // 2
-        flow = flow[:, 0 : returned_shape[0] - half_ph, 0 : returned_shape[1] - half_pw]
+        flow = flow[:, 0: returned_shape[0] - half_ph, 0: returned_shape[1] - half_pw]
         # [-px : px] => [-1 : 1]
         flow /= returned_shape
         # [-1 : 1] => [0 : 1]
         flow = (flow + 1) / 2
         return flow
-
-    def make(self, t: slice) -> RepresentationOutput:
-        # add t+1 to have one more frame in targets. If it's the last frame, we add the same frame.
-        ts = [*list(range(t.start, t.stop)), min(t.stop + 1, len(self.video) - 1)]
-        frames = np.array(self.video[ts])
-
-        sources = frames[0: -1].transpose(0, 3, 1, 2)
-        targets = frames[1:].transpose(0, 3, 1, 2)
-
-        x_s, x_t, padding = self._preprocess(sources, targets)
-        with tr.no_grad():
-            prediction = self.model.inference(x_s, x_t, self.UHD, self.no_backward_flow)
-        flow = self._postprocess(prediction, padding)
-        return flow
-
-    def make_images(self, x: np.ndarray, extra: dict | None) -> np.ndarray:
-        # [0 : 1] => [-1 : 1]
-        x = x * 2 - 1
-        y = np.array([flow_vis.flow_to_color(_pred) for _pred in x])
-        return y

@@ -9,19 +9,19 @@ vre:
 representations:
   rgb:
     type: default
-    method: rgb
+    name: rgb
     dependencies: []
     parameters: {}
 
   hsv:
     type: default
-    method: hsv
+    name: hsv
     dependencies: []
     parameters: {}
 
   halftone1:
     type: soft-segmentation
-    method: python-halftone
+    name: python-halftone
     dependencies: []
     parameters:
       sample: 3
@@ -33,7 +33,7 @@ representations:
 
   edges canny:
     type: edges
-    method: canny
+    name: canny
     dependencies: []
     parameters:
       threshold1: 100
@@ -43,7 +43,7 @@ representations:
 
   softseg kmeans:
     type: soft-segmentation
-    method: kmeans
+    name: kmeans
     dependencies: []
     parameters:
       n_clusters: 6
@@ -53,60 +53,68 @@ representations:
 
   softseg gb:
     type: soft-segmentation
-    method: generalized_boundaries
+    name: generalized_boundaries
     dependencies: []
     parameters:
-      useFiltering: True
-      adjustToRGB: True
-      maxChannels: 3
+      use_median_filtering: True
+      adjust_to_rgb: True
+      max_channels: 3
 
   semantic safeuav torch:
-    type: semantic
-    method: safeuav
+    type: semantic_segmentation
+    name: safeuav
     dependencies: []
     parameters:
-      device: ${oc.env:VRE_DEVICE,cpu}
-      weights_file: safeuav_semantic_0956_pytorch.ckpt
       train_height: 240
       train_width: 428
       num_classes: 8
       color_map: [[0, 255, 0], [0, 127, 0], [255, 255, 0], [255, 255, 255],
                   [255, 0, 0], [0, 0, 255], [0, 255, 255], [127, 127, 63]]
+    vre_parameters:
+      device: ${oc.env:VRE_DEVICE,cpu}
+      weights_file: safeuav_semantic_0956_pytorch.ckpt
+
 
   edges dexined:
     type: edges
-    method: dexined
+    name: dexined
     dependencies: []
     parameters:
+      inference_height: 512
+      inference_width: 512
+    vre_parameters:
       device: ${oc.env:VRE_DEVICE,cpu}
 
   opticalflow rife:
     type: optical-flow
-    method: rife
+    name: rife
     dependencies: []
     parameters:
+      uhd: False
       compute_backward_flow: False
+    vre_parameters:
       device: ${oc.env:VRE_DEVICE,cpu}
 
   depth odoflow (rife):
     type: depth
-    method: odo-flow
+    name: odo-flow
     dependencies: [opticalflow rife]
     parameters:
-      velocities_path: DJI_0956_velocities.npz
-      linearAngVelCorrection: True
+      linear_ang_vel_correction: True
       focus_correction: True
       cosine_correction_scipy: False
-      cosine_correction_GD: True
+      cosine_correction_gd: True
       sensor_fov: 75
       sensor_width: 3840
       sensor_height: 2160
       min_depth_meters: 0
       max_depth_meters: 400
+    vre_parameters:
+      velocities_path: DJI_0956_velocities.npz
 
   normals svd (rife):
     type: normals
-    method: depth-svd
+    name: depth-svd
     dependencies: [depth odoflow (rife)]
     parameters:
       sensor_fov: 75
@@ -117,23 +125,24 @@ representations:
   # # SUCKY BECAUSE SUPERSLOW. Adds like 2-3 mins in CI. Rife is good enough.
   # opticalflow raft:
   #   type: optical-flow
-  #   method: raft
+  #   name: raft
   #   dependencies: []
   #   parameters:
-  #     device: ${oc.env:VRE_DEVICE,cpu}
   #     inference_height: 720
   #     inference_width: 1280
+  #   vre_parameters:
+  #     device: ${oc.env:VRE_DEVICE,cpu}
 
   # depth odoflow (raft):
   #   type: depth
-  #   method: odo-flow
+  #   name: odo-flow
   #   dependencies: [opticalflow raft]
   #   parameters:
   #     velocities_path: DJI_0956_velocities.npz
   #     linearAngVelCorrection: True
   #     focus_correction: True
   #     cosine_correction_scipy: False
-  #     cosine_correction_GD: True
+  #     cosine_correction_gd: True
   #     sensor_fov: 75
   #     sensor_width: 3840
   #     sensor_height: 2160
@@ -142,7 +151,7 @@ representations:
 
   # normals svd (raft):
   #   type: normals
-  #   method: depth-svd
+  #   name: depth-svd
   #   dependencies: [depth odoflow (raft)]
   #   parameters:
   #     sensor_fov: 75
@@ -153,14 +162,15 @@ representations:
   # # sucky because slow, but it's good/pretrained
   # depth dpt:
   #   type: depth
-  #   method: dpt
+  #   name: dpt
   #   dependencies: []
-  #   parameters:
+  #   parameters: {}
+  #   vre_parameters:
   #     device: ${oc.env:VRE_DEVICE,cpu}
 
   # normals svd (dpt):
   #   type: normals
-  #   method: depth-svd
+  #   name: depth-svd
   #   dependencies: [depth dpt]
   #   parameters:
   #     sensor_fov: 75
