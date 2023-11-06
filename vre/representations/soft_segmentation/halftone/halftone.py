@@ -1,13 +1,12 @@
 # Copy pasted from https://github.com/philgyford/python-halftone/blob/main/halftone.py in order to change constructor
 
-import sys
 import numpy as np
-import cv2
 
 from PIL import Image, ImageDraw, ImageStat
 from overrides import overrides
 
 from ....representation import Representation, RepresentationOutput
+from ....utils import image_resize
 
 """
 Class: Halftone( path )
@@ -163,7 +162,7 @@ class Halftone(Representation):
         return dots
 
     def _make_one_image(self, frame: np.ndarray) -> np.ndarray:
-        frame = cv2.resize(frame, (self.resolution[1], self.resolution[0]), interpolation=cv2.INTER_LINEAR)
+        frame = image_resize(frame, height=self.resolution[0], width=self.resolution[1])
         im = Image.fromarray(frame, "RGB")
         cmyk = self.gcr(im, self.percentage)
         channel_images = self._halftone(im, cmyk)

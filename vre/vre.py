@@ -3,7 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 from datetime import datetime
 from tqdm import tqdm
-import cv2
 from omegaconf import DictConfig
 import pims
 import numpy as np
@@ -11,6 +10,7 @@ import pandas as pd
 
 from .representation import Representation
 from .logger import logger
+from .utils import image_resize, image_write
 
 RunPaths = tuple[dict[str, list[Path]], dict[str, list[Path]], dict[str, list[Path]]]
 
@@ -111,6 +111,7 @@ class VRE:
             batch_t = slice(l, r)
             run_stats["frame"].extend(range(batch_t.start, batch_t.stop))
             pbar.update(r - l)
+            representation: Representation
             for name, representation in self.representations.items():
                 pbar.set_description(f"[VRE] {name}")
                 now = datetime.now()
@@ -129,8 +130,8 @@ class VRE:
                 if export_png:
                     imgs = representation.make_images(raw_data, extra)
                     for i, t in enumerate(range(l, r)):
-                        img_resized = cv2.resize(imgs[i], output_resolution[::-1], interpolation=cv2.INTER_LINEAR)
-                        cv2.imwrite(str(png_resz_paths[name][t]), img_resized[..., ::-1])
+                        img_resized = image_resize(imgs[i], height=output_resolution[0], width=output_resolution[1])
+                        image_write(img_resized, png_resz_paths[name][t])
 
                 if export_npy:
                     rsz_data = representation.resize(raw_data, height=output_resolution[0], width=output_resolution[1])

@@ -1,17 +1,11 @@
 from pathlib import Path
 import numpy as np
 import multiprocessing
-import cv2
-import time
 from sklearn.preprocessing import MinMaxScaler
 from matplotlib import cm
 import torch
 from tqdm import tqdm
 from collections import defaultdict
-# try:
-#     import cvxpy as cp
-# except:
-#     pass
 
 import pandas as pd
 from matplotlib import pyplot as plt
@@ -28,18 +22,6 @@ def reduce_list(data, mask=None, indices=None):
 
 def get_params_from_obj(x):
     return dict((key, getattr(x, key)) for key in dir(x) if key not in dir(x.__class__) and not key.startswith("__"))
-
-
-def write_img(path, img):
-    path = Path(path).with_suffix(".png")
-    if len(img.shape) == 3 and img.shape[2] == 3:
-        img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-    cv2.imwrite(str(path), img)
-
-
-def read_img(path):
-    return cv2.cvtColor(cv2.imread(str(path)), cv2.COLOR_BGR2RGB)
-
 
 def is_sorted(ids):
     ids = np.array(ids)

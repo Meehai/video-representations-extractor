@@ -1,9 +1,10 @@
 """VRE Representation module"""
 from __future__ import annotations
+from abc import ABC, abstractmethod
 import numpy as np
 import pims
-import cv2
-from abc import ABC, abstractmethod
+
+from .utils import image_resize
 
 RepresentationOutput = np.ndarray | tuple[np.ndarray, dict]
 
@@ -48,7 +49,7 @@ class Representation(ABC):
         Resizes a representation output made from self.make(t). Info about time may be passed via 'extra' dict.
         Update this for more complex cases.
         """
-        y = np.array([cv2.resize(_x, (width, height), interpolation=cv2.INTER_LINEAR) for _x in x])
+        y = np.array([image_resize(_x, height=height, width=width) for _x in x])
         return y
 
     def __getitem__(self, t: slice | int) -> RepresentationOutput:

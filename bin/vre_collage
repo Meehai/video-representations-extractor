@@ -2,8 +2,7 @@
 from argparse import ArgumentParser
 from pathlib import Path
 import pims
-import cv2
-from media_processing_lib.image import image_add_title
+from media_processing_lib.image import image_add_title, image_read, image_write
 from media_processing_lib.collage_maker import collage_fn
 from vre.logger import logger
 from natsort import natsorted
@@ -75,10 +74,10 @@ def main():
     for current_frame_paths in tqdm(values, desc="collage images"):
         # export the png with the same name as all the other png from which it is constructed
         name = current_frame_paths[0].stem
-        current_frames = [cv2.cvtColor(cv2.imread(str(x)), cv2.COLOR_BGR2RGB) for x in current_frame_paths]
+        current_frames = [image_read(x) for x in current_frame_paths]
         titled_frames = [image_add_title(img, title) for img, title in zip(current_frames, keys)]
         img = collage_fn(titled_frames, pad_right=10, pad_bottom=10)
-        cv2.imwrite(f"{args.output_path}/{name}.png", img[:, :, ::-1])
+        image_write(img, args.output_path / f"{name}.png")
 
     if not args.no_video:
         raise NotImplementedError("TODO")

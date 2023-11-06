@@ -2,18 +2,18 @@ import os
 import gdown
 import numpy as np
 import torch as tr
-import cv2
 from pathlib import Path
 from overrides import overrides
 
 from .model_dexined import DexiNed as Model
 from ....representation import Representation, RepresentationOutput
 from ....logger import logger
+from ....utils import image_resize
 
 def _preprocess(images: np.ndarray, height: int, width: int) -> np.ndarray:
     assert len(images.shape) == 4, images.shape
     logger.debug2(f"Original shape: {images.shape}")
-    images_resize = np.array([cv2.resize(image, (width, height), interpolation=cv2.INTER_LINEAR) for image in images])
+    images_resize = np.array([image_resize(image, height, width) for image in images])
     mean_pixel_values = [103.939, 116.779, 123.68]
     images_norm = images_resize.astype(np.float32) - mean_pixel_values
     # N, H, W, C -> N, C, H, W
