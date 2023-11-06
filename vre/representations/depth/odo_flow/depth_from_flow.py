@@ -1,8 +1,5 @@
-import cv2
 import numpy as np
 import torch
-from transforms3d import axangles
-import timeit
 from skimage.filters import gaussian
 from scipy import optimize
 
@@ -479,6 +476,7 @@ def get_derotating_flow(J_w, angular_velocity):
 
 
 def filter_depth_from_flow(Zs, As, bs, derotating_flows, thresholds, virtual_height=540):
+    import cv2
     valid = np.full_like(Zs, True, dtype=bool)
     for feature, threshold in thresholds.items():
         feature_data = get_feature_from_depth_from_flow_data(Zs, As, bs, derotating_flows, feature)

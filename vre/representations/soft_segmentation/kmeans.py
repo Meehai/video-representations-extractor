@@ -1,6 +1,5 @@
 import numpy as np
 import pims
-import cv2
 from overrides import overrides
 from skimage.color import hsv2rgb
 from ...representation import Representation, RepresentationOutput
@@ -33,7 +32,7 @@ def _generate_diverse_colors(n: int) -> list[tuple[int, int, int]]:
         colors.append(rgb)
     return colors
 
-def _get_closest(centers: np.ndarray, colors: np.ndarray) -> np.ndarray:
+def _get_closest(centers: np.ndarray, colors: np.ndarray) -> list:
     M = np.zeros((centers.shape[0], colors.shape[0]))
     for i in range(centers.shape[0]):
         M[i] = np.linalg.norm(centers[i] - colors, axis=1)
@@ -62,6 +61,7 @@ class KMeans(Representation):
 
     def _make_one_frame(self, frame: np.ndarray) -> (np.ndarray, list[tuple[int, int]]):
         Z = np.float32(frame).reshape(-1, 3).copy()
+        import cv2
         criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, self.max_iterations, self.epsilon)
         # TODO: this simply doesn't work, cv2 bugs out. We should replace this implementation with a better one.
         # initialization = cv2.KMEANS_USE_INITIAL_LABELS

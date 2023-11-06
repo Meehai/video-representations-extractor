@@ -5,7 +5,6 @@ from sklearn.base import BaseEstimator
 from sklearn.decomposition import PCA
 from sklearn.linear_model import RANSACRegressor
 import numpy as np
-import cv2
 from transforms3d import quaternions as quat, euler, axangles
 from scipy.interpolate import interp1d
 
@@ -335,10 +334,3 @@ def fundamental_matrix_error(p1, p2, F):
     d2 = np.abs(p1[:, 0] * a + p1[:, 1] * b + c) / np.sqrt(a ** 2 + b ** 2)
 
     return np.maximum(d1, d2)
-
-
-def fundamental_matrix_estimation(pts1, pts2, method=cv2.FM_RANSAC, ransacReprojThreshold=3, ransacConfidence=0.99999, maxIters=999999):
-    mat, mask = cv2.findFundamentalMat(points1=pts1.reshape(-1, 1, 2), points2=pts2.reshape(-1, 1, 2),
-                                       method=method, ransacReprojThreshold=ransacReprojThreshold,
-                                       confidence=ransacConfidence, maxIters=maxIters)
-    return mat, mask

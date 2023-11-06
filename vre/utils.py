@@ -1,5 +1,11 @@
-from typing import T, Callable
+"""utils for vre"""
+from typing import T
 from pathlib import Path
+import numpy as np
+from skimage.transform import resize
+from skimage.io import imsave
+
+from .logger import logger
 
 def get_project_root() -> Path:
     """gets the root of this project"""
@@ -13,7 +19,7 @@ def topological_sort(dependency_graph: dict[T, list[T]]) -> list[T]:
     L, S = [], []
 
     # First step is to create a regular graph of {Node : [Children]}
-    graph = {k: [] for k in dependency_graph.keys()}
+    graph: dict[str, T] = {k: [] for k in dependency_graph.keys()}
     in_nodes_graph = {}
     for key in dependency_graph:
         for parent in dependency_graph[key]:
@@ -37,3 +43,17 @@ def topological_sort(dependency_graph: dict[T, list[T]]) -> list[T]:
     for key in in_nodes_graph.keys():
         assert in_nodes_graph[key] == 0, "Graph has cycles. Cannot do topological sort."
     return L
+
+def image_resize(x: np.ndarray, height: int, width: int) -> np.ndarray:
+    """resizes an image to the given height and width"""
+    dtype_orig = x.dtype
+    x = x.astype(np.float32) / 255 if dtype_orig == np.uint8 else x
+    y = resize(x, (height, width))
+    y = (y * 255).astype(dtype_orig) if dtype_orig == np.uint8 else y
+    return y
+
+def image_write(x: np.ndarray, path: Path):
+    """writes an image to a bytes string"""
+    assert x.dtype == np.uint8, x.dtype
+    imsave(path, x)
+    logger.debug2(f"Saved image to '{path}'")

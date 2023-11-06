@@ -1,6 +1,5 @@
 """Canny edge detector representation."""
 import numpy as np
-import cv2
 from overrides import overrides
 from matplotlib.cm import gray
 from ...representation import Representation, RepresentationOutput
@@ -15,7 +14,7 @@ class Canny(Representation):
         self.l2_gradient = l2_gradient
 
     def _make_one(self, x: np.ndarray) -> np.ndarray:
-        # res = np.zeros_like(x)
+        import cv2
         res = cv2.Canny(x, threshold1=self.threshold1, threshold2=self.threshold2,
                         apertureSize=self.aperture_size, L2gradient=self.l2_gradient)
         res = np.float32(res) / 255
