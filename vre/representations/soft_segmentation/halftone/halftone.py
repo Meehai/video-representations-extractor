@@ -6,16 +6,15 @@ import cv2
 
 from PIL import Image, ImageDraw, ImageStat
 from overrides import overrides
-from typing import List, Tuple
 
 from ....representation import Representation, RepresentationOutput
 
 """
 Class: Halftone( path )
 Usage:
-	import halftone
-	h = halftone.Halftone('/path/to/image.jpg')
-	h.make()
+    import halftone
+    h = halftone.Halftone('/path/to/image.jpg')
+    h.make()
 
 The bulk of this is taken from this Stack Overflow answer by fraxel:
 http://stackoverflow.com/a/10575940/250962
@@ -44,39 +43,20 @@ class Halftone(Representation):
         self.angles = angles
         self.antialias = antialias
         self.resolution = resolution
-        self.check_arguments()
+        self._check_arguments()
 
-    def make_one_image(self, frame: np.ndarray) -> np.ndarray:
-        frame = cv2.resize(frame, (self.resolution[1], self.resolution[0]), interpolation=cv2.INTER_LINEAR)
-        im = Image.fromarray(frame, "RGB")
-        cmyk = self.gcr(im, self.percentage)
-        channel_images = self.halftone(im, cmyk)
-        new = Image.merge("CMYK", channel_images)
-        new = np.array(new)[..., 0:3]
-        new = np.float32(new) / 255
-        return new
+    @overrides
+    def vre_setup(self, **kwargs):
+        pass
 
     @overrides
     def make(self, t: slice) -> RepresentationOutput:
         frames = np.array(self.video[t])
-        return np.array([self.make_one_image(frame) for frame in frames])
+        return np.array([self._make_one_image(frame) for frame in frames])
 
     @overrides
     def make_images(self, x: np.ndarray, extra: dict | None) -> np.ndarray:
-        return np.uint8(x * 255)
-
-    def check_arguments(self):
-        assert (
-            len(self.angles) == 4
-        ), f"The angles argument must be a list of 4 integers, but it has {len(self.angles)}."
-        for a in self.angles:
-            assert isinstance(a, int), f"All four elements of the angles list must be integers, got: {self.angles}"
-        assert isinstance(self.antialias, bool), f"The antialias argument must be a boolean, not '{self.antialias}'."
-        assert isinstance(
-            self.percentage, (float, int)
-        ), f"The percentage argument must be an integer or float, not '{self.percentage}'."
-        assert isinstance(self.sample, int), f"The sample argument must be an integer, not '{self.sample}'."
-        assert isinstance(self.scale, int), f"The scale argument must be an integer, not '{self.scale}'."
+        return (x * 255).astype(np.uint8)
 
     def gcr(self, im, percentage):
         """
@@ -99,7 +79,7 @@ class Halftone(Representation):
                 cmyk[3][x, y] = gray
         return Image.merge("CMYK", cmyk_im)
 
-    def halftone(self, im, cmyk):
+    def _halftone(self, im, cmyk):
         """
         Returns list of half-tone images for cmyk image. sample (pixels),
         determines the sample box size from the original image. The maximum
@@ -182,8 +162,22 @@ class Halftone(Representation):
             dots.append(half_tone)
         return dots
 
+    def _make_one_image(self, frame: np.ndarray) -> np.ndarray:
+        frame = cv2.resize(frame, (self.resolution[1], self.resolution[0]), interpolation=cv2.INTER_LINEAR)
+        im = Image.fromarray(frame, "RGB")
+        cmyk = self.gcr(im, self.percentage)
+        channel_images = self._halftone(im, cmyk)
+        new = Image.merge("CMYK", channel_images)
+        new = np.array(new)[..., 0:3]
+        new = np.float32(new) / 255
+        return new
 
-if __name__ == "__main__":
-    path = sys.argv[1]
-    h = Halftone(path)
-    h.make()
+    def _check_arguments(self):
+        assert len(self.angles) == 4, f"The angles argument must be a list of 4 integers, but it has {len(self.angles)}"
+        for a in self.angles:
+            assert isinstance(a, int), f"All four elements of the angles list must be integers, got: {self.angles}"
+        assert isinstance(self.antialias, bool), f"The antialias argument must be a boolean, not '{self.antialias}'."
+        assert isinstance(self.percentage, (float, int)), \
+            f"The percentage argument must be an integer or float, not '{self.percentage}'."
+        assert isinstance(self.sample, int), f"The sample argument must be an integer, not '{self.sample}'."
+        assert isinstance(self.scale, int), f"The scale argument must be an integer, not '{self.scale}'."

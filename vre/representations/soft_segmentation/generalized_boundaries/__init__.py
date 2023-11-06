@@ -1,1 +1,2 @@
-from .seg_softseg import GeneralizedBoundaries
+"""init file"""
+from .generalized_boundaries import GeneralizedBoundaries

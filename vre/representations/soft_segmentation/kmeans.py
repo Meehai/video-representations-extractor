@@ -56,15 +56,20 @@ class KMeans(Representation):
         self.attempts = attempts
         self.colors = _generate_diverse_colors(n_clusters)
 
+    @overrides
+    def vre_setup(self, **kwargs):
+        pass
+
     def _make_one_frame(self, frame: np.ndarray) -> (np.ndarray, list[tuple[int, int]]):
         Z = np.float32(frame).reshape(-1, 3).copy()
         criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, self.max_iterations, self.epsilon)
+        # TODO: this simply doesn't work, cv2 bugs out. We should replace this implementation with a better one.
         # initialization = cv2.KMEANS_USE_INITIAL_LABELS
         # centers = np.random.randint(0, 256, (self.n_clusters, 3)).astype(float)
         centers = None
         initialization = cv2.KMEANS_RANDOM_CENTERS
         compactness, labels, centers = cv2.kmeans(data=Z, K=self.n_clusters, bestLabels=None, criteria=criteria,
-                                                    attempts=self.attempts, flags=initialization, centers=centers)
+                                                  attempts=self.attempts, flags=initialization, centers=centers)
         labels = to_categorical(labels[:, 0], self.n_clusters)
         data = labels.reshape(frame.shape[0], frame.shape[1], self.n_clusters)
         return data, centers
@@ -82,9 +87,8 @@ class KMeans(Representation):
         return res, centers
 
     def _make_one_image(self, x: np.ndarray, centers: np.ndarray) -> np.ndarray:
-        res = np.zeros((self.video.frame_shape[0], self.video.frame_shape[1], 3), dtype=np.uint8)
+        res = np.zeros((self.video.shape[1], self.video.shape[2], 3), dtype=np.uint8)
         x = np.argmax(x, axis=-1)
-        # ixs = np.argsort(centers, axis=0)[:, 0]
         ixs = _get_closest(centers, np.array(self.colors))
         for i in range(self.n_clusters):
             Where = np.where(x == i)

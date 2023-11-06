@@ -1,7 +1,6 @@
 """Video Representations Extractor module"""
 from __future__ import annotations
 from pathlib import Path
-from typing import Callable
 from datetime import datetime
 from tqdm import tqdm
 import cv2
@@ -10,7 +9,7 @@ import pims
 import numpy as np
 import pandas as pd
 
-from .representation import Representation, RepresentationOutput
+from .representation import Representation
 from .logger import logger
 
 RunPaths = tuple[dict[str, list[Path]], dict[str, list[Path]], dict[str, list[Path]]]
@@ -95,7 +94,7 @@ class VRE:
             logger.warning(f"end frame not set, default to the last frame of the video: {len(self.video)}")
         if start_frame is None:
             start_frame = 0
-            logger.warning(f"start frame not set, default to 0")
+            logger.warning("start frame not set, default to 0")
         assert isinstance(start_frame, int) and start_frame <= end_frame, (start_frame, end_frame)
         # run_stats will hold a dict: {repr_name: [time_taken, ...]} for all representations, for debugging/logging
         run_stats = {repr_name: [] for repr_name in ["frame", *self.representations.keys()]}
@@ -140,8 +139,8 @@ class VRE:
                             np.savez(npy_resz_paths[name][t], rsz_data[i])
         pbar.close()
 
-        run_stats = pd.DataFrame(run_stats)
-        run_stats.to_csv(output_dir / "run_stats.csv")
+        df_run_stats = pd.DataFrame(run_stats)
+        df_run_stats.to_csv(output_dir / "run_stats.csv")
         return run_stats
 
     def __str__(self) -> str:

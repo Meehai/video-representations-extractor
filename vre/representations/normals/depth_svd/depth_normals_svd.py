@@ -26,6 +26,22 @@ class DepthNormalsSVD(Representation):
         super().__init__(video, name, dependencies)
         self._grid_cache = {}
 
+    @overrides
+    def vre_setup(self, **kwargs):
+        pass
+
+    @overrides
+    def make(self, t: slice) -> RepresentationOutput:
+        _ = np.array(self.video[t])
+        depths, _ = self.dependencies[0][t]
+        assert len(depths.shape) == 3, f"Expected (T, H, W) got: {depths.shape}"
+        res = np.array([self._make_one_depth(depth) for depth in depths])
+        return res
+
+    @overrides
+    def make_images(self, x: np.ndarray, extra: dict | None) -> np.ndarray:
+        return (x * 255).astype(np.uint8)
+
     def _make_one_depth(self, depth: np.ndarray) -> np.ndarray:
         # TODO: batch vectorize this if possible
         sampling_grid, normalized_grid = self._get_grid(depth)
@@ -35,7 +51,7 @@ class DepthNormalsSVD(Representation):
         normals = (normals.astype(np.float32) + 1) / 2
         return normals
 
-    def _get_grid(self, depth: np.ndarray) -> np.ndarray:
+    def _get_grid(self, depth: np.ndarray) -> (np.ndarray, np.ndarray):
         height, width = depth.shape[:2]
         if (height, width) in self._grid_cache:
             return self._grid_cache[(height, width)]
@@ -47,15 +63,3 @@ class DepthNormalsSVD(Representation):
         normalized_grid = get_normalized_coords(depth_width, depth_height, K)
         self._grid_cache[(height, width)] = sampling_grid, normalized_grid
         return sampling_grid, normalized_grid
-
-    @overrides
-    def make(self, t: slice) -> RepresentationOutput:
-        frames = np.array(self.video[t])
-        depths, _ = self.dependencies[0][t]
-        assert len(depths.shape) == 3, f"Expected (T, H, W) got: {depths.shape}"
-        res = np.array([self._make_one_depth(depth) for depth in depths])
-        return res
-
-    @overrides
-    def make_images(self, x: np.ndarray, extra: dict | None) -> np.ndarray:
-        return (x * 255).astype(np.uint8)

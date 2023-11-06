@@ -6,18 +6,7 @@ from .update import BasicUpdateBlock, SmallUpdateBlock
 from .extractor import BasicEncoder, SmallEncoder
 from .corr import CorrBlock, AlternateCorrBlock
 from .utils import coords_grid, upflow8
-
-try:
-    autocast = torch.cuda.amp.autocast
-except:
-    # dummy autocast for PyTorch < 1.6
-    class autocast:
-        def __init__(self, enabled):
-            pass
-        def __enter__(self):
-            pass
-        def __exit__(self, *args):
-            pass
+from torch.cuda.amp import autocast
 
 
 class RAFT(nn.Module):

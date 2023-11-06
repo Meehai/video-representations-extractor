@@ -3,9 +3,7 @@ from __future__ import annotations
 import numpy as np
 import pims
 import cv2
-from pathlib import Path
 from abc import ABC, abstractmethod
-from functools import lru_cache
 
 RepresentationOutput = np.ndarray | tuple[np.ndarray, dict]
 
@@ -17,6 +15,14 @@ class Representation(ABC):
         self.dependencies = dependencies
         # This attribute is checked in the main vre object to see that this parent constructor was called properly.
         self.video = video
+
+    @abstractmethod
+    def vre_setup(self, **kwargs):
+        """
+        Setup method for this representation. This is required to run this representation from within VRE.
+        We do this setup separately, so we can instatiate the representation without doing any VRE specific setup,
+        like loading weights.
+        """
 
     @abstractmethod
     def make(self, t: slice) -> RepresentationOutput:
@@ -45,14 +51,14 @@ class Representation(ABC):
         y = np.array([cv2.resize(_x, (width, height), interpolation=cv2.INTER_LINEAR) for _x in x])
         return y
 
-    def __getitem__(self, t: slice | int) -> np.ndarray:
+    def __getitem__(self, t: slice | int) -> RepresentationOutput:
         return self.__call__(t)
 
     # @lru_cache(maxsize=1000)
     def __call__(self, t: slice | int) -> RepresentationOutput:
         if isinstance(t, int):
             t = slice(t, t + 1)
-        assert t.start >= 0 and t.stop < len(self.video), t
+        assert t.start >= 0 and t.stop <= len(self.video), f"Video len: {len(self.video)}, slice: {t}"
         # Get the raw result of this representation
         res = self.make(t)
         raw_data, extra = res if isinstance(res, tuple) else (res, {})

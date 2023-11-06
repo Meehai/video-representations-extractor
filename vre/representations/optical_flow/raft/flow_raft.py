@@ -1,3 +1,4 @@
+"""FlowRaft representation"""
 import os
 import numpy as np
 import pims
@@ -14,26 +15,29 @@ from ....representation import Representation, RepresentationOutput
 from ....logger import logger
 
 class FlowRaft(Representation):
-    def __init__(self, video: pims.Video, name: str, dependencies: list[Representation],
-                 inference_width: int, inference_height: int, iters: int,
-                 small: bool, mixed_precision: bool, device: str):
+    """FlowRaft representation"""
+    def __init__(self, video: pims.Video, name: str, dependencies: list[Representation], inference_height: int,
+                 inference_width: int, iters: int, small: bool, mixed_precision: bool):
         self.small = small
         self.mixed_precision = mixed_precision
         self.iters = iters
-        self.device = device
+        self.device = "cpu"
 
-        self.model = None
-        assert tr.cuda.is_available() or self.device == "cpu", "CUDA not available"
+        self.model = RAFT(self)
         super().__init__(video, name, dependencies)
-        self._setup()
         self.inference_width = inference_width
         self.inference_height = inference_height
 
         # Pointless to upsample with bilinear, it's better we fix the video input.
+        assert self.video.shape[1] >= 128 and self.video.shape[2] >= 128, \
+            f"This flow doesn't work with small videos. At least 128x128 is required, but got {self.video.shape}"
+        assert self.inference_height >= 128 and self.inference_width >= 128, f"This flow doesn't work with small " \
+            f"videos. At least 128x128 is required, but got {self.inference_height}x{self.inference_width}"
         assert self.video.shape[1] >= self.inference_height and self.video.shape[2] >= self.inference_width, \
             f"{self.video.shape} vs {self.inference_height}x{self.inference_width}"
 
-    def _setup(self):
+    @overrides(check_signature=False)
+    def vre_setup(self, device: str):
         weights_dir = Path(f"{os.environ['VRE_WEIGHTS_DIR']}/raft")
         weights_dir.mkdir(exist_ok=True, parents=True)
 
@@ -45,15 +49,12 @@ class FlowRaft(Representation):
             logger.debug("Downloading weights for RAFT")
             gdown.download(raft_things_url, str(raft_things_path))
 
-        model = RAFT(self)
         def convert(data: dict[str, tr.Tensor]) -> dict[str, tr.Tensor]:
             return {k.replace("module.", ""): v for k, v in data.items()}
-        model.load_state_dict(convert(tr.load(raft_things_path, map_location="cpu")))
-        model.eval()
+        self.model.load_state_dict(convert(tr.load(raft_things_path, map_location="cpu")))
+        self.model = self.model.eval().to(self.device)
 
-        self.model = model.to(self.device)
-
-    def _preprocess(self, frames: np.ndarray) -> tr.Tensor:
+    def _preprocess(self, frames: np.ndarray) -> (tr.Tensor, tr.Tensor):
         orig_height, orig_width = self.video.shape[1:3]
         tr_frames = tr.from_numpy(frames).to(self.device)
         tr_frames = tr_frames.permute(0, 3, 1, 2).float()

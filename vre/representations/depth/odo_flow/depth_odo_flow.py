@@ -1,23 +1,27 @@
 import numpy as np
+from pathlib import Path
 from matplotlib.cm import hot
-from typing import List
+import os
 from overrides import overrides
 
 from .camera_info import CameraInfo, CameraSensorParams
 from .depth_from_flow import depth_from_flow, filter_depth_from_flow
 from ....representation import Representation, RepresentationOutput
+from ....logger import logger
 
 
 class DepthOdoFlow(Representation):
-    def __init__(self, velocities_path: str, linearAngVelCorrection: bool, focus_correction: bool,
-                 cosine_correction_scipy: bool, cosine_correction_GD: bool, sensor_fov: int, sensor_width: int,
+    def __init__(self, linear_ang_vel_correction: bool, focus_correction: bool,
+                 cosine_correction_scipy: bool, cosine_correction_gd: bool, sensor_fov: int, sensor_width: int,
                  sensor_height: int, min_depth_meters: int, max_depth_meters: int, **kwargs):
-        self.camera_info = CameraInfo(velocities_path,
-                                      camera_params=CameraSensorParams(sensor_fov, (sensor_width, sensor_height)))
-        self.linearAngVelCorrection = linearAngVelCorrection
+        super().__init__(**kwargs)
+        self.camera_params = CameraSensorParams(sensor_fov, (sensor_width, sensor_height))
+        self.camera_info = CameraInfo(data=np.random.randn(len(self.video), 6), camera_params=self.camera_params)
+        self._setup()
+        self.linear_ang_vel_correction = linear_ang_vel_correction
         self.focus_correction = focus_correction
         self.cosine_correction_scipy = cosine_correction_scipy
-        self.cosine_correction_GD = cosine_correction_GD
+        self.cosine_correction_gd = cosine_correction_gd
         self.min_depth_meters = min_depth_meters
         self.max_depth_meters = max_depth_meters
         # thresholds picked for flow at 960x540; scaled correspondingly in filter function
@@ -28,10 +32,18 @@ class DepthOdoFlow(Representation):
             "optical flow norm (pixels/s)": 20,
             "A norm (pixels*m/s)": 1,
         }
-        super().__init__(**kwargs)
-        self._setup()
         assert len(self.dependencies) == 1, "Expected one optical flow method!"
         self.flow = self.dependencies[0]
+
+    @overrides(check_signature=False)
+    def vre_setup(self, velocities_path: str):
+        velocities_path_pth = Path(f"{os.environ['VRE_WEIGHTS_DIR']}/{velocities_path}").absolute()
+        logger.info(f"Loading velocities from '{velocities_path_pth}'")
+        data = np.load(velocities_path_pth)
+        if isinstance(data, np.lib.npyio.NpzFile):
+            data = data["arr_0"]
+        self.camera_info = CameraInfo(data=data, camera_params=self.camera_params)
+        self.camera_info.dt = 1.0 / self.fps
 
     @overrides
     def make(self, t: slice) -> RepresentationOutput:
@@ -52,9 +64,9 @@ class DepthOdoFlow(Representation):
         ang_vel = self.camera_info.angular_velocity[t]
 
         Zs, As, bs, derotating_flows, batch_ang_velc = depth_from_flow(flows, lin_vel, ang_vel, self.camera_info.K,
-                                                                       self.linearAngVelCorrection,
+                                                                       self.linear_ang_vel_correction,
                                                                        self.focus_correction,
-                                                                       self.cosine_correction_GD,
+                                                                       self.cosine_correction_gd,
                                                                        self.cosine_correction_scipy)
         valid = filter_depth_from_flow(Zs, As, bs, derotating_flows, thresholds=self.thresholds)
 
