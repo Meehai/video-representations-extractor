@@ -1,6 +1,7 @@
 """utils for vre"""
 from typing import T
 from pathlib import Path
+import gdown
 import numpy as np
 from skimage.transform import resize
 from skimage.io import imsave
@@ -57,3 +58,9 @@ def image_write(x: np.ndarray, path: Path):
     assert x.dtype == np.uint8, x.dtype
     imsave(path, x)
     logger.debug2(f"Saved image to '{path}'")
+
+def gdown_mkdir(uri: str, local_path: Path):
+    """calls gdown but also makes the directory of the parent path just to be sure it exists"""
+    logger.debug(f"Downloading '{uri}' to '{local_path}'")
+    local_path.parent.mkdir(exist_ok=True, parents=True)
+    gdown.download(uri, f"{local_path}")

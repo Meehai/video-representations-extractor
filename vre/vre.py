@@ -2,7 +2,6 @@
 from __future__ import annotations
 from pathlib import Path
 from datetime import datetime
-import os
 from tqdm import tqdm
 from omegaconf import DictConfig
 import pims
@@ -72,7 +71,7 @@ class VRE:
             f"""
   - Video path: '{self.video.file}'
   - Output dir: '{output_dir}'
-  - Representations ({len(self.representations)}): {", ".join([x for x in self.representations.keys()])}
+  - Representations ({len(self.representations)}): {", ".join(x for x in self.representations.keys())}
   - Video shape: {self.video.shape}
   - Output frames ({end_frame - start_frame}): [{start_frame} : {end_frame - 1}]
   - Output resolution: {tuple(output_resolution)}
@@ -82,6 +81,7 @@ class VRE:
 """
         )
 
+    # pylint: disable=too-many-branches, too-many-nested-blocks
     def __call__(self, output_dir: Path, start_frame: int | None = None, end_frame: int | None = None,
                  batch_size: int = 1, output_resolution: tuple[int, int] | None = None,
                  export_raw: bool = False, export_npy: bool = False, export_png: bool = False,
@@ -97,7 +97,6 @@ class VRE:
             start_frame = 0
             logger.warning("start frame not set, default to 0")
         assert isinstance(start_frame, int) and start_frame <= end_frame, (start_frame, end_frame)
-        Path(f"{os.environ['VRE_WEIGHTS_DIR']}").mkdir(exist_ok=True, parents=True)
         # run_stats will hold a dict: {repr_name: [time_taken, ...]} for all representations, for debugging/logging
         run_stats: dict[str, list] = {repr_name: [] for repr_name in ["frame", *self.representations.keys()]}
 

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+"""experiment using batches of frames"""
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from functools import partial
@@ -6,22 +7,24 @@ import gdown
 import pims
 import pandas as pd
 import torch as tr
-from loguru import logger
 
 from vre import VRE
+from vre.logger import logger
 from vre.representations import build_representations_from_cfg
 from vre.utils import get_project_root
 
-def setup():
+def dwd_video_if_needed() -> str:
+    """download the video in the resources dir if not exist and return the path"""
     video_path = get_project_root() / "resources/testVideo.mp4"
     if not video_path.exists():
         video_path.parent.mkdir(exist_ok=True, parents=True)
         gdown.download("https://drive.google.com/uc?id=158U-W-Gal6eXxYtS1ca1DAAxHvknqwAk", f"{video_path}")
     return f"{video_path}"
 
-def get_representation_dict():
+def get_representation_dict() -> dict:
+    """setup all representations we want to use, including one representation per device"""
     device = "cuda" if tr.cuda.is_available() else "cpu"
-    all_representations_dict = {
+    all_representations_dict: dict[str, dict] = {
         "rgb": {"type": "default", "name": "rgb", "dependencies": [], "parameters": {}},
         "hsv": {"type": "default", "name": "hsv", "dependencies": [], "parameters": {}},
         "dexined": {"type": "edges", "name": "dexined", "dependencies": [],
@@ -70,7 +73,7 @@ def get_representation_dict():
         logger.info("Using 1 GPU")
         return all_representations_dict
     n_needed = 0
-    for k, v in all_representations_dict.items():
+    for v in all_representations_dict.values():
         if "device" in v.get("vre_parameters", {}):
             n_needed += 1
     if n_needed > tr.cuda.device_count():
@@ -78,18 +81,18 @@ def get_representation_dict():
         return all_representations_dict
     logger.info(f"Using {tr.cuda.device_count()} GPUs")
     i = 0
-    for k, v in all_representations_dict.items():
-        if "device" in v.get("vre_parameters", {}):
-            v["vre_parameters"]["device"] = f"cuda:{i}"
+    for k in all_representations_dict.keys():
+        if "device" in all_representations_dict[k].get("vre_parameters", {}):
+            all_representations_dict[k]["vre_parameters"]["device"] = f"cuda:{i}"
             i += 1
     return all_representations_dict
 
-def process_dict(data: dict, batch_size) -> pd.DataFrame:
+def _process_dict(data: dict, batch_size) -> pd.DataFrame:
     return pd.DataFrame(data).drop(columns=["frame"]).mean().rename(f"batch={batch_size}")
 
 def main():
-    video_path = setup()
-    video = pims.Video(video_path)
+    """main fn"""
+    video = pims.Video(dwd_video_if_needed())
     # we'll just pick 2 random representations to test here
     representations_dict = get_representation_dict()
     batch_sizes = [1, 5, 10, 20]
@@ -106,7 +109,7 @@ def main():
 
     results = []
     for vre in vres:
-        results.append(process_dict(vre()))
+        results.append(_process_dict(vre(), batch_size=vre.keywords["batch_size"]))
     results = pd.concat(results, axis=1)
     results.loc["total"] = results.sum() * (end_frame - start_frame)
     results.to_csv(Path(__file__).parent / "results.csv")

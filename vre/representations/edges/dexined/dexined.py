@@ -1,5 +1,4 @@
 import os
-import gdown
 import numpy as np
 import torch as tr
 from pathlib import Path
@@ -8,7 +7,7 @@ from overrides import overrides
 from .model_dexined import DexiNed as Model
 from ....representation import Representation, RepresentationOutput
 from ....logger import logger
-from ....utils import image_resize
+from ....utils import image_resize, gdown_mkdir
 
 def _preprocess(images: np.ndarray, height: int, width: int) -> np.ndarray:
     assert len(images.shape) == 4, images.shape
@@ -54,8 +53,7 @@ class DexiNed(Representation):
         url_weights = "https://drive.google.com/u/0/uc?id=1oT1iKdRRKJpQO-DTYWUnZSK51QnJ-mnP"
 
         if not weights_file.exists():
-            logger.debug(f"Downloading weights for dexined from {url_weights}")
-            gdown.download(url_weights, str(weights_file))
+            gdown_mkdir(url_weights, weights_file)
 
         self.model.load_state_dict(tr.load(weights_file, map_location="cpu"))
         self.model = self.model.to(self.device)

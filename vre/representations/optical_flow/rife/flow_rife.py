@@ -1,3 +1,4 @@
+"""FlowRife representation"""
 from pathlib import Path
 import os
 import pims
@@ -5,18 +6,13 @@ import numpy as np
 import torch as tr
 import torch.nn.functional as F
 import flow_vis
-import gdown
 from overrides import overrides
 
-try:
-    from .RIFE_HDv2 import Model
-    from ....representation import Representation, RepresentationOutput
-    from ....logger import logger
-except ImportError:
-    from RIFE_HDv2 import Model
-    from vre.representation import Representation, RepresentationOutput
-    from vre.logger import logger
+from ....utils import gdown_mkdir
+from ....representation import Representation, RepresentationOutput
+from .RIFE_HDv2 import Model
 
+"""FlowRife representation"""
 class FlowRife(Representation):
     def __init__(self, video: pims.Video, name: str, dependencies: list[Representation],
                  compute_backward_flow: bool, uhd: bool):
@@ -42,18 +38,15 @@ class FlowRife(Representation):
 
         contextnet_path = weights_dir / "contextnet.pkl"
         if not contextnet_path.exists():
-            logger.debug("Downloading contextnet weights for RIFE")
-            gdown.download(contextnet_url, str(contextnet_path))
+            gdown_mkdir(contextnet_url, contextnet_path)
 
         flownet_path = weights_dir / "flownet.pkl"
         if not flownet_path.exists():
-            logger.debug("Downloading flownet weights for RIFE")
-            gdown.download(flownet_url, str(flownet_path))
+            gdown_mkdir(flownet_url, flownet_path)
 
         unet_path = weights_dir / "unet.pkl"
         if not unet_path.exists():
-            logger.debug("Downloading unet weights for RIFE")
-            gdown.download(unet_url, str(unet_path))
+            gdown_mkdir(unet_url, unet_path)
 
         self.model.load_model(weights_dir)
         self.model = self.model.eval().to(self.device)

@@ -15,6 +15,11 @@ before_script:
   - pip uninstall -y media-processing-lib
   - python3 -m pip install -r requirements.txt
 
+pylint:
+  script:
+    - pip install pylint
+    - pylint --rcfile=.pylintrc $(git ls-files "*.py" | grep -v "representations/\|test/")
+
 test_end_to_end_imgur:
   script:
     - cd test/end_to_end/imgur/

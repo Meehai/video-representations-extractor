@@ -60,9 +60,7 @@ def test_vre_batched():
                                    "parameters": {"train_height": 240, "train_width": 428, "num_classes": 8,
                                                   "color_map": [[0, 255, 0], [0, 127, 0], [255, 255, 0],
                                                                 [255, 255, 255], [255, 0, 0], [0, 0, 255],
-                                                                [0, 255, 255], [127, 127, 63]]},
-                                   "vre_parameters": {"device": device,
-                                                      "weights_file": "safeuav_semantic_0956_pytorch.ckpt"}},
+                                                                [0, 255, 255], [127, 127, 63]]}},
         "halftone": {"type": "soft-segmentation", "name": "python-halftone", "dependencies": [],
                      "parameters": {"sample": 3, "scale": 1, "percentage": 91, "angles": [0, 15, 30, 45],
                                     "antialias": False, "resolution": [240, 426]}},
@@ -74,8 +72,7 @@ def test_vre_batched():
                                  "parameters": {"linear_ang_vel_correction": True, "focus_correction": True,
                                                 "cosine_correction_scipy": False, "cosine_correction_gd": True,
                                                 "sensor_fov": 75, "sensor_width": 3840, "sensor_height": 2160,
-                                                "min_depth_meters": 0, "max_depth_meters": 400},
-                                 "vre_parameters": {"velocities_path": "DJI_0956_velocities.npz"}},
+                                                "min_depth_meters": 0, "max_depth_meters": 400}},
     }
     # we'll just pick 2 random representations to test here
     representations_dict = sample_representations(all_representations_dict, n=2)
