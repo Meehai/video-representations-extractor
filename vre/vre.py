@@ -2,6 +2,7 @@
 from __future__ import annotations
 from pathlib import Path
 from datetime import datetime
+import os
 from tqdm import tqdm
 from omegaconf import DictConfig
 import pims
@@ -96,8 +97,9 @@ class VRE:
             start_frame = 0
             logger.warning("start frame not set, default to 0")
         assert isinstance(start_frame, int) and start_frame <= end_frame, (start_frame, end_frame)
+        Path(f"{os.environ['VRE_WEIGHTS_DIR']}").mkdir(exist_ok=True, parents=True)
         # run_stats will hold a dict: {repr_name: [time_taken, ...]} for all representations, for debugging/logging
-        run_stats = {repr_name: [] for repr_name in ["frame", *self.representations.keys()]}
+        run_stats: dict[str, list] = {repr_name: [] for repr_name in ["frame", *self.representations.keys()]}
 
         npy_raw_paths, npy_resz_paths, png_resz_paths = self._make_run_paths(output_dir, output_resolution,
                                                                              export_raw, export_npy, export_png)

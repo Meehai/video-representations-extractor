@@ -1,11 +1,12 @@
-import shutil
+#!/usr/bin/env python3
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from functools import partial
 import gdown
 import pims
 import pandas as pd
-import numpy as np
 import torch as tr
+from loguru import logger
 
 from vre import VRE
 from vre.representations import build_representations_from_cfg
@@ -14,27 +15,11 @@ from vre.utils import get_project_root
 def setup():
     video_path = get_project_root() / "resources/testVideo.mp4"
     if not video_path.exists():
-        gdown.download("https://drive.google.com/uc?id=158U-W-Gal6eXxYtS1ca1DAAxHvknqwAk", str(video_path))
-    return str(video_path)
+        video_path.parent.mkdir(exist_ok=True, parents=True)
+        gdown.download("https://drive.google.com/uc?id=158U-W-Gal6eXxYtS1ca1DAAxHvknqwAk", f"{video_path}")
+    return f"{video_path}"
 
-def sample_representations(all_representations_dict: dict, n: int) -> dict:
-    chosen_ones = np.random.choice(list(all_representations_dict.keys()), size=2, replace=False).tolist()
-    representations_dict = {k: all_representations_dict[k] for k in chosen_ones}
-    while True:
-        deps = set()
-        for v in representations_dict.values():
-            for _dep in v["dependencies"]:
-                if _dep not in representations_dict:
-                    deps.add(_dep)
-        if len(deps) == 0:
-            break
-        for dep in deps:
-            representations_dict[dep] = all_representations_dict[dep]
-    return representations_dict
-
-def test_vre_batched():
-    video_path = setup()
-    video = pims.Video(video_path)
+def get_representation_dict():
     device = "cuda" if tr.cuda.is_available() else "cpu"
     all_representations_dict = {
         "rgb": {"type": "default", "name": "rgb", "dependencies": [], "parameters": {}},
@@ -77,36 +62,55 @@ def test_vre_batched():
                                                 "min_depth_meters": 0, "max_depth_meters": 400},
                                  "vre_parameters": {"velocities_path": "DJI_0956_velocities.npz"}},
     }
+
+    if not tr.cuda.is_available():
+        logger.info("Using CPU")
+        return all_representations_dict
+    if tr.cuda.device_count() == 1:
+        logger.info("Using 1 GPU")
+        return all_representations_dict
+    n_needed = 0
+    for k, v in all_representations_dict.items():
+        if "device" in v.get("vre_parameters", {}):
+            n_needed += 1
+    if n_needed > tr.cuda.device_count():
+        logger.info(f"Using 1 gpu. n_needed={n_needed}, n_available={tr.cuda.device_count()}")
+        return all_representations_dict
+    logger.info(f"Using {tr.cuda.device_count()} GPUs")
+    i = 0
+    for k, v in all_representations_dict.items():
+        if "device" in v.get("vre_parameters", {}):
+            v["vre_parameters"]["device"] = f"cuda:{i}"
+            i += 1
+    return all_representations_dict
+
+def process_dict(data: dict, batch_size) -> pd.DataFrame:
+    return pd.DataFrame(data).drop(columns=["frame"]).mean().rename(f"batch={batch_size}")
+
+def main():
+    video_path = setup()
+    video = pims.Video(video_path)
     # we'll just pick 2 random representations to test here
-    representations_dict = sample_representations(all_representations_dict, n=2)
-    representations = build_representations_from_cfg(video, representations_dict)
-    representations2 = build_representations_from_cfg(video, representations_dict)
+    representations_dict = get_representation_dict()
+    batch_sizes = [1, 5, 10, 20]
+    start_frame = 1000
+    end_frame = start_frame + 200
 
-    tmp_dir = Path("here1" if __name__ == "__main__" else TemporaryDirectory().name)
-    tmp_dir2 = Path("here2" if __name__ == "__main__" else TemporaryDirectory().name)
-    shutil.rmtree(tmp_dir, ignore_errors=True)
-    shutil.rmtree(tmp_dir2, ignore_errors=True)
+    vres = []
+    for b in batch_sizes:
+        representations = build_representations_from_cfg(video, representations_dict)
+        tmp_dir = Path(TemporaryDirectory().name)
+        vre = VRE(video, representations)
+        vres.append(partial(vre, output_dir=tmp_dir, start_frame=start_frame, end_frame=end_frame, export_raw=True,
+                            export_png=True, batch_size=b))
 
-    start_frame, end_frame = 1000, (1100 if __name__ == "__main__" else 1005)
-    batch_size = 5
-    vre = VRE(video, representations)
-    took1 = vre(tmp_dir, start_frame=start_frame, end_frame=end_frame, export_raw=True, export_png=True, batch_size=1)
-    vre2 = VRE(video, representations2)
-    took2 = vre2(tmp_dir2, start_frame=start_frame, end_frame=end_frame, export_raw=True, export_png=True,
-                 batch_size=batch_size)
-
-    both = pd.concat([pd.DataFrame(took1).drop(columns=["frame"]).mean().rename("unbatched"),
-                      pd.DataFrame(took2).drop(columns=["frame"]).mean().rename(f"batch={batch_size}")], axis=1)
-    both.loc["total"] = both.sum() * (end_frame - start_frame)
-
-    for representation in vre.representations.keys():
-        for t in range(start_frame, end_frame):
-            a = np.load(tmp_dir / representation / "npy/raw" / f"{t}.npz")["arr_0"]
-            b = np.load(tmp_dir2 / representation / "npy/raw" / f"{t}.npz")["arr_0"]
-            # cannot make these ones reproductible :/
-            if representation in ("softseg kmeans", ) or "odoflow" in representation:
-                continue
-            assert np.abs(a - b).mean() < 1e-2, (representation, t)
+    results = []
+    for vre in vres:
+        results.append(process_dict(vre()))
+    results = pd.concat(results, axis=1)
+    results.loc["total"] = results.sum() * (end_frame - start_frame)
+    results.to_csv(Path(__file__).parent / "results.csv")
+    print(results)
 
 if __name__ == "__main__":
-    test_vre_batched()
+    main()

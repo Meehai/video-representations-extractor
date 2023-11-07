@@ -20,7 +20,7 @@ except ImportError:
 class FlowRife(Representation):
     def __init__(self, video: pims.Video, name: str, dependencies: list[Representation],
                  compute_backward_flow: bool, uhd: bool):
-        self.model: Model = Model().eval()
+        self.model: Model = Model().eval().to("cpu")
         self.uhd = uhd
         self.no_backward_flow = True if compute_backward_flow is None else not compute_backward_flow
         self.device = "cpu"
