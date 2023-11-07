@@ -5,7 +5,6 @@ import pims
 import torch as tr
 from torch.nn import functional as F
 import flow_vis
-import gdown
 from overrides import overrides
 from pathlib import Path
 
@@ -13,6 +12,7 @@ from .utils import InputPadder
 from .raft import RAFT
 from ....representation import Representation, RepresentationOutput
 from ....logger import logger
+from ....utils import gdown_mkdir
 
 class FlowRaft(Representation):
     """FlowRaft representation"""
@@ -46,8 +46,7 @@ class FlowRaft(Representation):
 
         raft_things_path = weights_dir / "raft-things.pkl"
         if not raft_things_path.exists():
-            logger.debug("Downloading weights for RAFT")
-            gdown.download(raft_things_url, str(raft_things_path))
+            gdown_mkdir(raft_things_url, raft_things_path)
 
         def convert(data: dict[str, tr.Tensor]) -> dict[str, tr.Tensor]:
             return {k.replace("module.", ""): v for k, v in data.items()}

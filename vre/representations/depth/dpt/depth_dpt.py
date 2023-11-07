@@ -2,7 +2,6 @@ import os
 import numpy as np
 import torch as tr
 import torch.nn.functional as F
-import gdown
 from overrides import overrides
 from pathlib import Path
 from matplotlib.cm import hot
@@ -10,6 +9,7 @@ from matplotlib.cm import hot
 from .dpt_depth import DPTDepthModel
 from ....representation import Representation, RepresentationOutput
 from ....logger import logger
+from ....utils import gdown_mkdir
 
 def constrain_to_multiple_of(x, multiple_of: int, min_val=0, max_val=None):
     y = (np.round(x / multiple_of) * multiple_of).astype(int)
@@ -69,8 +69,7 @@ class DepthDpt(Representation):
         url_weights = "https://drive.google.com/u/0/uc?id=15JbN2YSkZFSaSV2CGkU1kVSxCBrNtyhD"
 
         if not weights_file.exists():
-            logger.debug(f"Downloading weights for dexined from {url_weights}")
-            gdown.download(url_weights, f"{weights_file}")
+            gdown_mkdir(url_weights, weights_file)
 
         self.device = device
         self.model.load_state_dict(tr.load(weights_file, map_location="cpu"))
