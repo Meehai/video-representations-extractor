@@ -35,7 +35,7 @@ class SSegSafeUAV(Representation):
         self.train_width = train_width
         self.device = "cpu"
         super().__init__(**kwargs)
-        self.model = _SafeUavWrapper(ch_in=3, ch_out=self.num_classes).eval()
+        self.model = _SafeUavWrapper(ch_in=3, ch_out=self.num_classes).eval().to("cpu")
 
     @overrides(check_signature=False)
     def vre_setup(self, weights_file: str, device: str, **kwargs):
