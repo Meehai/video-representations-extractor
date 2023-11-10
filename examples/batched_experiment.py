@@ -64,6 +64,12 @@ def get_representation_dict() -> dict:
                                                 "sensor_fov": 75, "sensor_width": 3840, "sensor_height": 2160,
                                                 "min_depth_meters": 0, "max_depth_meters": 400},
                                  "vre_parameters": {"velocities_path": "DJI_0956_velocities.npz"}},
+        "fastsam (s)": {"type": "semantic_segmentation", "name": "fastsam", "dependencies": [],
+                        "parameters": {"variant": "fastsam-s", "iou": 0.9, "conf": 0.4},
+                        "vre_parameters": {"device": device}},
+        "fastsam (x)": {"type": "semantic_segmentation", "name": "fastsam", "dependencies": [],
+                        "parameters": {"variant": "fastsam-x", "iou": 0.9, "conf": 0.4, "better_quality": False},
+                        "vre_parameters": {"device": device}},
     }
 
     if not tr.cuda.is_available():
