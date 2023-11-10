@@ -112,18 +112,18 @@ class VRE:
         left, right = batches[0:-1], batches[1:]
         pbar = tqdm(total=end_frame - start_frame)
         for l, r in zip(left, right):
-            batch_t = slice(l, r)
-            run_stats["frame"].extend(range(batch_t.start, batch_t.stop))
+            batch_t_ix = slice(l, r)
+            run_stats["frame"].extend(range(batch_t_ix.start, batch_t_ix.stop))
             pbar.update(r - l)
             representation: Representation
             for name, representation in self.representations.items():
                 pbar.set_description(f"[VRE] {name}")
                 now = datetime.now()
                 # TODO: if all paths exist, skip and read from disk
-                raw_data, extra = representation[batch_t]
+                raw_data, extra = representation[batch_t_ix]
                 took = (datetime.now() - now).total_seconds()
                 if export_png:
-                    imgs = representation.make_images(batch_t, raw_data, extra)
+                    imgs = representation.make_images(batch_t_ix, raw_data, extra)
                     assert imgs.shape == (r - l, *output_resolution, 3), (imgs.shape, (r - l, *output_resolution, 3))
                     assert imgs.dtype == np.uint8, imgs.dtype
 

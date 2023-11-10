@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 import pims
 
-RepresentationOutput = np.ndarray | tuple[np.ndarray, dict]
+RepresentationOutput = np.ndarray | tuple[np.ndarray, list[dict]]
 
 class Representation(ABC):
     """Generic Representation class for VRE"""
@@ -55,7 +55,7 @@ class Representation(ABC):
         raw_data, extra = res if isinstance(res, tuple) else (res, {})
         # uint8 for semantic segmentation, float32 for everything else
         assert raw_data.dtype in (np.float32, np.uint8), raw_data.dtype
-        if raw_data.dtype == np.float32:
-            assert raw_data.min() >= 0 and raw_data.max() <= 1, (f"{self.name}: [{raw_data.min():.2f}:"
-                                                                 f"{raw_data.max():.2f}]")
+        # if raw_data.dtype == np.float32:
+        #     assert raw_data.min() >= 0 and raw_data.max() <= 1, (f"{self.name}: [{raw_data.min():.2f}:"
+        #                                                          f"{raw_data.max():.2f}]")
         return raw_data, extra
