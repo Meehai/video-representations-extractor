@@ -58,6 +58,7 @@ class DepthDpt(Representation):
         return (1 / y).clip(0, 1).cpu().numpy()
 
     def _setup(self):
+        tr.manual_seed(42)
         self.model = DPTDepthModel(backbone="vitl16_384", non_negative=True).to("cpu")
 
     @overrides(check_signature=False)

@@ -15,6 +15,7 @@ class _SafeUavWrapper(nn.Module):
     """Wrapper. TODO: Replace with nn.Sequential"""
     def __init__(self, ch_in: int, ch_out: int):
         super().__init__()
+        tr.manual_seed(42)
         self.encoder = EncoderMap2Map(ch_in)
         self.decoder = DecoderMap2Map(ch_out)
 
@@ -84,4 +85,3 @@ class SSegSafeUAV(Representation):
         new_images_rsz = image_resize_batch(new_images, height=self.video.frame_shape[0],
                                             width=self.video.frame_shape[1], order=0)
         return new_images_rsz
-
