@@ -21,7 +21,6 @@ def test_vre_simple_representations():
     vre = VRE(video, representations)
     assert vre is not None
     tmp_dir = Path(TemporaryDirectory().name)
-    vre(tmp_dir, start_frame=1000, end_frame=1001, export_png=True, export_raw=True, export_npy=True)
-    assert Path(f"{tmp_dir}/rgb/npy/raw/1000.npz").exists()
-    assert Path(f"{tmp_dir}/rgb/npy/720x1280/1000.npz").exists()
-    assert Path(f"{tmp_dir}/rgb/png/720x1280/1000.png").exists()
+    vre(tmp_dir, start_frame=1000, end_frame=1001, export_png=True, export_npy=True)
+    assert Path(f"{tmp_dir}/rgb/npy/1000.npz").exists()
+    assert Path(f"{tmp_dir}/rgb/png/1000.png").exists()

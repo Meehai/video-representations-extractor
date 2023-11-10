@@ -45,13 +45,17 @@ def topological_sort(dependency_graph: dict[T, list[T]]) -> list[T]:
         assert in_nodes_graph[key] == 0, "Graph has cycles. Cannot do topological sort."
     return L
 
-def image_resize(x: np.ndarray, height: int, width: int) -> np.ndarray:
+def image_resize(x: np.ndarray, height: int, width: int, **kwargs) -> np.ndarray:
     """resizes an image to the given height and width"""
     dtype_orig = x.dtype
     x = x.astype(np.float32) / 255 if dtype_orig == np.uint8 else x
-    y = resize(x, (height, width))
+    y = resize(x, output_shape=(height, width), **kwargs)
     y = (y * 255).astype(dtype_orig) if dtype_orig == np.uint8 else y
     return y
+
+def image_resize_batch(x_batch: np.ndarray, height: int, width: int, **kwargs) -> np.ndarray:
+    """resizes a bath of images to the given height and width"""
+    return np.array([image_resize(x, height, width, **kwargs) for x in x_batch])
 
 def image_write(x: np.ndarray, path: Path):
     """writes an image to a bytes string"""
@@ -64,3 +68,22 @@ def gdown_mkdir(uri: str, local_path: Path):
     logger.debug(f"Downloading '{uri}' to '{local_path}'")
     local_path.parent.mkdir(exist_ok=True, parents=True)
     gdown.download(uri, f"{local_path}")
+
+class FakeVideo:
+    """FakeVideo -- class used to test representations with a given numpy array"""
+    def __init__(self, data: np.ndarray, frame_rate: int):
+        self.data = data
+        self.frame_rate = frame_rate
+        self.frame_shape = data.shape[1:]
+        self.file = f"FakeVideo {self.data.shape}"
+
+    @property
+    def shape(self):
+        """returns the shape of the data"""
+        return self.data.shape
+
+    def __getitem__(self, ix):
+        return self.data[ix]
+
+    def __len__(self):
+        return len(self.data)

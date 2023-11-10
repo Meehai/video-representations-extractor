@@ -104,7 +104,7 @@ def main():
         representations = build_representations_from_cfg(video, representations_dict)
         tmp_dir = Path(TemporaryDirectory().name)
         vre = VRE(video, representations)
-        vres.append(partial(vre, output_dir=tmp_dir, start_frame=start_frame, end_frame=end_frame, export_raw=True,
+        vres.append(partial(vre, output_dir=tmp_dir, start_frame=start_frame, end_frame=end_frame, export_npy=True,
                             export_png=True, batch_size=b))
 
     results = []

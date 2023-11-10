@@ -4,6 +4,7 @@ import numpy as np
 from overrides import override
 from .softseg import soft_seg
 from ....representation import Representation, RepresentationOutput
+from ....utils import image_resize_batch
 
 
 class GeneralizedBoundaries(Representation):
@@ -34,6 +35,7 @@ class GeneralizedBoundaries(Representation):
         return y
 
     @override
-    def make_images(self, x: np.ndarray, extra: dict | None) -> np.ndarray:
-        y = (x * 255).astype(np.uint8)
+    def make_images(self, t: slice, x: np.ndarray, extra: dict | None) -> np.ndarray:
+        x_rsz = image_resize_batch(x, height=self.video.frame_shape[0], width=self.video.frame_shape[1])
+        y = (x_rsz * 255).astype(np.uint8)
         return y

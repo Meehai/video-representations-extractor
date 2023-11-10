@@ -96,7 +96,7 @@ class KMeans(Representation):
         return res
 
     @overrides
-    def make_images(self, x: np.ndarray, extra: dict | None) -> np.ndarray:
+    def make_images(self, t: slice, x: np.ndarray, extra: dict | None) -> np.ndarray:
         assert extra is not None
         assert len(extra) == len(x), (len(extra), len(x))
         imgs = []

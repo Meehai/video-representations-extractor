@@ -87,9 +87,9 @@ def test_vre_batched():
     start_frame, end_frame = 1000, (1100 if __name__ == "__main__" else 1005)
     batch_size = 5
     vre = VRE(video, representations)
-    took1 = vre(tmp_dir, start_frame=start_frame, end_frame=end_frame, export_raw=True, export_png=True, batch_size=1)
+    took1 = vre(tmp_dir, start_frame=start_frame, end_frame=end_frame, export_npy=True, export_png=True, batch_size=1)
     vre2 = VRE(video, representations2)
-    took2 = vre2(tmp_dir2, start_frame=start_frame, end_frame=end_frame, export_raw=True, export_png=True,
+    took2 = vre2(tmp_dir2, start_frame=start_frame, end_frame=end_frame, export_npy=True, export_png=True,
                  batch_size=batch_size)
 
     both = pd.concat([pd.DataFrame(took1).drop(columns=["frame"]).mean().rename("unbatched"),
@@ -98,8 +98,8 @@ def test_vre_batched():
 
     for representation in vre.representations.keys():
         for t in range(start_frame, end_frame):
-            a = np.load(tmp_dir / representation / "npy/raw" / f"{t}.npz")["arr_0"]
-            b = np.load(tmp_dir2 / representation / "npy/raw" / f"{t}.npz")["arr_0"]
+            a = np.load(tmp_dir / representation / "npy/" / f"{t}.npz")["arr_0"]
+            b = np.load(tmp_dir2 / representation / "npy/" / f"{t}.npz")["arr_0"]
             # cannot make these ones reproductible :/
             if representation in ("softseg kmeans", ) or "odoflow" in representation:
                 continue

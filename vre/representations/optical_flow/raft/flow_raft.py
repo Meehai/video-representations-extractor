@@ -11,8 +11,7 @@ from pathlib import Path
 from .utils import InputPadder
 from .raft import RAFT
 from ....representation import Representation, RepresentationOutput
-from ....logger import logger
-from ....utils import gdown_mkdir
+from ....utils import gdown_mkdir, image_resize_batch
 
 class FlowRaft(Representation):
     """FlowRaft representation"""
@@ -85,8 +84,9 @@ class FlowRaft(Representation):
         return flow
 
     @overrides
-    def make_images(self, x: np.ndarray, extra: dict | None) -> np.ndarray:
+    def make_images(self, t: slice, x: np.ndarray, extra: dict | None) -> np.ndarray:
         # [0 : 1] => [-1 : 1]
         x = x * 2 - 1
-        y = np.array([flow_vis.flow_to_color(_x) for _x in x])
+        x_rsz = image_resize_batch(x, height=self.video.frame_shape[0], width=self.video.frame_shape[1])
+        y = np.array([flow_vis.flow_to_color(_pred) for _pred in x_rsz])
         return y

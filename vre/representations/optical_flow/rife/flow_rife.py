@@ -8,7 +8,7 @@ import torch.nn.functional as F
 import flow_vis
 from overrides import overrides
 
-from ....utils import gdown_mkdir
+from ....utils import gdown_mkdir, image_resize_batch
 from ....representation import Representation, RepresentationOutput
 from .RIFE_HDv2 import Model
 
@@ -67,10 +67,11 @@ class FlowRife(Representation):
         return flow
 
     @overrides
-    def make_images(self, x: np.ndarray, extra: dict | None) -> np.ndarray:
+    def make_images(self, t: slice, x: np.ndarray, extra: dict | None) -> np.ndarray:
         # [0 : 1] => [-1 : 1]
         x = x * 2 - 1
-        y = np.array([flow_vis.flow_to_color(_pred) for _pred in x])
+        x_rsz = image_resize_batch(x, height=self.video.frame_shape[0], width=self.video.frame_shape[1])
+        y = np.array([flow_vis.flow_to_color(_pred) for _pred in x_rsz])
         return y
 
     def _preprocess(self, sources: np.ndarray, targets: np.ndarray) -> (tr.Tensor, tr.Tensor, tuple):

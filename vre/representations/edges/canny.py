@@ -30,5 +30,5 @@ class Canny(Representation):
         return np.array([self._make_one(frame) for frame in frames])
 
     @overrides
-    def make_images(self, x: np.ndarray, extra: dict | None) -> np.ndarray:
+    def make_images(self, t: slice, x: np.ndarray, extra: dict | None) -> np.ndarray:
         return (255 * gray(x)[..., 0:3]).astype(np.uint8)

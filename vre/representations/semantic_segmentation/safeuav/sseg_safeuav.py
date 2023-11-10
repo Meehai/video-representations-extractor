@@ -9,7 +9,7 @@ from torch.nn import functional as F
 
 from .Map2Map import EncoderMap2Map, DecoderMap2Map
 from ....representation import Representation, RepresentationOutput
-
+from ....utils import image_resize_batch
 
 class _SafeUavWrapper(nn.Module):
     """Wrapper. TODO: Replace with nn.Sequential"""
@@ -75,9 +75,13 @@ class SSegSafeUAV(Representation):
         return np_pred_argmax
 
     @overrides
-    def make_images(self, x: np.ndarray, extra: dict | None) -> np.ndarray:
+    def make_images(self, t: slice, x: np.ndarray, extra: dict | None) -> np.ndarray:
         new_images = np.zeros((*x.shape, 3), dtype=np.uint8)
+        # TODO: use video[t] and return in make() the logits/softmax, not argmax for better upscale
         for i in range(self.num_classes):
             new_images[x == i] = self.color_map[i]
-        return new_images
+        # order=0 is nearest neighbor
+        new_images_rsz = image_resize_batch(new_images, height=self.video.frame_shape[0],
+                                            width=self.video.frame_shape[1], order=0)
+        return new_images_rsz
 

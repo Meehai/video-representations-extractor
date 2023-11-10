@@ -8,8 +8,7 @@ from matplotlib.cm import hot
 
 from .dpt_depth import DPTDepthModel
 from ....representation import Representation, RepresentationOutput
-from ....logger import logger
-from ....utils import gdown_mkdir
+from ....utils import gdown_mkdir, image_resize_batch
 
 def constrain_to_multiple_of(x, multiple_of: int, min_val=0, max_val=None):
     y = (np.round(x / multiple_of) * multiple_of).astype(int)
@@ -85,7 +84,8 @@ class DepthDpt(Representation):
         return res
 
     @overrides
-    def make_images(self, x: np.ndarray, extra: dict | None) -> np.ndarray:
-        y = hot(x)[..., 0:3]
+    def make_images(self, t: slice, x: np.ndarray, extra: dict | None) -> np.ndarray:
+        x_rsz = image_resize_batch(x, height=self.video.frame_shape[0], width=self.video.frame_shape[1])
+        y = hot(x_rsz)[..., 0:3]
         y = np.uint8(y * 255)
         return y

@@ -13,5 +13,5 @@ class RGB(Representation):
         return np.array(self.video[t]).astype(np.float32) / 255
 
     @overrides
-    def make_images(self, x: np.ndarray, extra: dict | None) -> np.ndarray:
+    def make_images(self, t: slice, x: np.ndarray, extra: dict | None) -> np.ndarray:
         return (x * 255).astype(np.uint8)

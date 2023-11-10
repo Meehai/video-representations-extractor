@@ -2,21 +2,7 @@ import numpy as np
 from vre.representations.depth.odo_flow import DepthOdoFlow
 from vre.representations.optical_flow.rife import FlowRife
 from vre.representations.optical_flow.raft import FlowRaft
-
-class FakeVideo:
-    def __init__(self, data: np.ndarray, frame_rate: int):
-        self.data = data
-        self.frame_rate = frame_rate
-
-    @property
-    def shape(self):
-        return self.data.shape
-
-    def __getitem__(self, ix):
-        return self.data[ix]
-
-    def __len__(self):
-        return len(self.data)
+from vre.utils import FakeVideo
 
 def test_odoflow_rife():
     rgb_data = FakeVideo(np.random.randint(0, 255, size=(2, 128, 128, 3), dtype=np.uint8), 30)
@@ -30,8 +16,8 @@ def test_odoflow_rife():
     assert y_odoflow.shape == (1, 64, 64), y_odoflow.shape
     assert len(extra) == 1, extra
 
-    y_odoflow_images = odoflow_repr.make_images(y_odoflow, extra)
-    assert y_odoflow_images.shape == (1, 64, 64, 3), y_odoflow_images.shape
+    y_odoflow_images = odoflow_repr.make_images(slice(0, 1), y_odoflow, extra)
+    assert y_odoflow_images.shape == (1, 128, 128, 3), y_odoflow_images.shape
     assert y_odoflow_images.dtype == np.uint8, y_odoflow_images.dtype
 
 def test_odoflow_raft():
@@ -47,6 +33,6 @@ def test_odoflow_raft():
     assert y_odoflow.shape == (1, 128, 128), y_odoflow.shape
     assert len(extra) == 1, extra
 
-    y_odoflow_images = odoflow_repr.make_images(y_odoflow, extra)
+    y_odoflow_images = odoflow_repr.make_images(slice(0, 1), y_odoflow, extra)
     assert y_odoflow_images.shape == (1, 128, 128, 3), y_odoflow_images.shape
     assert y_odoflow_images.dtype == np.uint8, y_odoflow_images.dtype
