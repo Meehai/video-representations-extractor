@@ -7,12 +7,12 @@ from overrides import overrides
 from .model_dexined import DexiNed as Model
 from ....representation import Representation, RepresentationOutput
 from ....logger import logger
-from ....utils import image_resize, gdown_mkdir
+from ....utils import image_resize_batch, gdown_mkdir
 
 def _preprocess(images: np.ndarray, height: int, width: int) -> np.ndarray:
     assert len(images.shape) == 4, images.shape
     logger.debug2(f"Original shape: {images.shape}")
-    images_resize = np.array([image_resize(image, height, width) for image in images])
+    images_resize = image_resize_batch(images, height, width)
     mean_pixel_values = [103.939, 116.779, 123.68]
     images_norm = images_resize.astype(np.float32) - mean_pixel_values
     # N, H, W, C -> N, C, H, W
@@ -70,6 +70,7 @@ class DexiNed(Representation):
         return C
 
     @overrides
-    def make_images(self, x: np.ndarray, extra: dict | None) -> np.ndarray:
+    def make_images(self, t: slice, x: np.ndarray, extra: dict | None) -> np.ndarray:
         x = np.repeat(np.expand_dims(x, axis=-1), 3, axis=-1)
-        return (x * 255).astype(np.uint8)
+        x_rsz = image_resize_batch(x, height=self.video.frame_shape[0], width=self.video.frame_shape[1])
+        return (x_rsz * 255).astype(np.uint8)

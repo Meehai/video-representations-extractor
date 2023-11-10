@@ -6,7 +6,7 @@ from PIL import Image, ImageDraw, ImageStat
 from overrides import overrides
 
 from ....representation import Representation, RepresentationOutput
-from ....utils import image_resize
+from ....utils import image_resize, image_resize_batch
 
 """
 Class: Halftone( path )
@@ -54,8 +54,9 @@ class Halftone(Representation):
         return np.array([self._make_one_image(frame) for frame in frames])
 
     @overrides
-    def make_images(self, x: np.ndarray, extra: dict | None) -> np.ndarray:
-        return (x * 255).astype(np.uint8)
+    def make_images(self, t: slice, x: np.ndarray, extra: dict | None) -> np.ndarray:
+        x_rsz = image_resize_batch(x, height=self.video.frame_shape[0], width=self.video.frame_shape[1])
+        return (x_rsz * 255).astype(np.uint8)
 
     def gcr(self, im, percentage):
         """

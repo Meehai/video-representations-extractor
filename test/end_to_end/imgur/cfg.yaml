@@ -1,8 +1,6 @@
 vre:
   start_frame: ${oc.env:VRE_START_IX}
   end_frame: ${oc.env:VRE_END_IX,null}
-  output_resolution: [240, 426]
-  export_raw: True
   export_npy: True
   export_png: True
 

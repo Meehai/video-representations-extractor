@@ -32,31 +32,17 @@ def get_args():
 
 
 def resolve_files(vre_export_dir: Path, resolution_dir: str = None) -> dict[str, list[Path]]:
-    found_dirs = [x for x in vre_export_dir.iterdir() if (x / "png").exists()]
-    resols = {}
-    for potential_dir in found_dirs:
-        resolutions = [x for x in (potential_dir / "png").iterdir() if x.is_dir()]
-        for res in resolutions:
-            resols[res.name] = resols.get(res.name, 0) + 1
-    resols = {k: v for k, v in resols.items() if v == len(found_dirs)}
-    assert len(resols) > 0, "No png export found. You need a structure of representation/png/HxW/[0.png, ..., N.png]"
-    if len(resols) > 1:
-        logger.debug(f"Found more potential resolutions exported for all {len(found_dirs)} exported dirs: {resols}")
-        assert resolution_dir in resols, f"resolution dir not provided and more potential png exports found"
-        res = resolution_dir
-    else:
-        res = list(resols.keys())[0]
-
+    found_dirs = [x / "png" for x in vre_export_dir.iterdir() if (x / "png").exists()]
     repr_files = {}
-    for repr_dir in found_dirs:
-        files = natsorted([x for x in (repr_dir / "png" / res).iterdir()], key=lambda p: p.name)
-        repr_files[repr_dir.name] = files
+    for repr_png_dir in found_dirs:
+        files = natsorted([x for x in repr_png_dir.iterdir()], key=lambda p: p.name)
+        repr_files[repr_png_dir.parent.name] = files
 
     name_files = np.array([[x.name for x in v] for v in repr_files.values()])
-    assert (name_files[0:1] != name_files).sum() == 0, "Not all npz files are named identically across representations"
+    assert (name_files == name_files[0]).all(), f"Not all npz files are named identically: {name_files}"
     n_files = {k: len(v) for k, v in repr_files.items()}
     assert np.std(list(n_files.values())) == 0, f"Not all png files have the same number of images: {n_files}"
-    logger.info(f"Returning {n_files[found_dirs[0].name]} images from {len(n_files)} representations.")
+    logger.info(f"Returning {n_files[found_dirs[0].parent.name]} images from {len(n_files)} representations.")
     return repr_files
 
 

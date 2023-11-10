@@ -3,21 +3,7 @@ from vre.representations.depth.odo_flow import DepthOdoFlow
 from vre.representations.optical_flow.rife import FlowRife
 from vre.representations.optical_flow.raft import FlowRaft
 from vre.representations.normals.depth_svd import DepthNormalsSVD
-
-class FakeVideo:
-    def __init__(self, data: np.ndarray, frame_rate: int):
-        self.data = data
-        self.frame_rate = frame_rate
-
-    @property
-    def shape(self):
-        return self.data.shape
-
-    def __getitem__(self, ix):
-        return self.data[ix]
-
-    def __len__(self):
-        return len(self.data)
+from vre.utils import FakeVideo
 
 def test_depth_normals_svd_raft():
     rgb_data = FakeVideo(np.random.randint(0, 255, size=(2, 128, 128, 3), dtype=np.uint8), 30)
@@ -35,7 +21,7 @@ def test_depth_normals_svd_raft():
     assert y_depth_svd_normals.shape == (1, 128, 128, 3), y_depth_svd_normals.shape
     assert len(extra) == 0, extra
 
-    y_depth_svd_normals_images = depth_svd_normals_repr.make_images(y_depth_svd_normals, extra)
+    y_depth_svd_normals_images = depth_svd_normals_repr.make_images(slice(0, 1), y_depth_svd_normals, extra)
     assert y_depth_svd_normals_images.shape == (1, 128, 128, 3), y_depth_svd_normals_images.shape
     assert y_depth_svd_normals_images.dtype == np.uint8, y_depth_svd_normals_images.dtype
 
@@ -54,6 +40,6 @@ def test_depth_normals_svd_rife():
     assert y_depth_svd_normals.shape == (1, 64, 64, 3), y_depth_svd_normals.shape
     assert len(extra) == 0, extra
 
-    y_depth_svd_normals_images = depth_svd_normals_repr.make_images(y_depth_svd_normals, extra)
-    assert y_depth_svd_normals_images.shape == (1, 64, 64, 3), y_depth_svd_normals_images.shape
+    y_depth_svd_normals_images = depth_svd_normals_repr.make_images(slice(0, 1), y_depth_svd_normals, extra)
+    assert y_depth_svd_normals_images.shape == (1, 128, 128, 3), y_depth_svd_normals_images.shape
     assert y_depth_svd_normals_images.dtype == np.uint8, y_depth_svd_normals_images.dtype

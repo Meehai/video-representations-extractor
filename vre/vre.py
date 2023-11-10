@@ -2,6 +2,7 @@
 from __future__ import annotations
 from pathlib import Path
 from datetime import datetime
+import shutil
 from tqdm import tqdm
 from omegaconf import DictConfig
 import pims
@@ -10,7 +11,7 @@ import pandas as pd
 
 from .representation import Representation
 from .logger import logger
-from .utils import image_resize, image_write
+from .utils import image_write, FakeVideo
 
 RunPaths = tuple[dict[str, list[Path]], dict[str, list[Path]], dict[str, list[Path]]]
 
@@ -23,50 +24,44 @@ class VRE:
         - video The video we are performing VRE one
         - representations The dict of instantiated and topo sorted representations (or callable to instantiate them)
         """
-        assert len(representations) > 0
-        assert isinstance(video, pims.Video), type(video)
+        assert len(representations) > 0, "At least one representation must be provided"
+        assert isinstance(video, (pims.Video, FakeVideo)), type(video)
         self.video = video
         self.representations = representations
 
-    def _make_run_paths(self, output_dir: Path, output_resolution: tuple[int, int],
-                        export_raw: bool, export_npy: bool, export_png: bool) -> RunPaths:
+    def _make_run_paths(self, output_dir: Path, export_npy: bool, export_png: bool) -> RunPaths:
         """
         create the output dirs structure. We may have 2 types of outputs: npy and png for each, we may have
         different resolutions, so we store them under npy/HxW or png/HxW for the npy we always store the raw output
         under 'raw' from which we can derive all the others even at a later time
         """
         output_dir.mkdir(parents=True, exist_ok=True)
-        out_resolution_str = f"{output_resolution[0]}x{output_resolution[1]}"
 
-        npy_raw_paths, npy_resz_paths, png_resz_paths = {}, {}, {}
+        npy_paths, png_paths = {}, {}
         for name in self.representations.keys():
             (output_dir / name).mkdir(exist_ok=True, parents=True)
-            npy_raw_base_dir = output_dir / name / "npy/raw"
-            npy_resz_base_dir = output_dir / name / f"npy/{out_resolution_str}"
-            png_resz_base_dir = output_dir / name / f"png/{out_resolution_str}"
+            npy_base_dir = output_dir / name / "npy/"
+            png_base_dir = output_dir / name / "png/"
 
-            npy_raw_paths[name] = [npy_raw_base_dir / f"{t}.npz" for t in range(len(self.video))]
-            npy_resz_paths[name] = [npy_resz_base_dir / f"{t}.npz" for t in range(len(self.video))]
-            png_resz_paths[name] = [png_resz_base_dir / f"{t}.png" for t in range(len(self.video))]
+            npy_paths[name] = [npy_base_dir / f"{t}.npz" for t in range(len(self.video))]
+            png_paths[name] = [png_base_dir / f"{t}.png" for t in range(len(self.video))]
 
-            if export_raw:
-                npy_raw_base_dir.mkdir(exist_ok=True, parents=True)
             if export_npy:
-                npy_resz_base_dir.mkdir(exist_ok=True)
+                npy_base_dir.mkdir(exist_ok=True)
             if export_png:
-                png_resz_base_dir.mkdir(exist_ok=True, parents=True)
-        return npy_raw_paths, npy_resz_paths, png_resz_paths
+                png_base_dir.mkdir(exist_ok=True, parents=True)
+        return npy_paths, png_paths
 
     def run_cfg(self, output_dir: Path, cfg: DictConfig):
         """runs VRE given a config file. This is testing the real case of using a vre config file when running"""
         start_frame = int(cfg.get("start_frame")) if cfg.get("start_frame") is not None else 0
         end_frame = int(cfg.get("end_frame") if cfg.get("end_frame") is not None else len(self.video))
         return self(output_dir=output_dir, start_frame=start_frame, end_frame=end_frame,
-                    export_raw=cfg.get("export_raw"), export_npy=cfg.get("export_npy"),
-                    export_png=cfg.get("export_png"), output_resolution=cfg.get("output_resolution"))
+                    export_npy=cfg.get("export_npy"), export_png=cfg.get("export_png"),
+                    batch_size=cfg.get("batch_size", 1),
+                    output_dir_exist_mode=cfg.get("output_dir_exist_mode", "raise"))
 
-    def _print(self, output_dir: Path, start_frame: int, end_frame: int, output_resolution: tuple[int, int],
-               export_raw: bool, export_npy: bool, export_png: bool):
+    def _print(self, output_dir: Path, start_frame: int, end_frame: int, export_npy: bool, export_png: bool):
         logger.info(
             f"""
   - Video path: '{self.video.file}'
@@ -74,39 +69,47 @@ class VRE:
   - Representations ({len(self.representations)}): {", ".join(x for x in self.representations.keys())}
   - Video shape: {self.video.shape}
   - Output frames ({end_frame - start_frame}): [{start_frame} : {end_frame - 1}]
-  - Output resolution: {tuple(output_resolution)}
-  - Export raw npy: {export_raw}
-  - Export resized npy: {export_npy}
-  - Export resized png: {export_png}
+  - Export npy: {export_npy}
+  - Export png: {export_png}
 """
         )
 
+    @staticmethod
+    def _check_call_args(output_dir: Path, start_frame: int, end_frame: int, batch_size: int,
+                         export_npy: bool, export_png: bool, output_dir_exist_mode: str):
+        """check the args of the call method"""
+        assert batch_size >= 1, f"batch size must be >= 1, got {batch_size}"
+        assert export_npy + export_png > 0, "At least one of export modes must be True"
+        assert isinstance(start_frame, int) and start_frame <= end_frame, (start_frame, end_frame)
+        assert output_dir_exist_mode in ("overwrite", "skip_computed", "raise"), output_dir_exist_mode
+        if output_dir.exists():
+            valid = output_dir_exist_mode in ("overwrite", "skip_computed")
+            assert valid, (f"'{output_dir}' exists. Set 'output_dir_exist_mode' to 'overwrite' or 'skip_computed'")
+            if output_dir_exist_mode == "overwrite":
+                logger.warning(f"Output dir '{output_dir}' already exists, will overwrite it")
+                shutil.rmtree(output_dir)
+
     # pylint: disable=too-many-branches, too-many-nested-blocks
-    def __call__(self, output_dir: Path, start_frame: int | None = None, end_frame: int | None = None,
-                 batch_size: int = 1, output_resolution: tuple[int, int] | None = None,
-                 export_raw: bool = False, export_npy: bool = False, export_png: bool = False,
-                 ) -> pd.DataFrame:
-        assert export_raw + export_png + export_npy > 0, "At least one of export modes must be True"
-        if output_resolution is None:
-            output_resolution = (self.video.frame_shape[0], self.video.frame_shape[1])
-            logger.warning(f"output resolution not set, default to video shape: {output_resolution}")
+    def __call__(self, output_dir: Path, export_npy: bool, export_png: bool, start_frame: int | None = None,
+                 end_frame: int | None = None, batch_size: int = 1,
+                 output_dir_exist_mode: str = "raise") -> pd.DataFrame:
         if end_frame is None:
             end_frame = len(self.video)
             logger.warning(f"end frame not set, default to the last frame of the video: {len(self.video)}")
         if start_frame is None:
             start_frame = 0
             logger.warning("start frame not set, default to 0")
-        assert isinstance(start_frame, int) and start_frame <= end_frame, (start_frame, end_frame)
+        VRE._check_call_args(output_dir, start_frame, end_frame, batch_size, export_npy, export_png,
+                             output_dir_exist_mode)
+
         # run_stats will hold a dict: {repr_name: [time_taken, ...]} for all representations, for debugging/logging
         run_stats: dict[str, list] = {repr_name: [] for repr_name in ["frame", *self.representations.keys()]}
+        npy_paths, png_paths = self._make_run_paths(output_dir, export_npy, export_png)
+        output_resolution = self.video.frame_shape[0:2]
+        self._print(output_dir, start_frame, end_frame, export_npy, export_png)
 
-        npy_raw_paths, npy_resz_paths, png_resz_paths = self._make_run_paths(output_dir, output_resolution,
-                                                                             export_raw, export_npy, export_png)
-        self._print(output_dir, start_frame, end_frame, output_resolution, export_raw, export_npy, export_png)
-
-        batches = np.arange(start_frame, min(end_frame + batch_size, len(self.video)), batch_size)
-        left, right = batches[0:-1], batches[1: ]
-
+        batches = np.arange(start_frame, 1 + min(end_frame + batch_size, len(self.video)), batch_size)
+        left, right = batches[0:-1], batches[1:]
         pbar = tqdm(total=end_frame - start_frame)
         for l, r in zip(left, right):
             batch_t = slice(l, r)
@@ -118,32 +121,26 @@ class VRE:
                 now = datetime.now()
                 # TODO: if all paths exist, skip and read from disk
                 raw_data, extra = representation[batch_t]
-                took = round((datetime.now() - now).total_seconds(), 3)
-                run_stats[name].extend([took / (r - l)] * (r - l))
-
-                if export_raw:
-                    for i, t in enumerate(range(l, r)):
-                        if not npy_raw_paths[name][t].exists():
-                            np.savez(npy_raw_paths[name][t], raw_data[i])
-                            if len(extra) > 0:
-                                np.savez(npy_raw_paths[name][t].parent / f"{t}_extra.npz", extra[i])
-
+                took = (datetime.now() - now).total_seconds()
                 if export_png:
-                    imgs = representation.make_images(raw_data, extra)
-                    for i, t in enumerate(range(l, r)):
-                        img_resized = image_resize(imgs[i], height=output_resolution[0], width=output_resolution[1])
-                        image_write(img_resized, png_resz_paths[name][t])
+                    imgs = representation.make_images(batch_t, raw_data, extra)
+                    assert imgs.shape == (r - l, *output_resolution, 3), (imgs.shape, (r - l, *output_resolution, 3))
+                    assert imgs.dtype == np.uint8, imgs.dtype
 
-                if export_npy:
-                    rsz_data = representation.resize(raw_data, height=output_resolution[0], width=output_resolution[1])
-                    for i, t in enumerate(range(l, r)):
-                        if not npy_resz_paths[name][t].exists():
-                            np.savez(npy_resz_paths[name][t], rsz_data[i])
+                for i, t in enumerate(range(l, r)):
+                    if export_npy:
+                        if not npy_paths[name][t].exists():
+                            np.savez(npy_paths[name][t], raw_data[i])
+                            if len(extra) > 0:
+                                np.savez(npy_paths[name][t].parent / f"{t}_extra.npz", extra[i])
+                    if export_png:
+                        image_write(imgs[i], png_paths[name][t])
+                run_stats[name].extend([took / (r - l)] * (r - l))
         pbar.close()
 
         df_run_stats = pd.DataFrame(run_stats)
         df_run_stats.to_csv(output_dir / "run_stats.csv")
-        return run_stats
+        return df_run_stats
 
     def __str__(self) -> str:
         return (

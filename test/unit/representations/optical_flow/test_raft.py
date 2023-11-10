@@ -1,8 +1,9 @@
 import numpy as np
 from vre.representations.optical_flow.raft import FlowRaft
+from vre.utils import FakeVideo
 
 def test_raft():
-    rgb_data = np.random.randint(0, 255, size=(2, 128, 128, 3), dtype=np.uint8)
+    rgb_data = FakeVideo(np.random.randint(0, 255, size=(20, 128, 128, 3), dtype=np.uint8), 30)
     iters = np.random.randint(2, 10)
     small = np.random.choice([True, False])
     raft_repr = FlowRaft(video=rgb_data, name="raft", dependencies=[], inference_height=128, inference_width=128,
@@ -11,7 +12,7 @@ def test_raft():
     assert y_raft.shape == (1, 128, 128, 2), (y_raft.shape, iters, small)
     assert extra == {}, (extra, iters, small)
 
-    y_raft_images = raft_repr.make_images(y_raft, extra)
+    y_raft_images = raft_repr.make_images(slice(0, 1), y_raft, extra)
     assert y_raft_images.shape == (1, 128, 128, 3), y_raft_images.shape
     assert y_raft_images.dtype == np.uint8, y_raft_images.dtype
 

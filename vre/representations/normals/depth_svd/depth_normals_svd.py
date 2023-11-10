@@ -5,6 +5,7 @@ import pims
 from .cam import fov_diag_to_intrinsic
 from .utils import get_sampling_grid, get_normalized_coords, depth_to_normals
 from ....representation import Representation, RepresentationOutput
+from ....utils import image_resize_batch
 
 # General method for estimating normals from a depth map (+ intrinsics): a 2D window centered on each pixel is
 #  projected into 3D and then a plane is fitted on the 3D pointcloud using SVD.
@@ -39,8 +40,9 @@ class DepthNormalsSVD(Representation):
         return res
 
     @overrides
-    def make_images(self, x: np.ndarray, extra: dict | None) -> np.ndarray:
-        return (x * 255).astype(np.uint8)
+    def make_images(self, t: slice, x: np.ndarray, extra: dict | None) -> np.ndarray:
+        x_rsz = image_resize_batch(x, self.video.frame_shape[0], self.video.frame_shape[1])
+        return (x_rsz * 255).astype(np.uint8)
 
     def _make_one_depth(self, depth: np.ndarray) -> np.ndarray:
         # TODO: batch vectorize this if possible
