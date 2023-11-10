@@ -42,6 +42,7 @@ class DexiNed(Representation):
         self.inference_width = inference_width
 
     def _setup(self):
+        tr.manual_seed(42)
         self.model = Model().eval().to("cpu")
 
     @overrides(check_signature=False)

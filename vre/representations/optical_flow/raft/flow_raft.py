@@ -22,6 +22,7 @@ class FlowRaft(Representation):
         self.iters = iters
         self.device = "cpu"
 
+        tr.manual_seed(42)
         self.model = RAFT(self).to("cpu")
         super().__init__(video, name, dependencies)
         self.inference_width = inference_width
