@@ -120,6 +120,17 @@ representations:
       sensor_height: 2160
       window_size: 11
 
+  fastsam(s):
+    type: semantic_segmentation
+    name: fastsam
+    dependencies: []
+    parameters:
+      variant: fastsam-s
+      iou: 0.9
+      conf: 0.4
+    vre_parameters:
+      device: ${oc.env:VRE_DEVICE,cpu}
+
   # # SUCKY BECAUSE SUPERSLOW. Adds like 2-3 mins in CI. Rife is good enough.
   # opticalflow raft:
   #   type: optical-flow

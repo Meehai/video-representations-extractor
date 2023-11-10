@@ -70,6 +70,11 @@ def build_representation_type(type: str, name: str) -> Type[Representation]:
 
             obj_type = SSegSafeUAV
 
+        if name == "fastsam":
+            from .semantic_segmentation.fastsam import FastSam
+
+            obj_type = FastSam
+
     elif type == "normals":
         if name == "depth-svd":
             from .normals.depth_svd import DepthNormalsSVD

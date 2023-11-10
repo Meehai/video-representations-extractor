@@ -27,6 +27,7 @@ class CustomFormatter(logging.Formatter):
     red = "\x1b[31;20m"
     bold_red = "\x1b[31;1m"
     reset = "\x1b[0m"
+    pink = "\x1b[35;20m"
 
     pre = "[%(asctime)s-%(name)s-%(levelname)s]"
     post = "(%(filename)s:%(funcName)s:%(lineno)d)"
@@ -36,7 +37,7 @@ class CustomFormatter(logging.Formatter):
         logging.DEBUG: f"{cyan}{pre}{reset} %(message)s {yellow}{post}{reset}",
         logging.DEBUG2: f"{cyan}{pre}{reset} %(message)s {yellow}{post}{reset}",
         logging.INFO: f"{green}{pre}{reset} %(message)s {yellow}{post}{reset}",
-        logging.WARNING: f"{yellow}{pre}{reset} %(message)s {yellow}{post}{reset}",
+        logging.WARNING: f"{pink}{pre}{reset} %(message)s {yellow}{post}{reset}",
         logging.ERROR: f"{red}{pre}{reset} %(message)s {yellow}{post}{reset}",
         logging.CRITICAL: f"{bold_red}{pre}{reset} %(message)s {yellow}{post}{reset}",
     }
