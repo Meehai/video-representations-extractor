@@ -68,7 +68,7 @@ def get_representation_dict() -> dict:
                         "parameters": {"variant": "fastsam-s", "iou": 0.9, "conf": 0.4},
                         "vre_parameters": {"device": device}},
         "fastsam (x)": {"type": "semantic_segmentation", "name": "fastsam", "dependencies": [],
-                        "parameters": {"variant": "fastsam-x", "iou": 0.9, "conf": 0.4, "better_quality": False},
+                        "parameters": {"variant": "fastsam-s", "iou": 0.9, "conf": 0.4},
                         "vre_parameters": {"device": device}},
     }
 
