@@ -22,10 +22,12 @@ pylint:
 
 test_end_to_end_imgur:
   script:
-    - cd test/end_to_end/imgur/
-    - bash run.sh
+    - bash test/end_to_end/imgur/run.sh
 
 unit_tests:
   script:
-    - cd test/
-    - python3 -m pytest .
+    - python3 -m pytest test/unit
+
+integration_tests:
+  script:
+    - python3 -m pytest test/integration

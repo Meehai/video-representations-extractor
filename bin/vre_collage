@@ -1,21 +1,22 @@
 #!/usr/bin/env python3
+"""vre_collage tool"""
 from argparse import ArgumentParser
 from pathlib import Path
-import pims
 from media_processing_lib.image import image_add_title, image_read, image_write
 from media_processing_lib.collage_maker import collage_fn
-from vre.logger import logger
 from natsort import natsorted
-import numpy as np
 from tqdm import tqdm
+import numpy as np
+
+from vre.logger import logger
 
 
 def get_args():
+    """Cli args"""
     parser = ArgumentParser()
     parser.add_argument("vre_export_dir", type=lambda p: Path(p).absolute(), help="Path to the dir where VRE exported")
     parser.add_argument("--output_path", "-o", required=False, help="Path to the collage is stored")
     parser.add_argument("--no_video", action="store_true")
-    parser.add_argument("--resolution_dir", help="If more png exports are done by VRE, this will pin one resolution")
     parser.add_argument("--overwrite", action="store_true")
     parser.add_argument("--fps", type=int)
     # TODO: add order of collage
@@ -31,7 +32,8 @@ def get_args():
     return args
 
 
-def resolve_files(vre_export_dir: Path, resolution_dir: str = None) -> dict[str, list[Path]]:
+def resolve_files(vre_export_dir: Path) -> dict[str, list[Path]]:
+    """Gets a list of all images that are going to be used for the collage."""
     found_dirs = [x / "png" for x in vre_export_dir.iterdir() if (x / "png").exists()]
     repr_files = {}
     for repr_png_dir in found_dirs:
@@ -47,12 +49,13 @@ def resolve_files(vre_export_dir: Path, resolution_dir: str = None) -> dict[str,
 
 
 def main():
+    """main fn"""
     args = get_args()
     logger.info(f"VRE pngs dir: {args.vre_export_dir}")
     logger.info(f"Output dir: {args.output_path}")
     logger.info(f"Export video: {not args.no_video} {'' if args.no_video else args.output_path / 'collage.mp4'}")
 
-    found_files = resolve_files(args.vre_export_dir, args.resolution_dir)
+    found_files = resolve_files(args.vre_export_dir)
     keys = found_files.keys()
     # convert [[key1_0, key1_1], [key2_0, key2_1]] to [[key1_0, key2_0], [key1_1, key2_1]]
     values = np.array(list(found_files.values())).T
@@ -61,8 +64,12 @@ def main():
         # export the png with the same name as all the other png from which it is constructed
         name = current_frame_paths[0].stem
         current_frames = [image_read(x) for x in current_frame_paths]
-        titled_frames = [image_add_title(img, title) for img, title in zip(current_frames, keys)]
-        img = collage_fn(titled_frames, pad_right=10, pad_bottom=10)
+        h, w = current_frames[0].shape[0:2]
+        # keep only first 25 chars of vre representation, otherwise the title is too long
+        trimmed_keys = [k[0:25] for k in keys]
+        titled_frames = [image_add_title(img, title, size_px=w // 15)
+                         for img, title in zip(current_frames, trimmed_keys)]
+        img = collage_fn(titled_frames, pad_right=w // 75)
         image_write(img, args.output_path / f"{name}.png")
 
     if not args.no_video:
