@@ -84,9 +84,9 @@ class DepthOdoFlow(Representation):
 
     @overrides
     def make_images(self, t: slice, x: np.ndarray, extra: dict | None) -> np.ndarray:
-        where_max = np.where(x == 1)
         assert x.min() >= 0 and x.max() <= 1, (x.min(), x.max())
         x_rsz = image_resize_batch(x, height=self.video.frame_shape[0], width=self.video.frame_shape[1])
+        where_max = np.where((x_rsz - 1).__abs__() < 1e-3)
         y = hot(x_rsz)[..., 0:3]
         y = np.uint8(y * 255)
         y[where_max] = [0, 0, 0]
