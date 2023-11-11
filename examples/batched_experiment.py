@@ -99,18 +99,18 @@ def _process_dict(data: dict, batch_size) -> pd.DataFrame:
 def main():
     """main fn"""
     video = pims.Video(dwd_video_if_needed())
-    # we'll just pick 2 random representations to test here
     representations_dict = get_representation_dict()
-    batch_sizes = [1, 5, 10, 20]
+    batch_sizes = [1, 3, 5]
     start_frame = 1000
     end_frame = start_frame + 200
 
     vres = []
+    tmp_dir = Path(TemporaryDirectory().name)
     for b in batch_sizes:
         representations = build_representations_from_cfg(video, representations_dict)
-        tmp_dir = Path(TemporaryDirectory().name)
         vre = VRE(video, representations)
-        vres.append(partial(vre, output_dir=tmp_dir, start_frame=start_frame, end_frame=end_frame, export_npy=True,
+        out_dir = tmp_dir / f"batch_size_{b}"
+        vres.append(partial(vre, output_dir=out_dir, start_frame=start_frame, end_frame=end_frame, export_npy=True,
                             export_png=True, batch_size=b))
 
     results = []

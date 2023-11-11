@@ -1,0 +1,21 @@
+"""FakeVideo module"""
+import numpy as np
+
+class FakeVideo:
+    """FakeVideo -- class used to test representations with a given numpy array"""
+    def __init__(self, data: np.ndarray, frame_rate: int):
+        self.data = data
+        self.frame_rate = frame_rate
+        self.frame_shape = data.shape[1:]
+        self.file = f"FakeVideo {self.data.shape}"
+
+    @property
+    def shape(self):
+        """returns the shape of the data"""
+        return self.data.shape
+
+    def __getitem__(self, ix):
+        return self.data[ix]
+
+    def __len__(self):
+        return len(self.data)

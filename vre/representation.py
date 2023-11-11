@@ -3,6 +3,9 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 import numpy as np
 import pims
+# from functools import lru_cache
+
+from .utils import parsed_str_type
 
 RepresentationOutput = np.ndarray | tuple[np.ndarray, list[dict]]
 
@@ -59,3 +62,6 @@ class Representation(ABC):
         #     assert raw_data.min() >= 0 and raw_data.max() <= 1, (f"{self.name}: [{raw_data.min():.2f}:"
         #                                                          f"{raw_data.max():.2f}]")
         return raw_data, extra
+
+    def __repr__(self):
+        return f"[{parsed_str_type(self)} VRE Representation: {self.name}]"
