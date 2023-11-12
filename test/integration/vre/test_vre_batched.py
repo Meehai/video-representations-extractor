@@ -84,7 +84,7 @@ def test_vre_batched():
     shutil.rmtree(tmp_dir, ignore_errors=True)
     shutil.rmtree(tmp_dir2, ignore_errors=True)
 
-    start_frame, end_frame = 1000, (1001 if __name__ == "__main__" else 1005)
+    start_frame, end_frame = 1000, (1010 if __name__ == "__main__" else 1005)
     batch_size = 5
     vre = VRE(video, representations)
     took1 = vre(tmp_dir, start_frame=start_frame, end_frame=end_frame, export_npy=True, export_png=True, batch_size=1)
@@ -92,9 +92,9 @@ def test_vre_batched():
     took2 = vre2(tmp_dir2, start_frame=start_frame, end_frame=end_frame, export_npy=True, export_png=True,
                  batch_size=batch_size)
 
-    both = pd.concat([pd.DataFrame(took1).drop(columns=["frame"]).mean().rename("unbatched"),
-                      pd.DataFrame(took2).drop(columns=["frame"]).mean().rename(f"batch={batch_size}")], axis=1)
+    both = pd.concat([took1.mean().rename("unbatched"), took2.mean().rename(f"batch={batch_size}")], axis=1)
     both.loc["total"] = both.sum() * (end_frame - start_frame)
+    print(both)
 
     for representation in vre.representations.keys():
         for t in range(start_frame, end_frame):
