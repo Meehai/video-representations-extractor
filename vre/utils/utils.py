@@ -31,7 +31,7 @@ def image_resize_batch(x_batch: np.ndarray, height: int, width: int, **kwargs) -
 def image_write(x: np.ndarray, path: Path):
     """writes an image to a bytes string"""
     assert x.dtype == np.uint8, x.dtype
-    imsave(path, x)
+    imsave(path, x, check_contrast=False)
     logger.debug2(f"Saved image to '{path}'")
 
 def gdown_mkdir(uri: str, local_path: Path):

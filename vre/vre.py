@@ -15,6 +15,9 @@ from .utils import image_write, FakeVideo
 
 RunPaths = tuple[dict[str, list[Path]], dict[str, list[Path]], dict[str, list[Path]]]
 
+def _took(now: datetime.date, l: int, r: int) -> list[float]:
+    return [(datetime.now() - now).total_seconds() / (r - l)] * (r - l)
+
 class VRE:
     """Video Representations Extractor class"""
 
@@ -27,7 +30,7 @@ class VRE:
         assert len(representations) > 0, "At least one representation must be provided"
         assert isinstance(video, (pims.Video, FakeVideo)), type(video)
         self.video = video
-        self.representations = representations
+        self.representations: dict[str, Representation] = representations
 
     def _make_run_paths(self, output_dir: Path, export_npy: bool, export_png: bool) -> RunPaths:
         """
@@ -61,7 +64,7 @@ class VRE:
                     batch_size=cfg.get("batch_size", 1),
                     output_dir_exist_mode=cfg.get("output_dir_exist_mode", "raise"))
 
-    def _print(self, output_dir: Path, start_frame: int, end_frame: int, export_npy: bool, export_png: bool):
+    def _print_call(self, output_dir: Path, start_frame: int, end_frame: int, export_npy: bool, export_png: bool):
         logger.info(
             f"""
   - Video path: '{self.video.file}'
@@ -89,58 +92,90 @@ class VRE:
                 logger.warning(f"Output dir '{output_dir}' already exists, will overwrite it")
                 shutil.rmtree(output_dir)
 
-    # pylint: disable=too-many-branches, too-many-nested-blocks
-    def __call__(self, output_dir: Path, export_npy: bool, export_png: bool, start_frame: int | None = None,
-                 end_frame: int | None = None, batch_size: int = 1,
-                 output_dir_exist_mode: str = "raise") -> pd.DataFrame:
+    def _store_data(self, raw_data: np.ndarray, extra: dict, imgs: np.ndarray | None, npy_paths: list[Path],
+                    png_paths: list[Path], l: int, r: int, export_npy: bool, export_png: bool):
+        """store the data in the right format"""
+        output_resolution = self.video.frame_shape[0:2]
+        if export_png:
+            assert imgs is not None
+            assert imgs.shape == (r - l, *output_resolution, 3), (imgs.shape, (r - l, *output_resolution, 3))
+            assert imgs.dtype == np.uint8, imgs.dtype
+
+        for i, t in enumerate(range(l, r)):
+            if export_npy:
+                if not npy_paths[t].exists():
+                    np.savez(npy_paths[t], raw_data[i])
+                    if len(extra) > 0:
+                        np.savez(npy_paths[t].parent / f"{t}_extra.npz", extra[i])
+            if export_png:
+                image_write(imgs[i], png_paths[t])
+
+    def _do_one_representation(self, representation: Representation, batches: np.ndarray, npy_paths: list[Path],
+                               png_paths: list[Path], export_npy: bool, export_png: bool) -> list[float]:
+        left, right = batches[0:-1], batches[1:]
+        start_frame, end_frame = left[0], right[-1]
+        repr_stats = []
+        pbar = tqdm(total=end_frame - start_frame, desc=f"[VRE] {representation.name}")
+        for l, r in zip(left, right):
+            now = datetime.now()
+            raw_data, extra = representation[slice(l, r)]
+            imgs = representation.make_images(slice(l, r), raw_data, extra) if export_png else None
+            self._store_data(raw_data, extra, imgs, npy_paths, png_paths, l, r, export_npy, export_png)
+            # update the statistics and the progress bar
+            repr_stats.extend(_took(now, l, r))
+            pbar.update(r - l)
+        pbar.close()
+        return repr_stats
+
+    def run(self, output_dir: Path, export_npy: bool, export_png: bool, start_frame: int | None = None,
+            end_frame: int | None = None, batch_size: int = 1, output_dir_exist_mode: str = "raise") -> pd.DataFrame:
+        """
+        The main loop of the VRE. This will run all the representations on the video and store results in the output_dir
+        Parameteres:
+        - output_dir The output directory where to store the results
+        - export_npy Whether to export the npy files
+        - export_png Whether to export the png files
+        - start_frame The first frame to process (inclusive)
+        - end_frame The last frame to process (inclusive)
+        - batch_size The batch size to use when processing the video
+        - output_dir_exist_mode What to do if the output dir already exists. Can be one of:
+          - 'overwrite' Overwrite the output dir if it already exists
+          - 'skip_computed' Skip the computed frames and continue from the last computed frame
+          - 'raise' Raise an error if the output dir already exists
+        Returns:
+        - A dataframe with the run statistics for each representation
+        """
+
         if end_frame is None:
             end_frame = len(self.video)
             logger.warning(f"end frame not set, default to the last frame of the video: {len(self.video)}")
         if start_frame is None:
             start_frame = 0
             logger.warning("start frame not set, default to 0")
-        VRE._check_call_args(output_dir, start_frame, end_frame, batch_size, export_npy, export_png,
-                             output_dir_exist_mode)
+        if batch_size > end_frame - start_frame:
+            logger.warning(f"batch size {batch_size} is larger than #frames to process [{start_frame}:{end_frame}].")
+            batch_size = end_frame - start_frame
+        VRE._check_call_args(output_dir, start_frame, end_frame, batch_size, export_npy,
+                             export_png, output_dir_exist_mode)
 
         # run_stats will hold a dict: {repr_name: [time_taken, ...]} for all representations, for debugging/logging
-        run_stats: dict[str, list] = {repr_name: [] for repr_name in ["frame", *self.representations.keys()]}
+        run_stats: dict[str, list[float]] = {}
         npy_paths, png_paths = self._make_run_paths(output_dir, export_npy, export_png)
-        output_resolution = self.video.frame_shape[0:2]
-        self._print(output_dir, start_frame, end_frame, export_npy, export_png)
+        self._print_call(output_dir, start_frame, end_frame, export_npy, export_png)
 
-        batches = np.arange(start_frame, 1 + min(end_frame + batch_size, len(self.video)), batch_size)
-        left, right = batches[0:-1], batches[1:]
-        pbar = tqdm(total=end_frame - start_frame)
-        for l, r in zip(left, right):
-            batch_t_ix = slice(l, r)
-            run_stats["frame"].extend(range(batch_t_ix.start, batch_t_ix.stop))
-            pbar.update(r - l)
-            representation: Representation
-            for name, representation in self.representations.items():
-                pbar.set_description(f"[VRE] {name}")
-                now = datetime.now()
-                # TODO: if all paths exist, skip and read from disk
-                raw_data, extra = representation[batch_t_ix]
-                took = (datetime.now() - now).total_seconds()
-                if export_png:
-                    imgs = representation.make_images(batch_t_ix, raw_data, extra)
-                    assert imgs.shape == (r - l, *output_resolution, 3), (imgs.shape, (r - l, *output_resolution, 3))
-                    assert imgs.dtype == np.uint8, imgs.dtype
+        batches = np.arange(start_frame, min(end_frame + batch_size, len(self.video)), batch_size)
+        for name, representation in self.representations.items():
+            repr_stats = self._do_one_representation(representation=representation, batches=batches,
+                                                     npy_paths=npy_paths[name], png_paths=png_paths[name],
+                                                     export_npy=export_npy, export_png=export_png)
+            run_stats[name] = repr_stats
 
-                for i, t in enumerate(range(l, r)):
-                    if export_npy:
-                        if not npy_paths[name][t].exists():
-                            np.savez(npy_paths[name][t], raw_data[i])
-                            if len(extra) > 0:
-                                np.savez(npy_paths[name][t].parent / f"{t}_extra.npz", extra[i])
-                    if export_png:
-                        image_write(imgs[i], png_paths[name][t])
-                run_stats[name].extend([took / (r - l)] * (r - l))
-        pbar.close()
-
-        df_run_stats = pd.DataFrame(run_stats)
-        df_run_stats.to_csv(output_dir / "run_stats.csv")
+        df_run_stats = pd.DataFrame(run_stats, index=range(start_frame, end_frame))
         return df_run_stats
+
+    # pylint: disable=too-many-branches, too-many-nested-blocks
+    def __call__(self, *args, **kwargs) -> pd.DataFrame:
+        return self.run(*args, **kwargs)
 
     def __str__(self) -> str:
         return (
