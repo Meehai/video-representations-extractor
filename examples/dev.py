@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import gdown
 import pims
 import torch as tr

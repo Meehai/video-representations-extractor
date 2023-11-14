@@ -107,11 +107,12 @@ def main():
     vres = []
     tmp_dir = Path(TemporaryDirectory().name)
     for b in batch_sizes:
-        representations = build_representations_from_cfg(video, representations_dict)
+        representations = build_representations_from_cfg(representations_dict)
         vre = VRE(video, representations)
         out_dir = tmp_dir / f"batch_size_{b}"
+        representations_setup = {k: representations_dict[k].get("vre_parameters", {}) for k in representations.keys()}
         vres.append(partial(vre, output_dir=out_dir, start_frame=start_frame, end_frame=end_frame, export_npy=True,
-                            export_png=True, batch_size=b))
+                            export_png=True, batch_size=b, representations_setup=representations_setup))
 
     results = []
     for vre in vres:
