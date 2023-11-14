@@ -1,5 +1,6 @@
 """FakeVideo module"""
 import numpy as np
+import pims
 
 class FakeVideo:
     """FakeVideo -- class used to test representations with a given numpy array"""
@@ -19,3 +20,5 @@ class FakeVideo:
 
     def __len__(self):
         return len(self.data)
+
+VREVideo = pims.Video | FakeVideo

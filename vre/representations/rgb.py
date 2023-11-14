@@ -1,17 +1,14 @@
+"""RGB representation"""
 import numpy as np
 from overrides import overrides
 from ..representation import Representation, RepresentationOutput
 
-
 class RGB(Representation):
+    """RGB representation"""
     @overrides
-    def vre_setup(self, **kwargs):
-        pass
+    def make(self, frames: np.ndarray) -> RepresentationOutput:
+        return frames.astype(np.float32) / 255
 
     @overrides
-    def make(self, t: slice) -> RepresentationOutput:
-        return np.array(self.video[t]).astype(np.float32) / 255
-
-    @overrides
-    def make_images(self, t: slice, x: np.ndarray, extra: dict | None) -> np.ndarray:
-        return (x * 255).astype(np.uint8)
+    def make_images(self, frames: np.ndarray, repr_data: RepresentationOutput) -> np.ndarray:
+        return frames

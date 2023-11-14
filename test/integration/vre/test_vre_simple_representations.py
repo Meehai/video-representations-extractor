@@ -17,7 +17,7 @@ def test_vre_simple_representations():
     video_path = setup()
     video = pims.Video(video_path)
     representations_dict = {"rgb": {"type": "default", "name": "rgb", "dependencies": [], "parameters": {}}}
-    representations = build_representations_from_cfg(video, representations_dict)
+    representations = build_representations_from_cfg(representations_dict)
     vre = VRE(video, representations)
     assert vre is not None
     tmp_dir = Path(TemporaryDirectory().name)

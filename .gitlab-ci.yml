@@ -18,7 +18,7 @@ before_script:
 pylint:
   script:
     - pip install pylint
-    - pylint --rcfile=.pylintrc $(git ls-files "*.py" | grep -v "representations/\|test/")
+    - python -m pylint --rcfile=.pylintrc $(git ls-files "*.py" | grep -v "test/\|examples/")
 
 test_end_to_end_imgur:
   script:

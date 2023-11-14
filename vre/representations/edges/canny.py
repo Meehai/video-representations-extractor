@@ -1,7 +1,7 @@
 """Canny edge detector representation."""
 import numpy as np
 from overrides import overrides
-from matplotlib.cm import gray
+from matplotlib.cm import gray # pylint: disable=no-name-in-module
 from ...representation import Representation, RepresentationOutput
 
 class Canny(Representation):
@@ -14,6 +14,7 @@ class Canny(Representation):
         self.l2_gradient = l2_gradient
 
     def _make_one(self, x: np.ndarray) -> np.ndarray:
+        # pylint: disable=import-outside-toplevel
         import cv2
         res = cv2.Canny(x, threshold1=self.threshold1, threshold2=self.threshold2,
                         apertureSize=self.aperture_size, L2gradient=self.l2_gradient)
@@ -21,14 +22,9 @@ class Canny(Representation):
         return res
 
     @overrides
-    def vre_setup(self, **kwargs):
-        pass
-
-    @overrides
-    def make(self, t: slice) -> RepresentationOutput:
-        frames = self.video[t]
+    def make(self, frames: np.ndarray) -> RepresentationOutput:
         return np.array([self._make_one(frame) for frame in frames])
 
     @overrides
-    def make_images(self, t: slice, x: np.ndarray, extra: dict | None) -> np.ndarray:
-        return (255 * gray(x)[..., 0:3]).astype(np.uint8)
+    def make_images(self, frames: np.ndarray, repr_data: RepresentationOutput) -> np.ndarray:
+        return (255 * gray(repr_data)[..., 0:3]).astype(np.uint8)

@@ -1,3 +1,4 @@
+# pylint: disable=all
 import torch
 
 from ultralytics.yolo.engine.results import Results

@@ -45,9 +45,10 @@ def get_cfg():
 def main():
     args, cfg = get_cfg()
     video = pims.Video(args.video_path)
-    representations = build_representations_from_cfg(video, cfg.representations)
+    representations = build_representations_from_cfg(cfg.representations)
     vre = VRE(video, representations)
-    vre(args.output_path, **cfg.vre)
+    representations_setup = {r: cfg.representations[r].get("vre_parameters", {}) for r in representations.keys()}
+    vre(args.output_path, **cfg.vre, representations_setup=representations_setup)
 
 if __name__ == "__main__":
     main()

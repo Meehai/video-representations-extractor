@@ -2,6 +2,7 @@
 from __future__ import annotations
 from pathlib import Path
 from datetime import datetime
+from typing import Any
 import shutil
 from tqdm import tqdm
 from omegaconf import DictConfig
@@ -77,9 +78,9 @@ class VRE:
 """
         )
 
-    @staticmethod
-    def _check_call_args(output_dir: Path, start_frame: int, end_frame: int, batch_size: int,
-                         export_npy: bool, export_png: bool, output_dir_exist_mode: str):
+    def _check_call_args(self, output_dir: Path, start_frame: int, end_frame: int, batch_size: int, export_npy: bool,
+                         export_png: bool, output_dir_exist_mode: str,
+                         representations_setup: dict[str, dict[str, Any]]):
         """check the args of the call method"""
         assert batch_size >= 1, f"batch size must be >= 1, got {batch_size}"
         assert export_npy + export_png > 0, "At least one of export modes must be True"
@@ -91,6 +92,8 @@ class VRE:
             if output_dir_exist_mode == "overwrite":
                 logger.warning(f"Output dir '{output_dir}' already exists, will overwrite it")
                 shutil.rmtree(output_dir)
+        for name in representations_setup.keys():
+            assert name in self.representations.keys(), f"Representation '{name}' not found in {self.representations}"
 
     def _store_data(self, raw_data: np.ndarray, extra: dict, imgs: np.ndarray | None, npy_paths: list[Path],
                     png_paths: list[Path], l: int, r: int, export_npy: bool, export_png: bool):
@@ -111,15 +114,21 @@ class VRE:
                 image_write(imgs[i], png_paths[t])
 
     def _do_one_representation(self, representation: Representation, batches: np.ndarray, npy_paths: list[Path],
-                               png_paths: list[Path], export_npy: bool, export_png: bool) -> list[float]:
+                               png_paths: list[Path], export_npy: bool, export_png: bool,
+                               representations_setup: dict[str, dict[str, Any]]) -> list[float]:
+        try:
+            representation.vre_setup(video=self.video, **representations_setup[representation.name])
+        except TypeError as e:
+            logger.error(f"{representation} => {representations_setup[representation.name]}")
+            raise e
+
         left, right = batches[0:-1], batches[1:]
         start_frame, end_frame = left[0], right[-1]
         repr_stats = []
         pbar = tqdm(total=end_frame - start_frame, desc=f"[VRE] {representation.name}")
         for l, r in zip(left, right):
             now = datetime.now()
-            raw_data, extra = representation[slice(l, r)]
-            imgs = representation.make_images(slice(l, r), raw_data, extra) if export_png else None
+            (raw_data, extra), imgs = representation.vre_make(self.video, slice(l, r), export_png)
             self._store_data(raw_data, extra, imgs, npy_paths, png_paths, l, r, export_npy, export_png)
             # update the statistics and the progress bar
             repr_stats.extend(_took(now, l, r))
@@ -128,7 +137,8 @@ class VRE:
         return repr_stats
 
     def run(self, output_dir: Path, export_npy: bool, export_png: bool, start_frame: int | None = None,
-            end_frame: int | None = None, batch_size: int = 1, output_dir_exist_mode: str = "raise") -> pd.DataFrame:
+            end_frame: int | None = None, batch_size: int = 1, output_dir_exist_mode: str = "raise",
+            representations_setup: dict[str, dict[str, Any]] | None = None) -> pd.DataFrame:
         """
         The main loop of the VRE. This will run all the representations on the video and store results in the output_dir
         Parameteres:
@@ -145,7 +155,9 @@ class VRE:
         Returns:
         - A dataframe with the run statistics for each representation
         """
-
+        if representations_setup is None:
+            logger.warning("representations_setup is None, default to empty dict")
+            representations_setup = {r: {} for r in self.representations.keys()}
         if end_frame is None:
             end_frame = len(self.video)
             logger.warning(f"end frame not set, default to the last frame of the video: {len(self.video)}")
@@ -155,8 +167,8 @@ class VRE:
         if batch_size > end_frame - start_frame:
             logger.warning(f"batch size {batch_size} is larger than #frames to process [{start_frame}:{end_frame}].")
             batch_size = end_frame - start_frame
-        VRE._check_call_args(output_dir, start_frame, end_frame, batch_size, export_npy,
-                             export_png, output_dir_exist_mode)
+        self._check_call_args(output_dir, start_frame, end_frame, batch_size, export_npy,
+                              export_png, output_dir_exist_mode, representations_setup)
 
         # run_stats will hold a dict: {repr_name: [time_taken, ...]} for all representations, for debugging/logging
         run_stats: dict[str, list[float]] = {}
@@ -167,7 +179,8 @@ class VRE:
         for name, representation in self.representations.items():
             repr_stats = self._do_one_representation(representation=representation, batches=batches,
                                                      npy_paths=npy_paths[name], png_paths=png_paths[name],
-                                                     export_npy=export_npy, export_png=export_png)
+                                                     export_npy=export_npy, export_png=export_png,
+                                                     representations_setup=representations_setup)
             run_stats[name] = repr_stats
 
         df_run_stats = pd.DataFrame(run_stats, index=range(start_frame, end_frame))

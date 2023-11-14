@@ -367,6 +367,8 @@ good-names=
            ax,
            tp,
            f1,
+           Zs,
+           As,
 
 
 # Include a hint for the correct naming format with invalid-name.

@@ -1,3 +1,4 @@
+# pylint: disable=all
 from .model import FastSAM
 import numpy as np
 from PIL import Image

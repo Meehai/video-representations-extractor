@@ -5,6 +5,7 @@ import gdown
 import numpy as np
 from skimage.transform import resize
 from skimage.io import imsave
+from skimage.color import hsv2rgb
 
 from ..logger import logger
 
@@ -39,3 +40,32 @@ def gdown_mkdir(uri: str, local_path: Path):
     logger.debug(f"Downloading '{uri}' to '{local_path}'")
     local_path.parent.mkdir(exist_ok=True, parents=True)
     gdown.download(uri, f"{local_path}")
+
+
+def to_categorical(data: np.ndarray, num_classes: int = None) -> np.ndarray:
+    """converts the data to categorical. If num classes is not provided, it is infered from the data"""
+    data = np.array(data)
+    assert data.dtype in (np.uint8, np.uint16, np.uint32, np.uint64, np.int8, np.int16, np.int32, np.int64)
+    if num_classes is None:
+        num_classes = data.max()
+    y = np.eye(num_classes)[data.reshape(-1)].astype(np.uint8)
+    # Some bugs for (1, 1) shapes return (1, ) instead of (1, NC)
+    MB = data.shape[0]
+    y = np.squeeze(y)
+    if MB == 1:
+        y = np.expand_dims(y, axis=0)
+    y = y.reshape(*data.shape, num_classes)
+    return y
+
+def generate_diverse_colors(n: int, saturation: float, value: float) -> list[tuple[int, int, int]]:
+    """generates a list of n diverse colors using the hue from the HSV transform"""
+    assert 0 <= saturation <= 1, saturation
+    assert 0 <= value <= 1, value
+    colors = []
+    for i in range(n):
+        hue = i / n  # Vary the hue component
+        rgb = hsv2rgb([hue, saturation, value])
+        # Convert to 8-bit RGB values (0-255)
+        rgb = tuple(int(255 * x) for x in rgb)
+        colors.append(rgb)
+    return colors
