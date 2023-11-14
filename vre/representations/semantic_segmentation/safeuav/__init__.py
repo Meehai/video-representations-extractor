@@ -1,1 +1,2 @@
-from .sseg_safeuav import SSegSafeUAV
+"""init file"""
+from .safeuav import SafeUAV

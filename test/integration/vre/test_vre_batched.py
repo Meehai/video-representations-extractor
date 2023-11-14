@@ -18,6 +18,7 @@ def setup():
     return str(video_path)
 
 def sample_representations(all_representations_dict: dict, n: int) -> dict:
+    np.random.seed(41)
     chosen_ones = np.random.choice(list(all_representations_dict.keys()), size=2, replace=False).tolist()
     representations_dict = {k: all_representations_dict[k] for k in chosen_ones}
     while True:
@@ -60,7 +61,8 @@ def test_vre_batched():
                                    "parameters": {"train_height": 240, "train_width": 428, "num_classes": 8,
                                                   "color_map": [[0, 255, 0], [0, 127, 0], [255, 255, 0],
                                                                 [255, 255, 255], [255, 0, 0], [0, 0, 255],
-                                                                [0, 255, 255], [127, 127, 63]]}},
+                                                                [0, 255, 255], [127, 127, 63]]},
+                                   "vre_parameters": {"device": device, "weights_file": None}},
         "halftone": {"type": "soft-segmentation", "name": "python-halftone", "dependencies": [],
                      "parameters": {"sample": 3, "scale": 1, "percentage": 91, "angles": [0, 15, 30, 45],
                                     "antialias": False, "resolution": [240, 426]}},
@@ -76,8 +78,8 @@ def test_vre_batched():
     }
     # we'll just pick 2 random representations to test here
     representations_dict = sample_representations(all_representations_dict, n=2)
-    representations = build_representations_from_cfg(video, representations_dict)
-    representations2 = build_representations_from_cfg(video, representations_dict)
+    representations = build_representations_from_cfg(representations_dict)
+    representations2 = build_representations_from_cfg(representations_dict)
 
     tmp_dir = Path("here1" if __name__ == "__main__" else TemporaryDirectory().name)
     tmp_dir2 = Path("here2" if __name__ == "__main__" else TemporaryDirectory().name)
@@ -86,11 +88,15 @@ def test_vre_batched():
 
     start_frame, end_frame = 1000, (1010 if __name__ == "__main__" else 1005)
     batch_size = 5
+
     vre = VRE(video, representations)
-    took1 = vre(tmp_dir, start_frame=start_frame, end_frame=end_frame, export_npy=True, export_png=True, batch_size=1)
+    representations_setup = {k: representations_dict[k].get("vre_parameters", {}) for k in representations.keys()}
+    took1 = vre(tmp_dir, start_frame=start_frame, end_frame=end_frame, export_npy=True, export_png=True, batch_size=1,
+                output_dir_exist_mode="raise", representations_setup=representations_setup)
     vre2 = VRE(video, representations2)
+    representations2_setup = {k: representations_dict[k].get("vre_parameters", {}) for k in representations2.keys()}
     took2 = vre2(tmp_dir2, start_frame=start_frame, end_frame=end_frame, export_npy=True, export_png=True,
-                 batch_size=batch_size)
+                 batch_size=batch_size, output_dir_exist_mode="raise", representations_setup=representations2_setup)
 
     both = pd.concat([took1.mean().rename("unbatched"), took2.mean().rename(f"batch={batch_size}")], axis=1)
     both.loc["total"] = both.sum() * (end_frame - start_frame)

@@ -1,11 +1,11 @@
 """Init file"""
 from typing import Type
 from omegaconf import DictConfig, OmegaConf
-import pims
 from ..logger import logger
 from ..utils import topological_sort
 from ..representation import Representation
 
+# pylint: disable=import-outside-toplevel, redefined-builtin, too-many-branches, too-many-statements
 def build_representation_type(type: str, name: str) -> Type[Representation]:
     """Gets the representation type from a type and a name (the two identifiers of a representation)"""
     obj_type: Type[Representation] | None = None
@@ -66,9 +66,9 @@ def build_representation_type(type: str, name: str) -> Type[Representation]:
 
     elif type == "semantic_segmentation":
         if name == "safeuav":
-            from .semantic_segmentation.safeuav import SSegSafeUAV
+            from .semantic_segmentation.safeuav import SafeUAV
 
-            obj_type = SSegSafeUAV
+            obj_type = SafeUAV
 
         if name == "fastsam":
             from .semantic_segmentation.fastsam import FastSam
@@ -85,8 +85,8 @@ def build_representation_type(type: str, name: str) -> Type[Representation]:
     return obj_type
 
 
-def build_representation_from_cfg(video: pims.Video, repr_cfg: dict, name: str,
-                                  built_so_far: dict[str, Representation]) -> Representation:
+def build_representation_from_cfg(repr_cfg: dict, name: str, built_so_far: dict[str, Representation]) -> Representation:
+    """builds a representation given a dict config and a name"""
     assert isinstance(repr_cfg, dict), f"Broken format (not a dict) for {name}. Type: {type(repr_cfg)}."
     assert "type" in repr_cfg and "name" in repr_cfg, f"Broken format: {repr_cfg.keys()}"
     repr_type, repr_name = repr_cfg["type"], repr_cfg["name"]
@@ -96,16 +96,14 @@ def build_representation_from_cfg(video: pims.Video, repr_cfg: dict, name: str,
 
     obj_type = build_representation_type(repr_type, repr_name)
     # this is here because omegaconf transforms [1, 2, 3, 4] in a ListConfig, not a simple list
-    obj = obj_type(video=video, name=name, dependencies=dependencies, **repr_cfg["parameters"])
-    if "vre_parameters" in repr_cfg:
-        obj.vre_setup(**repr_cfg["vre_parameters"])
+    obj = obj_type(name=name, dependencies=dependencies, **repr_cfg["parameters"])
     # TODO: we could make it lazy here, but we have some issues with dependencies using this variable, not VRE's one
     # which will instantiate them at __call__ time.
-    # obj = partial(obj_type, video=video, name=name, dependencies=dependencies, **repr_cfg["parameters"])
+    # obj = partial(obj_type, name=name, dependencies=dependencies, **repr_cfg["parameters"])
     return obj
 
-def build_representations_from_cfg(video: pims.Video,
-                                   representations_dict: dict | DictConfig) -> dict[str, Representation]:
+def build_representations_from_cfg(representations_dict: dict | DictConfig) -> dict[str, Representation]:
+    """builds a dict of representations given a dict config (yaml file)"""
     if isinstance(representations_dict, DictConfig):
         representations_dict: dict = OmegaConf.to_container(representations_dict, resolve=True)
     assert isinstance(representations_dict, dict), type(representations_dict)
@@ -117,7 +115,7 @@ def build_representations_from_cfg(video: pims.Video,
         assert isinstance(repr_cfg_values, dict), f"{repr_name} not a dict cfg: {type(repr_cfg_values)}"
         dep_graph[repr_name] = repr_cfg_values["dependencies"]
     topo_sorted = {k: representations_dict[k] for k in topological_sort(dep_graph)}
-    for name, r in topo_sorted.items():
-        obj = build_representation_from_cfg(video, r, name, tsr)
+    for name, repr_cfg in topo_sorted.items():
+        obj = build_representation_from_cfg(repr_cfg, name, tsr)
         tsr[name] = obj
     return tsr

@@ -1,4 +1,8 @@
-# Copy pasted from https://github.com/philgyford/python-halftone/blob/main/halftone.py in order to change constructor
+"""
+Halftone representation
+The bulk of this is taken from this Stack Overflow answer by fraxel: http://stackoverflow.com/a/10575940/250962
+Copy pasted from https://github.com/philgyford/python-halftone/blob/main/halftone.py in order to change constructor
+"""
 
 import numpy as np
 
@@ -8,28 +12,16 @@ from overrides import overrides
 from ....representation import Representation, RepresentationOutput
 from ....utils import image_resize, image_resize_batch
 
-"""
-Class: Halftone( path )
-Usage:
-    import halftone
-    h = halftone.Halftone('/path/to/image.jpg')
-    h.make()
-
-The bulk of this is taken from this Stack Overflow answer by fraxel:
-http://stackoverflow.com/a/10575940/250962
-"""
-
 
 class Halftone(Representation):
     """
-    Arguments:
-            sample: Sample box size from original image, in pixels.
-            scale: Max output dot diameter is sample * scale (which is also the
-                    number of possible dot sizes)
-            percentage: How much of the gray component to remove from the CMY
-                    channels and put in the K channel.
-            angles: A list of 4 angles that each screen channel should be rotated by.
-            antialias: boolean.
+    Halftone representation
+    Parameters:
+    - sample: Sample box size from original image, in pixels.
+    - scale: Max output dot diameter is sample * scale (which is also the number of possible dot sizes)
+    - percentage: How much of the gray component to remove from the CMY channels and put in the K channel.
+    - angles: A list of 4 angles that each screen channel should be rotated by.
+    - antialias: boolean.
     """
 
     def __init__(self, sample: float, scale: float, percentage: float, angles: list[int],
@@ -45,17 +37,12 @@ class Halftone(Representation):
         self._check_arguments()
 
     @overrides
-    def vre_setup(self, **kwargs):
-        pass
-
-    @overrides
-    def make(self, t: slice) -> RepresentationOutput:
-        frames = np.array(self.video[t])
+    def make(self, frames: np.ndarray) -> RepresentationOutput:
         return np.array([self._make_one_image(frame) for frame in frames])
 
     @overrides
-    def make_images(self, t: slice, x: np.ndarray, extra: dict | None) -> np.ndarray:
-        x_rsz = image_resize_batch(x, height=self.video.frame_shape[0], width=self.video.frame_shape[1])
+    def make_images(self, frames: np.ndarray, repr_data: RepresentationOutput) -> np.ndarray:
+        x_rsz = image_resize_batch(repr_data, height=frames.shape[1], width=frames.shape[2])
         return (x_rsz * 255).astype(np.uint8)
 
     def gcr(self, im, percentage):

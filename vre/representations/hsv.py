@@ -8,13 +8,9 @@ from ..representation import Representation, RepresentationOutput
 class HSV(Representation):
     """HSV representation"""
     @overrides
-    def vre_setup(self, **kwargs):
-        pass
+    def make(self, frames: np.ndarray) -> RepresentationOutput:
+        return rgb2hsv(frames).astype(np.float32)
 
     @overrides
-    def make(self, t: slice) -> RepresentationOutput:
-        return rgb2hsv(np.array(self.video[t])).astype(np.float32)
-
-    @overrides
-    def make_images(self, t: slice, x: np.ndarray, extra: dict | None) -> np.ndarray:
-        return (x * 255).astype(np.uint8)
+    def make_images(self, frames: np.ndarray, repr_data: RepresentationOutput) -> np.ndarray:
+        return (repr_data * 255).astype(np.uint8)

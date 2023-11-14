@@ -2,7 +2,8 @@
 import torch as tr
 import numpy as np
 from overrides import override
-from .softseg import soft_seg
+
+from .gb_impl.softseg import soft_seg
 from ....representation import Representation, RepresentationOutput
 from ....utils import image_resize_batch
 
@@ -22,12 +23,8 @@ class GeneralizedBoundaries(Representation):
         self.max_channels = max_channels
 
     @override
-    def vre_setup(self, **kwargs):
-        pass
-
-    @override
-    def make(self, t: slice) -> RepresentationOutput:
-        x = tr.from_numpy(np.array(self.video[t])).type(tr.float) / 255
+    def make(self, frames: np.ndarray) -> RepresentationOutput:
+        x = tr.from_numpy(frames).type(tr.float) / 255
         x = x.permute(0, 3, 1, 2)
         y = soft_seg(x, use_median_filtering=self.use_median_filtering, as_image=self.adjust_to_rgb,
                      max_channels=self.max_channels)
@@ -35,7 +32,7 @@ class GeneralizedBoundaries(Representation):
         return y
 
     @override
-    def make_images(self, t: slice, x: np.ndarray, extra: dict | None) -> np.ndarray:
-        x_rsz = image_resize_batch(x, height=self.video.frame_shape[0], width=self.video.frame_shape[1])
+    def make_images(self, frames: np.ndarray, repr_data: RepresentationOutput) -> np.ndarray:
+        x_rsz = image_resize_batch(repr_data, height=frames.shape[1], width=frames.shape[2])
         y = (x_rsz * 255).astype(np.uint8)
         return y

@@ -1,3 +1,4 @@
+# pylint: disable=all
 # Ultralytics YOLO 🚀, AGPL-3.0 license
 
 from .model import FastSAM
