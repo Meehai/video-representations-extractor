@@ -56,12 +56,3 @@ RUN python3 -m pip install -r requirements.txt
 
 # # Start the SSH service
 # CMD ["/usr/sbin/sshd", "-D"]
-
-## === For actual dockerization of VRE ===
-
-# Copy the rest of the files to the container
-COPY vre vre
-COPY bin bin
-ENV PYTHONPATH "${PYTHONPATH}:/app/vre"
-ENV VRE_WEIGHTS_DIR /app/resources/weights
-ENTRYPOINT ["python", "bin/vre"]
