@@ -153,6 +153,9 @@ class VRE:
           - 'overwrite' Overwrite the output dir if it already exists
           - 'skip_computed' Skip the computed frames and continue from the last computed frame
           - 'raise' Raise an error if the output dir already exists
+        - representations_setup A dict of {representation_name: {representation_setup}}. This is used to pass
+            representation specific inference parameters to the VRE, like setting device before running or loading
+            some non-standard weights.
         Returns:
         - A dataframe with the run statistics for each representation
         """
@@ -176,7 +179,7 @@ class VRE:
         npy_paths, png_paths = self._make_run_paths(output_dir, export_npy, export_png)
         self._print_call(output_dir, start_frame, end_frame, export_npy, export_png)
 
-        batches = np.arange(start_frame, min(end_frame + batch_size, len(self.video)), batch_size)
+        batches = np.arange(start_frame, min(end_frame + batch_size, len(self.video)), batch_size).clip(0, end_frame)
         repr_fn = partial(self._do_one_representation, batches=batches,
                           npy_paths=npy_paths, png_paths=png_paths, export_npy=export_npy,
                           export_png=export_png, representations_setup=representations_setup)
