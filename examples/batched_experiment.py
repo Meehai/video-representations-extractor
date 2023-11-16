@@ -125,7 +125,7 @@ def main():
             continue
         results[f"ratio 1/{b}"] = results["batch=1"] / results[f"batch={b}"]
         cols_ordered.extend([f"batch={b}", f"ratio 1/{b}"])
-    results = results[cols_ordered]
+    results = results[cols_ordered].sort_values("batch=1", ascending=False)
     results.to_csv(Path(__file__).parent / "results.csv")
     print(results)
 
