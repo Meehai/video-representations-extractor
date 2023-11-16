@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from datetime import datetime
 from typing import Any
+from functools import partial, reduce
 import shutil
 from tqdm import tqdm
 from omegaconf import DictConfig
@@ -34,11 +35,7 @@ class VRE:
         self.representations: dict[str, Representation] = representations
 
     def _make_run_paths(self, output_dir: Path, export_npy: bool, export_png: bool) -> RunPaths:
-        """
-        create the output dirs structure. We may have 2 types of outputs: npy and png for each, we may have
-        different resolutions, so we store them under npy/HxW or png/HxW for the npy we always store the raw output
-        under 'raw' from which we can derive all the others even at a later time
-        """
+        """Create the output dirs structure. We may have 2 types of outputs: npy and png."""
         output_dir.mkdir(parents=True, exist_ok=True)
 
         npy_paths, png_paths = {}, {}
@@ -113,13 +110,17 @@ class VRE:
             if export_png:
                 image_write(imgs[i], png_paths[t])
 
-    def _do_one_representation(self, representation: Representation, batches: np.ndarray, npy_paths: list[Path],
-                               png_paths: list[Path], export_npy: bool, export_png: bool,
-                               representations_setup: dict[str, dict[str, Any]]) -> list[float]:
+    def _do_one_representation(self, representation: Representation, batches: np.ndarray,
+                               npy_paths: dict[str, list[Path]], png_paths: dict[str, list[Path]],
+                               export_npy: bool, export_png: bool,
+                               representations_setup: dict[str, dict[str, Any]]) -> dict[str, list[float]]:
+        repr_setup = representations_setup[representation.name]
+        repr_png_paths = png_paths[representation.name]
+        repr_npy_paths = npy_paths[representation.name]
         try:
-            representation.vre_setup(video=self.video, **representations_setup[representation.name])
+            representation.vre_setup(video=self.video, **repr_setup)
         except TypeError as e:
-            logger.error(f"{representation} => {representations_setup[representation.name]}")
+            logger.error(f"{representation} => {repr_setup}")
             raise e
 
         left, right = batches[0:-1], batches[1:]
@@ -129,12 +130,12 @@ class VRE:
         for l, r in zip(left, right):
             now = datetime.now()
             (raw_data, extra), imgs = representation.vre_make(self.video, slice(l, r), export_png)
-            self._store_data(raw_data, extra, imgs, npy_paths, png_paths, l, r, export_npy, export_png)
+            self._store_data(raw_data, extra, imgs, repr_npy_paths, repr_png_paths, l, r, export_npy, export_png)
             # update the statistics and the progress bar
             repr_stats.extend(_took(now, l, r))
             pbar.update(r - l)
         pbar.close()
-        return repr_stats
+        return {representation.name: repr_stats}
 
     def run(self, output_dir: Path, export_npy: bool, export_png: bool, start_frame: int | None = None,
             end_frame: int | None = None, batch_size: int = 1, output_dir_exist_mode: str = "raise",
@@ -176,14 +177,12 @@ class VRE:
         self._print_call(output_dir, start_frame, end_frame, export_npy, export_png)
 
         batches = np.arange(start_frame, min(end_frame + batch_size, len(self.video)), batch_size)
-        for name, representation in self.representations.items():
-            repr_stats = self._do_one_representation(representation=representation, batches=batches,
-                                                     npy_paths=npy_paths[name], png_paths=png_paths[name],
-                                                     export_npy=export_npy, export_png=export_png,
-                                                     representations_setup=representations_setup)
-            run_stats[name] = repr_stats
+        repr_fn = partial(self._do_one_representation, batches=batches,
+                          npy_paths=npy_paths, png_paths=png_paths, export_npy=export_npy,
+                          export_png=export_png, representations_setup=representations_setup)
+        run_stats = list(map(repr_fn, self.representations.values()))
 
-        df_run_stats = pd.DataFrame(run_stats, index=range(start_frame, end_frame))
+        df_run_stats = pd.DataFrame(reduce(lambda a, b: {**a, **b}, run_stats), index=range(start_frame, end_frame))
         return df_run_stats
 
     # pylint: disable=too-many-branches, too-many-nested-blocks
