@@ -94,7 +94,7 @@ def get_representation_dict() -> dict:
     return all_representations_dict
 
 def _process_dict(data: dict, batch_size) -> pd.DataFrame:
-    return pd.DataFrame(data).drop(columns=["frame"]).mean().rename(f"batch={batch_size}")
+    return pd.DataFrame(data).mean().rename(f"batch={batch_size}")
 
 def main():
     """main fn"""
@@ -119,6 +119,13 @@ def main():
         results.append(_process_dict(vre(), batch_size=vre.keywords["batch_size"]))
     results = pd.concat(results, axis=1)
     results.loc["total"] = results.sum() * (end_frame - start_frame)
+    cols_ordered = ["batch=1"]
+    for b in batch_sizes:
+        if b == 1:
+            continue
+        results[f"ratio 1/{b}"] = results["batch=1"] / results[f"batch={b}"]
+        cols_ordered.extend([f"batch={b}", f"ratio 1/{b}"])
+    results = results[cols_ordered]
     results.to_csv(Path(__file__).parent / "results.csv")
     print(results)
 
