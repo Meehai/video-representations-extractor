@@ -62,7 +62,8 @@ class VRE:
                     batch_size=cfg.get("batch_size", 1),
                     output_dir_exist_mode=cfg.get("output_dir_exist_mode", "raise"))
 
-    def _print_call(self, output_dir: Path, start_frame: int, end_frame: int, export_npy: bool, export_png: bool):
+    def _print_call(self, output_dir: Path, start_frame: int, end_frame: int, batch_size: int,
+                    export_npy: bool, export_png: bool):
         logger.info(
             f"""
   - Video path: '{self.video.file}'
@@ -70,6 +71,7 @@ class VRE:
   - Representations ({len(self.representations)}): {", ".join(x for x in self.representations.keys())}
   - Video shape: {self.video.shape}
   - Output frames ({end_frame - start_frame}): [{start_frame} : {end_frame - 1}]
+  - Batch size: {batch_size}
   - Export npy: {export_npy}
   - Export png: {export_png}
 """
@@ -177,10 +179,13 @@ class VRE:
         # run_stats will hold a dict: {repr_name: [time_taken, ...]} for all representations, for debugging/logging
         run_stats: dict[str, list[float]] = {}
         npy_paths, png_paths = self._make_run_paths(output_dir, export_npy, export_png)
-        self._print_call(output_dir, start_frame, end_frame, export_npy, export_png)
+        self._print_call(output_dir, start_frame, end_frame, batch_size, export_npy, export_png)
 
-        batches = np.arange(start_frame, min(end_frame + batch_size, len(self.video)), batch_size).clip(0, end_frame)
-        batches = batches if len(batches) > 1 else np.array([start_frame, start_frame + 1], dtype=np.int64)
+        last_one = min(end_frame, len(self.video))
+        batches = np.arange(start_frame, last_one, batch_size)
+        batches = np.array([*batches, last_one], dtype=np.int64) if batches[-1] != last_one else batches
+        # breakpoint()
+        # batches = batches if len(batches) > 1 else np.array([start_frame, start_frame + 1], dtype=np.int64)
         repr_fn = partial(self._do_one_representation, batches=batches,
                           npy_paths=npy_paths, png_paths=png_paths, export_npy=export_npy,
                           export_png=export_png, representations_setup=representations_setup)
