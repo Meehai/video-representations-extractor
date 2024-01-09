@@ -26,11 +26,20 @@ Weights repository for supported pretrained neural-network based representations
 Add `bin/` directory to your `PATH` env variable to be able to access the `vre` tool directly from cli.
 
 ```bash
-vre <path/to/video.mp4> --cfg_path <path/to/cfg> -o <path/to/vre/export/dir>
+vre <path/to/video.mp4> --cfg_path <path/to/cfg> -o <path/to/export_dir>
 ```
 
 The magic happens inside the config file, where we define *what* representations to extract and *what* parameters are
 used to instantiate said representations.
+
+### Single image usage
+
+You can get the representations for a single image (or a directory of images) by placing your image in a standalone
+directory.
+
+```bash
+vre <path/to/dir_of_images> --cfg_path <path/to/cfg> -o <path/to/export_dirr>
+```
 
 ## 3. CFG file
 

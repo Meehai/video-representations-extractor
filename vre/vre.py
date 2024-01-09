@@ -15,7 +15,7 @@ from .representation import Representation
 from .logger import logger
 from .utils import image_write, FakeVideo
 
-RunPaths = tuple[dict[str, list[Path]], dict[str, list[Path]], dict[str, list[Path]]]
+RunPaths = tuple[dict[str, list[Path]], dict[str, list[Path]]]
 
 def _took(now: datetime.date, l: int, r: int) -> list[float]:
     return [(datetime.now() - now).total_seconds() / (r - l)] * (r - l)
@@ -180,6 +180,7 @@ class VRE:
         self._print_call(output_dir, start_frame, end_frame, export_npy, export_png)
 
         batches = np.arange(start_frame, min(end_frame + batch_size, len(self.video)), batch_size).clip(0, end_frame)
+        batches = batches if len(batches) > 1 else np.array([start_frame, start_frame + 1], dtype=np.int64)
         repr_fn = partial(self._do_one_representation, batches=batches,
                           npy_paths=npy_paths, png_paths=png_paths, export_npy=export_npy,
                           export_png=export_png, representations_setup=representations_setup)

@@ -5,6 +5,7 @@ import pims
 class FakeVideo:
     """FakeVideo -- class used to test representations with a given numpy array"""
     def __init__(self, data: np.ndarray, frame_rate: int):
+        assert len(data) > 0, "No data provided"
         self.data = data
         self.frame_rate = frame_rate
         self.frame_shape = data.shape[1:]
