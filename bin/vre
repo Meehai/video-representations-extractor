@@ -21,6 +21,7 @@ def get_args():
     parser.add_argument("--end_frame", type=int, help="End frame. If not set, defaults to length of video")
     parser.add_argument("--output_dir_exist_mode", choices=["overwrite", "skip_computed", "raise"])
     parser.add_argument("--frame_rate", type=int, help="For a directory of images. Required for optical flow")
+    parser.add_argument("--batch_size", type=int)
 
     args = parser.parse_args()
 
@@ -43,7 +44,7 @@ def get_cfg():
             logger.warning(f"--{item} is set to '{cfg[item]}'. Will update the cfg value")
         return cfg
 
-    cfg.vre = _update_cfg_from_args(cfg.vre, args, ["start_frame", "end_frame", "output_dir_exist_mode"])
+    cfg.vre = _update_cfg_from_args(cfg.vre, args, ["start_frame", "end_frame", "output_dir_exist_mode", "batch_size"])
     return args, cfg
 
 
