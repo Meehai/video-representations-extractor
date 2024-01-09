@@ -1,100 +1,121 @@
 vre:
-    start_frame: 0
-    end_frame: null
-    output_resolution: null
-    export_raw: True
-    export_npy: True
-    export_png: True
+  start_frame: ${oc.env:VRE_START_IX}
+  end_frame: ${oc.env:VRE_END_IX,null}
+  export_npy: True
+  export_png: True
 
 representations:
-    rgb:
-        type: default
-        method: rgb
-        dependencies: []
-        parameters: {}
+  rgb:
+    type: default
+    name: rgb
+    dependencies: []
+    parameters: {}
 
-    hsv:
-        type: default
-        method: hsv
-        dependencies: []
-        parameters: {}
+  hsv:
+    type: default
+    name: hsv
+    dependencies: []
+    parameters: {}
 
-    halftone1:
-        type: soft-segmentation
-        method: python-halftone
-        dependencies: []
-        parameters:
-            sample: 3
-            scale: 1
-            percentage: 91
-            angles: [0, 15, 30, 45]
-            antialias: False
-            resolution: 240,426
+  halftone1:
+    type: soft-segmentation
+    name: python-halftone
+    dependencies: []
+    parameters:
+      sample: 3
+      scale: 1
+      percentage: 91
+      angles: [0, 15, 30, 45]
+      antialias: False
+      resolution: [240, 426]
 
-    edges dexined:
-        type: edges
-        method: dexined
-        dependencies: []
-        parameters: {}
+  edges canny:
+    type: edges
+    name: canny
+    dependencies: []
+    parameters:
+      threshold1: 100
+      threshold2: 200
+      aperture_size: 3
+      l2_gradient: True
 
-    edges canny:
-        type: edges
-        method: canny
-        dependencies: []
-        parameters:
-            threshold1: 150
-            threshold2: 200
-            apertureSize: 3
-            L2gradient: False
+  softseg kmeans:
+    type: soft-segmentation
+    name: kmeans
+    dependencies: []
+    parameters:
+      n_clusters: 6
+      epsilon: 2
+      max_iterations: 10
+      attempts: 3
 
-    softseg kmeans:
-        type: soft-segmentation
-        method: kmeans
-        dependencies: []
-        parameters:
-            nClusters: 6
-            epsilon: 2
-            maxIterations: 10
-            attempts: 3
+  softseg gb:
+    type: soft-segmentation
+    name: generalized_boundaries
+    dependencies: []
+    parameters:
+      use_median_filtering: True
+      adjust_to_rgb: True
+      max_channels: 3
 
-    softseg gb:
-        type: soft-segmentation
-        method: generalized_boundaries
-        dependencies: []
-        parameters:
-            useFiltering: True
-            adjustToRGB: True
-            maxChannels: 3
+  edges dexined:
+    type: edges
+    name: dexined
+    dependencies: []
+    parameters:
+      inference_height: 512
+      inference_width: 512
+    vre_parameters:
+      device: ${oc.env:VRE_DEVICE,cpu}
 
-    # depth dpt:
-    #   type: depth
-    #   method: dpt
-    #   dependencies: []
-    #   parameters:
-    #     trainHeight: 256
-    #     trainWidth: 448
+  fastsam(s):
+    type: semantic_segmentation
+    name: fastsam
+    dependencies: []
+    parameters:
+      variant: fastsam-s
+      iou: 0.9
+      conf: 0.4
+    vre_parameters:
+      device: ${oc.env:VRE_DEVICE,cpu}
 
-    opticalflow rife:
-        type: optical-flow
-        method: rife
-        dependencies: []
-        parameters:
-            computeBackwardFlow: False
+  # uncomment but it's quite slow w/o GPU
+  # depth dpt:
+  #   type: depth
+  #   name: dpt
+  #   dependencies: []
+  #   parameters: {}
+  #   vre_parameters:
+  #     device: ${oc.env:VRE_DEVICE,cpu}
 
-    opticalflow raft:
-        type: optical-flow
-        method: raft
-        dependencies: []
-        parameters:
-            inputHeight: 720
-            inputWidth: 1280
+  # normals svd (dpt):
+  #   type: normals
+  #   name: depth-svd
+  #   dependencies: [depth dpt]
+  #   parameters:
+  #     sensor_fov: 75
+  #     sensor_width: 3840
+  #     sensor_height: 2160
+  #     window_size: 11
 
-    # normals svd (dpt):
-    #   type: normals
-    #   method: depth-svd
-    #   dependencies: [depth dpt]
-    #   parameters:
-    #     fov: 75
-    #     sensorWidth: 3840
-    #     sensorHeight: 2160
-    #     windowSize: 11
+  # only works if fps is also set (for images) via --frame_rate in cli. For videos, it works just fine.
+  # opticalflow rife:
+  #   type: optical-flow
+  #   name: rife
+  #   dependencies: []
+  #   parameters:
+  #     uhd: False
+  #     compute_backward_flow: False
+  #   vre_parameters:
+  #     device: ${oc.env:VRE_DEVICE,cpu}
+
+  # Quite slow. Same as rife, requires --frame_rate in cli for directory of images.
+  # opticalflow raft:
+  #   type: optical-flow
+  #   name: raft
+  #   dependencies: []
+  #   parameters:
+  #     inference_height: 720
+  #     inference_width: 1280
+  #   vre_parameters:
+  #     device: ${oc.env:VRE_DEVICE,cpu}

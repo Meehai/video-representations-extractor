@@ -369,6 +369,9 @@ good-names=
            f1,
            Zs,
            As,
+	   ph,
+	   pw,
+	   im,
 
 
 # Include a hint for the correct naming format with invalid-name.

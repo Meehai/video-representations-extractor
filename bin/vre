@@ -2,11 +2,14 @@
 from argparse import ArgumentParser
 from typing import List
 from pathlib import Path
+import numpy as np
 import pims
 from vre import VRE
+from vre.utils import FakeVideo
 from vre.representations import build_representations_from_cfg
 from vre.logger import logger
 from omegaconf import OmegaConf
+from media_processing_lib.image import image_read
 
 def get_args():
     parser = ArgumentParser()
@@ -14,8 +17,10 @@ def get_args():
     parser.add_argument("--output_path", "-o", required=True,
                         help="Path to the output directory where representations are stored")
     parser.add_argument("--cfg_path", required=True, help="Path to global YAML cfg file")
-    parser.add_argument("--start_frame", type=int, help="The first frame. If not set, defaults to first.")
+    parser.add_argument("--start_frame", type=int, default=0, help="The first frame. If not set, defaults to first.")
     parser.add_argument("--end_frame", type=int, help="End frame. If not set, defaults to length of video")
+    parser.add_argument("--output_dir_exist_mode", choices=["overwrite", "skip_computed", "raise"])
+    parser.add_argument("--frame_rate", type=int, help="For a directory of images. Required for optical flow")
 
     args = parser.parse_args()
 
@@ -38,13 +43,18 @@ def get_cfg():
             logger.warning(f"--{item} is set to '{cfg[item]}'. Will update the cfg value")
         return cfg
 
-    cfg.vre = _update_cfg_from_args(cfg.vre, args, ["start_frame", "end_frame"])
+    cfg.vre = _update_cfg_from_args(cfg.vre, args, ["start_frame", "end_frame", "output_dir_exist_mode"])
     return args, cfg
 
 
 def main():
     args, cfg = get_cfg()
-    video = pims.Video(args.video_path)
+    if args.video_path.is_dir():
+        data = np.array([image_read(f) for f in args.video_path.glob("*.png")], dtype=np.uint8)
+        logger.info(f"--video_path is a directory. Assuming a directory of images. Found {len(data)} images.")
+        video = FakeVideo(data, frame_rate=args.frame_rate)
+    else:
+        video = pims.Video(args.video_path)
     representations = build_representations_from_cfg(cfg.representations)
     vre = VRE(video, representations)
     representations_setup = {r: cfg.representations[r].get("vre_parameters", {}) for r in representations.keys()}
