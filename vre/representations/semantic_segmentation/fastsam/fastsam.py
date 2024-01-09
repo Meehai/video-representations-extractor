@@ -12,7 +12,7 @@ from .fastsam_impl import FastSAM as Model, FastSAMPredictor, FastSAMPrompt
 from .fastsam_impl.utils import bbox_iou
 
 from ....representation import Representation, RepresentationOutput
-from ....utils import gdown_mkdir, VREVideo
+from ....utils import gdown_mkdir, VREVideo, image_resize
 
 class FastSam(Representation):
     """FastSAM representation."""
@@ -73,12 +73,14 @@ class FastSam(Representation):
                                          original_width=frames.shape[2], orig_imgs=frames)
 
         for i in range(len(y_predictor)):
+            orig_img = y_predictor[i].orig_img
             if len(y_predictor[i].boxes) == 0:
-                res.append(y_predictor[i].orig_img)
+                res.append(orig_img)
                 continue
-            prompt_process = FastSAMPrompt(y_predictor[i].orig_img, y_predictor[i: i + 1], device=self.device)
+            prompt_process = FastSAMPrompt(orig_img, y_predictor[i: i + 1], device=self.device)
             ann = prompt_process.results[0].masks.data
             prompt_res = prompt_process.plot_to_result(annotations=ann, better_quality=False, withContours=False)
+            prompt_res = image_resize(prompt_res, height=orig_img.shape[0], width=orig_img.shape[1])
             res.append(prompt_res)
         res_arr = np.array(res)
         return res_arr
