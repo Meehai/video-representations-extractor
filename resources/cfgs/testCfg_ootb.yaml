@@ -79,14 +79,13 @@ representations:
     vre_parameters:
       device: ${oc.env:VRE_DEVICE,cpu}
 
-  # uncomment but it's quite slow w/o GPU
-  # depth dpt:
-  #   type: depth
-  #   name: dpt
-  #   dependencies: []
-  #   parameters: {}
-  #   vre_parameters:
-  #     device: ${oc.env:VRE_DEVICE,cpu}
+  depth dpt:
+    type: depth
+    name: dpt
+    dependencies: []
+    parameters: {}
+    vre_parameters:
+      device: ${oc.env:VRE_DEVICE,cpu}
 
   # normals svd (dpt):
   #   type: normals
