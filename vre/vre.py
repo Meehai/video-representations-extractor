@@ -97,10 +97,10 @@ class VRE:
     def _store_data(self, raw_data: np.ndarray, extra: dict, imgs: np.ndarray | None, npy_paths: list[Path],
                     png_paths: list[Path], l: int, r: int, export_npy: bool, export_png: bool):
         """store the data in the right format"""
-        output_resolution = self.video.frame_shape[0:2]
+        h, w = self.video.frame_shape[0:2]
         if export_png:
             assert imgs is not None
-            assert imgs.shape == (r - l, *output_resolution, 3), (imgs.shape, (r - l, *output_resolution, 3))
+            assert imgs.shape == (r - l, h, w, 3), (imgs.shape, (r - l, h, w, 3))
             assert imgs.dtype == np.uint8, imgs.dtype
 
         for i, t in enumerate(range(l, r)):

@@ -59,7 +59,9 @@ def main():
     representations = build_representations_from_cfg(cfg.representations)
     vre = VRE(video, representations)
     representations_setup = {r: cfg.representations[r].get("vre_parameters", {}) for r in representations.keys()}
-    vre(args.output_path, **cfg.vre, representations_setup=representations_setup)
+    run_stats = vre(args.output_path, **cfg.vre, representations_setup=representations_setup)
+
+    print(run_stats)
 
 if __name__ == "__main__":
     main()
