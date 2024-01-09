@@ -38,8 +38,11 @@ You can get the representations for a single image (or a directory of images) by
 directory.
 
 ```bash
-vre <path/to/dir_of_images> --cfg_path <path/to/cfg> -o <path/to/export_dirr>
+vre <path/to/dir_of_images> --cfg_path <path/to/cfg> -o <path/to/export_dir>
 ```
+
+Note: use `--cfg_path resources/cfgs/testCfg_ootb.yaml` for 'out of the box' working representations.
+Note2: Use `VRE_DEVICE=cuda vre...` to use cuda. For some representations, this speeds up the process by a lot.
 
 ## 3. CFG file
 
