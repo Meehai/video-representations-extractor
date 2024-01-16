@@ -2,6 +2,7 @@
 from argparse import ArgumentParser
 from typing import List
 from pathlib import Path
+from natsort import natsorted
 import numpy as np
 import pims
 from vre import VRE
@@ -51,9 +52,10 @@ def get_cfg():
 def main():
     args, cfg = get_cfg()
     if args.video_path.is_dir():
-        data = np.array([image_read(f) for f in args.video_path.glob("*.png")], dtype=np.uint8)
-        logger.info(f"--video_path is a directory. Assuming a directory of images. Found {len(data)} images.")
-        video = FakeVideo(data, frame_rate=args.frame_rate)
+        raw_data = [image_read(f) for f in natsorted(args.video_path.glob("*.png"), key=lambda p: p.name)]
+        assert all(x.shape == raw_data[0].shape for x in raw_data), f"Images shape differ in '{args.video_path}'"
+        logger.info(f"--video_path is a directory. Assuming a directory of images. Found {len(raw_data)} images.")
+        video = FakeVideo(np.array(raw_data, dtype=np.uint8), frame_rate=args.frame_rate)
     else:
         video = pims.Video(args.video_path)
     representations = build_representations_from_cfg(cfg.representations)
