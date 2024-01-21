@@ -6,7 +6,7 @@ tqdm==4.66.1
 scikit-image==0.19.3
 natsort==8.2.0
 gitpython==3.1.31
-gdown==4.7.1
+gdown==4.6.0
 torch==2.1.0
 torchvision==0.16.0
 timm==0.6.13
@@ -19,5 +19,5 @@ flow_vis==0.1
 colorama==0.4.6
 omegaconf==2.3.0
 lovely_tensors==0.1.15
-media-processing-lib==0.63
+media-processing-lib==0.65
 ultralytics==8.0.120
