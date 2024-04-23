@@ -13,72 +13,60 @@ def build_representation_type(type: str, name: str) -> Type[Representation]:
     if type == "default":
         if name == "rgb":
             from .rgb import RGB
-
             obj_type = RGB
         elif name == "hsv":
             from .hsv import HSV
-
             obj_type = HSV
 
     elif type == "soft-segmentation":
         if name == "python-halftone":
             from .soft_segmentation.halftone import Halftone
-
             obj_type = Halftone
         elif name == "kmeans":
             from .soft_segmentation.kmeans import KMeans
-
             obj_type = KMeans
         elif name == "generalized_boundaries":
             from .soft_segmentation.generalized_boundaries import GeneralizedBoundaries
-
             obj_type = GeneralizedBoundaries
 
     elif type == "edges":
         if name == "dexined":
             from .edges.dexined import DexiNed
-
             obj_type = DexiNed
         elif name == "canny":
             from .edges.canny import Canny
-
             obj_type = Canny
 
     elif type == "depth":
         if name == "dpt":
             from .depth.dpt import DepthDpt
-
             obj_type = DepthDpt
         elif name == "odo-flow":
             from .depth.odo_flow import DepthOdoFlow
-
             obj_type = DepthOdoFlow
 
     elif type == "optical-flow":
         if name == "rife":
             from .optical_flow.rife import FlowRife
-
             obj_type = FlowRife
         elif name == "raft":
             from .optical_flow.raft import FlowRaft
-
             obj_type = FlowRaft
 
     elif type == "semantic_segmentation":
         if name == "safeuav":
             from .semantic_segmentation.safeuav import SafeUAV
-
             obj_type = SafeUAV
-
         if name == "fastsam":
             from .semantic_segmentation.fastsam import FastSam
-
             obj_type = FastSam
+        if name == "mask2former":
+            from .semantic_segmentation.mask2former import Mask2Former
+            obj_type = Mask2Former
 
     elif type == "normals":
         if name == "depth-svd":
             from .normals.depth_svd import DepthNormalsSVD
-
             obj_type = DepthNormalsSVD
 
     assert obj_type is not None, f"Unknown type: {type}, name: {name}"

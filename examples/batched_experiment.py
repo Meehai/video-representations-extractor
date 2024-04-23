@@ -70,6 +70,10 @@ def get_representation_dict() -> dict:
         "fastsam (x)": {"type": "semantic_segmentation", "name": "fastsam", "dependencies": [],
                         "parameters": {"variant": "fastsam-s", "iou": 0.9, "conf": 0.4},
                         "vre_parameters": {"device": device}},
+        "mask2former (r50)": {"type": "semantic_segmentation", "name": "mask2former", "dependencies": [],
+                              "parameters": {"model_id": "49189528_1"}, "vre_parameters": {"device": device}},
+        "mask2former (swin)": {"type": "semantic_segmentation", "name": "mask2former", "dependencies": [],
+                               "parameters": {"model_id": "47429163_0"}, "vre_parameters": {"device": device}},
     }
 
     if not tr.cuda.is_available():
