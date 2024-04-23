@@ -131,6 +131,15 @@ representations:
     vre_parameters:
       device: ${oc.env:VRE_DEVICE,cpu}
 
+  mask2former:
+    type: semantic_segmentation
+    name: mask2former
+    dependencies: []
+    parameters:
+      model_id: "49189528_1"
+    vre_parameters:
+      device: ${oc.env:VRE_DEVICE,cpu}
+
   # # SUCKY BECAUSE SUPERSLOW. Adds like 2-3 mins in CI. Rife is good enough.
   # opticalflow raft:
   #   type: optical-flow

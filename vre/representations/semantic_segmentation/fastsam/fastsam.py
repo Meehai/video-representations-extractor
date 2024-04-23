@@ -39,8 +39,12 @@ class FastSam(Representation):
     def _get_weights_path(self, variant: str) -> str:
         weights_dir = Path(f"{os.environ['VRE_WEIGHTS_DIR']}").absolute()
         weights_path = Path(f"{weights_dir}/FastSAM-{'s' if variant == 'fastsam-s' else 'x'}.pt")
+        links = {
+            "fastsam-s": "https://drive.google.com/u/0/uc?id=1DlAy02fyGpRQHZThVEEpwKdlXKphSHbk",
+            "fastsam-x": "https://drive.google.com/u/0/uc?id=1B2rGiBYCjk4B-jHMNzwgywpIdQjtKVRI",
+        }
         if not weights_path.exists():
-            gdown_mkdir("https://drive.google.com/u/0/uc?id=1DlAy02fyGpRQHZThVEEpwKdlXKphSHbk", weights_path)
+            gdown_mkdir(links[variant], weights_path)
         return f"{weights_path}"
 
     # pylint: disable=unused-argument, arguments-differ
