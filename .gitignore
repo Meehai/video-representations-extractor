@@ -10,4 +10,5 @@ imgur.sh
 *.png
 *.ckpt
 examples/try
+exception.txt
 

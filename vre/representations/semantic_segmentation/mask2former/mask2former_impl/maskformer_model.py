@@ -16,50 +16,6 @@ from .modeling.meta_arch.mask_former_head import MaskFormerHead
 from .modeling.backbone.swin import D2SwinTransformer
 from .modeling.resnet import build_resnet_backbone
 
-@contextmanager
-def _ignore_torch_cuda_oom():
-    """
-    A context which ignores CUDA OOM exception from pytorch.
-    """
-    try:
-        yield
-    except RuntimeError as e:
-        # NOTE: the string may change?
-        if "CUDA out of memory. " in str(e):
-            pass
-        else:
-            raise
-
-def retry_if_cuda_oom(func):
-    def maybe_to_cpu(x):
-        try:
-            like_gpu_tensor = x.device.type == "cuda" and hasattr(x, "to")
-        except AttributeError:
-            like_gpu_tensor = False
-        if like_gpu_tensor:
-            return x.to(device="cpu")
-        else:
-            return x
-
-    @wraps(func)
-    def wrapped(*args, **kwargs):
-        with _ignore_torch_cuda_oom():
-            return func(*args, **kwargs)
-
-        # Clear cache and retry
-        torch.cuda.empty_cache()
-        with _ignore_torch_cuda_oom():
-            return func(*args, **kwargs)
-
-        # Try on CPU. This slows down the code significantly, therefore print a notice.
-        print("Attempting to copy inputs of {} to CPU due to CUDA OOM".format(str(func)))
-        new_args = (maybe_to_cpu(x) for x in args)
-        new_kwargs = {k: maybe_to_cpu(v) for k, v in kwargs.items()}
-        return func(*new_args, **new_kwargs)
-
-    return wrapped
-
-
 def sem_seg_postprocess(result, img_size, output_height, output_width):
     """
     Return semantic segmentation predictions in the original resolution.
@@ -267,29 +223,27 @@ class MaskFormer(nn.Module):
             processed_results.append({})
 
             if self.sem_seg_postprocess_before_inference:
-                mask_pred_result = retry_if_cuda_oom(sem_seg_postprocess)(
-                    mask_pred_result, image_size, height, width
-                )
+                mask_pred_result = sem_seg_postprocess(mask_pred_result, image_size, height, width)
                 mask_cls_result = mask_cls_result.to(mask_pred_result)
 
             # semantic segmentation inference
             if self.semantic_on:
-                r = retry_if_cuda_oom(self.semantic_inference)(mask_cls_result, mask_pred_result)
+                r = self.semantic_inference(mask_cls_result, mask_pred_result)
                 if not self.sem_seg_postprocess_before_inference:
-                    r = retry_if_cuda_oom(sem_seg_postprocess)(r, image_size, height, width)
+                    r = sem_seg_postprocess(r, image_size, height, width)
                 processed_results[-1]["sem_seg"] = r
 
             # panoptic segmentation inference
             if self.panoptic_on:
-                panoptic_r = retry_if_cuda_oom(self.panoptic_inference)(mask_cls_result, mask_pred_result)
+                panoptic_r = self.panoptic_inference(mask_cls_result, mask_pred_result)
                 processed_results[-1]["panoptic_seg"] = panoptic_r
 
             # instance segmentation inference
             if self.instance_on:
-                instance_r = retry_if_cuda_oom(self.instance_inference)(mask_cls_result, mask_pred_result)
+                instance_r = self.instance_inference(mask_cls_result, mask_pred_result)
                 processed_results[-1]["instances"] = instance_r
 
-            return processed_results
+        return processed_results
 
     def prepare_targets(self, targets, images):
         h_pad, w_pad = images.tensor.shape[-2:]

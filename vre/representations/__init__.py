@@ -85,6 +85,10 @@ def build_representation_from_cfg(repr_cfg: dict, name: str, built_so_far: dict[
     obj_type = build_representation_type(repr_type, repr_name)
     # this is here because omegaconf transforms [1, 2, 3, 4] in a ListConfig, not a simple list
     obj = obj_type(name=name, dependencies=dependencies, **repr_cfg["parameters"])
+    if "batch_size" in repr_cfg:
+        logger.debug(f"Explicit batch size {repr_cfg['batch_size']} provided to {name}.")
+        assert isinstance(repr_cfg["batch_size"], int), repr_cfg["batch_size"]
+        setattr(obj, "batch_size", repr_cfg["batch_size"])
     # TODO: we could make it lazy here, but we have some issues with dependencies using this variable, not VRE's one
     # which will instantiate them at __call__ time.
     # obj = partial(obj_type, name=name, dependencies=dependencies, **repr_cfg["parameters"])
