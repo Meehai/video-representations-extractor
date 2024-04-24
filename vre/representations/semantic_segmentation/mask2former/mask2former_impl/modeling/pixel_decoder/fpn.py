@@ -1,42 +1,27 @@
+# pylint: disable=all
 # Copyright (c) Facebook, Inc. and its affiliates.
 import logging
-import numpy as np
-from typing import Callable, Dict, List, Optional, Tuple, Union
+from typing import Callable, Dict, Optional, Union
 
 import fvcore.nn.weight_init as weight_init
-import torch
 from torch import nn
 from torch.nn import functional as F
-from torch.nn.init import xavier_uniform_, constant_, uniform_, normal_
-from torch.cuda.amp import autocast
 
-from detectron2.config import configurable
-from detectron2.layers import Conv2d, DeformConv, ShapeSpec, get_norm
-from detectron2.modeling import SEM_SEG_HEADS_REGISTRY
-
+from ...layers import ShapeSpec, Conv2d, get_norm
 from ..transformer_decoder.position_encoding import PositionEmbeddingSine
-from ..transformer_decoder.transformer import TransformerEncoder, TransformerEncoderLayer, _get_clones, _get_activation_fn
-
+from ..transformer_decoder.transformer import TransformerEncoder, TransformerEncoderLayer
+from .msdeformattn import MSDeformAttnPixelDecoder
 
 def build_pixel_decoder(cfg, input_shape):
     """
     Build a pixel decoder from `cfg.MODEL.MASK_FORMER.PIXEL_DECODER_NAME`.
     """
     name = cfg.MODEL.SEM_SEG_HEAD.PIXEL_DECODER_NAME
-    model = SEM_SEG_HEADS_REGISTRY.get(name)(cfg, input_shape)
-    forward_features = getattr(model, "forward_features", None)
-    if not callable(forward_features):
-        raise ValueError(
-            "Only SEM_SEG_HEADS with forward_features method can be used as pixel decoder. "
-            f"Please implement forward_features for {name} to only return mask features."
-        )
-    return model
-
+    assert name == "MSDeformAttnPixelDecoder"
+    return MSDeformAttnPixelDecoder(**MSDeformAttnPixelDecoder.from_config(cfg, input_shape))
 
 # This is a modified FPN decoder.
-@SEM_SEG_HEADS_REGISTRY.register()
 class BasePixelDecoder(nn.Module):
-    @configurable
     def __init__(
         self,
         input_shape: Dict[str, ShapeSpec],
@@ -201,9 +186,7 @@ class TransformerEncoderOnly(nn.Module):
 
 
 # This is a modified FPN decoder with extra Transformer encoder that processes the lowest-resolution feature map.
-@SEM_SEG_HEADS_REGISTRY.register()
 class TransformerEncoderPixelDecoder(BasePixelDecoder):
-    @configurable
     def __init__(
         self,
         input_shape: Dict[str, ShapeSpec],
@@ -234,7 +217,6 @@ class TransformerEncoderPixelDecoder(BasePixelDecoder):
 
         input_shape = sorted(input_shape.items(), key=lambda x: x[1].stride)
         self.in_features = [k for k, v in input_shape]  # starting from "res2" to "res5"
-        feature_strides = [v.stride for k, v in input_shape]
         feature_channels = [v.channels for k, v in input_shape]
 
         in_channels = feature_channels[len(self.in_features) - 1]

@@ -4,8 +4,6 @@ from argparse import ArgumentParser
 from pathlib import Path
 from media_processing_lib.image import image_add_title, image_read, image_write, image_resize
 from media_processing_lib.collage_maker import collage_fn
-from media_processing_lib.video.backends import DiskBackend
-from media_processing_lib.video import MPLVideo
 from natsort import natsorted
 from tqdm import tqdm
 import numpy as np
@@ -29,7 +27,7 @@ def get_args():
         logger.warning(f"--output_path not provided, defaulting to '{args.output_path}'")
     args.output_path = Path(args.output_path).absolute()
     assert not args.output_path.exists() or args.overwrite, f"Output path '{args.output_path}' exists. Use --overwrite."
-    assert args.video is None or args.fps is not None, "If video is set, --fps must also be set."
+    assert args.video is False or args.fps is not None, "If video is set, --fps must also be set."
     return args
 
 def resolve_files(vre_export_dir: Path) -> dict[str, list[Path]]:
@@ -73,6 +71,8 @@ def main():
         image_write(img, args.output_path / f"{name}.png")
 
     if args.video:
+        from media_processing_lib.video.backends import DiskBackend
+        from media_processing_lib.video import MPLVideo
         video = MPLVideo(DiskBackend([x for x in args.output_path.iterdir()]), fps=args.fps)
         video.save(args.output_path / "collage.mp4")
 

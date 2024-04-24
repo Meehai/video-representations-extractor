@@ -1,22 +1,19 @@
+# pylint: disable=all
 # Copyright (c) Facebook, Inc. and its affiliates.
-import logging
 import numpy as np
-from typing import Callable, Dict, List, Optional, Tuple, Union
+from typing import Callable, Dict, List, Optional, Union
 
 import fvcore.nn.weight_init as weight_init
 import torch
 from torch import nn
 from torch.nn import functional as F
-from torch.nn.init import xavier_uniform_, constant_, uniform_, normal_
+from torch.nn.init import normal_
 from torch.cuda.amp import autocast
 
-from detectron2.config import configurable
-from detectron2.layers import Conv2d, ShapeSpec, get_norm
-from detectron2.modeling import SEM_SEG_HEADS_REGISTRY
-
+from ...layers import ShapeSpec, Conv2d, get_norm
 from ..transformer_decoder.position_encoding import PositionEmbeddingSine
 from ..transformer_decoder.transformer import _get_clones, _get_activation_fn
-from .ops.modules import MSDeformAttn
+from .ms_deform_attn import MSDeformAttn
 
 
 # MSDeformAttn Transformer encoder in deformable detr
@@ -143,7 +140,8 @@ class MSDeformAttnTransformerEncoder(nn.Module):
         for lvl, (H_, W_) in enumerate(spatial_shapes):
 
             ref_y, ref_x = torch.meshgrid(torch.linspace(0.5, H_ - 0.5, H_, dtype=torch.float32, device=device),
-                                          torch.linspace(0.5, W_ - 0.5, W_, dtype=torch.float32, device=device))
+                                          torch.linspace(0.5, W_ - 0.5, W_, dtype=torch.float32, device=device),
+                                          indexing="ij")
             ref_y = ref_y.reshape(-1)[None] / (valid_ratios[:, None, lvl, 1] * H_)
             ref_x = ref_x.reshape(-1)[None] / (valid_ratios[:, None, lvl, 0] * W_)
             ref = torch.stack((ref_x, ref_y), -1)
@@ -161,9 +159,7 @@ class MSDeformAttnTransformerEncoder(nn.Module):
         return output
 
 
-@SEM_SEG_HEADS_REGISTRY.register()
 class MSDeformAttnPixelDecoder(nn.Module):
-    @configurable
     def __init__(
         self,
         input_shape: Dict[str, ShapeSpec],

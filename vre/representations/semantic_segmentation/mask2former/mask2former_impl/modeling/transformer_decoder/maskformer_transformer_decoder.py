@@ -1,3 +1,4 @@
+# pylint: disable=all
 # Copyright (c) Facebook, Inc. and its affiliates.
 # Modified by Bowen Cheng from: https://github.com/facebookresearch/detr/blob/master/models/detr.py
 import fvcore.nn.weight_init as weight_init
@@ -5,31 +6,20 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
-from detectron2.config import configurable
-from detectron2.layers import Conv2d
-from detectron2.utils.registry import Registry
-
 from .position_encoding import PositionEmbeddingSine
 from .transformer import Transformer
-
-
-TRANSFORMER_DECODER_REGISTRY = Registry("TRANSFORMER_MODULE")
-TRANSFORMER_DECODER_REGISTRY.__doc__ = """
-Registry for transformer module in MaskFormer.
-"""
+from .mask2former_transformer_decoder import MultiScaleMaskedTransformerDecoder
 
 
 def build_transformer_decoder(cfg, in_channels, mask_classification=True):
     """
     Build a instance embedding branch from `cfg.MODEL.INS_EMBED_HEAD.NAME`.
     """
-    name = cfg.MODEL.MASK_FORMER.TRANSFORMER_DECODER_NAME
-    return TRANSFORMER_DECODER_REGISTRY.get(name)(cfg, in_channels, mask_classification)
+    assert (name := cfg.MODEL.MASK_FORMER.TRANSFORMER_DECODER_NAME) == "MultiScaleMaskedTransformerDecoder", name
+    params = MultiScaleMaskedTransformerDecoder.from_config(cfg, in_channels, mask_classification)
+    return MultiScaleMaskedTransformerDecoder(**params)
 
-
-@TRANSFORMER_DECODER_REGISTRY.register()
 class StandardTransformerDecoder(nn.Module):
-    @configurable
     def __init__(
         self,
         in_channels,
@@ -93,7 +83,7 @@ class StandardTransformerDecoder(nn.Module):
         self.query_embed = nn.Embedding(num_queries, hidden_dim)
 
         if in_channels != hidden_dim or enforce_input_project:
-            self.input_proj = Conv2d(in_channels, hidden_dim, kernel_size=1)
+            self.input_proj = nn.Conv2d(in_channels, hidden_dim, kernel_size=1)
             weight_init.c2_xavier_fill(self.input_proj)
         else:
             self.input_proj = nn.Sequential()

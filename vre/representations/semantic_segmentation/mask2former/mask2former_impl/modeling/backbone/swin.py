@@ -1,3 +1,4 @@
+# pylint: disable=all
 # --------------------------------------------------------
 # Swin Transformer
 # Copyright (c) 2021 Microsoft
@@ -15,8 +16,8 @@ import torch.nn.functional as F
 import torch.utils.checkpoint as checkpoint
 from timm.models.layers import DropPath, to_2tuple, trunc_normal_
 
-from detectron2.modeling import BACKBONE_REGISTRY, Backbone, ShapeSpec
-
+from ...layers import ShapeSpec
+from ..resnet import Backbone
 
 class Mlp(nn.Module):
     """Multilayer perceptron."""
@@ -110,7 +111,7 @@ class WindowAttention(nn.Module):
         # get pair-wise relative position index for each token inside the window
         coords_h = torch.arange(self.window_size[0])
         coords_w = torch.arange(self.window_size[1])
-        coords = torch.stack(torch.meshgrid([coords_h, coords_w]))  # 2, Wh, Ww
+        coords = torch.stack(torch.meshgrid([coords_h, coords_w], indexing="ij"))  # 2, Wh, Ww
         coords_flatten = torch.flatten(coords, 1)  # 2, Wh*Ww
         relative_coords = coords_flatten[:, :, None] - coords_flatten[:, None, :]  # 2, Wh*Ww, Wh*Ww
         relative_coords = relative_coords.permute(1, 2, 0).contiguous()  # Wh*Ww, Wh*Ww, 2
@@ -683,7 +684,6 @@ class SwinTransformer(nn.Module):
         self._freeze_stages()
 
 
-@BACKBONE_REGISTRY.register()
 class D2SwinTransformer(SwinTransformer, Backbone):
     def __init__(self, cfg, input_shape):
 

@@ -1,3 +1,4 @@
+# pylint: disable=all
 # Copyright (c) Facebook, Inc. and its affiliates.
 # Modified by Bowen Cheng from: https://github.com/facebookresearch/detr/blob/master/models/detr.py
 import logging
@@ -7,11 +8,7 @@ import torch
 from torch import nn, Tensor
 from torch.nn import functional as F
 
-from detectron2.config import configurable
-from detectron2.layers import Conv2d
-
 from .position_encoding import PositionEmbeddingSine
-from .maskformer_transformer_decoder import TRANSFORMER_DECODER_REGISTRY
 
 
 class SelfAttentionLayer(nn.Module):
@@ -204,7 +201,6 @@ class MLP(nn.Module):
         return x
 
 
-@TRANSFORMER_DECODER_REGISTRY.register()
 class MultiScaleMaskedTransformerDecoder(nn.Module):
 
     _version = 2
@@ -232,7 +228,6 @@ class MultiScaleMaskedTransformerDecoder(nn.Module):
                     "Please upgrade your models. Applying automatic conversion now ..."
                 )
 
-    @configurable
     def __init__(
         self,
         in_channels,
@@ -323,7 +318,7 @@ class MultiScaleMaskedTransformerDecoder(nn.Module):
         self.input_proj = nn.ModuleList()
         for _ in range(self.num_feature_levels):
             if in_channels != hidden_dim or enforce_input_project:
-                self.input_proj.append(Conv2d(in_channels, hidden_dim, kernel_size=1))
+                self.input_proj.append(nn.Conv2d(in_channels, hidden_dim, kernel_size=1))
                 weight_init.c2_xavier_fill(self.input_proj[-1])
             else:
                 self.input_proj.append(nn.Sequential())
@@ -338,7 +333,6 @@ class MultiScaleMaskedTransformerDecoder(nn.Module):
         ret = {}
         ret["in_channels"] = in_channels
         ret["mask_classification"] = mask_classification
-        
         ret["num_classes"] = cfg.MODEL.SEM_SEG_HEAD.NUM_CLASSES
         ret["hidden_dim"] = cfg.MODEL.MASK_FORMER.HIDDEN_DIM
         ret["num_queries"] = cfg.MODEL.MASK_FORMER.NUM_OBJECT_QUERIES
@@ -409,7 +403,7 @@ class MultiScaleMaskedTransformerDecoder(nn.Module):
                 tgt_key_padding_mask=None,
                 query_pos=query_embed
             )
-            
+
             # FFN
             output = self.transformer_ffn_layers[i](
                 output

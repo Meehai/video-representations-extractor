@@ -1,21 +1,15 @@
+# pylint: disable=all
 # Copyright (c) Facebook, Inc. and its affiliates.
 import logging
-from copy import deepcopy
-from typing import Callable, Dict, List, Optional, Tuple, Union
+from typing import Dict
 
-import fvcore.nn.weight_init as weight_init
 from torch import nn
-from torch.nn import functional as F
 
-from detectron2.config import configurable
-from detectron2.layers import Conv2d, ShapeSpec, get_norm
-from detectron2.modeling import SEM_SEG_HEADS_REGISTRY
-
+from ...layers import ShapeSpec
 from ..transformer_decoder.maskformer_transformer_decoder import build_transformer_decoder
 from ..pixel_decoder.fpn import build_pixel_decoder
 
 
-@SEM_SEG_HEADS_REGISTRY.register()
 class MaskFormerHead(nn.Module):
 
     _version = 2
@@ -44,7 +38,6 @@ class MaskFormerHead(nn.Module):
                     "Please upgrade your models. Applying automatic conversion now ..."
                 )
 
-    @configurable
     def __init__(
         self,
         input_shape: Dict[str, ShapeSpec],
@@ -71,8 +64,6 @@ class MaskFormerHead(nn.Module):
         super().__init__()
         input_shape = sorted(input_shape.items(), key=lambda x: x[1].stride)
         self.in_features = [k for k, v in input_shape]
-        feature_strides = [v.stride for k, v in input_shape]
-        feature_channels = [v.channels for k, v in input_shape]
 
         self.ignore_value = ignore_value
         self.common_stride = 4
