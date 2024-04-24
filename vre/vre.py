@@ -10,15 +10,24 @@ from omegaconf import DictConfig
 import pims
 import numpy as np
 import pandas as pd
+import torch as tr
 
 from .representation import Representation
 from .logger import logger
 from .utils import image_write, FakeVideo
 
 RunPaths = tuple[dict[str, list[Path]], dict[str, list[Path]]]
+RepresentationsSetup = dict[str, dict[str, Any]]
 
 def _took(now: datetime.date, l: int, r: int) -> list[float]:
     return [(datetime.now() - now).total_seconds() / (r - l)] * (r - l)
+
+def _make_batches(video: pims.Video, start_frame: int, end_frame: int, batch_size: int) -> np.ndarray:
+    """return 1D array [start_frame, start_frame+bs, start_frame+2*bs... end_frame]"""
+    last_one = min(end_frame, len(video))
+    batches = np.arange(start_frame, last_one, batch_size)
+    batches = np.array([*batches, last_one], dtype=np.int64) if batches[-1] != last_one else batches
+    return batches
 
 class VRE:
     """Video Representations Extractor class"""
@@ -78,8 +87,7 @@ class VRE:
         )
 
     def _check_call_args(self, output_dir: Path, start_frame: int, end_frame: int, batch_size: int, export_npy: bool,
-                         export_png: bool, output_dir_exist_mode: str,
-                         representations_setup: dict[str, dict[str, Any]]):
+                         export_png: bool, output_dir_exist_mode: str, representations_setup: RepresentationsSetup):
         """check the args of the call method"""
         assert batch_size >= 1, f"batch size must be >= 1, got {batch_size}"
         assert export_npy + export_png > 0, "At least one of export modes must be True"
@@ -112,21 +120,41 @@ class VRE:
             if export_png:
                 image_write(imgs[i], png_paths[t])
 
-    def _do_one_representation(self, representation: Representation, batches: np.ndarray,
+    def _dry_run_find_batch_size(self, representation: Representation, start_frame: int, end_frame: int,
+                                 batch_size: int, export_png: bool) -> int:
+        curr_bs = batch_size
+        while curr_bs > 0:
+            batches = _make_batches(self.video, start_frame, end_frame, curr_bs)
+            try:
+                _ = representation.vre_make(self.video, slice(batches[0], batches[1]), export_png)
+                return batch_size
+            except RuntimeError as e:
+                logger.debug(f"[{representation.name}]: {e}. Reducing bs to {curr_bs - 1}. Let's hope.")
+                curr_bs -= 1
+                tr.cuda.empty_cache()
+                continue
+        raise RuntimeError(f"Representation {representation} cannot be ran even with batch_size=1. Buy more RAM.")
+
+    def _do_one_representation(self, representation: Representation, start_frame: int, end_frame: int, batch_size: int,
                                npy_paths: dict[str, list[Path]], png_paths: dict[str, list[Path]],
-                               export_npy: bool, export_png: bool,
-                               representations_setup: dict[str, dict[str, Any]]) -> dict[str, list[float]]:
+                               export_npy: bool, export_png: bool, representations_setup: RepresentationsSetup,
+                               dry_run: bool) -> dict[str, list[float]]:
+        """main loop for each representation. TODO: run this in parallel from main vre loop."""
         repr_setup = representations_setup[representation.name]
         repr_png_paths = png_paths[representation.name]
         repr_npy_paths = npy_paths[representation.name]
+        # call vre_setup here so expensive representations get lazy deep instantiated (i.e. models loading)
         try:
             representation.vre_setup(video=self.video, **repr_setup)
         except TypeError as e:
             logger.error(f"{representation} => {repr_setup}")
             raise e
 
+        if dry_run:
+            batch_size = self._dry_run_find_batch_size(representation, start_frame, end_frame, batch_size, export_png)
+        batches = _make_batches(self.video, start_frame, end_frame, batch_size)
+
         left, right = batches[0:-1], batches[1:]
-        start_frame, end_frame = left[0], right[-1]
         repr_stats = []
         pbar = tqdm(total=end_frame - start_frame, desc=f"[VRE] {representation.name}")
         for l, r in zip(left, right):
@@ -141,7 +169,7 @@ class VRE:
 
     def run(self, output_dir: Path, export_npy: bool, export_png: bool, start_frame: int | None = None,
             end_frame: int | None = None, batch_size: int = 1, output_dir_exist_mode: str = "raise",
-            representations_setup: dict[str, dict[str, Any]] | None = None) -> pd.DataFrame:
+            representations_setup: dict[str, dict[str, Any]] | None = None, dry_run: bool = True) -> pd.DataFrame:
         """
         The main loop of the VRE. This will run all the representations on the video and store results in the output_dir
         Parameteres:
@@ -158,6 +186,8 @@ class VRE:
         - representations_setup A dict of {representation_name: {representation_setup}}. This is used to pass
             representation specific inference parameters to the VRE, like setting device before running or loading
             some non-standard weights.
+        - dry_run: Whether to try to perform the VRE export on 1 batch with given batch_size and decrement 1 by 1 if it
+        OOMs until it finds a good one.
         Returns:
         - A dataframe with the run statistics for each representation
         """
@@ -181,12 +211,9 @@ class VRE:
         npy_paths, png_paths = self._make_run_paths(output_dir, export_npy, export_png)
         self._print_call(output_dir, start_frame, end_frame, batch_size, export_npy, export_png)
 
-        last_one = min(end_frame, len(self.video))
-        batches = np.arange(start_frame, last_one, batch_size)
-        batches = np.array([*batches, last_one], dtype=np.int64) if batches[-1] != last_one else batches
-        repr_fn = partial(self._do_one_representation, batches=batches,
-                          npy_paths=npy_paths, png_paths=png_paths, export_npy=export_npy,
-                          export_png=export_png, representations_setup=representations_setup)
+        repr_fn = partial(self._do_one_representation, start_frame=start_frame, end_frame=end_frame,
+                          batch_size=batch_size, npy_paths=npy_paths, png_paths=png_paths, export_npy=export_npy,
+                          export_png=export_png, representations_setup=representations_setup, dry_run=dry_run)
         run_stats = list(map(repr_fn, self.representations.values()))
 
         df_run_stats = pd.DataFrame(reduce(lambda a, b: {**a, **b}, run_stats), index=range(start_frame, end_frame))

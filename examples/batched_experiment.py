@@ -36,44 +36,44 @@ def get_representation_dict() -> dict:
                            "parameters": {"n_clusters": 6, "epsilon": 2, "max_iterations": 10, "attempts": 3}},
         "canny": {"type": "edges", "name": "canny", "dependencies": [],
                   "parameters": {"threshold1": 100, "threshold2": 200, "aperture_size": 3, "l2_gradient": True}},
-        "depth dpt": {"type": "depth", "name": "dpt", "dependencies": [], "parameters": {},
-                      "vre_parameters": {"device": device}},
-        "normals svd (dpth)": {"type": "normals", "name": "depth-svd", "dependencies": ["depth dpt"],
-                               "parameters": {"sensor_fov": 75, "sensor_width": 3840,
-                                              "sensor_height": 2160, "window_size": 11}},
-        "opticalflow rife": {"type": "optical-flow", "name": "rife", "dependencies": [],
-                             "parameters": {"compute_backward_flow": False, "uhd": False},
-                             "vre_parameters": {"device": device}},
-        "semantic safeuav torch": {"type": "semantic_segmentation", "name": "safeuav", "dependencies": [],
-                                   "parameters": {"train_height": 240, "train_width": 428, "num_classes": 8,
-                                                  "color_map": [[0, 255, 0], [0, 127, 0], [255, 255, 0],
-                                                                [255, 255, 255], [255, 0, 0], [0, 0, 255],
-                                                                [0, 255, 255], [127, 127, 63]]},
-                                   "vre_parameters": {"device": device,
-                                                      "weights_file": "safeuav_semantic_0956_pytorch.ckpt"}},
-        "halftone": {"type": "soft-segmentation", "name": "python-halftone", "dependencies": [],
-                     "parameters": {"sample": 3, "scale": 1, "percentage": 91, "angles": [0, 15, 30, 45],
-                                    "antialias": False, "resolution": [240, 426]}},
-        "opticalflow raft": {"type": "optical-flow", "name": "raft", "dependencies": [],
-                             "parameters": {"inference_height": 360, "inference_width": 640,
-                                            "small": False, "mixed_precision": False, "iters": 20},
-                             "vre_parameters": {"device": device}},
-        "depth odoflow (raft)": {"type": "depth", "name": "odo-flow", "dependencies": ["opticalflow raft"],
-                                 "parameters": {"linear_ang_vel_correction": True, "focus_correction": True,
-                                                "cosine_correction_scipy": False, "cosine_correction_gd": True,
-                                                "sensor_fov": 75, "sensor_width": 3840, "sensor_height": 2160,
-                                                "min_depth_meters": 0, "max_depth_meters": 400},
-                                 "vre_parameters": {"velocities_path": "DJI_0956_velocities.npz"}},
-        "fastsam (s)": {"type": "semantic_segmentation", "name": "fastsam", "dependencies": [],
-                        "parameters": {"variant": "fastsam-s", "iou": 0.9, "conf": 0.4},
-                        "vre_parameters": {"device": device}},
-        "fastsam (x)": {"type": "semantic_segmentation", "name": "fastsam", "dependencies": [],
-                        "parameters": {"variant": "fastsam-s", "iou": 0.9, "conf": 0.4},
-                        "vre_parameters": {"device": device}},
-        "mask2former (r50)": {"type": "semantic_segmentation", "name": "mask2former", "dependencies": [],
-                              "parameters": {"model_id": "49189528_1"}, "vre_parameters": {"device": device}},
-        "mask2former (swin)": {"type": "semantic_segmentation", "name": "mask2former", "dependencies": [],
-                               "parameters": {"model_id": "47429163_0"}, "vre_parameters": {"device": device}},
+        # "depth dpt": {"type": "depth", "name": "dpt", "dependencies": [], "parameters": {},
+        #               "vre_parameters": {"device": device}},
+        # "normals svd (dpth)": {"type": "normals", "name": "depth-svd", "dependencies": ["depth dpt"],
+        #                        "parameters": {"sensor_fov": 75, "sensor_width": 3840,
+        #                                       "sensor_height": 2160, "window_size": 11}},
+        # "opticalflow rife": {"type": "optical-flow", "name": "rife", "dependencies": [],
+        #                      "parameters": {"compute_backward_flow": False, "uhd": False},
+        #                      "vre_parameters": {"device": device}},
+        # "semantic safeuav torch": {"type": "semantic_segmentation", "name": "safeuav", "dependencies": [],
+        #                            "parameters": {"train_height": 240, "train_width": 428, "num_classes": 8,
+        #                                           "color_map": [[0, 255, 0], [0, 127, 0], [255, 255, 0],
+        #                                                         [255, 255, 255], [255, 0, 0], [0, 0, 255],
+        #                                                         [0, 255, 255], [127, 127, 63]]},
+        #                            "vre_parameters": {"device": device,
+        #                                               "weights_file": "safeuav_semantic_0956_pytorch.ckpt"}},
+        # "halftone": {"type": "soft-segmentation", "name": "python-halftone", "dependencies": [],
+        #              "parameters": {"sample": 3, "scale": 1, "percentage": 91, "angles": [0, 15, 30, 45],
+        #                             "antialias": False, "resolution": [240, 426]}},
+        # "opticalflow raft": {"type": "optical-flow", "name": "raft", "dependencies": [],
+        #                      "parameters": {"inference_height": 360, "inference_width": 640,
+        #                                     "small": False, "mixed_precision": False, "iters": 20},
+        #                      "vre_parameters": {"device": device}},
+        # "depth odoflow (raft)": {"type": "depth", "name": "odo-flow", "dependencies": ["opticalflow raft"],
+        #                          "parameters": {"linear_ang_vel_correction": True, "focus_correction": True,
+        #                                         "cosine_correction_scipy": False, "cosine_correction_gd": True,
+        #                                         "sensor_fov": 75, "sensor_width": 3840, "sensor_height": 2160,
+        #                                         "min_depth_meters": 0, "max_depth_meters": 400},
+        #                          "vre_parameters": {"velocities_path": "DJI_0956_velocities.npz"}},
+        # "fastsam (s)": {"type": "semantic_segmentation", "name": "fastsam", "dependencies": [],
+        #                 "parameters": {"variant": "fastsam-s", "iou": 0.9, "conf": 0.4},
+        #                 "vre_parameters": {"device": device}},
+        # "fastsam (x)": {"type": "semantic_segmentation", "name": "fastsam", "dependencies": [],
+        #                 "parameters": {"variant": "fastsam-s", "iou": 0.9, "conf": 0.4},
+        #                 "vre_parameters": {"device": device}},
+        # "mask2former (r50)": {"type": "semantic_segmentation", "name": "mask2former", "dependencies": [],
+        #                       "parameters": {"model_id": "49189528_1"}, "vre_parameters": {"device": device}},
+        # "mask2former (swin)": {"type": "semantic_segmentation", "name": "mask2former", "dependencies": [],
+        #                        "parameters": {"model_id": "47429163_0"}, "vre_parameters": {"device": device}},
     }
 
     if not tr.cuda.is_available():
@@ -100,13 +100,27 @@ def get_representation_dict() -> dict:
 def _process_dict(data: dict, batch_size) -> pd.DataFrame:
     return pd.DataFrame(data).mean().rename(f"batch={batch_size}")
 
+def _process_results(results: list, _print: bool):
+    results = pd.concat(results, axis=1)
+    results.loc["total"] = results.sum() * (end_frame - start_frame)
+    cols_ordered = ["batch=1"]
+    for b in batch_sizes:
+        if b == 1:
+            continue
+        results[f"ratio 1/{b}"] = results["batch=1"] / results[f"batch={b}"]
+        cols_ordered.extend([f"batch={b}", f"ratio 1/{b}"])
+    results = results[cols_ordered].sort_values("batch=1", ascending=False)
+    results.to_csv(Path(__file__).parent / "results.csv")
+    if _print:
+        print(results)
+
 def main():
     """main fn"""
     video = pims.Video(dwd_video_if_needed())
     representations_dict = get_representation_dict()
     batch_sizes = [1, 3, 5]
     start_frame = 1000
-    end_frame = start_frame + 200
+    end_frame = start_frame + 2
 
     vres = []
     tmp_dir = Path(TemporaryDirectory().name)
@@ -120,18 +134,11 @@ def main():
 
     results = []
     for vre in vres:
-        results.append(_process_dict(vre(), batch_size=vre.keywords["batch_size"]))
-    results = pd.concat(results, axis=1)
-    results.loc["total"] = results.sum() * (end_frame - start_frame)
-    cols_ordered = ["batch=1"]
-    for b in batch_sizes:
-        if b == 1:
-            continue
-        results[f"ratio 1/{b}"] = results["batch=1"] / results[f"batch={b}"]
-        cols_ordered.extend([f"batch={b}", f"ratio 1/{b}"])
-    results = results[cols_ordered].sort_values("batch=1", ascending=False)
-    results.to_csv(Path(__file__).parent / "results.csv")
-    print(results)
+        raw_result = vre()
+        result = _process_dict(raw_result, batch_size=vre.keywords["batch_size"])
+        results.append(result)
+        _process_results(results, _print=False)
+    _process_results(results, _print=True)
 
 if __name__ == "__main__":
     main()

@@ -24,9 +24,15 @@ class VRERepresentationMixin:
         representation for that slice. Additionally, if makes_images is set to True, it also returns the image
         representations of this slice.
         """
+        print("A")
         frames = np.array(video[ix])
+        print("B")
         dep_data = self.vre_dep_data(video, ix)
+        print("C")
         res = self.make(frames, **dep_data)
+        print("D")
         repr_data, extra = res if isinstance(res, tuple) else (res, {})
+        print("E")
         imgs = self.make_images(frames, res) if make_images else None
+        print("F")
         return (repr_data, extra), imgs
