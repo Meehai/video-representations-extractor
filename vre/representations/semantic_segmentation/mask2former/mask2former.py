@@ -103,8 +103,7 @@ class Mask2Former(Representation):
         height, width = frames.shape[1:3]
         _os = get_output_shape(height, width, self.cfg.INPUT.MIN_SIZE_TEST, self.cfg.INPUT.MAX_SIZE_TEST)
         imgs = [apply_image(img, height, width, _os[0], _os[1]).astype("float32").transpose(2, 0, 1) for img in frames]
-        tr_imgs = tr.stack(list(map(tr.from_numpy, imgs)))
-        inputs = [{"image": img, "height": height, "width": width} for img in tr_imgs]
+        inputs = [{"image": tr.from_numpy(img), "height": height, "width": width} for img in imgs]
         predictions = self.model(inputs)
         return predictions
 
@@ -127,7 +126,7 @@ def main():
 
     m2f = Mask2Former(sys.argv[1], name="m2f", dependencies=[])
     m2f.model.to("cuda" if tr.cuda.is_available() else "cpu")
-    for _ in range(1):
+    for _ in range(5):
         now = datetime.now()
         pred = m2f.make(img[None])
         print(f"Pred took: {datetime.now() - now}")

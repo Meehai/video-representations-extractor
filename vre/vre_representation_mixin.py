@@ -1,5 +1,6 @@
 """VRE representation mixin. This is used to integrate representations with VRE."""
 import numpy as np
+import torch as tr
 from .utils import VREVideo
 
 RepresentationOutput = np.ndarray | tuple[np.ndarray, list[dict]]
@@ -24,15 +25,11 @@ class VRERepresentationMixin:
         representation for that slice. Additionally, if makes_images is set to True, it also returns the image
         representations of this slice.
         """
-        print("A")
+        if tr.cuda.is_available():
+            tr.cuda.empty_cache()
         frames = np.array(video[ix])
-        print("B")
         dep_data = self.vre_dep_data(video, ix)
-        print("C")
         res = self.make(frames, **dep_data)
-        print("D")
         repr_data, extra = res if isinstance(res, tuple) else (res, {})
-        print("E")
         imgs = self.make_images(frames, res) if make_images else None
-        print("F")
         return (repr_data, extra), imgs
