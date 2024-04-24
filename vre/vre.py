@@ -184,8 +184,6 @@ class VRE:
         last_one = min(end_frame, len(self.video))
         batches = np.arange(start_frame, last_one, batch_size)
         batches = np.array([*batches, last_one], dtype=np.int64) if batches[-1] != last_one else batches
-        # breakpoint()
-        # batches = batches if len(batches) > 1 else np.array([start_frame, start_frame + 1], dtype=np.int64)
         repr_fn = partial(self._do_one_representation, batches=batches,
                           npy_paths=npy_paths, png_paths=png_paths, export_npy=export_npy,
                           export_png=export_png, representations_setup=representations_setup)

@@ -32,7 +32,7 @@ rm -rf test_imgur/
 # run VRE
 vre DJI_0956_720p.MP4 --cfg_path cfg.yaml -o test_imgur/ --start_frame $X --end_frame $((X+1))
 test "$?" -eq 0 || ( echo "VRE failed"; kill $$ )
-vre_collage  test_imgur/ --no_video --overwrite
+vre_collage  test_imgur/ --overwrite
 
 out_img=test_imgur/collage/$X.png
 test -f $out_img || ( echo "Image $out_img not found"; kill $$ )

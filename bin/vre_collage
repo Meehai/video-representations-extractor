@@ -2,23 +2,25 @@
 """vre_collage tool"""
 from argparse import ArgumentParser
 from pathlib import Path
-from media_processing_lib.image import image_add_title, image_read, image_write
+from media_processing_lib.image import image_add_title, image_read, image_write, image_resize
 from media_processing_lib.collage_maker import collage_fn
+from media_processing_lib.video.backends import DiskBackend
+from media_processing_lib.video import MPLVideo
 from natsort import natsorted
 from tqdm import tqdm
 import numpy as np
 
 from vre.logger import logger
 
-
 def get_args():
     """Cli args"""
     parser = ArgumentParser()
     parser.add_argument("vre_export_dir", type=lambda p: Path(p).absolute(), help="Path to the dir where VRE exported")
     parser.add_argument("--output_path", "-o", required=False, help="Path to the collage is stored")
-    parser.add_argument("--no_video", action="store_true")
     parser.add_argument("--overwrite", action="store_true")
+    parser.add_argument("--video", action="store_true")
     parser.add_argument("--fps", type=int)
+    parser.add_argument("--output_resolution", type=int, nargs=2)
     # TODO: add order of collage
     args = parser.parse_args()
 
@@ -27,10 +29,8 @@ def get_args():
         logger.warning(f"--output_path not provided, defaulting to '{args.output_path}'")
     args.output_path = Path(args.output_path).absolute()
     assert not args.output_path.exists() or args.overwrite, f"Output path '{args.output_path}' exists. Use --overwrite."
-    if not args.no_video:
-        assert args.fps, "--fps must be provided when exporting a video."
+    assert args.video is None or args.fps is not None, "If video is set, --fps must also be set."
     return args
-
 
 def resolve_files(vre_export_dir: Path) -> dict[str, list[Path]]:
     """Gets a list of all images that are going to be used for the collage."""
@@ -47,13 +47,12 @@ def resolve_files(vre_export_dir: Path) -> dict[str, list[Path]]:
     logger.info(f"Returning {n_files[found_dirs[0].parent.name]} images from {len(n_files)} representations.")
     return repr_files
 
-
 def main():
     """main fn"""
     args = get_args()
     logger.info(f"VRE pngs dir: {args.vre_export_dir}")
     logger.info(f"Output dir: {args.output_path}")
-    logger.info(f"Export video: {not args.no_video} {'' if args.no_video else args.output_path / 'collage.mp4'}")
+    logger.info(f"Export video: {args.video} {args.output_path / 'collage.mp4' if args.video else ''}")
 
     found_files = resolve_files(args.vre_export_dir)
     keys = found_files.keys()
@@ -67,16 +66,15 @@ def main():
         h, w = current_frames[0].shape[0:2]
         # keep only first 25 chars of vre representation, otherwise the title is too long
         trimmed_keys = [k[0:25] for k in keys]
-        titled_frames = [image_add_title(img, title, size_px=w // 15)
+        h_out, w_out = args.output_resolution if args.output_resolution is not None else (h, w)
+        titled_frames = [image_add_title(image_resize(img, height=h_out, width=w_out), title, size_px=w_out // 15)
                          for img, title in zip(current_frames, trimmed_keys)]
-        img = collage_fn(titled_frames, pad_right=w // 75)
+        img = collage_fn(titled_frames, pad_right=w_out // 75)
         image_write(img, args.output_path / f"{name}.png")
 
-    if not args.no_video:
-        raise NotImplementedError("TODO")
-        backend = DiskBackend([x for x in args.output_path.iterdir()])
-        MPLVideo(backend, fps=args.fps).save(args.output_path / "collage.mp4")
-
+    if args.video:
+        video = MPLVideo(DiskBackend([x for x in args.output_path.iterdir()]), fps=args.fps)
+        video.save(args.output_path / "collage.mp4")
 
 if __name__ == "__main__":
     main()
