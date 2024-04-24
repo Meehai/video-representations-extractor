@@ -9,20 +9,21 @@ import numpy as np
 from lovely_tensors import monkey_patch
 from media_processing_lib.image import image_read, image_write
 from PIL import Image
-monkey_patch()
+from fvcore.common.config import CfgNode
 
-sys.path.append(f"{Path(__file__).parent / 'detectron2'}")
-from detectron2.data import MetadataCatalog # pylint: disable=import-error, wrong-import-position
-from detectron2.config import CfgNode # pylint: disable=import-error, wrong-import-position
-from detectron2.utils.visualizer import Visualizer, ColorMode # pylint: disable=import-error, wrong-import-position
+monkey_patch()
 
 try:
     from .mask2former_impl import MaskFormer as MaskFormerImpl
+    from .mask2former_impl.det2_data import MetadataCatalog
+    from .mask2former_impl.visualizer import Visualizer, ColorMode
     from ....representation import Representation, RepresentationOutput
     from ....logger import logger
     from ....utils import gdown_mkdir, image_resize_batch, VREVideo
 except ImportError: # when running this script directly
     from mask2former_impl import MaskFormer as MaskFormerImpl
+    from mask2former_impl.visualizer import Visualizer, ColorMode
+    from mask2former_impl.det2_data import MetadataCatalog
     from vre.representation import Representation, RepresentationOutput
     from vre.logger import logger
     from vre.utils import gdown_mkdir, image_resize_batch, VREVideo
@@ -82,8 +83,9 @@ class Mask2Former(Representation):
     def _build_model(self, weights_path: Path):
         ckpt_data = tr.load(weights_path, map_location="cpu")
         cfg = CfgNode(json.loads(ckpt_data["cfg"]))
-        model = MaskFormerImpl(cfg).eval()
-        model.load_state_dict(ckpt_data["state_dict"])
+        model = MaskFormerImpl(**MaskFormerImpl.from_config(cfg)).eval()
+        res = model.load_state_dict(ckpt_data["state_dict"], strict=False) # inference only: we remove criterion
+        assert res.unexpected_keys == ["criterion.empty_weight"] or res.unexpected_keys == [], res
         model.to("cuda" if tr.cuda.is_available() else "cpu")
         assert len(cfg.DATASETS.TEST) == 1, cfg.DATASETS.TEST
         metadata = MetadataCatalog.get(cfg.DATASETS.TEST[0])
@@ -125,7 +127,7 @@ def main():
 
     m2f = Mask2Former(sys.argv[1], name="m2f", dependencies=[])
     m2f.model.to("cuda" if tr.cuda.is_available() else "cpu")
-    for _ in range(5):
+    for _ in range(1):
         now = datetime.now()
         pred = m2f.make(img[None])
         print(f"Pred took: {datetime.now() - now}")

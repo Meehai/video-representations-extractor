@@ -1,3 +1,4 @@
+# pylint: disable=all
 # Copyright (c) Facebook, Inc. and its affiliates.
 # Modified by Bowen Cheng from: https://github.com/facebookresearch/detr/blob/master/models/transformer.py
 """
@@ -9,7 +10,7 @@ Copy-paste from torch.nn.Transformer with modifications:
     * decoder returns a stack of activations from all decoding layers
 """
 import copy
-from typing import List, Optional
+from typing import Optional
 
 import torch
 import torch.nn.functional as F

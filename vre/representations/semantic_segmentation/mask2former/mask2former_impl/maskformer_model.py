@@ -1,32 +1,97 @@
+# pylint: disable=all
 # Copyright (c) Facebook, Inc. and its affiliates.
 from typing import Tuple
+from contextlib import contextmanager
+from functools import wraps
 
 import torch
 from torch import nn
 from torch.nn import functional as F
 
-from detectron2.config import configurable
-from detectron2.data import MetadataCatalog
-from detectron2.modeling import build_backbone, build_sem_seg_head
-from detectron2.modeling.backbone import Backbone
-from detectron2.modeling.postprocessing import sem_seg_postprocess
-from detectron2.structures import Boxes, ImageList, Instances
-from detectron2.utils.memory import retry_if_cuda_oom
 
-from .modeling.criterion import SetCriterion
-from .modeling.matcher import HungarianMatcher
+from .det2_data import MetadataCatalog
+from .structures import Boxes, ImageList, Instances
+from .layers import ShapeSpec
+from .modeling.meta_arch.mask_former_head import MaskFormerHead
+from .modeling.backbone.swin import D2SwinTransformer
+from .modeling.resnet import build_resnet_backbone
 
+@contextmanager
+def _ignore_torch_cuda_oom():
+    """
+    A context which ignores CUDA OOM exception from pytorch.
+    """
+    try:
+        yield
+    except RuntimeError as e:
+        # NOTE: the string may change?
+        if "CUDA out of memory. " in str(e):
+            pass
+        else:
+            raise
+
+def retry_if_cuda_oom(func):
+    def maybe_to_cpu(x):
+        try:
+            like_gpu_tensor = x.device.type == "cuda" and hasattr(x, "to")
+        except AttributeError:
+            like_gpu_tensor = False
+        if like_gpu_tensor:
+            return x.to(device="cpu")
+        else:
+            return x
+
+    @wraps(func)
+    def wrapped(*args, **kwargs):
+        with _ignore_torch_cuda_oom():
+            return func(*args, **kwargs)
+
+        # Clear cache and retry
+        torch.cuda.empty_cache()
+        with _ignore_torch_cuda_oom():
+            return func(*args, **kwargs)
+
+        # Try on CPU. This slows down the code significantly, therefore print a notice.
+        print("Attempting to copy inputs of {} to CPU due to CUDA OOM".format(str(func)))
+        new_args = (maybe_to_cpu(x) for x in args)
+        new_kwargs = {k: maybe_to_cpu(v) for k, v in kwargs.items()}
+        return func(*new_args, **new_kwargs)
+
+    return wrapped
+
+
+def sem_seg_postprocess(result, img_size, output_height, output_width):
+    """
+    Return semantic segmentation predictions in the original resolution.
+
+    The input images are often resized when entering semantic segmentor. Moreover, in same
+    cases, they also padded inside segmentor to be divisible by maximum network stride.
+    As a result, we often need the predictions of the segmentor in a different
+    resolution from its inputs.
+
+    Args:
+        result (Tensor): semantic segmentation prediction logits. A tensor of shape (C, H, W),
+            where C is the number of classes, and H, W are the height and width of the prediction.
+        img_size (tuple): image size that segmentor is taking as input.
+        output_height, output_width: the desired output resolution.
+
+    Returns:
+        semantic segmentation prediction (Tensor): A tensor of the shape
+            (C, output_height, output_width) that contains per-pixel soft predictions.
+    """
+    result = result[:, : img_size[0], : img_size[1]].expand(1, -1, -1, -1)
+    result = F.interpolate(result, size=(output_height, output_width), mode="bilinear", align_corners=False)[0]
+    return result
 
 class MaskFormer(nn.Module):
     """
     Main class for mask classification semantic segmentation architectures.
     """
 
-    @configurable
     def __init__(
         self,
         *,
-        backbone: Backbone,
+        backbone: "Backbone",
         sem_seg_head: nn.Module,
         criterion: nn.Module,
         num_queries: int,
@@ -94,25 +159,22 @@ class MaskFormer(nn.Module):
 
     @classmethod
     def from_config(cls, cfg):
-        backbone = build_backbone(cfg)
-        sem_seg_head = build_sem_seg_head(cfg, backbone.output_shape())
+        input_shape = ShapeSpec(channels=len(cfg.MODEL.PIXEL_MEAN))
+        assert cfg.MODEL.BACKBONE.NAME in ("D2SwinTransformer", "build_resnet_backbone"), cfg.MODEL.BACKBONE.NAME
+        if cfg.MODEL.BACKBONE.NAME == "D2SwinTransformer":
+            backbone = D2SwinTransformer(cfg, input_shape=input_shape)
+        else:
+            backbone = build_resnet_backbone(cfg, input_shape=input_shape)
+        assert cfg.MODEL.SEM_SEG_HEAD.NAME == "MaskFormerHead", cfg.MODEL.SEM_SEG_HEAD.NAME
+        sem_seg_head = MaskFormerHead(**MaskFormerHead.from_config(cfg, backbone.output_shape()))
 
         # Loss parameters:
         deep_supervision = cfg.MODEL.MASK_FORMER.DEEP_SUPERVISION
-        no_object_weight = cfg.MODEL.MASK_FORMER.NO_OBJECT_WEIGHT
 
         # loss weights
         class_weight = cfg.MODEL.MASK_FORMER.CLASS_WEIGHT
         dice_weight = cfg.MODEL.MASK_FORMER.DICE_WEIGHT
         mask_weight = cfg.MODEL.MASK_FORMER.MASK_WEIGHT
-
-        # building criterion
-        matcher = HungarianMatcher(
-            cost_class=class_weight,
-            cost_mask=mask_weight,
-            cost_dice=dice_weight,
-            num_points=cfg.MODEL.MASK_FORMER.TRAIN_NUM_POINTS,
-        )
 
         weight_dict = {"loss_ce": class_weight, "loss_mask": mask_weight, "loss_dice": dice_weight}
 
@@ -123,23 +185,10 @@ class MaskFormer(nn.Module):
                 aux_weight_dict.update({k + f"_{i}": v for k, v in weight_dict.items()})
             weight_dict.update(aux_weight_dict)
 
-        losses = ["labels", "masks"]
-
-        criterion = SetCriterion(
-            sem_seg_head.num_classes,
-            matcher=matcher,
-            weight_dict=weight_dict,
-            eos_coef=no_object_weight,
-            losses=losses,
-            num_points=cfg.MODEL.MASK_FORMER.TRAIN_NUM_POINTS,
-            oversample_ratio=cfg.MODEL.MASK_FORMER.OVERSAMPLE_RATIO,
-            importance_sample_ratio=cfg.MODEL.MASK_FORMER.IMPORTANCE_SAMPLE_RATIO,
-        )
-
         return {
             "backbone": backbone,
             "sem_seg_head": sem_seg_head,
-            "criterion": criterion,
+            "criterion": None,
             "num_queries": cfg.MODEL.MASK_FORMER.NUM_OBJECT_QUERIES,
             "object_mask_threshold": cfg.MODEL.MASK_FORMER.TEST.OBJECT_MASK_THRESHOLD,
             "overlap_threshold": cfg.MODEL.MASK_FORMER.TEST.OVERLAP_THRESHOLD,
@@ -195,68 +244,50 @@ class MaskFormer(nn.Module):
 
         features = self.backbone(images.tensor)
         outputs = self.sem_seg_head(features)
+        assert not self.training, "VRE Mask2Former only works in inference mode. Use model.eval()!!"
 
-        if self.training:
-            # mask classification target
-            if "instances" in batched_inputs[0]:
-                gt_instances = [x["instances"].to(self.device) for x in batched_inputs]
-                targets = self.prepare_targets(gt_instances, images)
-            else:
-                targets = None
+        mask_cls_results = outputs["pred_logits"]
+        mask_pred_results = outputs["pred_masks"]
+        # upsample masks
+        mask_pred_results = F.interpolate(
+            mask_pred_results,
+            size=(images.tensor.shape[-2], images.tensor.shape[-1]),
+            mode="bilinear",
+            align_corners=False,
+        )
 
-            # bipartite matching-based loss
-            losses = self.criterion(outputs, targets)
+        del outputs
 
-            for k in list(losses.keys()):
-                if k in self.criterion.weight_dict:
-                    losses[k] *= self.criterion.weight_dict[k]
-                else:
-                    # remove this loss if not specified in `weight_dict`
-                    losses.pop(k)
-            return losses
-        else:
-            mask_cls_results = outputs["pred_logits"]
-            mask_pred_results = outputs["pred_masks"]
-            # upsample masks
-            mask_pred_results = F.interpolate(
-                mask_pred_results,
-                size=(images.tensor.shape[-2], images.tensor.shape[-1]),
-                mode="bilinear",
-                align_corners=False,
-            )
+        processed_results = []
+        for mask_cls_result, mask_pred_result, input_per_image, image_size in zip(
+            mask_cls_results, mask_pred_results, batched_inputs, images.image_sizes
+        ):
+            height = input_per_image.get("height", image_size[0])
+            width = input_per_image.get("width", image_size[1])
+            processed_results.append({})
 
-            del outputs
+            if self.sem_seg_postprocess_before_inference:
+                mask_pred_result = retry_if_cuda_oom(sem_seg_postprocess)(
+                    mask_pred_result, image_size, height, width
+                )
+                mask_cls_result = mask_cls_result.to(mask_pred_result)
 
-            processed_results = []
-            for mask_cls_result, mask_pred_result, input_per_image, image_size in zip(
-                mask_cls_results, mask_pred_results, batched_inputs, images.image_sizes
-            ):
-                height = input_per_image.get("height", image_size[0])
-                width = input_per_image.get("width", image_size[1])
-                processed_results.append({})
+            # semantic segmentation inference
+            if self.semantic_on:
+                r = retry_if_cuda_oom(self.semantic_inference)(mask_cls_result, mask_pred_result)
+                if not self.sem_seg_postprocess_before_inference:
+                    r = retry_if_cuda_oom(sem_seg_postprocess)(r, image_size, height, width)
+                processed_results[-1]["sem_seg"] = r
 
-                if self.sem_seg_postprocess_before_inference:
-                    mask_pred_result = retry_if_cuda_oom(sem_seg_postprocess)(
-                        mask_pred_result, image_size, height, width
-                    )
-                    mask_cls_result = mask_cls_result.to(mask_pred_result)
+            # panoptic segmentation inference
+            if self.panoptic_on:
+                panoptic_r = retry_if_cuda_oom(self.panoptic_inference)(mask_cls_result, mask_pred_result)
+                processed_results[-1]["panoptic_seg"] = panoptic_r
 
-                # semantic segmentation inference
-                if self.semantic_on:
-                    r = retry_if_cuda_oom(self.semantic_inference)(mask_cls_result, mask_pred_result)
-                    if not self.sem_seg_postprocess_before_inference:
-                        r = retry_if_cuda_oom(sem_seg_postprocess)(r, image_size, height, width)
-                    processed_results[-1]["sem_seg"] = r
-
-                # panoptic segmentation inference
-                if self.panoptic_on:
-                    panoptic_r = retry_if_cuda_oom(self.panoptic_inference)(mask_cls_result, mask_pred_result)
-                    processed_results[-1]["panoptic_seg"] = panoptic_r
-                
-                # instance segmentation inference
-                if self.instance_on:
-                    instance_r = retry_if_cuda_oom(self.instance_inference)(mask_cls_result, mask_pred_result)
-                    processed_results[-1]["instances"] = instance_r
+            # instance segmentation inference
+            if self.instance_on:
+                instance_r = retry_if_cuda_oom(self.instance_inference)(mask_cls_result, mask_pred_result)
+                processed_results[-1]["instances"] = instance_r
 
             return processed_results
 

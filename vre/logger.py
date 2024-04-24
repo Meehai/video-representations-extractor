@@ -65,6 +65,5 @@ def build_logger(key: str) -> logging.Logger:
     _logger.addHandler(handler)
     return _logger
 
-
 # exported module logger
 logger = build_logger("VRE")

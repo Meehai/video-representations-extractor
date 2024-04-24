@@ -1,9 +1,9 @@
+# pylint: disable=all
 # Copyright (c) Facebook, Inc. and its affiliates.
 import json
 import os
 
-from detectron2.data import DatasetCatalog, MetadataCatalog
-from detectron2.utils.file_io import PathManager
+from ...det2_data import DatasetCatalog, MetadataCatalog
 
 ADE20K_150_CATEGORIES = [
     {"color": [120, 120, 120], "id": 0, "isthing": 0, "name": "wall"},
@@ -238,7 +238,7 @@ def load_ade20k_panoptic_json(json_file, image_dir, gt_dir, semseg_dir, meta):
             segment_info["isthing"] = False
         return segment_info
 
-    with PathManager.open(json_file) as f:
+    with open(json_file) as f:
         json_info = json.load(f)
 
     ret = []
@@ -262,9 +262,6 @@ def load_ade20k_panoptic_json(json_file, image_dir, gt_dir, semseg_dir, meta):
             }
         )
     assert len(ret), f"No images found in {image_dir}!"
-    assert PathManager.isfile(ret[0]["file_name"]), ret[0]["file_name"]
-    assert PathManager.isfile(ret[0]["pan_seg_file_name"]), ret[0]["pan_seg_file_name"]
-    assert PathManager.isfile(ret[0]["sem_seg_file_name"]), ret[0]["sem_seg_file_name"]
     return ret
 
 
