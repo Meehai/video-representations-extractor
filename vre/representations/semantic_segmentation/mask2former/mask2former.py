@@ -5,6 +5,7 @@ from pathlib import Path
 import sys
 from overrides import overrides
 import torch as tr
+from torch import nn
 import numpy as np
 from lovely_tensors import monkey_patch
 from media_processing_lib.image import image_read, image_write
@@ -62,7 +63,8 @@ def apply_image(img: np.ndarray, h, w, new_h, new_w):
 # TODO: enable/disable semantic, instance, panoptic.
 class Mask2Former(Representation):
     """Mask2Former representation implementation"""
-    def __init__(self, model_id: str, **kwargs):
+    def __init__(self, model_id: str, semantic: bool, instance: bool, panoptic: bool,
+                 semantic_argmax_only: bool, **kwargs):
         super().__init__(**kwargs)
         weights_dir = Path(f"{os.environ['VRE_WEIGHTS_DIR']}").absolute()
         if model_id == "47429163_0":
@@ -76,14 +78,18 @@ class Mask2Former(Representation):
         else:
             logger.warning(f"Unknown model provided: {model_id}. Loading as is.")
             weights_path = model_id
-        self.model, self.cfg, self.metadata = self._build_model(weights_path)
+        self.model, self.cfg, self.metadata = self._build_model(weights_path, semantic, instance, panoptic)
         self.model_id = model_id
         self.device = "cpu"
+        self.semantic_argmax_only = semantic_argmax_only
 
-    def _build_model(self, weights_path: Path):
+    def _build_model(self, weights_path: Path, semantic: bool, instance: bool,
+                     panoptic: bool) -> tuple[nn.Module, CfgNode, MetadataCatalog]:
         ckpt_data = tr.load(weights_path, map_location="cpu")
         cfg = CfgNode(json.loads(ckpt_data["cfg"]))
-        model = MaskFormerImpl(**MaskFormerImpl.from_config(cfg)).eval()
+        params = MaskFormerImpl.from_config(cfg)
+        params = {**params, "semantic_on": semantic, "panoptic_on": panoptic, "instance_on": instance}
+        model = MaskFormerImpl(**params).eval()
         res = model.load_state_dict(ckpt_data["state_dict"], strict=False) # inference only: we remove criterion
         assert res.unexpected_keys == ["criterion.empty_weight"] or res.unexpected_keys == [], res
         model.to("cuda" if tr.cuda.is_available() else "cpu")
@@ -105,6 +111,11 @@ class Mask2Former(Representation):
         imgs = [apply_image(img, height, width, _os[0], _os[1]).astype("float32").transpose(2, 0, 1) for img in frames]
         inputs = [{"image": tr.from_numpy(img), "height": height, "width": width} for img in imgs]
         predictions = self.model(inputs)
+        for i in range(len(predictions)):
+            if self.semantic_argmax_only:
+                predictions[i]["sem_seg"] = predictions[i]["sem_seg"].argmax(0).byte().to("cpu")
+            else:
+                predictions[i]["sem_seg"] = predictions[i]["sem_seg"].half().to("cpu")
         return predictions
 
     @overrides
@@ -112,7 +123,8 @@ class Mask2Former(Representation):
         res = []
         for img, pred in zip(frames, repr_data):
             v = Visualizer(img, self.metadata, scale=1.2, instance_mode=ColorMode.IMAGE_BW)
-            semantic_result = v.draw_sem_seg(pred["sem_seg"].argmax(0).to("cpu")).get_image()
+            _pred = pred["sem_seg"].argmax(0) if not self.semantic_argmax_only else pred["sem_seg"]
+            semantic_result = v.draw_sem_seg(_pred).get_image()
             res.append(semantic_result)
         res = np.stack(res)
         res = image_resize_batch(res, height=frames.shape[1], width=frames.shape[2])
@@ -124,7 +136,8 @@ def main():
     assert len(sys.argv) == 4
     img = image_read(sys.argv[2])
 
-    m2f = Mask2Former(sys.argv[1], name="m2f", dependencies=[])
+    m2f = Mask2Former(sys.argv[1], semantic=True, instance=True, panoptic=True, semantic_argmax_only=False,
+                      name="m2f", dependencies=[])
     m2f.model.to("cuda" if tr.cuda.is_available() else "cpu")
     for _ in range(5):
         now = datetime.now()
