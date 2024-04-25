@@ -1,6 +1,4 @@
 """SafeUAV semanetic segmentation representation"""
-from pathlib import Path
-import os
 from overrides import overrides
 import numpy as np
 import torch as tr
@@ -9,7 +7,7 @@ from torch.nn import functional as F
 
 from .Map2Map import EncoderMap2Map, DecoderMap2Map
 from ....representation import Representation, RepresentationOutput
-from ....utils import image_resize_batch, VREVideo
+from ....utils import image_resize_batch, VREVideo, get_weights_dir
 from ....logger import logger
 
 class _SafeUavWrapper(nn.Module):
@@ -61,8 +59,7 @@ class SafeUAV(Representation):
             logger.warning("No weights file provided, using random weights.")
             return
 
-        weights_dir = Path(f"{os.environ['VRE_WEIGHTS_DIR']}").absolute()
-        weights_file_abs = weights_dir / weights_file
+        weights_file_abs = get_weights_dir() / weights_file
         assert weights_file_abs.exists(), f"Weights file '{weights_file_abs}' does not exist."
         data = tr.load(weights_file_abs, map_location="cpu")["state_dict"]
         self.model.load_state_dict(_convert(data))

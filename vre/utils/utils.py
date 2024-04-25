@@ -1,6 +1,7 @@
 """utils for vre"""
 from typing import Any
 from pathlib import Path
+import os
 import gdown
 import numpy as np
 from skimage.transform import resize
@@ -11,7 +12,11 @@ from ..logger import logger
 
 def get_project_root() -> Path:
     """gets the root of this project"""
-    return Path(__file__).parents[2]
+    return Path(__file__).parents[2].absolute()
+
+def get_weights_dir() -> Path:
+    """gets the weights dir of this project"""
+    return Path(os.getenv("VRE_WEIGHTS_DIR", get_project_root() / "weights"))
 
 def parsed_str_type(item: Any) -> str:
     """Given an object with a type of the format: <class 'A.B.C.D'>, parse it and return 'A.B.C.D'"""

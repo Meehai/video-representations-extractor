@@ -1,6 +1,4 @@
 """FastSAM representation."""
-from pathlib import Path
-import os
 from overrides import overrides
 import numpy as np
 import torch as tr
@@ -12,7 +10,7 @@ from .fastsam_impl import FastSAM as Model, FastSAMPredictor, FastSAMPrompt
 from .fastsam_impl.utils import bbox_iou
 
 from ....representation import Representation, RepresentationOutput
-from ....utils import gdown_mkdir, VREVideo, image_resize
+from ....utils import gdown_mkdir, VREVideo, image_resize, get_weights_dir
 
 class FastSam(Representation):
     """FastSAM representation."""
@@ -37,8 +35,7 @@ class FastSam(Representation):
         self.device = "cpu"
 
     def _get_weights_path(self, variant: str) -> str:
-        weights_dir = Path(f"{os.environ['VRE_WEIGHTS_DIR']}").absolute()
-        weights_path = Path(f"{weights_dir}/FastSAM-{'s' if variant == 'fastsam-s' else 'x'}.pt")
+        weights_path = get_weights_dir() / f"FastSAM-{'s' if variant == 'fastsam-s' else 'x'}.pt"
         links = {
             "fastsam-s": "https://drive.google.com/u/0/uc?id=1DlAy02fyGpRQHZThVEEpwKdlXKphSHbk",
             "fastsam-x": "https://drive.google.com/u/0/uc?id=1B2rGiBYCjk4B-jHMNzwgywpIdQjtKVRI",

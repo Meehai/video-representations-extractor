@@ -1,6 +1,4 @@
 """Depth from optical flow and odometry."""
-from pathlib import Path
-import os
 import numpy as np
 from matplotlib.cm import hot # pylint: disable=no-name-in-module
 from overrides import overrides
@@ -9,7 +7,7 @@ from .odo_flow_impl.camera_info import CameraInfo, CameraSensorParams
 from .odo_flow_impl.depth_from_flow import depth_from_flow, filter_depth_from_flow
 from ....representation import Representation, RepresentationOutput
 from ....logger import logger
-from ....utils import image_resize_batch, VREVideo
+from ....utils import image_resize_batch, VREVideo, get_weights_dir
 
 
 class DepthOdoFlow(Representation):
@@ -45,7 +43,7 @@ class DepthOdoFlow(Representation):
     # pylint: disable=arguments-differ
     @overrides(check_signature=False)
     def vre_setup(self, video: VREVideo, velocities_path: str):
-        velocities_path_pth = Path(f"{os.environ['VRE_WEIGHTS_DIR']}/{velocities_path}").absolute()
+        velocities_path_pth = get_weights_dir() / velocities_path
         logger.info(f"Loading velocities from '{velocities_path_pth}'")
         data = np.load(velocities_path_pth)
         if isinstance(data, np.lib.npyio.NpzFile):

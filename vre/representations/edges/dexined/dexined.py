@@ -1,6 +1,4 @@
 """Dexined representation."""
-import os
-from pathlib import Path
 import numpy as np
 import torch as tr
 from overrides import overrides
@@ -8,7 +6,7 @@ from overrides import overrides
 from .model_dexined import DexiNed as Model
 from ....representation import Representation, RepresentationOutput
 from ....logger import logger
-from ....utils import image_resize_batch, gdown_mkdir, VREVideo
+from ....utils import image_resize_batch, gdown_mkdir, VREVideo, get_weights_dir
 
 
 class DexiNed(Representation):
@@ -31,7 +29,7 @@ class DexiNed(Representation):
         assert tr.cuda.is_available() or device == "cpu", "CUDA not available"
         self.device = device
         # our backup weights
-        weights_file = Path(f"{os.environ['VRE_WEIGHTS_DIR']}/dexined.pth").absolute()
+        weights_file = get_weights_dir() / "dexined.pth"
         url_weights = "https://drive.google.com/u/0/uc?id=1oT1iKdRRKJpQO-DTYWUnZSK51QnJ-mnP"
 
         if not weights_file.exists():

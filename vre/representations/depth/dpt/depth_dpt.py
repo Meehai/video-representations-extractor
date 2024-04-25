@@ -1,6 +1,4 @@
 """DPT Depth Estimation representation"""
-import os
-from pathlib import Path
 import numpy as np
 import torch as tr
 import torch.nn.functional as F
@@ -9,7 +7,7 @@ from matplotlib.cm import hot # pylint: disable=no-name-in-module
 
 from .dpt_impl.dpt_depth import DPTDepthModel
 from ....representation import Representation, RepresentationOutput
-from ....utils import gdown_mkdir, image_resize_batch, VREVideo
+from ....utils import gdown_mkdir, image_resize_batch, VREVideo, get_weights_dir
 from ....logger import logger
 
 def _constrain_to_multiple_of(x, multiple_of: int, min_val=0, max_val=None) -> int:
@@ -53,7 +51,7 @@ class DepthDpt(Representation):
     def vre_setup(self, video: VREVideo, device: str):
         assert tr.cuda.is_available() or device == "cpu", "CUDA not available"
         # our backup
-        weights_file = Path(f"{os.environ['VRE_WEIGHTS_DIR']}/depth_dpt_midas.pth").absolute()
+        weights_file = get_weights_dir() / "depth_dpt_midas.pth"
         url_weights = "https://drive.google.com/u/0/uc?id=15JbN2YSkZFSaSV2CGkU1kVSxCBrNtyhD"
 
         if not weights_file.exists():
