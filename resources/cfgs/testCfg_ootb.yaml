@@ -93,6 +93,10 @@ representations:
     dependencies: []
     parameters:
       model_id: "47429163_0" # "49189528_1" based on ResNet-50 and "47429163_0" based on SWIN
+      semantic: True
+      instance: False
+      panoptic: False
+      semantic_argmax_only: True
     vre_parameters:
       device: ${oc.env:VRE_DEVICE,cpu}
 

@@ -120,6 +120,16 @@ class VRE:
             if export_png:
                 image_write(imgs[i], png_paths[t])
 
+    def _all_batch_exists(self, npy_paths: list[Path], png_paths: list[Path], l: int, r: int,
+                          export_npy: bool, export_png: bool) -> bool:
+        for ix in range(l, r):
+            if export_npy and not npy_paths[ix].exists():
+                return False
+            if export_png and not png_paths[ix].exists():
+                return False
+        logger.debug(f"Batch [{l}:{r}] skipped.")
+        return True
+
     def _do_one_representation(self, representation: Representation, start_frame: int, end_frame: int, batch_size: int,
                                npy_paths: dict[str, list[Path]], png_paths: dict[str, list[Path]], export_npy: bool,
                                export_png: bool, representations_setup: RepresentationsSetup) -> dict[str, list[float]]:
@@ -140,14 +150,19 @@ class VRE:
         repr_stats = []
         pbar = tqdm(total=end_frame - start_frame, desc=f"[VRE] {name} bs={batch_size}")
         for l, r in zip(left, right):
+            if self._all_batch_exists(repr_npy_paths, repr_png_paths, l, r, export_npy, export_png):
+                pbar.update(r - l)
+                repr_stats.extend(_took(datetime.now(), l, r))
+                continue
+
             now = datetime.now()
             try:
-                (raw_data, extra), imgs = representation.vre_make(self.video, slice(l, r), export_png)
+                (raw_data, extra), imgs = representation.vre_make(self.video, slice(l, r), export_png) # noqa
                 self._store_data(raw_data, extra, imgs, repr_npy_paths, repr_png_paths, l, r, export_npy, export_png)
             except Exception as e:
                 open("exception.txt", "a").write(f"\n[{name} {now} {batch_size=} {l=} {r=}] {e}\n")
                 repr_stats.extend([1 << 31] * (end_frame - l))
-                del representation
+                del representation # noqa
                 break
             # update the statistics and the progress bar
             repr_stats.extend(_took(now, l, r))
@@ -194,6 +209,7 @@ class VRE:
         npy_paths, png_paths = self._make_run_paths(output_dir, export_npy, export_png)
         self._print_call(output_dir, start_frame, end_frame, batch_size, export_npy, export_png)
 
+        # TODO: multiprocessing
         repr_fn = partial(self._do_one_representation, start_frame=start_frame, end_frame=end_frame,
                           batch_size=batch_size, npy_paths=npy_paths, png_paths=png_paths, export_npy=export_npy,
                           export_png=export_png, representations_setup=representations_setup)

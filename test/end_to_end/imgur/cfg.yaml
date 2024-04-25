@@ -137,6 +137,10 @@ representations:
     dependencies: []
     parameters:
       model_id: "49189528_1"
+      semantic: True
+      panoptic: False
+      instance: False
+      semantic_argmax_only: True
     vre_parameters:
       device: ${oc.env:VRE_DEVICE,cpu}
 
