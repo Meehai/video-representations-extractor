@@ -6,9 +6,6 @@ Go to [link](https://github.com/facebookresearch/Mask2Former/blob/main/MODEL_ZOO
 
 Download the config file (yaml) and the .pickle weights file.
 
-Note: This script must be run with upstream Mask2Former (so not the slimmed code in VRE):
-- Mask2Former commit: `9b0651c` when this was tested.
-
 Call the converter script:
 ```bash
 python convert.py config.yaml weights.pickle weights.ckpt
@@ -17,10 +14,10 @@ python convert.py config.yaml weights.pickle weights.ckpt
 ## 2. Run the semantic segmentation
 
 ```bash
-python mask2former.py weights.ckpt input.jpg output.jpg
+python mask2former.py /path/to/weights.ckpt input.jpg output.jpg
 ```
 
-We already suport ootb 2 weights: `47429163_0` and `49189528_1`. You can call the script as:
+We already suport ootb 3 weights: `47429163_0`, `49189528_1` and `49189528_0`. You can call the script as:
 ```bash
 python mask2former.py 47429163_0 input.jpg output.jpg
 ```

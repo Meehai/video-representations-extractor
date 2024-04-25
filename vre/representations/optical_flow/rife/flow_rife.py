@@ -1,13 +1,11 @@
 """FlowRife representation"""
-from pathlib import Path
-import os
 import numpy as np
 import torch as tr
 import torch.nn.functional as F
 import flow_vis
 from overrides import overrides
 
-from ....utils import gdown_mkdir, image_resize_batch, VREVideo
+from ....utils import gdown_mkdir, image_resize_batch, VREVideo, get_weights_dir
 from ....representation import Representation, RepresentationOutput
 from .rife_impl.RIFE_HDv2 import Model
 
@@ -26,7 +24,7 @@ class FlowRife(Representation):
     @overrides(check_signature=False)
     def vre_setup(self, video: VREVideo, device: str):
         self.device = device
-        weights_dir = Path(f"{os.environ['VRE_WEIGHTS_DIR']}/rife").absolute()
+        weights_dir = get_weights_dir() / "rife"
         weights_dir.mkdir(exist_ok=True, parents=True)
 
         # original files

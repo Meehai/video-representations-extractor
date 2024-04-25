@@ -1,5 +1,4 @@
 """Mask2Former representation"""
-import os
 import json
 from pathlib import Path
 import sys
@@ -20,14 +19,14 @@ try:
     from .mask2former_impl.visualizer import Visualizer, ColorMode
     from ....representation import Representation, RepresentationOutput
     from ....logger import logger
-    from ....utils import gdown_mkdir, image_resize_batch, VREVideo
+    from ....utils import gdown_mkdir, image_resize_batch, VREVideo, get_weights_dir
 except ImportError: # when running this script directly
     from mask2former_impl import MaskFormer as MaskFormerImpl
     from mask2former_impl.visualizer import Visualizer, ColorMode
     from mask2former_impl.det2_data import MetadataCatalog
     from vre.representation import Representation, RepresentationOutput
     from vre.logger import logger
-    from vre.utils import gdown_mkdir, image_resize_batch, VREVideo
+    from vre.utils import gdown_mkdir, image_resize_batch, VREVideo, get_weights_dir
 
 def get_output_shape(oldh: int, oldw: int, short_edge_length: int, max_size: int):
     """
@@ -66,28 +65,35 @@ class Mask2Former(Representation):
     def __init__(self, model_id: str, semantic: bool, instance: bool, panoptic: bool,
                  semantic_argmax_only: bool, **kwargs):
         super().__init__(**kwargs)
-        weights_dir = Path(f"{os.environ['VRE_WEIGHTS_DIR']}").absolute()
-        if model_id == "47429163_0":
-            weights_path = weights_dir / "47429163_0.ckpt"
-            if not weights_path.exists():
-                gdown_mkdir("https://drive.google.com/u/0/uc?id=1a5WOek1NyEqccBJuZQKSgsUU7drzjLY5", weights_path)
-        elif model_id == "49189528_1":
-            weights_path = weights_dir / "49189528_1.ckpt"
-            if not weights_path.exists():
-                gdown_mkdir("https://drive.google.com/u/0/uc?id=1Ypzs7nXoqxsYwLrlt2rojr6T9t2MJkLH", weights_path)
-        else:
-            logger.warning(f"Unknown model provided: {model_id}. Loading as is.")
-            weights_path = model_id
+        weights_path = self._get_weights(model_id)
         self.model, self.cfg, self.metadata = self._build_model(weights_path, semantic, instance, panoptic)
         self.model_id = model_id
         self.device = "cpu"
         self.semantic_argmax_only = semantic_argmax_only
+
+    def _get_weights(self, model_id: str) -> str:
+        links = {
+            "47429163_0": "https://drive.google.com/u/0/uc?id=1a5WOek1NyEqccBJuZQKSgsUU7drzjLY5", # COCO SWIN
+            "49189528_1": "https://drive.google.com/u/0/uc?id=1Ypzs7nXoqxsYwLrlt2rojr6T9t2MJkLH", # Mapillary R50
+            "49189528_0": "https://drive.google.com/u/0/uc?id=1fQevKfynhTqYI-7qinQp9ewQbDMT6NTN" # Mapillary SWIN
+        }
+        if model_id in links.keys():
+            weights_path = get_weights_dir() / f"{model_id}.ckpt"
+            if not weights_path.exists():
+                gdown_mkdir(links[model_id], weights_path)
+        else:
+            logger.warning(f"Unknown model provided: {model_id}. Loading as is.")
+            weights_path = model_id
+        return weights_path
 
     def _build_model(self, weights_path: Path, semantic: bool, instance: bool,
                      panoptic: bool) -> tuple[nn.Module, CfgNode, MetadataCatalog]:
         ckpt_data = tr.load(weights_path, map_location="cpu")
         cfg = CfgNode(json.loads(ckpt_data["cfg"]))
         params = MaskFormerImpl.from_config(cfg)
+        assert cfg.get("panoptic_on", False) in (False, panoptic), "Panoptic cannot be enabled for this model"
+        assert cfg.get("semantic_on", False) in (False, semantic), "Semantic cannot be enabled for this model"
+        assert cfg.get("instance_on", False) in (False, instance), "Instance cannot be enabled for this model"
         params = {**params, "semantic_on": semantic, "panoptic_on": panoptic, "instance_on": instance}
         model = MaskFormerImpl(**params).eval()
         res = model.load_state_dict(ckpt_data["state_dict"], strict=False) # inference only: we remove criterion
@@ -131,26 +137,28 @@ class Mask2Former(Representation):
         return res
 
 def main():
-    """main fn. Usage: python mask2former.py 49189528_1/47429163_0 demo1.jpg output1.jpg"""
+    """main fn. Usage: python mask2former.py 49189528_1/47429163_0/49189528_0 demo1.jpg output1.jpg"""
     from datetime import datetime # pylint: disable=all
     assert len(sys.argv) == 4
     img = image_read(sys.argv[2])
 
-    m2f = Mask2Former(sys.argv[1], semantic=True, instance=True, panoptic=True, semantic_argmax_only=False,
-                      name="m2f", dependencies=[])
+    m2f = Mask2Former(sys.argv[1], semantic=True, instance=False, panoptic=False,
+                      semantic_argmax_only=False, name="m2f", dependencies=[])
     m2f.model.to("cuda" if tr.cuda.is_available() else "cpu")
-    for _ in range(5):
+    for _ in range(1):
         now = datetime.now()
         pred = m2f.make(img[None])
         print(f"Pred took: {datetime.now() - now}")
-    semantic_result = m2f.make_images(img[None], pred)[0]
-    image_write(semantic_result, sys.argv[3])
+        semantic_result = m2f.make_images(img[None], pred)[0]
+        image_write(semantic_result, sys.argv[3])
 
     # Sanity checks
     if m2f.model_id == "47429163_0" and Path(sys.argv[2]).name == "demo1.jpg":
         assert np.allclose(semantic_result.mean(), 129.51825) and np.allclose(semantic_result.std(), 51.29128)
     elif m2f.model_id == "49189528_1" and Path(sys.argv[2]).name == "demo1.jpg":
         assert np.allclose(semantic_result.mean(), 125.64070) and np.allclose(semantic_result.std(), 46.20237)
+    elif m2f.model_id == "49189528_0" and Path(sys.argv[2]).name == "demo1.jpg":
+        assert np.allclose(semantic_result.mean(), 119.01699) and np.allclose(semantic_result.std(), 50.35633)
 
 if __name__ == "__main__":
     main()
