@@ -29,7 +29,7 @@ def test_vre_ouput_dir_exist_mode():
     try:
         vre(tmp_dir, export_npy=True, export_png=False)
     except AssertionError as e:
-        assert "Set 'output_dir_exist_mode' to 'overwrite' or 'skip_computed'" in str(e)
+        assert "Set mode to 'overwrite' or 'skip_computed'" in str(e)
     _ = vre(tmp_dir, export_npy=True, export_png=False, output_dir_exist_mode="skip_computed")
     creation_time2 = tmp_dir.stat().st_ctime
     assert creation_time1 == creation_time2
