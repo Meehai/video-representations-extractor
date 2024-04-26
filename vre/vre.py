@@ -93,14 +93,14 @@ class VRE:
         assert export_npy + export_png > 0, "At least one of export modes must be True"
         assert isinstance(start_frame, int) and start_frame <= end_frame, (start_frame, end_frame)
         assert output_dir_exist_mode in ("overwrite", "skip_computed", "raise"), output_dir_exist_mode
-        if output_dir.exists():
-            valid = output_dir_exist_mode in ("overwrite", "skip_computed")
-            assert valid, (f"'{output_dir}' exists. Set 'output_dir_exist_mode' to 'overwrite' or 'skip_computed'")
-            if output_dir_exist_mode == "overwrite":
-                logger.warning(f"Output dir '{output_dir}' already exists, will overwrite it")
-                shutil.rmtree(output_dir)
         for name in representations_setup.keys():
             assert name in self.representations.keys(), f"Representation '{name}' not found in {self.representations}"
+            if (p := output_dir / name).exists():
+                if output_dir_exist_mode == "overwrite":
+                    logger.debug(f"Output dir '{p}' already exists, will overwrite it")
+                    shutil.rmtree(p)
+                else:
+                    assert output_dir_exist_mode != "raise", f"'{p}' exists. Set mode to 'overwrite' or 'skip_computed'"
 
     def _store_data(self, raw_data: np.ndarray, extra: dict, imgs: np.ndarray | None, npy_paths: list[Path],
                     png_paths: list[Path], l: int, r: int, export_npy: bool, export_png: bool):
