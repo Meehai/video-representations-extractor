@@ -7,6 +7,7 @@ import gdown
 import pims
 import pandas as pd
 import torch as tr
+import os
 
 from vre import VRE
 from vre.logger import logger
@@ -71,12 +72,17 @@ def get_representation_dict() -> dict:
                         "parameters": {"variant": "fastsam-s", "iou": 0.9, "conf": 0.4},
                         "vre_parameters": {"device": device}},
         "mask2former (r50)": {"type": "semantic_segmentation", "name": "mask2former", "dependencies": [],
-                              "batch_size": 2,
-                              "parameters": {"model_id": "49189528_1"}, "vre_parameters": {"device": device}},
+                              "batch_size": 2, "vre_parameters": {"device": device},
+                              "parameters": {"model_id": "49189528_1", "semantic": True, "instance": False,
+                                             "panoptic": False, "semantic_argmax_only": False}},
         "mask2former (swin)": {"type": "semantic_segmentation", "name": "mask2former", "dependencies": [],
-                               "batch_size": 2,
-                               "parameters": {"model_id": "47429163_0"}, "vre_parameters": {"device": device}},
+                               "batch_size": 2, "vre_parameters": {"device": device},
+                               "parameters": {"model_id": "47429163_0", "semantic": True, "instance": False,
+                                              "panoptic": False, "semantic_argmax_only": True}},
     }
+
+    if os.getenv("ONLY_RGB", "0") == "1":
+        all_representations_dict = {"rgb": all_representations_dict["rgb"]}
 
     if not tr.cuda.is_available():
         logger.info("Using CPU")
@@ -99,8 +105,20 @@ def get_representation_dict() -> dict:
             i += 1
     return all_representations_dict
 
-def _process_dict(data: dict, batch_size) -> pd.DataFrame:
-    return pd.DataFrame(data).mean().rename(f"batch={batch_size}")
+def _process_dict(data: dict, batch_size: int) -> pd.Series:
+    return pd.DataFrame(data).mean().rename(f"batch={batch_size}") / batch_size
+
+def _process_all(results: list[dict], batch_sizes: list[int]) -> pd.DataFrame:
+    res_mean = [_process_dict(d, bs) for d, bs in zip(results, batch_sizes)]
+    res = pd.concat(res_mean, axis=1)
+    if "batch=1" in res.columns:
+        other_cols = sorted([col for col in res.columns if col != "batch=1"])
+        new_order = []
+        for col in other_cols:
+            res[f"ratio1/{col.split('=')[-1]}"] = res["batch=1"] / res[col]
+            new_order.extend([col, f"ratio1/{col.split('=')[-1]}"])
+        res = res[["batch=1", *new_order]]
+    return res.round(3)
 
 def main():
     """main fn"""
@@ -108,25 +126,23 @@ def main():
     representations_dict = get_representation_dict()
     batch_sizes = [5, 3, 1]
     start_frame = 1000
-    end_frame = start_frame + 100
+    end_frame = start_frame + 10
 
     vres = []
     tmp_dir = Path(TemporaryDirectory().name)
-    for b in batch_sizes:
+    for _ in range(len(batch_sizes)):
         representations = build_representations_from_cfg(representations_dict)
         vre = VRE(video, representations)
-        out_dir = tmp_dir / f"batch_size_{b}"
-        representations_setup = {k: representations_dict[k].get("vre_parameters", {}) for k in representations.keys()}
-        vres.append(partial(vre, output_dir=out_dir, start_frame=start_frame, end_frame=end_frame, export_npy=True,
-                            export_png=True, batch_size=b, representations_setup=representations_setup))
+        reprs_setup = {k: representations_dict[k].get("vre_parameters", {}) for k in representations.keys()}
+        vres.append(partial(vre, start_frame=start_frame, end_frame=end_frame, export_npy=True,
+                            export_png=True, reprs_setup=reprs_setup))
 
     results = []
-    for vre in vres:
-        raw_result = vre()
-        result = _process_dict(raw_result, batch_size=vre.keywords["batch_size"])
-        results.append(result)
-        (final := pd.concat(results, axis=1)).to_csv(Path(__file__).parent / "results.csv")
-    (final := pd.concat(results, axis=1)).to_csv(Path(__file__).parent / "results.csv")
+    for i, vre in enumerate(vres):
+        raw_result = vre(batch_size=batch_sizes[i], output_dir=tmp_dir / f"batch_size_{batch_sizes[i]}")
+        results.append(raw_result)
+        (final := _process_all(results, batch_sizes[0:i + 1])).to_csv(Path(__file__).parent / "results.csv")
+    (final := _process_all(results, batch_sizes)).to_csv(Path(__file__).parent / "results.csv")
     print(final)
 
 if __name__ == "__main__":

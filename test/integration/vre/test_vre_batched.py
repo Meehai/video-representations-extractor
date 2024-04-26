@@ -102,11 +102,12 @@ def test_vre_batched():
     vre_bs = VRE(video, representations_bs)
     representations_bs_setup = {k: representations_dict[k].get("vre_parameters", {}) for k in representations_bs.keys()}
     took_bs = vre_bs(tmp_dir_bs, start_frame=start_frame, end_frame=end_frame, export_npy=True, export_png=True,
-                 batch_size=batch_size, output_dir_exist_mode="raise", representations_setup=representations_bs_setup)
+                     batch_size=batch_size, output_dir_exist_mode="raise",
+                     reprs_setup=representations_bs_setup)
     vre = VRE(video, representations)
-    representations_setup = {k: representations_dict[k].get("vre_parameters", {}) for k in representations.keys()}
+    reprs_setup = {k: representations_dict[k].get("vre_parameters", {}) for k in representations.keys()}
     took1 = vre(tmp_dir, start_frame=start_frame, end_frame=end_frame, export_npy=True, export_png=True, batch_size=1,
-                output_dir_exist_mode="raise", representations_setup=representations_setup)
+                output_dir_exist_mode="raise", reprs_setup=reprs_setup)
 
     both = pd.concat([took1.mean().rename("unbatched"), took_bs.mean().rename(f"batch={batch_size}")], axis=1)
     both.loc["total"] = both.sum() * (end_frame - start_frame)
