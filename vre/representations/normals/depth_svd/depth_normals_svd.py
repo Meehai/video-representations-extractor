@@ -16,7 +16,6 @@ class DepthNormalsSVD(Representation):
                  input_downsample_step: int = None, stride: int = None, max_distance: float = None,
                  min_valid_count: int = None, **kwargs):
         assert window_size % 2 == 1, f"Expected odd window size. Got: {window_size}"
-        self.depth = None
         self.sensor_fov = sensor_fov
         self.sensor_width = sensor_width
         self.sensor_height = sensor_height
@@ -27,11 +26,13 @@ class DepthNormalsSVD(Representation):
         self.min_valid = min_valid_count if min_valid_count is not None else 0
         super().__init__(**kwargs)
         assert len(self.dependencies) == 1, "Expected one depth method!"
+        self.depth_dep: Representation = self.dependencies[0]
         self._grid_cache = {}
 
     @overrides
     def vre_dep_data(self, video: VREVideo, ix: slice) -> dict[str, RepresentationOutput]:
-        return {"depths": self.dependencies[0].vre_make(video, ix, make_images=False)[0][0]}
+        dph1 = self.depth_dep.vre_make(video, ix, make_images=False)[0][0] # TODO(!27)
+        return {"depths": dph1}
 
     # pylint: disable=arguments-differ
     @overrides(check_signature=False)

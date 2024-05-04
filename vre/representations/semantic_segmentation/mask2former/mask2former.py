@@ -71,24 +71,27 @@ class Mask2Former(Representation):
         self.device = "cpu"
         self.semantic_argmax_only = semantic_argmax_only
 
-    def _get_weights(self, model_id: str) -> str:
+    def _get_weights(self, model_id: str | dict) -> str:
         links = {
             "47429163_0": "https://drive.google.com/u/0/uc?id=1a5WOek1NyEqccBJuZQKSgsUU7drzjLY5", # COCO SWIN
             "49189528_1": "https://drive.google.com/u/0/uc?id=1Ypzs7nXoqxsYwLrlt2rojr6T9t2MJkLH", # Mapillary R50
             "49189528_0": "https://drive.google.com/u/0/uc?id=1fQevKfynhTqYI-7qinQp9ewQbDMT6NTN" # Mapillary SWIN
         }
-        if model_id in links.keys():
-            weights_path = get_weights_dir() / f"{model_id}.ckpt"
-            if not weights_path.exists():
-                gdown_mkdir(links[model_id], weights_path)
-        else:
+        if isinstance(model_id, dict):
+            logger.warning("Unknown model provided as dict. Loading as is.")
+            return model_id
+        if model_id not in links.keys():
             logger.warning(f"Unknown model provided: {model_id}. Loading as is.")
-            weights_path = model_id
+            return model_id
+
+        weights_path = get_weights_dir() / f"{model_id}.ckpt"
+        if not weights_path.exists():
+            gdown_mkdir(links[model_id], weights_path)
         return weights_path
 
-    def _build_model(self, weights_path: Path, semantic: bool, instance: bool,
+    def _build_model(self, weights_path: Path | dict, semantic: bool, instance: bool,
                      panoptic: bool) -> tuple[nn.Module, CfgNode, MetadataCatalog]:
-        ckpt_data = tr.load(weights_path, map_location="cpu")
+        ckpt_data = tr.load(weights_path, map_location="cpu") if isinstance(weights_path, Path) else weights_path
         cfg = CfgNode(json.loads(ckpt_data["cfg"]))
         params = MaskFormerImpl.from_config(cfg)
         assert cfg.get("panoptic_on", False) in (False, panoptic), "Panoptic cannot be enabled for this model"

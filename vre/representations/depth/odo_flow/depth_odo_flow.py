@@ -54,7 +54,7 @@ class DepthOdoFlow(Representation):
 
     @overrides
     def vre_dep_data(self, video: VREVideo, ix: slice) -> dict[str, RepresentationOutput]:
-        flows = self.flow.vre_make(video, ix, make_images=False)[0][0]
+        flows = self.flow.vre_make(video, ix, make_images=False)[0][0] # TODO(!27)
         lin_vel = self._linear_velocities[ix]
         ang_vel = self._angular_velocities[ix]
         return {"flows": flows, "lin_vel": lin_vel, "ang_vel": ang_vel}
