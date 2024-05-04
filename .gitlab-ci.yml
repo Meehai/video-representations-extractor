@@ -11,9 +11,8 @@ before_script:
   - export VRE_WEIGHTS_DIR=$VRE_ROOT/resources/weights
   - export PYTHONPATH="$PYTHONPATH:$VRE_ROOT"
   - export PATH="$PATH:$VRE_ROOT/bin"
-  # this is because we are unable to maintain a library properly
-  - pip uninstall -y media-processing-lib
   - python3 -m pip install -r requirements.txt
+  - pip install media-processing-lib -U # this is not in the main req files but used for collages
 
 pylint:
   script:

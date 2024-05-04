@@ -38,7 +38,7 @@ RUN python3 -m pip install -r requirements.txt
 # export VRE_WEIGHTS_DIR=$VRE_ROOT/resources/weights
 # export PYTHONPATH="$PYTHONPATH:$VRE_ROOT"
 # export PATH="$PATH:$VRE_ROOT/bin"
-# pip uninstall -y media-processing-lib # this is because we are unable to maintain a library properly
+# pip install -y media-processing-lib -U # this is because we are unable to maintain a library properly
 # python3 -m pip install -r requirements.txt
 # ... run vre manually like the gitlab CI does ...
 

@@ -7,7 +7,6 @@ import torch as tr
 from torch import nn
 import numpy as np
 from lovely_tensors import monkey_patch
-from media_processing_lib.image import image_read, image_write
 from PIL import Image
 from fvcore.common.config import CfgNode
 
@@ -142,6 +141,7 @@ class Mask2Former(Representation):
 def main():
     """main fn. Usage: python mask2former.py 49189528_1/47429163_0/49189528_0 demo1.jpg output1.jpg"""
     from datetime import datetime # pylint: disable=all
+    from media_processing_lib.image import image_read, image_write # pylint: disable=all
     assert len(sys.argv) == 4
     img = image_read(sys.argv[2])
 
