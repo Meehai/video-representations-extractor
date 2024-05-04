@@ -146,7 +146,7 @@ class VRE:
     def _do_one_representation(self, representation: Representation, start_frame: int, end_frame: int, batch_size: int,
                                npy_paths: dict[str, list[Path]], png_paths: dict[str, list[Path]], export_npy: bool,
                                export_png: bool, repr_setup: RepresentationsSetup) -> dict[str, list[float]]:
-        """main loop for each representation. TODO: run this in parallel from main vre loop."""
+        """main loop of each representation."""
         name = representation.name
         batch_size = min(getattr(representation, "batch_size", batch_size), batch_size) # in case it's provided in cfg
         # call vre_setup here so expensive representations get lazy deep instantiated (i.e. models loading)
@@ -161,7 +161,7 @@ class VRE:
         left, right = batches[0:-1], batches[1:]
         repr_stats = []
         pbar = tqdm(total=end_frame - start_frame, desc=f"[VRE] {name} bs={batch_size}")
-        for l, r in zip(left, right):
+        for l, r in zip(left, right): # main VRE loop
             if self._all_batch_exists(npy_paths, png_paths, l, r, export_npy, export_png):
                 pbar.update(r - l)
                 repr_stats.extend(_took(datetime.now(), l, r))
@@ -169,6 +169,7 @@ class VRE:
 
             now = datetime.now()
             try:
+                # TODO(!27): move this to VRE
                 (raw_data, extra), imgs = representation.vre_make(self.video, slice(l, r), export_png) # noqa
                 self._store_data(raw_data, extra, imgs, npy_paths, png_paths, l, r, export_npy, export_png)
             except Exception as e:
@@ -179,7 +180,6 @@ class VRE:
             # update the statistics and the progress bar
             repr_stats.extend(_took(now, l, r))
             pbar.update(r - l)
-        pbar.close()
         return {name: repr_stats}
 
     def run(self, output_dir: Path, export_npy: bool, export_png: bool, start_frame: int | None = None,
