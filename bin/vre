@@ -4,15 +4,26 @@ from typing import List
 from pathlib import Path
 from natsort import natsorted
 import numpy as np
+from PIL import Image
 import pims
 from vre import VRE
 from vre.utils import FakeVideo
 from vre.representations import build_representations_from_cfg
 from vre.logger import logger
 from omegaconf import OmegaConf
-from media_processing_lib.image import image_read
+
+def image_read(path: str) -> np.ndarray:
+    """PIL image reader"""
+    img_pil = Image.open(path)
+    img_np = np.array(img_pil, dtype=np.uint8)
+    # grayscale -> 3 gray channels repeated.
+    if img_pil.mode == "L":
+        return np.repeat(img_np[..., None], 3, axis=-1)
+    # RGB or RGBA
+    return img_np[..., 0:3]
 
 def get_args():
+    """cli args"""
     parser = ArgumentParser()
     parser.add_argument("video_path", help="Path to the scene video we are processing")
     parser.add_argument("--output_path", "-o", required=True,
@@ -33,8 +44,8 @@ def get_args():
         args.cfg_path = Path(args.cfg_path).absolute()
     return args
 
-
 def get_cfg():
+    """cfg and cli args"""
     args = get_args()
     cfg = OmegaConf.load(open(args.cfg_path, "r"))
 
@@ -53,7 +64,6 @@ def get_cfg():
         logger.info(f"Keeping only {args.representations} from the config")
         cfg.representations = {k: v for k, v in cfg.representations.items() if k in args.representations}
     return args, cfg
-
 
 def main():
     args, cfg = get_cfg()
