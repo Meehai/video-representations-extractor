@@ -58,20 +58,19 @@ representations:
       adjust_to_rgb: True
       max_channels: 3
 
-  semantic safeuav torch:
-    type: semantic_segmentation
-    name: safeuav
-    dependencies: []
-    parameters:
-      train_height: 240
-      train_width: 428
-      num_classes: 8
-      color_map: [[0, 255, 0], [0, 127, 0], [255, 255, 0], [255, 255, 255],
-                  [255, 0, 0], [0, 0, 255], [0, 255, 255], [127, 127, 63]]
-    vre_parameters:
-      device: ${oc.env:VRE_DEVICE,cpu}
-      weights_file: safeuav_semantic_0956_pytorch.ckpt
-
+  # semantic safeuav torch:
+  #   type: semantic_segmentation
+  #   name: safeuav
+  #   dependencies: []
+  #   parameters:
+  #     train_height: 240
+  #     train_width: 428
+  #     num_classes: 8
+  #     color_map: [[0, 255, 0], [0, 127, 0], [255, 255, 0], [255, 255, 255],
+  #                 [255, 0, 0], [0, 0, 255], [0, 255, 255], [127, 127, 63]]
+  #   vre_parameters:
+  #     device: ${oc.env:VRE_DEVICE,cpu}
+  #     weights_file: safeuav_semantic_0956_pytorch.ckpt
 
   edges dexined:
     type: edges
@@ -110,15 +109,15 @@ representations:
     vre_parameters:
       velocities_path: DJI_0956_velocities.npz
 
-  normals svd (rife):
-    type: normals
-    name: depth-svd
-    dependencies: [depth odoflow (rife)]
-    parameters:
-      sensor_fov: 75
-      sensor_width: 3840
-      sensor_height: 2160
-      window_size: 11
+  # normals svd (rife):
+  #   type: normals
+  #   name: depth-svd
+  #   dependencies: [depth odoflow (rife)]
+  #   parameters:
+  #     sensor_fov: 75
+  #     sensor_width: 3840
+  #     sensor_height: 2160
+  #     window_size: 11
 
   fastsam(s):
     type: semantic_segmentation
@@ -181,14 +180,14 @@ representations:
   #     sensor_height: 2160
   #     window_size: 11
 
-  # # sucky because slow, but it's good/pretrained
-  # depth dpt:
-  #   type: depth
-  #   name: dpt
-  #   dependencies: []
-  #   parameters: {}
-  #   vre_parameters:
-  #     device: ${oc.env:VRE_DEVICE,cpu}
+  # sucky because slow, but it's good/pretrained
+  depth dpt:
+    type: depth
+    name: dpt
+    dependencies: []
+    parameters: {}
+    vre_parameters:
+      device: ${oc.env:VRE_DEVICE,cpu}
 
   # normals svd (dpt):
   #   type: normals

@@ -130,16 +130,16 @@ def main():
 
     vres = []
     tmp_dir = Path(TemporaryDirectory().name)
-    for _ in range(len(batch_sizes)):
+    for i in range(len(batch_sizes)):
         representations = build_representations_from_cfg(representations_dict)
-        vre = VRE(video, representations)
+        vre = VRE(video, representations, output_dir=tmp_dir / f"batch_size_{batch_sizes[i]}")
         reprs_setup = {k: representations_dict[k].get("vre_parameters", {}) for k in representations.keys()}
         vres.append(partial(vre, start_frame=start_frame, end_frame=end_frame, export_npy=True,
                             export_png=True, reprs_setup=reprs_setup))
 
     results = []
     for i, vre in enumerate(vres):
-        raw_result = vre(batch_size=batch_sizes[i], output_dir=tmp_dir / f"batch_size_{batch_sizes[i]}")
+        raw_result = vre(batch_size=batch_sizes[i])
         results.append(raw_result)
         (final := _process_all(results, batch_sizes[0:i + 1])).to_csv(Path(__file__).parent / "results.csv")
     (final := _process_all(results, batch_sizes)).to_csv(Path(__file__).parent / "results.csv")
