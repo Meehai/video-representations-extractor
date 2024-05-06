@@ -126,7 +126,7 @@ def main():
     representations_dict = get_representation_dict()
     batch_sizes = [5, 3, 1]
     start_frame = 1000
-    end_frame = start_frame + 10
+    end_frame = start_frame + 200
 
     vres = []
     tmp_dir = Path(TemporaryDirectory().name)

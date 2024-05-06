@@ -5,7 +5,7 @@ import os
 import gdown
 import numpy as np
 from skimage.transform import resize
-from skimage.io import imsave
+from skimage.io import imsave, imread
 from skimage.color import hsv2rgb
 
 from ..logger import logger
@@ -39,6 +39,11 @@ def image_write(x: np.ndarray, path: Path):
     assert x.dtype == np.uint8, x.dtype
     imsave(path, x, check_contrast=False)
     logger.debug2(f"Saved image to '{path}'")
+
+def image_read(path: str) -> np.ndarray:
+    """PIL image reader"""
+    image = np.array(imread(path), dtype=np.uint8)[..., 0:3]
+    return image
 
 def gdown_mkdir(uri: str, local_path: Path):
     """calls gdown but also makes the directory of the parent path just to be sure it exists"""

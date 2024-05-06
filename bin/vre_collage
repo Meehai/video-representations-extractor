@@ -39,7 +39,7 @@ def resolve_files(vre_export_dir: Path) -> dict[str, list[Path]]:
         repr_files[repr_png_dir.parent.name] = files
 
     name_files = np.array([[x.name for x in v] for v in repr_files.values()])
-    assert (name_files == name_files[0]).all(), f"Not all npz files are named identically: {name_files}"
+    assert (name_files == name_files[0]).all(), f"Not all png files are named identically: {name_files}"
     n_files = {k: len(v) for k, v in repr_files.items()}
     assert np.std(list(n_files.values())) == 0, f"Not all png files have the same number of images: {n_files}"
     logger.info(f"Returning {n_files[found_dirs[0].parent.name]} images from {len(n_files)} representations.")

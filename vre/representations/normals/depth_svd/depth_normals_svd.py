@@ -31,8 +31,10 @@ class DepthNormalsSVD(Representation):
 
     @overrides
     def vre_dep_data(self, video: VREVideo, ix: slice) -> dict[str, RepresentationOutput]:
-        dph1 = self.depth_dep.vre_make(video, ix, make_images=False)[0][0] # TODO(!27)
-        return {"depths": dph1}
+        dph = self.depth_dep(np.array(video[ix]), **self.depth_dep.vre_dep_data(video, ix))
+        dph = dph[0] if isinstance(dph, tuple) else dph
+        assert isinstance(dph, np.ndarray), type(dph)
+        return {"depths": dph}
 
     # pylint: disable=arguments-differ
     @overrides(check_signature=False)

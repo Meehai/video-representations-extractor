@@ -4,23 +4,12 @@ from typing import List
 from pathlib import Path
 from natsort import natsorted
 import numpy as np
-from PIL import Image
 import pims
 from vre import VRE
-from vre.utils import FakeVideo
+from vre.utils import FakeVideo, image_read
 from vre.representations import build_representations_from_cfg
 from vre.logger import logger
 from omegaconf import OmegaConf
-
-def image_read(path: str) -> np.ndarray:
-    """PIL image reader"""
-    img_pil = Image.open(path)
-    img_np = np.array(img_pil, dtype=np.uint8)
-    # grayscale -> 3 gray channels repeated.
-    if img_pil.mode == "L":
-        return np.repeat(img_np[..., None], 3, axis=-1)
-    # RGB or RGBA
-    return img_np[..., 0:3]
 
 def get_args():
     """cli args"""
@@ -37,7 +26,6 @@ def get_args():
     parser.add_argument("--representations", nargs="+", help="Subset of representations to run VRE for")
 
     args = parser.parse_args()
-
     args.video_path = Path(args.video_path).absolute()
     args.output_path = Path(args.output_path).absolute()
     if args.cfg_path is not None:

@@ -5,15 +5,16 @@ from datetime import datetime
 from typing import Any
 from functools import reduce
 import shutil
+import traceback
 from tqdm import tqdm
 from omegaconf import DictConfig
-import pims
 import numpy as np
+import torch as tr
 import pandas as pd
 
-from .representation import Representation
+from .representation import Representation, RepresentationOutput
 from .logger import logger
-from .utils import image_write, FakeVideo
+from .utils import image_write, VREVideo
 
 RunPaths = tuple[dict[str, list[Path]], dict[str, list[Path]]]
 RepresentationsSetup = dict[str, dict[str, Any]]
@@ -21,7 +22,7 @@ RepresentationsSetup = dict[str, dict[str, Any]]
 def _took(now: datetime.date, l: int, r: int) -> list[float]:
     return [(datetime.now() - now).total_seconds() / (r - l)] * (r - l)
 
-def _make_batches(video: pims.Video, start_frame: int, end_frame: int, batch_size: int) -> np.ndarray:
+def _make_batches(video: VREVideo, start_frame: int, end_frame: int, batch_size: int) -> np.ndarray:
     """return 1D array [start_frame, start_frame+bs, start_frame+2*bs... end_frame]"""
     if batch_size > end_frame - start_frame:
         logger.warning(f"batch size {batch_size} is larger than #frames to process [{start_frame}:{end_frame}].")
@@ -31,17 +32,32 @@ def _make_batches(video: pims.Video, start_frame: int, end_frame: int, batch_siz
     batches = np.array([*batches, last_one], dtype=np.int64) if batches[-1] != last_one else batches
     return batches
 
+def _vre_make(vre: VRE, _repr: Representation, ix: slice, make_images: bool) \
+        -> (RepresentationOutput, np.ndarray | None):
+    """
+    Method used to integrate with VRE. Gets the entire data (video) and a slice of it (ix) and returns the
+    representation for that slice. Additionally, if makes_images is set to True, it also returns the image
+    representations of this slice.
+    """
+    if tr.cuda.is_available():
+        tr.cuda.empty_cache()
+    frames = np.array(vre.video[ix])
+    dep_data = _repr.vre_dep_data(vre.video, ix)
+    res = _repr.make(frames, **dep_data)
+    repr_data, extra = res if isinstance(res, tuple) else (res, {})
+    imgs = _repr.make_images(frames, res) if make_images else None
+    return (repr_data, extra), imgs
+
 class VRE:
     """Video Representations Extractor class"""
 
-    def __init__(self, video: pims.Video, representations: dict[str, Representation | type[Representation]]):
+    def __init__(self, video: VREVideo, representations: dict[str, Representation | type[Representation]]):
         """
         Parameters:
         - video The video we are performing VRE one
         - representations The dict of instantiated and topo sorted representations (or callable to instantiate them)
         """
         assert len(representations) > 0, "At least one representation must be provided"
-        assert isinstance(video, (pims.Video, FakeVideo)), type(video)
         self.video = video
         self.representations: dict[str, Representation] = representations
 
@@ -152,8 +168,8 @@ class VRE:
         # call vre_setup here so expensive representations get lazy deep instantiated (i.e. models loading)
         try:
             representation.vre_setup(video=self.video, **repr_setup)
-        except Exception as e:
-            open("exception.txt", "a").write(f"\n[{name} {datetime.now()} {batch_size=} {e}\n")
+        except Exception:
+            open("exception.txt", "a").write(f"\n[{name} {datetime.now()} {batch_size=} {traceback.format_exc()}\n")
             del representation
             return {name: [1 << 31] * (end_frame - start_frame)}
 
@@ -169,11 +185,10 @@ class VRE:
 
             now = datetime.now()
             try:
-                # TODO(!27): move this to VRE
-                (raw_data, extra), imgs = representation.vre_make(self.video, slice(l, r), export_png) # noqa
+                (raw_data, extra), imgs = _vre_make(self, representation, slice(l, r), export_png) # noqa
                 self._store_data(raw_data, extra, imgs, npy_paths, png_paths, l, r, export_npy, export_png)
-            except Exception as e:
-                open("exception.txt", "a").write(f"\n[{name} {now} {batch_size=} {l=} {r=}] {e}\n")
+            except Exception:
+                open("exception.txt", "a").write(f"\n[{name} {now} {batch_size=} {l=} {r=}] {traceback.format_exc()}\n")
                 repr_stats.extend([1 << 31] * (end_frame - l))
                 del representation # noqa
                 break
@@ -219,6 +234,7 @@ class VRE:
                                                      batch_size=batch_size, npy_paths=npy_paths[name],
                                                      png_paths=png_paths[name], export_npy=export_npy,
                                                      export_png=export_npy, repr_setup=reprs_setup[name])
+            del vre_repr
             run_stats.append(repr_stats)
         df_run_stats = pd.DataFrame(reduce(lambda a, b: {**a, **b}, run_stats), index=range(start_frame, end_frame))
         return df_run_stats
