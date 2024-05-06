@@ -2,7 +2,6 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
 import numpy as np
-import torch as tr
 
 from .utils import parsed_str_type, VREVideo
 from .logger import logger
@@ -48,23 +47,6 @@ class Representation(ABC):
     def vre_dep_data(self, video: VREVideo, ix: slice) -> dict[str, RepresentationOutput]:
         """method used to retrieve the dependencies' data for this frames during a vre run"""
         return {}
-
-    def vre_make(self, video: VREVideo, ix: slice, make_images: bool) -> (RepresentationOutput, np.ndarray | None):
-        """
-        Method used to integrate with VRE. Gets the entire data (video) and a slice of it (ix) and returns the
-        representation for that slice. Additionally, if makes_images is set to True, it also returns the image
-        representations of this slice.
-        TODO(!27): we should move this to VRE's main loop where we have access to other representations as well so we
-        can load pre-cooked results easier.
-        """
-        if tr.cuda.is_available():
-            tr.cuda.empty_cache()
-        frames = np.array(video[ix])
-        dep_data = self.vre_dep_data(video, ix)
-        res = self.make(frames, **dep_data)
-        repr_data, extra = res if isinstance(res, tuple) else (res, {})
-        imgs = self.make_images(frames, res) if make_images else None
-        return (repr_data, extra), imgs
 
     def __getitem__(self, t: slice | int) -> RepresentationOutput:
         return self.__call__(t)

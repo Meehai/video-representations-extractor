@@ -138,6 +138,9 @@ class Mask2Former(Representation):
         res = image_resize_batch(res, height=frames.shape[1], width=frames.shape[2])
         return res
 
+    def __del__(self):
+        del self.model
+
 def main():
     """main fn. Usage: python mask2former.py 49189528_1/47429163_0/49189528_0 demo1.jpg output1.jpg"""
     from datetime import datetime # pylint: disable=all

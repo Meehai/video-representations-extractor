@@ -57,12 +57,21 @@ def test_vre_batched():
                   "parameters": {"threshold1": 100, "threshold2": 200, "aperture_size": 3, "l2_gradient": True}},
         "depth dpt": {"type": "depth", "name": "dpt", "dependencies": [], "parameters": {},
                       "vre_parameters": {"device": device}},
-        "normals svd (dpth)": {"type": "normals", "name": "depth-svd", "dependencies": ["depth dpt"],
-                               "parameters": {"sensor_fov": 75, "sensor_width": 3840,
-                                              "sensor_height": 2160, "window_size": 11}},
+        "normals svd (dpt)": {"type": "normals", "name": "depth-svd", "dependencies": ["depth dpt"],
+                              "parameters": {"sensor_fov": 75, "sensor_width": 3840,
+                                             "sensor_height": 2160, "window_size": 11}},
         "opticalflow rife": {"type": "optical-flow", "name": "rife", "dependencies": [],
                              "parameters": {"compute_backward_flow": False, "uhd": False},
                              "vre_parameters": {"device": device}},
+        "depth odoflow (rife)": {"type": "depth", "name": "odo-flow", "dependencies": ["opticalflow rife"],
+                                 "parameters": {"linear_ang_vel_correction": True, "focus_correction": True,
+                                                "cosine_correction_scipy": False, "cosine_correction_gd": True,
+                                                "sensor_fov": 75, "sensor_width": 3840, "sensor_height": 2160,
+                                                "min_depth_meters": 0, "max_depth_meters": 400},
+                                 "vre_parameters": {"velocities_path": "DJI_0956_velocities.npz"}},
+        "normals svd (odoflow rife)": {"type": "normals", "name": "depth-svd", "dependencies": ["depth odoflow (rife)"],
+                                       "parameters": {"sensor_fov": 75, "sensor_width": 3840,
+                                                      "sensor_height": 2160, "window_size": 11}},
         "semantic safeuav torch": {"type": "semantic_segmentation", "name": "safeuav", "dependencies": [],
                                    "parameters": {"train_height": 240, "train_width": 428, "num_classes": 8,
                                                   "color_map": [[0, 255, 0], [0, 127, 0], [255, 255, 0],
@@ -80,7 +89,8 @@ def test_vre_batched():
                                  "parameters": {"linear_ang_vel_correction": True, "focus_correction": True,
                                                 "cosine_correction_scipy": False, "cosine_correction_gd": True,
                                                 "sensor_fov": 75, "sensor_width": 3840, "sensor_height": 2160,
-                                                "min_depth_meters": 0, "max_depth_meters": 400}},
+                                                "min_depth_meters": 0, "max_depth_meters": 400},
+                                 "vre_parameters": {"velocities_path": "DJI_0956_velocities.npz"}},
         "mask2former": {"type": "semantic_segmentation", "name": "mask2former", "dependencies": [], "batch_size": 1,
                         "parameters": {"model_id": "49189528_1", "semantic": True, "instance": False, "panoptic": False,
                                        "semantic_argmax_only": False},
@@ -96,7 +106,7 @@ def test_vre_batched():
     shutil.rmtree(tmp_dir, ignore_errors=True)
     shutil.rmtree(tmp_dir_bs, ignore_errors=True)
 
-    start_frame, end_frame = 1000, (1010 if __name__ == "__main__" else 1002)
+    start_frame, end_frame = 1000, (1002 if __name__ == "__main__" else 1002)
     batch_size = 2
 
     vre_bs = VRE(video, representations_bs)
