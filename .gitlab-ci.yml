@@ -9,6 +9,7 @@ workflow:
 before_script:
   - export VRE_ROOT=`pwd`
   - export VRE_WEIGHTS_DIR=$VRE_ROOT/resources/weights
+  - export VRE_LOGLEVEL=3
   - export PYTHONPATH="$PYTHONPATH:$VRE_ROOT"
   - export PATH="$PATH:$VRE_ROOT/bin"
   - python3 -m pip install -r requirements.txt
@@ -29,4 +30,5 @@ unit_tests:
 
 integration_tests:
   script:
+    - mkdir -p $VRE_WEIGHTS_DIR && gdown https://drive.google.com/uc?id=1yafmmiHGMsgX6ym9Pbx2X2OxJtCY1xrT -O $VRE_WEIGHTS_DIR/DJI_0956_velocities.npz
     - python3 -m pytest test/integration

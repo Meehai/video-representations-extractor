@@ -73,7 +73,7 @@ def main():
     if args.video:
         from media_processing_lib.video.backends import DiskBackend
         from media_processing_lib.video import MPLVideo
-        video = MPLVideo(DiskBackend([x for x in args.output_path.iterdir()]), fps=args.fps)
+        video = MPLVideo(DiskBackend(list(args.output_path.iterdir())), fps=args.fps)
         video.save(args.output_path / "collage.mp4")
 
 if __name__ == "__main__":
