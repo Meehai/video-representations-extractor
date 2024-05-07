@@ -12,6 +12,8 @@ from skimage.color import hsv2rgb
 from ..logger import logger
 from .fake_video import VREVideo
 
+RepresentationOutput = np.ndarray | tuple[np.ndarray, list[dict]]
+
 def get_project_root() -> Path:
     """gets the root of this project"""
     return Path(__file__).parents[2].absolute()

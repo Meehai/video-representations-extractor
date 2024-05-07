@@ -100,6 +100,8 @@ def test_vre_batched():
     representations_dict = sample_representations(all_representations_dict, n=2)
     representations = build_representations_from_cfg(representations_dict)
     representations_bs = build_representations_from_cfg(representations_dict)
+    for v in representations.values():
+        assert hasattr(v, "vre_parameters"), v.name
 
     tmp_dir = Path("here1" if __name__ == "__main__" else TemporaryDirectory().name)
     tmp_dir_bs = Path("here2" if __name__ == "__main__" else TemporaryDirectory().name)
@@ -110,14 +112,11 @@ def test_vre_batched():
     batch_size = 2
 
     vre_bs = VRE(video, representations_bs, tmp_dir_bs)
-    representations_bs_setup = {k: representations_dict[k].get("vre_parameters", {}) for k in representations_bs.keys()}
     took_bs = vre_bs(start_frame=start_frame, end_frame=end_frame, export_npy=True, export_png=True,
-                     batch_size=batch_size, output_dir_exist_mode="raise",
-                     reprs_setup=representations_bs_setup)
+                     batch_size=batch_size, output_dir_exist_mode="raise")
     vre = VRE(video, representations, tmp_dir)
-    reprs_setup = {k: representations_dict[k].get("vre_parameters", {}) for k in representations.keys()}
     took1 = vre(start_frame=start_frame, end_frame=end_frame, export_npy=True, export_png=True, batch_size=1,
-                output_dir_exist_mode="raise", reprs_setup=reprs_setup)
+                output_dir_exist_mode="raise")
 
     both = pd.concat([took1.mean().rename("unbatched"), took_bs.mean().rename(f"batch={batch_size}")], axis=1)
     both.loc["total"] = both.sum() * (end_frame - start_frame)

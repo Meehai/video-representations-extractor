@@ -133,9 +133,7 @@ def main():
     for i in range(len(batch_sizes)):
         representations = build_representations_from_cfg(representations_dict)
         vre = VRE(video, representations, output_dir=tmp_dir / f"batch_size_{batch_sizes[i]}")
-        reprs_setup = {k: representations_dict[k].get("vre_parameters", {}) for k in representations.keys()}
-        vres.append(partial(vre, start_frame=start_frame, end_frame=end_frame, export_npy=True,
-                            export_png=True, reprs_setup=reprs_setup))
+        vres.append(partial(vre, start_frame=start_frame, end_frame=end_frame, export_npy=True, export_png=True))
 
     results = []
     for i, vre in enumerate(vres):

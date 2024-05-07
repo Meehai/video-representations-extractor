@@ -11,15 +11,11 @@ RepresentationsSetup = dict[str, dict[str, Any]]
 class VRERuntimeArgs:
     """VRE runtime args. Helper class to process the arguments sent to vre.run()"""
     def __init__(self, vre: "VRE", start_frame: int | None, end_frame: int | None, batch_size: int, export_npy: bool,
-                 export_png: bool, reprs_setup: RepresentationsSetup | None, output_dir_exist_mode: str,
-                 exception_mode: str):
+                 export_png: bool, output_dir_exist_mode: str, exception_mode: str):
         assert batch_size >= 1, f"batch size must be >= 1, got {batch_size}"
         assert export_npy + export_png > 0, "At least one of export modes must be True"
         assert output_dir_exist_mode in ("overwrite", "skip_computed", "raise"), output_dir_exist_mode
         assert exception_mode in ("stop_execution", "skip_representation"), exception_mode
-        if reprs_setup is None:
-            logger.warning("reprs_setup is None, default to empty dict")
-            reprs_setup = {r: {} for r in vre.representations.keys()}
         if end_frame is None:
             end_frame = len(vre.video)
             logger.warning(f"end frame not set, default to the last frame of the video: {len(vre.video)}")
@@ -28,23 +24,17 @@ class VRERuntimeArgs:
             logger.warning("start frame not set, default to 0")
 
         assert isinstance(start_frame, int) and start_frame <= end_frame, (start_frame, end_frame)
-        for name in reprs_setup.keys():
-            assert name in vre.representations.keys(), f"Representation '{name}' not found in {vre.representations}"
         self.vre = vre
         self.start_frame = start_frame
         self.end_frame = end_frame
         self.batch_size = batch_size
         self.export_npy = export_npy
         self.export_png = export_png
-        self.reprs_setup = reprs_setup
         self.output_dir_exist_mode = output_dir_exist_mode
         self.exception_mode = exception_mode
 
-        self.batch_sizes = {}
-        for r in vre.representations.values():
-            if hasattr(r, "batch_size"): # in case it's provided in cfg (TODO: make this nicer w/o getattr)
-                logger.info(f"Representation '{r}' has explicit batch size: {r.batch_size}")
-            self.batch_sizes[r.name] = min(getattr(r, "batch_size", batch_size), batch_size)
+        self.batch_sizes = {k: batch_size if r.batch_size is None else r.batch_size
+                            for k, r in vre.representations.items()}
         self.npy_paths: dict[str, list[Path]] = self._make_npy_paths() # {repr: [out_dir/npy/0.npz, ...]}
         self.png_paths: dict[str, list[Path]] = self._make_png_paths() # {repr: [out_dir/png/0.png, ...]}
         assert len(self.npy_paths) > 0 and len(self.png_paths) > 0, (len(self.npy_paths), len(self.png_paths))
@@ -70,7 +60,7 @@ class VRERuntimeArgs:
   - Video path: '{self.vre.video.file}'
   - Output dir: '{self.vre.output_dir}' (exist mode: '{self.output_dir_exist_mode}')
   - Representations ({len(self.vre.representations)}): {", ".join(x for x in self.vre.representations.keys())}
-  - Video shape: {self.vre.video.shape} (FPS: {self.vre.video.frame_rate})
+  - Video shape: {self.vre.video.shape} (FPS: {self.vre.video.frame_rate:.2f})
   - Output frames ({self.end_frame - self.start_frame}): [{self.start_frame} : {self.end_frame - 1}]
   - Batch size: {self.batch_size}
   - Export npy: {self.export_npy}

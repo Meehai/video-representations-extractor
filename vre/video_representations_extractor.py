@@ -9,8 +9,8 @@ import numpy as np
 import torch as tr
 import pandas as pd
 
-from .representation import Representation, RepresentationOutput
-from .utils import image_write, VREVideo, took, make_batches, all_batch_exists
+from .representation import Representation
+from .utils import image_write, VREVideo, took, make_batches, all_batch_exists, RepresentationOutput
 from .vre_runtime_args import VRERuntimeArgs
 from .logger import logger
 
@@ -76,7 +76,7 @@ class VideoRepresentationsExtractor:
 
         # call vre_setup here so expensive representations get lazy deep instantiated (i.e. models loading)
         try:
-            representation.vre_setup(video=self.video, **runtime_args.reprs_setup[name])
+            representation.vre_setup(video=self.video, **representation.vre_parameters) # TODO: maybe update the stup
         except Exception:
             _open_write_err("exception.txt", f"\n[{name} {datetime.now()} {batch_size=} {traceback.format_exc()}\n")
             del representation
@@ -107,8 +107,8 @@ class VideoRepresentationsExtractor:
         return {name: repr_stats}
 
     def run(self, start_frame: int | None = None, end_frame: int | None = None, batch_size: int = 1,
-            export_npy: bool = True, export_png: bool = True, reprs_setup: dict | None = None,
-            output_dir_exist_mode: str = "raise", exception_mode: str = "stop_execution"):
+            export_npy: bool = True, export_png: bool = True, output_dir_exist_mode: str = "raise",
+            exception_mode: str = "stop_execution") -> pd.DataFrame:
         """
         The main loop of the VRE. This will run all the representations on the video and store results in the output_dir
         Parameters:
@@ -117,9 +117,6 @@ class VideoRepresentationsExtractor:
         - batch_size The batch size to use when processing the video. If not provided, defaults to 1.
         - export_npy Whether to export the npy files
         - export_png Whether to export the png files
-        - reprs_setup A dict of {representation_name: {representation_setup}}. This is used to pass
-            representation specific inference parameters to the VRE, like setting device before running or loading
-            some non-standard weights.
         - output_dir_exist_mode What to do if the output dir already exists. Can be one of:
           - 'overwrite' Overwrite the output dir if it already exists
           - 'skip_computed' Skip the computed frames and continue from the last computed frame
@@ -132,7 +129,7 @@ class VideoRepresentationsExtractor:
         Returns:
         - A dataframe with the run statistics for each representation
         """
-        runtime_args = VRERuntimeArgs(self, start_frame, end_frame, batch_size, export_npy, export_png, reprs_setup,
+        runtime_args = VRERuntimeArgs(self, start_frame, end_frame, batch_size, export_npy, export_png,
                                       output_dir_exist_mode, exception_mode)
         run_stats = []
         for name, vre_repr in self.representations.items():
@@ -150,10 +147,7 @@ class VideoRepresentationsExtractor:
         return self.run(*args, **kwargs)
 
     def __str__(self) -> str:
-        return (
-            f"VRE ({len(self.representations)} representations). "
-            f"Video: '{self.video.file}' (shape: {self.video.shape})"
-        )
+        return f"VRE ({len(self.representations)} representations). Video: '{self.video.file}' ({self.video.shape})"
 
     def __repr__(self) -> str:
         return str(self)
