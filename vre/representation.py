@@ -3,14 +3,14 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 import numpy as np
 
-from .utils import parsed_str_type, VREVideo
+from .utils import parsed_str_type, RepresentationOutput
+from .vre_representation_mixin import VRERepresentationMixin
 from .logger import logger
 
-RepresentationOutput = np.ndarray | tuple[np.ndarray, list[dict]]
-
-class Representation(ABC):
+class Representation(ABC, VRERepresentationMixin):
     """Generic Representation class for VRE"""
     def __init__(self, name: str, dependencies: list[Representation]):
+        super().__init__()
         assert isinstance(dependencies, (set, list))
         self.name = name
         self.dependencies = dependencies
@@ -32,21 +32,22 @@ class Representation(ABC):
     def make_images(self, frames: np.ndarray, repr_data: RepresentationOutput) -> np.ndarray:
         """Given the output of self.make(frames) of type RepresentationOutput, return a [0:255] image for each frame"""
 
-    ## Optional methods ##
-
+    # @abstractmethod # TODO
     # pylint: disable=unused-argument
-    def vre_setup(self, video: VREVideo, **kwargs):
+    def resize(self, repr_data: RepresentationOutput, new_size: tuple[int, int]) -> RepresentationOutput:
         """
-        Setup method for this representation. This is required to run this representation from within VRE.
-        We do this setup separately, so we can instatiate the representation without doing any VRE specific setup,
-        like loading weights.
+        Resizes the output of a self.make(frames) call into some other resolution
+        Parameters:
+        - repr_data The original representation output
+        - new_size A tuple of two positive integers representing the new size
+        Returns: A new representation output at the desired size
         """
-        logger.debug(f"[{parsed_str_type(self)} No runtime setup provided.")
+        logger.warning("No resize function provided for this representation. Overwrite it!")
+        return repr_data
 
-    # pylint: disable=unused-argument
-    def vre_dep_data(self, video: VREVideo, ix: slice) -> dict[str, RepresentationOutput]:
-        """method used to retrieve the dependencies' data for this frames during a vre run"""
-        return {}
+    def size(self, repr_data: RepresentationOutput) -> tuple[int, int]:
+        """Returns the (h, w) tuple of the size of the current representation"""
+        raise NotImplementedError("TODO")
 
     def __getitem__(self, t: slice | int) -> RepresentationOutput:
         return self.__call__(t)
@@ -55,4 +56,4 @@ class Representation(ABC):
         return self.make(*args, **kwargs)
 
     def __repr__(self):
-        return f"[VRE Representation] {parsed_str_type(self)}({self.name})"
+        return f"[Representation] {parsed_str_type(self)}({self.name})"

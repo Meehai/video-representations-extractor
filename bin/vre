@@ -64,9 +64,7 @@ def main():
         video = pims.Video(args.video_path)
     representations = build_representations_from_cfg(cfg.representations)
     vre = VRE(video, representations, args.output_path)
-    reprs_setup = {r: cfg.representations[r].get("vre_parameters", {}) for r in representations.keys()}
-    run_stats = vre(**cfg.vre, reprs_setup=reprs_setup)
-
+    run_stats = vre(**cfg.vre)
     print(run_stats)
 
 if __name__ == "__main__":

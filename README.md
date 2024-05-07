@@ -15,7 +15,7 @@ For GitHub users: this is a mirror of the
 
 <u>Supported representations</u>
 
--   See [here](vre/representations/__init__.py) for a comprehensive list, since it updates faster
+- See [here](vre/representations/build_representations.py) for a comprehensive list, since it updates faster
 than this README.
 
 Weights repository for supported pretrained neural-network based representations is
