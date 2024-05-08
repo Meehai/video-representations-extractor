@@ -15,6 +15,7 @@ class FlowRife(Representation):
         tr.manual_seed(42)
         self.model: Model = Model().eval().to("cpu")
         self.uhd = uhd
+        assert compute_backward_flow is False, "Not supported"
         self.no_backward_flow = True if compute_backward_flow is None else not compute_backward_flow
         self.device = "cpu"
         assert tr.cuda.is_available() or self.device == "cpu", "CUDA not available"
@@ -67,11 +68,17 @@ class FlowRife(Representation):
 
     @overrides
     def make_images(self, frames: np.ndarray, repr_data: RepresentationOutput) -> np.ndarray:
-        # [0 : 1] => [-1 : 1]
-        x = repr_data * 2 - 1
-        x_rsz = image_resize_batch(x, height=frames.shape[1], width=frames.shape[2])
-        y = np.array([flow_vis.flow_to_color(_pred) for _pred in x_rsz])
+        x = repr_data * 2 - 1 # [0 : 1] => [-1 : 1]
+        y = np.array([flow_vis.flow_to_color(_pred) for _pred in x])
         return y
+
+    @overrides
+    def size(self, repr_data: RepresentationOutput) -> tuple[int, int]:
+        return repr_data.shape[1:3]
+
+    @overrides
+    def resize(self, repr_data: RepresentationOutput, new_size: tuple[int, int]) -> RepresentationOutput:
+        return image_resize_batch(repr_data, *new_size)
 
     def _preprocess(self, sources: np.ndarray, targets: np.ndarray) -> (tr.Tensor, tr.Tensor, tuple):
         # Convert, preprocess & pad

@@ -73,10 +73,17 @@ class DepthDpt(Representation):
 
     @overrides
     def make_images(self, frames: np.ndarray, repr_data: RepresentationOutput) -> np.ndarray:
-        x_rsz = image_resize_batch(repr_data, height=frames.shape[1], width=frames.shape[2])
-        y = hot(x_rsz)[..., 0:3]
+        y = hot(repr_data)[..., 0:3]
         y = np.uint8(y * 255)
         return y
+
+    @overrides
+    def size(self, repr_data: RepresentationOutput) -> tuple[int, int]:
+        return repr_data.shape[1:3]
+
+    @overrides
+    def resize(self, repr_data: RepresentationOutput, new_size: tuple[int, int]) -> RepresentationOutput:
+        return image_resize_batch(repr_data, *new_size)
 
     def _preprocess(self, x: np.ndarray) -> tr.Tensor:
         tr_frames = tr.from_numpy(x).to(self.device)

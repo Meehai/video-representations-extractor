@@ -4,13 +4,19 @@ import numpy as np
 import torch as tr
 from torch.nn import functional as F
 
-from ultralytics.yolo.engine.results import Results
-from ultralytics.yolo.utils import ops
-from .fastsam_impl import FastSAM as Model, FastSAMPredictor, FastSAMPrompt
-from .fastsam_impl.utils import bbox_iou
+from ultralytics.yolo.engine.results import Results # TODO: get rid of these
+from ultralytics.yolo.utils import ops # TODO: get rid of these
 
-from ....representation import Representation, RepresentationOutput
-from ....utils import gdown_mkdir, VREVideo, image_resize, get_weights_dir
+try:
+    from .fastsam_impl import FastSAM as Model, FastSAMPredictor, FastSAMPrompt
+    from .fastsam_impl.utils import bbox_iou
+    from ....representation import Representation, RepresentationOutput
+    from ....utils import gdown_mkdir, VREVideo, image_resize_batch, get_weights_dir
+except ImportError:
+    from fastsam_impl import FastSAM as Model, FastSAMPredictor, FastSAMPrompt
+    from fastsam_impl.utils import bbox_iou
+    from vre.representation import Representation, RepresentationOutput
+    from vre.utils import gdown_mkdir, VREVideo, image_resize_batch, get_weights_dir
 
 class FastSam(Representation):
     """FastSAM representation."""
@@ -54,40 +60,64 @@ class FastSam(Representation):
     def make(self, frames: np.ndarray) -> RepresentationOutput:
         tr_x = self._preproces(frames)
         tr_y = self.predictor.model.model(tr_x)
-        scaled_boxes = self._postprocess(preds=tr_y, inference_height=tr_x.shape[2], inference_width=tr_x.shape[3],
-                                         conf=self.conf, iou=self.iou, original_height=frames.shape[1],
-                                         original_width=frames.shape[2])
-        extra = [{"scaled_boxes": scaled_box.to("cpu").numpy()} for scaled_box in scaled_boxes]
-        assert len(tr_y[1]) == 3
+        mb, _, i_h, i_w = tr_x.shape[0:4]
+        boxes = self._postprocess(preds=tr_y, inference_height=i_h, inference_width=i_w, conf=self.conf, iou=self.iou)
+        extra = [{"boxes": boxes[i].to("cpu").numpy(), "inference_size": (i_h, i_w)} for i in range(mb)]
+        assert len(tr_y[1]) == 3, len(tr_y[1])
         # Note: this is called 'proto' in the original implementation. Only this part of predictions is used for plots.
         res = tr_y[1][-1].to("cpu").numpy()
         return res, extra
 
     @overrides(check_signature=False)
     def make_images(self, frames: np.ndarray, repr_data: RepresentationOutput) -> np.ndarray:
-        repr_data, extra = repr_data
-        assert extra is not None and len(frames) == len(extra)
-        res: list[np.ndarray] = []
-        tr_y = tr.from_numpy(repr_data).to(self.device)
-        scaled_boxes = [tr.from_numpy(e["scaled_boxes"]).to(self.device) for e in extra]
-        y_predictor = self._postprocess2(tr_y, scaled_boxes, original_height=frames.shape[1],
-                                         original_width=frames.shape[2], orig_imgs=frames)
+        y_fastsam, extra = repr_data
+        assert len(frames) == len(extra) == len(y_fastsam), (len(frames), len(extra), len(y_fastsam))
+        assert all(e["inference_size"] == extra[0]["inference_size"] for e in extra), extra
+        frames_rsz = image_resize_batch(frames, *self.size(repr_data))
+        frame_h, frame_w = frames_rsz.shape[1:3]
 
-        for i in range(len(y_predictor)):
-            orig_img = y_predictor[i].orig_img
-            if len(y_predictor[i].boxes) == 0:
-                res.append(orig_img)
+        tr_y = tr.from_numpy(y_fastsam).to(self.device)
+        boxes = [tr.from_numpy(e["boxes"]).to(self.device) for e in extra]
+        scaled_boxes = [self._scale_box(box, *extra[0]["inference_size"], frame_h, frame_w) for box in boxes]
+
+        res: list[np.ndarray] = []
+        for i, (scaled_box, frame) in enumerate(zip(scaled_boxes, frames_rsz)):
+            if len(scaled_box) == 0:  # save empty boxes
+                res.append(frame)
                 continue
-            prompt_process = FastSAMPrompt(orig_img, y_predictor[i: i + 1], device=self.device)
+            masks = ops.process_mask_native(tr_y[i], scaled_box[:, 6:], scaled_box[:, :4], (frame_h, frame_w))
+            res_i = Results(orig_img=frame, path=None, names={0: "object"}, boxes=scaled_box[:, 0:6], masks=masks)
+            prompt_process = FastSAMPrompt(frame, [res_i], device=self.device)
             ann = prompt_process.results[0].masks.data
             prompt_res = prompt_process.plot_to_result(annotations=ann, better_quality=False, withContours=False)
-            prompt_res = image_resize(prompt_res, height=orig_img.shape[0], width=orig_img.shape[1])
             res.append(prompt_res)
         res_arr = np.array(res)
         return res_arr
 
+    @overrides
+    def size(self, repr_data: RepresentationOutput) -> tuple[int, int]:
+        return repr_data[1][0]["inference_size"]
+
+    @overrides
+    def resize(self, repr_data: RepresentationOutput, new_size: tuple[int, int]) -> RepresentationOutput:
+        y_fastsam, extra = repr_data
+        old_size = extra[0]["inference_size"]
+        new_extra = [{"boxes": self._scale_box(tr.from_numpy(e["boxes"]), *old_size, *new_size).numpy(),
+                      "inference_size": new_size} for e in extra]
+        new_y_fastsam = F.interpolate(tr.from_numpy(y_fastsam), (new_size[0] // 4, new_size[1] // 4)).numpy()
+        return new_y_fastsam, new_extra
+
+    def _scale_box(self, box: tr.Tensor, inference_height: int, inference_width: int, original_height: int,
+                   original_width: int) -> tr.Tensor:
+        scaled_box = box.clone()
+        if len(scaled_box) == 0:
+            return scaled_box
+        scaled_box[:, 0:4] = ops.scale_boxes((inference_height, inference_width), scaled_box[:, 0:4],
+                                             (original_height, original_width))
+        return scaled_box
+
     def _postprocess(self, preds: tr.Tensor, inference_height: int, inference_width: int,
-                     conf: float, iou: float, original_height: int, original_width: int) -> list[tr.Tensor]:
+                     conf: float, iou: float) -> list[tr.Tensor]:
         p = ops.non_max_suppression(preds[0], conf, iou, agnostic=False, max_det=300, nc=1, classes=None)
 
         for _p in p:
@@ -102,28 +132,7 @@ class FastSam(Representation):
                 full_box[0][4] = _p[critical_iou_index][:, 4]
                 full_box[0][6:] = _p[critical_iou_index][:, 6:]
                 _p[critical_iou_index] = full_box
-
-        scaled_boxes = p.copy()
-        for i in range(len(scaled_boxes)):
-            if len(scaled_boxes[i]) == 0:
-                continue
-            scaled_boxes[i][:, 0:4] = ops.scale_boxes((inference_height, inference_width), scaled_boxes[i][:, 0:4],
-                                                      (original_height, original_width))
-        return scaled_boxes
-
-    def _postprocess2(self, proto: tr.Tensor, scaled_boxes: list, original_height: int,
-                      original_width: int, orig_imgs: np.ndarray) -> list[Results]:
-        results: list[Results] = []
-        names = {0: "object"}
-        for i, scaled_box in enumerate(scaled_boxes):
-            if len(scaled_box) == 0:  # save empty boxes
-                masks = None
-            else:
-                masks = ops.process_mask_native(proto[i], scaled_box[:, 6:], scaled_box[:, :4],
-                                                (original_height, original_width))
-            results.append(Results(orig_img=orig_imgs[i], path=None, names=names,
-                                   boxes=scaled_box[:, 0:6], masks=masks))
-        return results
+        return p
 
     def _preproces(self, x: np.ndarray) -> tr.Tensor:
         x = x.astype(np.float32) / 255
@@ -134,6 +143,32 @@ class FastSam(Representation):
             new_w, new_h = h * desired_max // w, desired_max
         else:
             new_w, new_h = desired_max, w * desired_max // h
-
+        def _offset32(x: int) -> int:
+            return ((32 - x % 32) if x < 32 or (x % 32 <= 16) else -(x % 32)) % 32 # get closest modulo 32 offset of x
+        new_h, new_w = new_h + _offset32(new_h), new_w + _offset32(new_w) # needed because it throws otherwise
         tr_x = F.interpolate(tr_x, size=(new_h, new_w), mode="bilinear", align_corners=False)
         return tr_x
+
+def main():
+    """main fn. Usage: python fastsam.py fastsam-x/fastsam-s demo1.jpg output1.jpg"""
+    import sys
+    from datetime import datetime # pylint: disable=all
+    from media_processing_lib.image import image_read, image_write # pylint: disable=all
+    assert len(sys.argv) == 4
+    img = image_read(sys.argv[2])
+
+    fastsam = FastSam(sys.argv[1], iou=0.9, conf=0.4, name="fastsam", dependencies=[])
+    fastsam.predictor.model.to("cuda" if tr.cuda.is_available() else "cpu")
+    for _ in range(1):
+        now = datetime.now()
+        pred = fastsam.make(img[None])
+        print(f"Pred took: {datetime.now() - now}")
+        semantic_result = fastsam.make_images(img[None], pred)[0]
+        image_write(semantic_result, sys.argv[3])
+
+    pred_rsz = fastsam.resize(pred, img.shape[0:2])
+    semantic_result_rsz = fastsam.make_images(img[None], pred_rsz)[0]
+    image_write(semantic_result_rsz, f"{sys.argv[3][0:-4]}_rsz.{sys.argv[3][-3:]}")
+
+if __name__ == "__main__":
+    main()

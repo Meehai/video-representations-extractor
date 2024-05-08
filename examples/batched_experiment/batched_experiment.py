@@ -29,7 +29,7 @@ def get_representation_dict() -> dict:
         "rgb": {"type": "default", "name": "rgb", "dependencies": [], "parameters": {}},
         "hsv": {"type": "default", "name": "hsv", "dependencies": [], "parameters": {}},
         "dexined": {"type": "edges", "name": "dexined", "dependencies": [],
-                    "parameters": {"inference_width": 512, "inference_height": 512},
+                    "parameters": {},
                     "vre_parameters": {"device": device}},
         "softseg gb": {"type": "soft-segmentation", "name": "generalized_boundaries", "dependencies": [],
                        "parameters": {"use_median_filtering": True, "adjust_to_rgb": True, "max_channels": 3}},
@@ -56,8 +56,7 @@ def get_representation_dict() -> dict:
                      "parameters": {"sample": 3, "scale": 1, "percentage": 91, "angles": [0, 15, 30, 45],
                                     "antialias": False, "resolution": [240, 426]}},
         "opticalflow raft": {"type": "optical-flow", "name": "raft", "dependencies": [],
-                             "parameters": {"inference_height": 360, "inference_width": 640,
-                                            "small": False, "mixed_precision": False, "iters": 20},
+                             "parameters": {"small": False, "iters": 20},
                              "vre_parameters": {"device": device}},
         "depth odoflow (raft)": {"type": "depth", "name": "odo-flow", "dependencies": ["opticalflow raft"],
                                  "parameters": {"linear_ang_vel_correction": True, "focus_correction": True,
@@ -73,12 +72,10 @@ def get_representation_dict() -> dict:
                         "vre_parameters": {"device": device}},
         "mask2former (r50)": {"type": "semantic_segmentation", "name": "mask2former", "dependencies": [],
                               "batch_size": 2, "vre_parameters": {"device": device},
-                              "parameters": {"model_id": "49189528_1", "semantic": True, "instance": False,
-                                             "panoptic": False, "semantic_argmax_only": False}},
+                              "parameters": {"model_id": "49189528_1", "semantic_argmax_only": False}},
         "mask2former (swin)": {"type": "semantic_segmentation", "name": "mask2former", "dependencies": [],
                                "batch_size": 2, "vre_parameters": {"device": device},
-                               "parameters": {"model_id": "47429163_0", "semantic": True, "instance": False,
-                                              "panoptic": False, "semantic_argmax_only": True}},
+                               "parameters": {"model_id": "47429163_0", "semantic_argmax_only": True}},
     }
 
     if os.getenv("ONLY_RGB", "0") == "1":

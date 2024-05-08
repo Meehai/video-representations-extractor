@@ -8,16 +8,14 @@ from ....representation import Representation, RepresentationOutput
 from ....logger import logger
 from ....utils import image_resize_batch, gdown_mkdir, VREVideo, get_weights_dir
 
-
 class DexiNed(Representation):
     """Dexined representation."""
-    def __init__(self, inference_height: int, inference_width: int, **kwargs):
-        self.model: Model = None
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.model: Model = None
         self._setup()
         self.device = "cpu"
-        self.inference_height = inference_height
-        self.inference_width = inference_width
+        self.inference_height, self.inference_width = 512, 512 # fixed for this model
 
     def _setup(self):
         tr.manual_seed(42)
@@ -28,9 +26,8 @@ class DexiNed(Representation):
     def vre_setup(self, video: VREVideo, device: str):
         assert tr.cuda.is_available() or device == "cpu", "CUDA not available"
         self.device = device
-        # our backup weights
         weights_file = get_weights_dir() / "dexined.pth"
-        url_weights = "https://drive.google.com/u/0/uc?id=1oT1iKdRRKJpQO-DTYWUnZSK51QnJ-mnP"
+        url_weights = "https://drive.google.com/u/0/uc?id=1oT1iKdRRKJpQO-DTYWUnZSK51QnJ-mnP" # our backup weights
 
         if not weights_file.exists():
             gdown_mkdir(url_weights, weights_file)
@@ -52,8 +49,15 @@ class DexiNed(Representation):
     @overrides
     def make_images(self, frames: np.ndarray, repr_data: RepresentationOutput) -> np.ndarray:
         x = np.repeat(np.expand_dims(repr_data, axis=-1), 3, axis=-1)
-        x_rsz = image_resize_batch(x, height=frames.shape[1], width=frames.shape[2])
-        return (x_rsz * 255).astype(np.uint8)
+        return (x * 255).astype(np.uint8)
+
+    @overrides
+    def size(self, repr_data: RepresentationOutput) -> tuple[int, int]:
+        return repr_data.shape[1:3]
+
+    @overrides
+    def resize(self, repr_data: RepresentationOutput, new_size: tuple[int, int]) -> RepresentationOutput:
+        return image_resize_batch(repr_data, *new_size)
 
     def _preprocess(self, images: np.ndarray, height: int, width: int) -> tr.Tensor:
         assert len(images.shape) == 4, images.shape

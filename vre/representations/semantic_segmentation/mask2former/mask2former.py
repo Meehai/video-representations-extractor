@@ -58,17 +58,55 @@ def apply_image(img: np.ndarray, h, w, new_h, new_w):
         ret = np.expand_dims(ret, -1)
     return ret
 
-# TODO: enable/disable semantic, instance, panoptic.
 class Mask2Former(Representation):
-    """Mask2Former representation implementation"""
-    def __init__(self, model_id: str, semantic: bool, instance: bool, panoptic: bool,
-                 semantic_argmax_only: bool, **kwargs):
+    """Mask2Former representation implementation. Note: only semantic segmentation (not panoptic/instance) enabled."""
+    def __init__(self, model_id: str, semantic_argmax_only: bool, **kwargs):
         super().__init__(**kwargs)
         weights_path = self._get_weights(model_id)
-        self.model, self.cfg, self.metadata = self._build_model(weights_path, semantic, instance, panoptic)
+        self.model, self.cfg, self.metadata = self._build_model(weights_path)
         self.model_id = model_id
         self.device = "cpu"
         self.semantic_argmax_only = semantic_argmax_only
+
+    # pylint: disable=arguments-differ
+    @overrides(check_signature=False)
+    def vre_setup(self, video: VREVideo, device: str):
+        self.model = self.model.to(device)
+        self.device = device
+
+    @tr.no_grad()
+    @overrides
+    def make(self, frames: np.ndarray) -> RepresentationOutput:
+        height, width = frames.shape[1:3]
+        _os = get_output_shape(height, width, self.cfg.INPUT.MIN_SIZE_TEST, self.cfg.INPUT.MAX_SIZE_TEST)
+        imgs = [apply_image(img, height, width, _os[0], _os[1]).astype("float32").transpose(2, 0, 1) for img in frames]
+        inputs = [{"image": tr.from_numpy(img), "height": height, "width": width} for img in imgs]
+        predictions = [x["sem_seg"] for x in self.model(inputs)]
+        res = []
+        for pred in predictions:
+            _pred = pred.argmax(0).byte() if self.semantic_argmax_only else pred.half().permute(1, 2, 0)
+            res.append(_pred.to("cpu").numpy())
+        return np.stack(res)
+
+    @overrides
+    def make_images(self, frames: np.ndarray, repr_data: RepresentationOutput) -> np.ndarray:
+        res = []
+        frames_rsz = image_resize_batch(frames, *repr_data.shape[1:3])
+        for img, pred in zip(frames_rsz, repr_data):
+            v = Visualizer(img, self.metadata, instance_mode=ColorMode.IMAGE_BW)
+            _pred = pred if self.semantic_argmax_only else pred.argmax(-1)
+            res.append(v.draw_sem_seg(_pred).get_image())
+        res = np.stack(res)
+        return res
+
+    @overrides
+    def size(self, repr_data: RepresentationOutput) -> tuple[int, int]:
+        return repr_data.shape[1:3]
+
+    @overrides
+    def resize(self, repr_data: RepresentationOutput, new_size: tuple[int, int]) -> RepresentationOutput:
+        interpolation = "nearest" if self.semantic_argmax_only else "bilinear"
+        return image_resize_batch(repr_data, *new_size, interpolation=interpolation)
 
     def _get_weights(self, model_id: str | dict) -> str:
         links = {
@@ -88,15 +126,11 @@ class Mask2Former(Representation):
             gdown_mkdir(links[model_id], weights_path)
         return weights_path
 
-    def _build_model(self, weights_path: Path | dict, semantic: bool, instance: bool,
-                     panoptic: bool) -> tuple[nn.Module, CfgNode, MetadataCatalog]:
+    def _build_model(self, weights_path: Path | dict) -> tuple[nn.Module, CfgNode, MetadataCatalog]:
         ckpt_data = tr.load(weights_path, map_location="cpu") if isinstance(weights_path, Path) else weights_path
         cfg = CfgNode(json.loads(ckpt_data["cfg"]))
         params = MaskFormerImpl.from_config(cfg)
-        assert cfg.get("panoptic_on", False) in (False, panoptic), "Panoptic cannot be enabled for this model"
-        assert cfg.get("semantic_on", False) in (False, semantic), "Semantic cannot be enabled for this model"
-        assert cfg.get("instance_on", False) in (False, instance), "Instance cannot be enabled for this model"
-        params = {**params, "semantic_on": semantic, "panoptic_on": panoptic, "instance_on": instance}
+        params = {**params, "semantic_on": True, "panoptic_on": False, "instance_on": False}
         model = MaskFormerImpl(**params).eval()
         res = model.load_state_dict(ckpt_data["state_dict"], strict=False) # inference only: we remove criterion
         assert res.unexpected_keys == ["criterion.empty_weight"] or res.unexpected_keys == [], res
@@ -105,38 +139,6 @@ class Mask2Former(Representation):
         metadata = MetadataCatalog.get(cfg.DATASETS.TEST[0])
         logger.debug(f"Loade weights from '{weights_path}'")
         return model, cfg, metadata
-
-    # pylint: disable=arguments-differ
-    @overrides(check_signature=False)
-    def vre_setup(self, video: VREVideo, device: str):
-        self.model = self.model.to(device)
-        self.device = device
-
-    @tr.no_grad()
-    def make(self, frames: np.ndarray) -> RepresentationOutput:
-        height, width = frames.shape[1:3]
-        _os = get_output_shape(height, width, self.cfg.INPUT.MIN_SIZE_TEST, self.cfg.INPUT.MAX_SIZE_TEST)
-        imgs = [apply_image(img, height, width, _os[0], _os[1]).astype("float32").transpose(2, 0, 1) for img in frames]
-        inputs = [{"image": tr.from_numpy(img), "height": height, "width": width} for img in imgs]
-        predictions = self.model(inputs)
-        for i in range(len(predictions)):
-            if self.semantic_argmax_only:
-                predictions[i]["sem_seg"] = predictions[i]["sem_seg"].argmax(0).byte().to("cpu")
-            else:
-                predictions[i]["sem_seg"] = predictions[i]["sem_seg"].half().to("cpu")
-        return predictions
-
-    @overrides
-    def make_images(self, frames: np.ndarray, repr_data: RepresentationOutput) -> np.ndarray:
-        res = []
-        for img, pred in zip(frames, repr_data):
-            v = Visualizer(img, self.metadata, scale=1.2, instance_mode=ColorMode.IMAGE_BW)
-            _pred = pred["sem_seg"].argmax(0) if not self.semantic_argmax_only else pred["sem_seg"]
-            semantic_result = v.draw_sem_seg(_pred).get_image()
-            res.append(semantic_result)
-        res = np.stack(res)
-        res = image_resize_batch(res, height=frames.shape[1], width=frames.shape[2])
-        return res
 
     def __del__(self):
         del self.model
@@ -148,8 +150,7 @@ def main():
     assert len(sys.argv) == 4
     img = image_read(sys.argv[2])
 
-    m2f = Mask2Former(sys.argv[1], semantic=True, instance=False, panoptic=False,
-                      semantic_argmax_only=False, name="m2f", dependencies=[])
+    m2f = Mask2Former(sys.argv[1], semantic_argmax_only=False, name="m2f", dependencies=[])
     m2f.model.to("cuda" if tr.cuda.is_available() else "cpu")
     for _ in range(1):
         now = datetime.now()
@@ -160,11 +161,14 @@ def main():
 
     # Sanity checks
     if m2f.model_id == "47429163_0" and Path(sys.argv[2]).name == "demo1.jpg":
-        assert np.allclose(semantic_result.mean(), 129.51825) and np.allclose(semantic_result.std(), 51.29128)
+        assert np.allclose(mean := semantic_result.mean(), 129.41173), (mean, semantic_result.std())
+        assert np.allclose(std := semantic_result.std(), 53.33731), std
     elif m2f.model_id == "49189528_1" and Path(sys.argv[2]).name == "demo1.jpg":
-        assert np.allclose(semantic_result.mean(), 125.64070) and np.allclose(semantic_result.std(), 46.20237)
+        assert np.allclose(mean := semantic_result.mean(), 125.23281), (mean, semantic_result.std())
+        assert np.allclose(std := semantic_result.std(), 48.89948), std
     elif m2f.model_id == "49189528_0" and Path(sys.argv[2]).name == "demo1.jpg":
-        assert np.allclose(semantic_result.mean(), 119.01699) and np.allclose(semantic_result.std(), 50.35633)
+        assert np.allclose(mean := semantic_result.mean(), 118.47982), (mean, semantic_result.std())
+        assert np.allclose(std := semantic_result.std(), 52.08105), std
 
 if __name__ == "__main__":
     main()

@@ -47,7 +47,7 @@ def test_vre_batched():
         "rgb": {"type": "default", "name": "rgb", "dependencies": [], "parameters": {}},
         "hsv": {"type": "default", "name": "hsv", "dependencies": [], "parameters": {}},
         "dexined": {"type": "edges", "name": "dexined", "dependencies": [],
-                    "parameters": {"inference_width": 512, "inference_height": 512},
+                    "parameters": {},
                     "vre_parameters": {"device": device}},
         "softseg gb": {"type": "soft-segmentation", "name": "generalized_boundaries", "dependencies": [],
                        "parameters": {"use_median_filtering": True, "adjust_to_rgb": True, "max_channels": 3}},
@@ -83,7 +83,7 @@ def test_vre_batched():
                                     "antialias": False, "resolution": [240, 426]}},
         "opticalflow raft": {"type": "optical-flow", "name": "raft", "dependencies": [],
                              "parameters": {"inference_height": 360, "inference_width": 640,
-                                            "small": False, "mixed_precision": False, "iters": 20},
+                                            "small": False, "iters": 20},
                              "vre_parameters": {"device": device}},
         "depth odoflow (raft)": {"type": "depth", "name": "odo-flow", "dependencies": ["opticalflow raft"],
                                  "parameters": {"linear_ang_vel_correction": True, "focus_correction": True,
@@ -92,8 +92,7 @@ def test_vre_batched():
                                                 "min_depth_meters": 0, "max_depth_meters": 400},
                                  "vre_parameters": {"velocities_path": "DJI_0956_velocities.npz"}},
         "mask2former": {"type": "semantic_segmentation", "name": "mask2former", "dependencies": [], "batch_size": 1,
-                        "parameters": {"model_id": "49189528_1", "semantic": True, "instance": False, "panoptic": False,
-                                       "semantic_argmax_only": False},
+                        "parameters": {"model_id": "49189528_1", "semantic_argmax_only": False},
                         "vre_parameters": {"device": device}},
     }
     # we'll just pick 2 random representations to test here
@@ -125,8 +124,7 @@ def test_vre_batched():
     for representation in vre.representations.keys():
         for t in range(start_frame, end_frame):
             # cannot make these ones reproductible :/
-            # TODO: mask2former is a complex obj (i.e. reuqires pickle and special equals)
-            if representation in ("softseg kmeans", "mask2former") or "odoflow" in representation:
+            if representation in ("softseg kmeans", ) or "odoflow" in representation:
                 continue
             a = np.load(tmp_dir / representation / "npy/" / f"{t}.npz")["arr_0"]
             b = np.load(tmp_dir_bs / representation / "npy/" / f"{t}.npz")["arr_0"]

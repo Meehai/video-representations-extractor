@@ -5,7 +5,6 @@ import numpy as np
 
 from .utils import parsed_str_type, RepresentationOutput
 from .vre_representation_mixin import VRERepresentationMixin
-from .logger import logger
 
 class Representation(ABC, VRERepresentationMixin):
     """Generic Representation class for VRE"""
@@ -32,8 +31,7 @@ class Representation(ABC, VRERepresentationMixin):
     def make_images(self, frames: np.ndarray, repr_data: RepresentationOutput) -> np.ndarray:
         """Given the output of self.make(frames) of type RepresentationOutput, return a [0:255] image for each frame"""
 
-    # @abstractmethod # TODO
-    # pylint: disable=unused-argument
+    @abstractmethod
     def resize(self, repr_data: RepresentationOutput, new_size: tuple[int, int]) -> RepresentationOutput:
         """
         Resizes the output of a self.make(frames) call into some other resolution
@@ -42,12 +40,10 @@ class Representation(ABC, VRERepresentationMixin):
         - new_size A tuple of two positive integers representing the new size
         Returns: A new representation output at the desired size
         """
-        logger.warning("No resize function provided for this representation. Overwrite it!")
-        return repr_data
 
+    @abstractmethod
     def size(self, repr_data: RepresentationOutput) -> tuple[int, int]:
         """Returns the (h, w) tuple of the size of the current representation"""
-        raise NotImplementedError("TODO")
 
     def __getitem__(self, t: slice | int) -> RepresentationOutput:
         return self.__call__(t)
