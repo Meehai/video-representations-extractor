@@ -36,17 +36,18 @@ def _convert(data: dict[str, tr.Tensor]) -> dict[str, tr.Tensor]:
         new_data[other] = data[k]
     return new_data
 
+# TODO: make semantic_argmax_only not optional
 class SafeUAV(Representation):
-    """SafeUAV semanetic segmentation representation"""
+    """SafeUAV semantic segmentation representation"""
     def __init__(self, num_classes: int, train_height: int, train_width: int,
-                 color_map: list[tuple[int, int, int]], **kwargs):
-        self.model: _SafeUavWrapper | None = None
+                 color_map: list[tuple[int, int, int]], semantic_argmax_only: bool = True, **kwargs):
         self.num_classes = num_classes
         assert len(color_map) == num_classes, f"{color_map} ({len(color_map)}) vs {num_classes}"
         self.color_map = color_map
         self.train_height = train_height
         self.train_width = train_width
         self.device = "cpu"
+        self.semantic_argmax_only = semantic_argmax_only
         super().__init__(**kwargs)
         self.model = _SafeUavWrapper(ch_in=3, ch_out=self.num_classes).eval().to("cpu")
 
@@ -73,16 +74,23 @@ class SafeUAV(Representation):
         with tr.no_grad():
             prediction = self.model.forward(frames_resized)
         np_pred = prediction.permute(0, 2, 3, 1).cpu().numpy()
-        # we need to argmax here because VRE expects [0:1] values for float or a uint8 for semantic (for now?)
-        np_pred_argmax = np.argmax(np_pred, axis=-1).astype(np.uint8)
-        return np_pred_argmax
+        y_out = np.argmax(np_pred, axis=-1).astype(np.uint8) if self.semantic_argmax_only else np_pred
+        return y_out
 
     @overrides
     def make_images(self, frames: np.ndarray, repr_data: RepresentationOutput) -> np.ndarray:
+        # TODO: use visualizer from M2F.
+        repr_data = repr_data if self.semantic_argmax_only else repr_data.argmax(-1)
         new_images = np.zeros((*repr_data.shape, 3), dtype=np.uint8)
-        # TODO: use video[t] and return in make() the logits/softmax, not argmax for better upscale
         for i in range(self.num_classes):
             new_images[repr_data == i] = self.color_map[i]
-        # order=0 is nearest neighbor
-        new_images_rsz = image_resize_batch(new_images, height=frames.shape[1], width=frames.shape[2], order=0)
-        return new_images_rsz
+        return new_images
+
+    @overrides
+    def size(self, repr_data: RepresentationOutput) -> tuple[int, int]:
+        return repr_data.shape[1:3]
+
+    @overrides
+    def resize(self, repr_data: RepresentationOutput, new_size: tuple[int, int]) -> RepresentationOutput:
+        interpolation = "nearest" if self.semantic_argmax_only else "bilinear"
+        return image_resize_batch(repr_data, *new_size, interpolation=interpolation)

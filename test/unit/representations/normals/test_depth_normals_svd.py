@@ -10,8 +10,7 @@ def test_depth_normals_svd_odoflow_raft():
     video = FakeVideo(np.random.randint(0, 255, size=(20, 128, 128, 3), dtype=np.uint8), frame_rate=30)
     video_lin_vel = np.random.randn(len(video), 3)
     video_ang_vel = np.random.randn(len(video), 3)
-    raft_repr = FlowRaft(name="raft", dependencies=[], inference_height=128, inference_width=128,
-                         iters=2, small=True, mixed_precision=False)
+    raft_repr = FlowRaft(name="raft", dependencies=[], inference_height=128, inference_width=128, iters=2, small=True)
     odoflow_repr = DepthOdoFlow(name="odoflow_rife", dependencies=[raft_repr],
                                 linear_ang_vel_correction=True, focus_correction=True, cosine_correction_scipy=True,
                                 cosine_correction_gd=False, sensor_fov=30, sensor_width=100, sensor_height=100,
@@ -58,9 +57,13 @@ def test_depth_normals_svd_odoflow_rife():
     assert y_normals.shape == (1, y_rife.shape[1], y_rife.shape[2], 3), y_normals.shape
 
     y_normals_images = depth_svd_normals_repr.make_images(frames, y_normals)
-    assert y_normals_images.shape == (1, 64, 128, 3), y_normals_images.shape
+    assert y_normals_images.shape == (1, y_rife.shape[1], y_rife.shape[2], 3), y_normals_images.shape
     assert y_normals_images.dtype == np.uint8, y_normals_images.dtype
 
+    assert depth_svd_normals_repr.size(y_normals) == y_rife.shape[1:3]
+    y_normals_resized = depth_svd_normals_repr.resize(y_normals, (64, 128)) # we can resize it though
+    assert depth_svd_normals_repr.size(y_normals_resized) == (64, 128)
+    assert depth_svd_normals_repr.make_images(frames, y_normals_resized).shape == (1, 64, 128, 3)
 
 def test_depth_normals_svd_dpt():
     video = FakeVideo(np.random.randint(0, 255, size=(20, 128, 128, 3), dtype=np.uint8), frame_rate=30)
@@ -76,4 +79,9 @@ def test_depth_normals_svd_dpt():
     assert y_normals.shape == (1, y_deps["depths"].shape[1], y_deps["depths"].shape[2], 3), y_normals.shape
 
     y_normals_img = depth_svd_normals_repr.make_images(frames, y_normals)
-    assert y_normals_img.shape == (1, 128, 128, 3), y_normals_img.shape
+    assert y_normals_img.shape == (1, 384, 384, 3), y_normals_img.shape
+
+    assert depth_svd_normals_repr.size(y_normals) == (384, 384)
+    y_normals_resized = depth_svd_normals_repr.resize(y_normals, (64, 128)) # we can resize it though
+    assert depth_svd_normals_repr.size(y_normals_resized) == (64, 128)
+    assert depth_svd_normals_repr.make_images(frames, y_normals_resized).shape == (1, 64, 128, 3)

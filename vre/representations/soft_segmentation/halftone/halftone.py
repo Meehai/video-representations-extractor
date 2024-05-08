@@ -42,10 +42,17 @@ class Halftone(Representation):
 
     @overrides
     def make_images(self, frames: np.ndarray, repr_data: RepresentationOutput) -> np.ndarray:
-        x_rsz = image_resize_batch(repr_data, height=frames.shape[1], width=frames.shape[2])
-        return (x_rsz * 255).astype(np.uint8)
+        return (repr_data * 255).astype(np.uint8)
 
-    def gcr(self, im, percentage):
+    @overrides
+    def size(self, repr_data: RepresentationOutput) -> tuple[int, int]:
+        return repr_data.shape[1:3]
+
+    @overrides
+    def resize(self, repr_data: RepresentationOutput, new_size: tuple[int, int]) -> RepresentationOutput:
+        return image_resize_batch(repr_data, height=new_size[0], width=new_size[1])
+
+    def _gcr(self, im, percentage):
         """
         Basic "Gray Component Replacement" function. Returns a CMYK image with
         percentage gray component removed from the CMY channels and put in the
@@ -152,7 +159,7 @@ class Halftone(Representation):
     def _make_one_image(self, frame: np.ndarray) -> np.ndarray:
         frame = image_resize(frame, height=self.resolution[0], width=self.resolution[1])
         im = Image.fromarray(frame, "RGB")
-        cmyk = self.gcr(im, self.percentage)
+        cmyk = self._gcr(im, self.percentage)
         channel_images = self._halftone(im, cmyk)
         new = Image.merge("CMYK", channel_images)
         new = np.array(new)[..., 0:3]

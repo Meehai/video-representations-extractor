@@ -1,7 +1,7 @@
 """Generalized boundaries (softseg) representation"""
 import torch as tr
 import numpy as np
-from overrides import override
+from overrides import overrides
 
 from .gb_impl.softseg import soft_seg
 from ....representation import Representation, RepresentationOutput
@@ -22,7 +22,7 @@ class GeneralizedBoundaries(Representation):
         self.adjust_to_rgb = adjust_to_rgb
         self.max_channels = max_channels
 
-    @override
+    @overrides
     def make(self, frames: np.ndarray) -> RepresentationOutput:
         x = tr.from_numpy(frames).type(tr.float) / 255
         x = x.permute(0, 3, 1, 2)
@@ -31,8 +31,14 @@ class GeneralizedBoundaries(Representation):
         y = y.permute(0, 2, 3, 1).cpu().numpy()
         return y
 
-    @override
+    @overrides
     def make_images(self, frames: np.ndarray, repr_data: RepresentationOutput) -> np.ndarray:
-        x_rsz = image_resize_batch(repr_data, height=frames.shape[1], width=frames.shape[2])
-        y = (x_rsz * 255).astype(np.uint8)
-        return y
+        return (repr_data * 255).astype(np.uint8)
+
+    @overrides
+    def size(self, repr_data: RepresentationOutput) -> tuple[int, int]:
+        return repr_data.shape[1:3]
+
+    @overrides
+    def resize(self, repr_data: RepresentationOutput, new_size: tuple[int, int]) -> RepresentationOutput:
+        return image_resize_batch(repr_data, height=new_size[0], width=new_size[1])

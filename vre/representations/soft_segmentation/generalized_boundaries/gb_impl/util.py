@@ -19,7 +19,8 @@ def like_an_image(seg, img, sampling_step=5):
     img = F.interpolate(img, size=(ny, nx), mode='nearest')
     seg = torch.cat((seg, torch.ones((nb, 1, seg.shape[2], seg.shape[3]), dtype=seg.dtype, device=seg.device)), dim=1)
 
-    ys, xs = torch.meshgrid(torch.arange(0, ny - sampling_step, sampling_step), torch.arange(0, nx - sampling_step, sampling_step), indexing="ij")
+    ys, xs = torch.meshgrid(torch.arange(0, ny - sampling_step, sampling_step),
+                            torch.arange(0, nx - sampling_step, sampling_step), indexing="ij")
     seg_spl = seg[:, :, ys, xs].view(nb, nc + 1, -1).permute(0, 2, 1).unsqueeze(1).expand(-1, ni, -1, -1)
     img_spl = img[:, :, ys, xs].view(nb, ni, -1).unsqueeze(3)
 

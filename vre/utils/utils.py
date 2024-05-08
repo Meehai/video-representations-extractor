@@ -26,13 +26,16 @@ def parsed_str_type(item: Any) -> str:
     """Given an object with a type of the format: <class 'A.B.C.D'>, parse it and return 'A.B.C.D'"""
     return str(type(item)).rsplit(".", maxsplit=1)[-1][0:-2]
 
-def image_resize(x: np.ndarray, height: int, width: int, **kwargs) -> np.ndarray:
-    """resizes an image to the given height and width"""
-    dtype_orig = x.dtype
-    x = x.astype(np.float32) / 255 if dtype_orig == np.uint8 else x
-    y = resize(x, output_shape=(height, width), **kwargs)
-    y = (y * 255).astype(dtype_orig) if dtype_orig == np.uint8 else y
-    return y
+def image_resize(data: np.ndarray, height: int, width: int, interpolation: str = "bilinear", **kwargs) -> np.ndarray:
+    """Skimage image resizer"""
+    assert interpolation in ("nearest", "bilinear", "bicubic", "biquadratic", "biquartic", "biquintic")
+    assert isinstance(height, int) and isinstance(width, int)
+
+    # As per: https://github.com/scikit-image/scikit-image/blob/main/skimage/transform/_warps.py#L820
+    order = {"nearest": 0, "bilinear": 1, "biquadratic": 2, "bicubic": 3, "biquartic": 4, "biquintic": 5}[interpolation]
+    img_resized = resize(data, output_shape=(height, width), order=order, preserve_range=True, **kwargs)
+    img_resized = img_resized.astype(data.dtype)
+    return img_resized
 
 def image_resize_batch(x_batch: np.ndarray, height: int, width: int, **kwargs) -> np.ndarray:
     """resizes a bath of images to the given height and width"""

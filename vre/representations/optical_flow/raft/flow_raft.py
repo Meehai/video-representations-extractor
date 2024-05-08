@@ -13,12 +13,11 @@ from ....logger import logger
 
 class FlowRaft(Representation):
     """FlowRaft representation"""
-    def __init__(self, inference_height: int, inference_width: int, iters: int, small: bool,
-                 mixed_precision: bool, **kwargs):
+    def __init__(self, inference_height: int, inference_width: int, iters: int, small: bool, **kwargs):
         assert inference_height >= 128 and inference_width >= 128, f"This flow doesn't work with small " \
             f"videos. At least 128x128 is required, but got {inference_height}x{inference_width}"
+        self.mixed_precision = False
         self.small = small
-        self.mixed_precision = mixed_precision
         self.iters = iters
         self.device = "cpu"
 
@@ -60,24 +59,6 @@ class FlowRaft(Representation):
             right_frames = np.concatenate([right_frames, np.array([video[-1]])], axis=0)
         return {"right_frames": right_frames}
 
-    def _preprocess(self, frames: np.ndarray) -> (tr.Tensor, tr.Tensor):
-        tr_frames = tr.from_numpy(frames).to(self.device)
-        tr_frames = tr_frames.permute(0, 3, 1, 2).float()
-
-        frames_rsz = F.interpolate(tr_frames, (self.inference_height, self.inference_width), mode="bilinear")
-        padder = InputPadder((len(frames), 3, self.inference_height, self.inference_width))
-        frames_padded = padder.pad(frames_rsz)
-        return frames_padded
-
-    def _postporcess(self, predictions: tr.Tensor) -> np.ndarray:
-        padder = InputPadder((len(predictions), 3, self.inference_height, self.inference_width))
-        flow_unpad = padder.unpad(predictions).cpu().numpy()
-        flow_perm = flow_unpad.transpose(0, 2, 3, 1)
-        flow_unpad_norm = flow_perm / (self.inference_height, self.inference_width)
-        flow_unpad_norm = (flow_unpad_norm + 1) / 2
-        flow_unpad_norm = flow_unpad_norm.astype(np.float32)
-        return flow_unpad_norm
-
     # pylint: disable=arguments-differ
     @overrides(check_signature=False)
     def make(self, frames: np.ndarray, right_frames: np.ndarray) -> RepresentationOutput:
@@ -92,8 +73,31 @@ class FlowRaft(Representation):
 
     @overrides
     def make_images(self, frames: np.ndarray, repr_data: RepresentationOutput) -> np.ndarray:
-        # [0 : 1] => [-1 : 1]
-        repr_data_resized = repr_data * 2 - 1
-        x_rsz = image_resize_batch(repr_data_resized, height=frames.shape[1], width=frames.shape[2])
-        y = np.array([flow_vis.flow_to_color(_pred) for _pred in x_rsz])
+        repr_data_renormed = repr_data * 2 - 1 # [0 : 1] => [-1 : 1]
+        y = np.array([flow_vis.flow_to_color(_pred) for _pred in repr_data_renormed])
         return y
+
+    @overrides
+    def size(self, repr_data: RepresentationOutput) -> tuple[int, int]:
+        return repr_data.shape[1:3]
+
+    @overrides
+    def resize(self, repr_data: RepresentationOutput, new_size: tuple[int, int]) -> RepresentationOutput:
+        return image_resize_batch(repr_data, *new_size)
+
+    def _preprocess(self, frames: np.ndarray) -> (tr.Tensor, tr.Tensor):
+        tr_frames = tr.from_numpy(frames).to(self.device)
+        tr_frames = tr_frames.permute(0, 3, 1, 2).float() # (B, C, H, W)
+        frames_rsz = F.interpolate(tr_frames, (self.inference_height, self.inference_width), mode="bilinear")
+        padder = InputPadder((len(frames), 3, self.inference_height, self.inference_width))
+        frames_padded = padder.pad(frames_rsz)
+        return frames_padded
+
+    def _postporcess(self, predictions: tr.Tensor) -> np.ndarray:
+        padder = InputPadder((len(predictions), 3, self.inference_height, self.inference_width))
+        flow_unpad = padder.unpad(predictions).cpu().numpy()
+        flow_perm = flow_unpad.transpose(0, 2, 3, 1)
+        flow_unpad_norm = flow_perm / (self.inference_height, self.inference_width)
+        flow_unpad_norm = (flow_unpad_norm + 1) / 2 # -1 : 1] => [0 : 1]
+        flow_unpad_norm = flow_unpad_norm.astype(np.float32)
+        return flow_unpad_norm

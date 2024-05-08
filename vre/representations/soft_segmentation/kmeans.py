@@ -2,7 +2,7 @@
 import numpy as np
 from overrides import overrides
 from ...representation import Representation, RepresentationOutput
-from ...utils import to_categorical, generate_diverse_colors
+from ...utils import to_categorical, generate_diverse_colors, image_resize_batch
 
 def _get_closest(centers: np.ndarray, colors: np.ndarray) -> list:
     # pylint: disable=unbalanced-tuple-unpacking
@@ -47,6 +47,17 @@ class KMeans(Representation):
         for _x, _extra in zip(x, extra):
             imgs.append(self._make_one_image(_x, _extra["centers"]))
         return np.array(imgs)
+
+    @overrides
+    def size(self, repr_data: RepresentationOutput) -> tuple[int, int]:
+        assert isinstance(repr_data, tuple), type(repr_data) # as make() returned it
+        return repr_data[0].shape[1:3]
+
+    @overrides
+    def resize(self, repr_data: RepresentationOutput, new_size: tuple[int, int]) -> RepresentationOutput:
+        assert isinstance(repr_data, tuple), type(repr_data)
+        data_resized = image_resize_batch(repr_data[0], *new_size, interpolation="nearest")
+        return (data_resized, repr_data[1]) # no need to resize centers as they are in color space
 
     def _make_one_frame(self, frame: np.ndarray) -> (np.ndarray, list[tuple[int, int]]):
         # pylint: disable=import-outside-toplevel, too-many-function-args

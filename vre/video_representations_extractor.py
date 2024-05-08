@@ -18,22 +18,6 @@ def _open_write_err(path: str, msg: str):
     open(path, "a").write(msg)
     logger.debug(f"Error: {msg}")
 
-def _vre_make(vre: VideoRepresentationsExtractor, _repr: Representation, ix: slice, make_images: bool) \
-        -> (RepresentationOutput, np.ndarray | None):
-    """
-    Method used to integrate with VRE. Gets the entire data (video) and a slice of it (ix) and returns the
-    representation for that slice. Additionally, if makes_images is set to True, it also returns the image
-    representations of this slice.
-    """
-    if tr.cuda.is_available():
-        tr.cuda.empty_cache()
-    frames = np.array(vre.video[ix])
-    dep_data = _repr.vre_dep_data(vre.video, ix)
-    res = _repr.make(frames, **dep_data)
-    repr_data, extra = res if isinstance(res, tuple) else (res, {})
-    imgs = _repr.make_images(frames, res) if make_images else None
-    return (repr_data, extra), imgs
-
 class VideoRepresentationsExtractor:
     """Video Representations Extractor class"""
 
@@ -50,10 +34,11 @@ class VideoRepresentationsExtractor:
         self.representations: dict[str, Representation] = representations
         self.output_dir = output_dir
 
-    def _store_data(self, name: str, raw_data: np.ndarray, extra: dict, imgs: np.ndarray | None,
+    def _store_data(self, name: str, y_repr: tuple[np.ndarray, dict], imgs: np.ndarray | None,
                     l: int, r: int, runtime_args: VRERuntimeArgs):
         """store the data in the right format"""
         h, w = self.video.frame_shape[0:2]
+        raw_data, extra = y_repr
         if runtime_args.export_png:
             assert imgs is not None
             assert imgs.shape == (r - l, h, w, 3), (imgs.shape, (r - l, h, w, 3))
@@ -68,6 +53,26 @@ class VideoRepresentationsExtractor:
             if runtime_args.export_png:
                 image_write(imgs[i], runtime_args.png_paths[name][t])
 
+    def _make_one_frame(self, _repr: Representation, ix: slice, make_images: bool) \
+            -> (RepresentationOutput, np.ndarray | None):
+        """
+        Method used to integrate with VRE. Gets the entire data (video) and a slice of it (ix) and returns the
+        representation for that slice. Additionally, if makes_images is set to True, it also returns the image
+        representations of this slice.
+        """
+        if tr.cuda.is_available():
+            tr.cuda.empty_cache()
+        frames = np.array(self.video[ix])
+        dep_data = _repr.vre_dep_data(self.video, ix)
+        res = _repr.make(frames, **dep_data)
+        try:
+            res_rsz = _repr.resize(res, self.video.frame_shape[0:2])
+        except NotImplementedError:
+            res_rsz = res
+        repr_data, extra = res_rsz if isinstance(res_rsz, tuple) else (res_rsz, {})
+        imgs = _repr.make_images(frames, res_rsz) if make_images else None
+        return (repr_data, extra), imgs
+
     def _do_one_representation(self, representation: Representation, runtime_args: VRERuntimeArgs):
         """main loop of each representation."""
         name = representation.name
@@ -76,7 +81,7 @@ class VideoRepresentationsExtractor:
 
         # call vre_setup here so expensive representations get lazy deep instantiated (i.e. models loading)
         try:
-            representation.vre_setup(video=self.video, **representation.vre_parameters) # TODO: maybe update the stup
+            representation.vre_setup(video=self.video, **representation.vre_parameters) # these come from the yaml file
         except Exception:
             _open_write_err("exception.txt", f"\n[{name} {datetime.now()} {batch_size=} {traceback.format_exc()}\n")
             del representation
@@ -94,8 +99,8 @@ class VideoRepresentationsExtractor:
 
             now = datetime.now()
             try:
-                (raw_data, extra), imgs = _vre_make(self, representation, slice(l, r), runtime_args.export_png) # noqa
-                self._store_data(name, raw_data, extra, imgs, l, r, runtime_args)
+                y_repr, imgs = self._make_one_frame(representation, slice(l, r), runtime_args.export_png) # noqa
+                self._store_data(name, y_repr, imgs, l, r, runtime_args)
             except Exception:
                 _open_write_err("exception.txt", f"\n[{name} {now} {batch_size=} {l=} {r=}] {traceback.format_exc()}\n")
                 repr_stats.extend([1 << 31] * (runtime_args.end_frame - l))

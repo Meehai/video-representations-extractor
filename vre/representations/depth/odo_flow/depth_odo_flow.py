@@ -97,11 +97,20 @@ class DepthOdoFlow(Representation):
 
     @overrides
     def make_images(self, frames: np.ndarray, repr_data: RepresentationOutput) -> np.ndarray:
+        assert isinstance(repr_data, tuple), type(repr_data)
         x = repr_data[0]
         assert x.min() >= 0 and x.max() <= 1, (x.min(), x.max())
-        x_rsz = image_resize_batch(x, height=frames.shape[1], width=frames.shape[2])
-        where_max = np.where(np.abs(x_rsz - 1) < 1e-3)
-        y = hot(x_rsz)[..., 0:3]
+        where_max = np.where(np.abs(x - 1) < 1e-3)
+        y = hot(x)[..., 0:3]
         y = np.uint8(y * 255)
         y[where_max] = [0, 0, 0]
         return y
+
+    @overrides
+    def size(self, repr_data: RepresentationOutput) -> tuple[int, int]:
+        assert isinstance(repr_data, tuple), type(repr_data)
+        return repr_data[0].shape[1:3]
+
+    @overrides
+    def resize(self, repr_data: RepresentationOutput, new_size: tuple[int, int]) -> RepresentationOutput:
+        return image_resize_batch(repr_data[0], *new_size), repr_data[1]

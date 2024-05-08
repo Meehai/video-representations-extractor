@@ -13,5 +13,10 @@ def test_canny_1():
     assert y_canny_images.shape == (1, 64, 128, 3)
     assert y_canny_images.dtype == np.uint8, y_canny_images.dtype
 
+    assert canny_repr.size(y_canny) == (64, 128)
+    y_canny_resized = canny_repr.resize(y_canny, (32, 64)) # we can resize it though
+    assert canny_repr.size(y_canny_resized) == (32, 64)
+    assert canny_repr.make_images(frames, y_canny_resized).shape == (1, 32, 64, 3)
+
 if __name__ == "__main__":
     test_canny_1()
