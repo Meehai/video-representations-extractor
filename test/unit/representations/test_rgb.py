@@ -8,7 +8,7 @@ def test_rgb_1():
 
     frames = np.array(video[0:1])
     y_rgb = rgb_repr(frames)
-    assert np.allclose(y_rgb * 255, video.data[0])
+    assert np.allclose(y_rgb, video.data[0])
 
     y_rgb_images = rgb_repr.make_images(frames, y_rgb)
     assert np.allclose(y_rgb_images, video.data[0])

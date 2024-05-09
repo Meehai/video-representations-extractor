@@ -29,8 +29,7 @@ def parsed_str_type(item: Any) -> str:
 def image_resize(data: np.ndarray, height: int, width: int, interpolation: str = "bilinear", **kwargs) -> np.ndarray:
     """Skimage image resizer"""
     assert interpolation in ("nearest", "bilinear", "bicubic", "biquadratic", "biquartic", "biquintic")
-    assert isinstance(height, int) and isinstance(width, int)
-
+    assert isinstance(height, int) and isinstance(width, int) and height > 0 and width > 0, (height, width)
     # As per: https://github.com/scikit-image/scikit-image/blob/main/skimage/transform/_warps.py#L820
     order = {"nearest": 0, "bilinear": 1, "biquadratic": 2, "bicubic": 3, "biquartic": 4, "biquintic": 5}[interpolation]
     img_resized = resize(data, output_shape=(height, width), order=order, preserve_range=True, **kwargs)

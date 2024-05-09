@@ -68,8 +68,7 @@ class FlowRife(Representation):
 
     @overrides
     def make_images(self, frames: np.ndarray, repr_data: RepresentationOutput) -> np.ndarray:
-        x = repr_data * 2 - 1 # [0 : 1] => [-1 : 1]
-        y = np.array([flow_vis.flow_to_color(_pred) for _pred in x])
+        y = np.array([flow_vis.flow_to_color(_pred) for _pred in repr_data])
         return y
 
     @overrides
@@ -95,13 +94,10 @@ class FlowRife(Representation):
         return tr_sources_padded, tr_target_padded, padding
 
     def _postprocess(self, prediction: tr.Tensor, padding: tuple) -> np.ndarray:
-        flow = prediction.cpu().numpy().transpose(0, 2, 3, 1)
+        flow = prediction.cpu().numpy().transpose(0, 2, 3, 1) # (B, H, W, C)
         returned_shape = flow.shape[1:3]
         # Remove the padding to keep original shape
         half_ph, half_pw = padding[3] // 2, padding[1] // 2
         flow = flow[:, 0: returned_shape[0] - half_ph, 0: returned_shape[1] - half_pw]
-        # [-px : px] => [-1 : 1]
-        flow /= returned_shape
-        # [-1 : 1] => [0 : 1]
-        flow = (flow + 1) / 2
-        return flow
+        flow = flow / returned_shape # [-px : px] => [-1 : 1]
+        return flow.astype(np.float16)

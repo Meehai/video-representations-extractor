@@ -73,8 +73,7 @@ class FlowRaft(Representation):
 
     @overrides
     def make_images(self, frames: np.ndarray, repr_data: RepresentationOutput) -> np.ndarray:
-        repr_data_renormed = repr_data * 2 - 1 # [0 : 1] => [-1 : 1]
-        y = np.array([flow_vis.flow_to_color(_pred) for _pred in repr_data_renormed])
+        y = np.array([flow_vis.flow_to_color(_pred) for _pred in repr_data])
         return y
 
     @overrides
@@ -97,7 +96,6 @@ class FlowRaft(Representation):
         padder = InputPadder((len(predictions), 3, self.inference_height, self.inference_width))
         flow_unpad = padder.unpad(predictions).cpu().numpy()
         flow_perm = flow_unpad.transpose(0, 2, 3, 1)
-        flow_unpad_norm = flow_perm / (self.inference_height, self.inference_width)
-        flow_unpad_norm = (flow_unpad_norm + 1) / 2 # -1 : 1] => [0 : 1]
-        flow_unpad_norm = flow_unpad_norm.astype(np.float32)
+        flow_unpad_norm = flow_perm / (self.inference_height, self.inference_width) # [-1 : 1]
+        flow_unpad_norm = flow_unpad_norm.astype(np.float16)
         return flow_unpad_norm
