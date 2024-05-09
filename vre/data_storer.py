@@ -23,22 +23,18 @@ class DataStorer:
 
     @staticmethod
     def _worker_fn(queue: Queue):
-        while True:
-            data = queue.get()
-            if data is None:
-                break
-            name, y_repr, imgs, l, r, runtime_args = data
-            DataStorer._store_data(name, y_repr, imgs, l, r, runtime_args)
+        while True: # Since these threads are daemon, they die when main thread dies. We could use None or smth to break
+            DataStorer._store_data(*queue.get())
             queue.task_done()
 
     @staticmethod
     def _store_data(name: str, y_repr: tuple[np.ndarray, dict], imgs: np.ndarray | None,
-                    l: int, r: int, runtime_args: VRERuntimeArgs):
+                    l: int, r: int, runtime_args: VRERuntimeArgs, frame_size: tuple[int, int]):
         """store the data in the right format"""
         raw_data, extra = y_repr
         if runtime_args.export_png:
             if (o_s := runtime_args.output_sizes[name]) != "native": # if native, godbless on the expected sizes.
-                h, w = runtime_args.vre.video.frame_shape[0:2] if o_s == "video_shape" else o_s
+                h, w = frame_size if o_s == "video_shape" else o_s
                 assert imgs.shape == (r - l, h, w, 3), (imgs.shape, (r - l, h, w, 3))
             assert imgs is not None
             assert imgs.dtype == np.uint8, imgs.dtype
@@ -53,7 +49,9 @@ class DataStorer:
             if runtime_args.export_png:
                 image_write(imgs[i], runtime_args.png_paths[name][t])
 
-    def _join_with_timeout(self, timeout):
+    def join_with_timeout(self, timeout: int):
+        """calls queue.join() but throws after timeout seconds if it doesn't end"""
+        logger.debug(f"Waiting for {self.queue.unfinished_tasks} leftover enqueued tasks")
         self.queue.all_tasks_done.acquire()
         try:
             endtime = time() + timeout
@@ -66,12 +64,8 @@ class DataStorer:
             self.queue.all_tasks_done.release()
 
     def __call__(self, name: str, y_repr: tuple[np.ndarray, dict], imgs: np.ndarray | None,
-                    l: int, r: int, runtime_args: VRERuntimeArgs):
-        self.queue.put((name, y_repr, imgs, l, r, runtime_args), block=True, timeout=100)
+                 l: int, r: int, runtime_args: VRERuntimeArgs, frame_size: tuple[int, int]):
+        self.queue.put((name, y_repr, imgs, l, r, runtime_args, frame_size), block=True, timeout=30)
         if self.n_threads == 0: # call here if no threads are used.
             self._store_data(*self.queue.get())
-
-    def __del__(self):
-        logger.debug(f"Waiting for {self.queue.unfinished_tasks} leftover enqueued tasks:")
-        # this makes it that the main thread doesn't quit until all .put() items are task_done()'d.
-        self._join_with_timeout(timeout=100)
+            self.queue.task_done()

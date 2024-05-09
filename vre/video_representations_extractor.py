@@ -83,7 +83,7 @@ class VideoRepresentationsExtractor:
             now = datetime.now()
             try:
                 y_repr, imgs = self._make_one_frame(representation, slice(l, r), runtime_args) # noqa
-                self._data_storer(name, y_repr, imgs, l, r, runtime_args)
+                self._data_storer(name, y_repr, imgs, l, r, runtime_args, self.video.frame_shape[0:2])
             except Exception:
                 _open_write_err("exception.txt", f"\n[{name} {now} {batch_size=} {l=} {r=}] {traceback.format_exc()}\n")
                 repr_stats.extend([1 << 31] * (runtime_args.end_frame - l))
@@ -97,7 +97,7 @@ class VideoRepresentationsExtractor:
     def run(self, output_dir: Path, start_frame: int | None = None, end_frame: int | None = None, batch_size: int = 1,
             export_npy: bool = True, export_png: bool = True, output_dir_exist_mode: str = "raise",
             exception_mode: str = "stop_execution", output_size: str | tuple = "video_shape",
-            store_thread_pool_workers: int = 0) -> pd.DataFrame:
+            n_threads_data_storer: int = 0) -> pd.DataFrame:
         """
         The main loop of the VRE. This will run all the representations on the video and store results in the output_dir
         See VRERuntimeArgs for parameters definition.
@@ -105,8 +105,8 @@ class VideoRepresentationsExtractor:
         - A dataframe with the run statistics for each representation
         """
         runtime_args = VRERuntimeArgs(self, output_dir, start_frame, end_frame, batch_size, export_npy, export_png,
-                                      output_dir_exist_mode, exception_mode, output_size, store_thread_pool_workers)
-        self._data_storer = DataStorer(store_thread_pool_workers)
+                                      output_dir_exist_mode, exception_mode, output_size, n_threads_data_storer)
+        self._data_storer = DataStorer(n_threads_data_storer)
         run_stats = []
         for name, vre_repr in self.representations.items():
             repr_res = self._do_one_representation(vre_repr, runtime_args)
@@ -116,7 +116,7 @@ class VideoRepresentationsExtractor:
             del vre_repr
         df_run_stats = pd.DataFrame(reduce(lambda a, b: {**a, **b}, run_stats),
                                     index=range(runtime_args.start_frame, runtime_args.end_frame))
-        del self._data_storer # explicitly wait for the thread pool to finish writing to disk if we are using threads
+        self._data_storer.join_with_timeout(timeout=30)
         return df_run_stats
 
     # pylint: disable=too-many-branches, too-many-nested-blocks
