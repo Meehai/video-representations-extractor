@@ -24,3 +24,6 @@ def test_vre_simple_representations():
     vre(tmp_dir, start_frame=1000, end_frame=1001, export_png=True, export_npy=True)
     assert Path(f"{tmp_dir}/rgb/npy/1000.npz").exists()
     assert Path(f"{tmp_dir}/rgb/png/1000.png").exists()
+
+if __name__ == "__main__":
+    test_vre_simple_representations()

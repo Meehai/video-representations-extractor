@@ -19,7 +19,7 @@ class VRERepresentationMixin:
         - video The video we are working with during the VRE run
         - kwargs Any other parameters that can be passed via `build_representation`
         """
-        logger.debug(f"[{parsed_str_type(self)} No runtime setup provided.")
+        logger.debug(f"[{parsed_str_type(self)}] No runtime setup provided.")
 
     # pylint: disable=unused-argument
     def vre_dep_data(self, video: VREVideo, ix: slice) -> dict[str, RepresentationOutput]:

@@ -27,12 +27,12 @@ class VRERuntimeArgs:
     - output_size The resulted output shape in the npy/png directories. Valid options: a tuple (h, w), or a string:
         - 'native' whatever each representation outputs out of the box)
         - 'video_shape' (default) resizing to the video shape
-    - store_thread_pool_workers The number of workers used for the ThreadPool that stores data at each step. This is
+    - n_threads_data_storer The number of workers used for the ThreadPool that stores data at each step. This is
     needed because storing data takes a lot of time sometimes, even more than the computation itself. Default: 1.
     """
     def __init__(self, vre: "VRE", output_dir: Path, start_frame: int | None, end_frame: int | None, batch_size: int,
                  export_npy: bool, export_png: bool, output_dir_exist_mode: str, exception_mode: str,
-                 output_size: str | tuple, store_thread_pool_workers: int):
+                 output_size: str | tuple, n_threads_data_storer: int):
         assert batch_size >= 1, f"batch size must be >= 1, got {batch_size}"
         assert export_npy + export_png > 0, "At least one of export modes must be True"
         assert output_dir_exist_mode in ("overwrite", "skip_computed", "raise"), output_dir_exist_mode
@@ -59,7 +59,7 @@ class VRERuntimeArgs:
         self.output_dir_exist_mode = output_dir_exist_mode
         self.exception_mode = exception_mode
         self.output_size = tuple(output_size) if not isinstance(output_size, str) else output_size
-        self.store_thread_pool_workers = store_thread_pool_workers
+        self.n_threads_data_storer = n_threads_data_storer
 
         self.batch_sizes = {k: batch_size if r.batch_size is None else r.batch_size
                             for k, r in vre.representations.items()}
@@ -98,7 +98,7 @@ class VRERuntimeArgs:
   - Export npy: {self.export_npy}
   - Export png: {self.export_png}
   - Exception mode: '{self.exception_mode}'
-  - Thread pool workers for storing data (0 = using main thread): {self.store_thread_pool_workers}
+  - Thread pool workers for storing data (0 = using main thread): {self.n_threads_data_storer}
 """)
 
     def _make_and_check_dirs(self):
