@@ -21,27 +21,26 @@ def _open_write_err(path: str, msg: str):
 class VideoRepresentationsExtractor:
     """Video Representations Extractor class"""
 
-    def __init__(self, video: VREVideo, representations: dict[str, Representation], output_dir: Path):
+    def __init__(self, video: VREVideo, representations: dict[str, Representation]):
         """
         Parameters:
         - video The video we are performing VRE one
         - representations The dict of instantiated and topo sorted representations (or callable to instantiate them)
-        - output_dir The directory where the data is stored
         """
         assert len(representations) > 0, "At least one representation must be provided"
         assert all(lambda x: isinstance(x, Representation) for x in representations.values()), representations
         self.video = video
         self.representations: dict[str, Representation] = representations
-        self.output_dir = output_dir
 
     def _store_data(self, name: str, y_repr: tuple[np.ndarray, dict], imgs: np.ndarray | None,
                     l: int, r: int, runtime_args: VRERuntimeArgs):
         """store the data in the right format"""
-        h, w = self.video.frame_shape[0:2]
         raw_data, extra = y_repr
         if runtime_args.export_png:
+            if (o_s := runtime_args.output_sizes[name]) != "native": # if native, godbless on the expected sizes.
+                h, w = self.video.frame_shape[0:2] if o_s == "video_shape" else o_s
+                assert imgs.shape == (r - l, h, w, 3), (imgs.shape, (r - l, h, w, 3))
             assert imgs is not None
-            assert imgs.shape == (r - l, h, w, 3), (imgs.shape, (r - l, h, w, 3))
             assert imgs.dtype == np.uint8, imgs.dtype
 
         for i, t in enumerate(range(l, r)):
@@ -53,7 +52,7 @@ class VideoRepresentationsExtractor:
             if runtime_args.export_png:
                 image_write(imgs[i], runtime_args.png_paths[name][t])
 
-    def _make_one_frame(self, _repr: Representation, ix: slice, make_images: bool) \
+    def _make_one_frame(self, _repr: Representation, ix: slice, runtime_args: VRERuntimeArgs) \
             -> (RepresentationOutput, np.ndarray | None):
         """
         Method used to integrate with VRE. Gets the entire data (video) and a slice of it (ix) and returns the
@@ -64,13 +63,15 @@ class VideoRepresentationsExtractor:
             tr.cuda.empty_cache()
         frames = np.array(self.video[ix])
         dep_data = _repr.vre_dep_data(self.video, ix)
-        res = _repr.make(frames, **dep_data)
-        try:
-            res_rsz = _repr.resize(res, self.video.frame_shape[0:2])
-        except NotImplementedError:
-            res_rsz = res
-        repr_data, extra = res_rsz if isinstance(res_rsz, tuple) else (res_rsz, {})
-        imgs = _repr.make_images(frames, res_rsz) if make_images else None
+        res_native = _repr.make(frames, **dep_data)
+        if (o_s := runtime_args.output_sizes[_repr.name]) == "native":
+            res = res_native
+        elif o_s == "video_shape":
+            res = _repr.resize(res_native, self.video.frame_shape[0:2])
+        else:
+            res = _repr.resize(res_native, o_s)
+        repr_data, extra = res if isinstance(res, tuple) else (res, {})
+        imgs = _repr.make_images(frames, res) if runtime_args.export_png else None
         return (repr_data, extra), imgs
 
     def _do_one_representation(self, representation: Representation, runtime_args: VRERuntimeArgs):
@@ -99,7 +100,7 @@ class VideoRepresentationsExtractor:
 
             now = datetime.now()
             try:
-                y_repr, imgs = self._make_one_frame(representation, slice(l, r), runtime_args.export_png) # noqa
+                y_repr, imgs = self._make_one_frame(representation, slice(l, r), runtime_args) # noqa
                 self._store_data(name, y_repr, imgs, l, r, runtime_args)
             except Exception:
                 _open_write_err("exception.txt", f"\n[{name} {now} {batch_size=} {l=} {r=}] {traceback.format_exc()}\n")
@@ -111,12 +112,13 @@ class VideoRepresentationsExtractor:
             pbar.update(r - l)
         return {name: repr_stats}
 
-    def run(self, start_frame: int | None = None, end_frame: int | None = None, batch_size: int = 1,
+    def run(self, output_dir: Path, start_frame: int | None = None, end_frame: int | None = None, batch_size: int = 1,
             export_npy: bool = True, export_png: bool = True, output_dir_exist_mode: str = "raise",
-            exception_mode: str = "stop_execution") -> pd.DataFrame:
+            exception_mode: str = "stop_execution", output_size: str | tuple = "video_shape") -> pd.DataFrame:
         """
         The main loop of the VRE. This will run all the representations on the video and store results in the output_dir
         Parameters:
+        - output_dir The directory used to output representations in this run.
         - start_frame The first frame to process (inclusive). If not provided, defaults to 0.
         - end_frame The last frame to process (inclusive). If not provided, defaults to len(video).
         - batch_size The batch size to use when processing the video. If not provided, defaults to 1.
@@ -125,17 +127,18 @@ class VideoRepresentationsExtractor:
         - output_dir_exist_mode What to do if the output dir already exists. Can be one of:
           - 'overwrite' Overwrite the output dir if it already exists
           - 'skip_computed' Skip the computed frames and continue from the last computed frame
-          - 'raise' Raise an error if the output dir already exists
-          Defaults to 'raise'.
+          - 'raise' (default) Raise an error if the output dir already exists
         - exception_mode What to do when encountering an exception. It always writes the exception to 'exception.txt'.
           - 'skip_representation' Will stop the run of the current representation and start the next one
-          - 'stop_execution' Will stop the execution of VRE
-          Defaults to 'stop_execution'
+          - 'stop_execution' (default) Will stop the execution of VRE
+        - output_size The resulted output shape in the npy/png directories. Valid options: a tuple (h, w), or a string:
+          - 'native' whatever each representation outputs out of the box)
+          - 'video_shape' (default) resizing to the video shape
         Returns:
         - A dataframe with the run statistics for each representation
         """
-        runtime_args = VRERuntimeArgs(self, start_frame, end_frame, batch_size, export_npy, export_png,
-                                      output_dir_exist_mode, exception_mode)
+        runtime_args = VRERuntimeArgs(self, output_dir, start_frame, end_frame, batch_size, export_npy, export_png,
+                                      output_dir_exist_mode, exception_mode, output_size)
         run_stats = []
         for name, vre_repr in self.representations.items():
             repr_res = self._do_one_representation(vre_repr, runtime_args)

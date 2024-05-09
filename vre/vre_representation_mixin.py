@@ -7,6 +7,7 @@ class VRERepresentationMixin:
     def __init__(self):
         self.vre_parameters = {}
         self.batch_size: int | None = None
+        self.output_size: tuple[int, int] | str | None = None
 
     # pylint: disable=unused-argument
     def vre_setup(self, video: VREVideo, **kwargs):
