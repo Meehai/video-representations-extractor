@@ -23,13 +23,15 @@ def get_args():
     parser.add_argument("--output_dir_exist_mode", choices=["overwrite", "skip_computed", "raise"])
     parser.add_argument("--frame_rate", type=int, help="For a directory of images. Required for optical flow")
     parser.add_argument("--batch_size", type=int)
+    parser.add_argument("--output_size", nargs="+", default=["video_shape"])
     parser.add_argument("--representations", nargs="+", help="Subset of representations to run VRE for")
 
     args = parser.parse_args()
     args.video_path = Path(args.video_path).absolute()
     args.output_path = Path(args.output_path).absolute()
-    if args.cfg_path is not None:
-        args.cfg_path = Path(args.cfg_path).absolute()
+    assert 0 < len(args.output_size) < 3, args.output_size
+    args.output_size = args.output_size[0] if len(args.output_size) == 1 else tuple(map(int, args.output_size))
+    args.cfg_path = Path(args.cfg_path).absolute() if args.cfg_path is not None else args.cfg_path
     return args
 
 def get_cfg():
@@ -46,7 +48,8 @@ def get_cfg():
 
         return cfg
 
-    cfg.vre = _update_cfg_from_args(cfg.vre, args, ["start_frame", "end_frame", "output_dir_exist_mode", "batch_size"])
+    cfg.vre = _update_cfg_from_args(cfg.vre, args, ["start_frame", "end_frame", "output_dir_exist_mode",
+                                                    "batch_size", "output_size"])
     if args.representations is not None:
         assert (d := set(args.representations).difference(r := cfg.representations.keys())) == set(), f"{d} not in {r}"
         logger.info(f"Keeping only {args.representations} from the config")
@@ -63,8 +66,8 @@ def main():
     else:
         video = pims.Video(args.video_path)
     representations = build_representations_from_cfg(cfg.representations)
-    vre = VRE(video, representations, args.output_path)
-    run_stats = vre(**cfg.vre)
+    vre = VRE(video, representations)
+    run_stats = vre(args.output_path, **cfg.vre)
     print(run_stats if len(run_stats) > 1 else run_stats.T)
 
 if __name__ == "__main__":
