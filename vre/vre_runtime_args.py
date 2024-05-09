@@ -9,10 +9,30 @@ from .logger import logger
 RepresentationsSetup = dict[str, dict[str, Any]]
 
 class VRERuntimeArgs:
-    """VRE runtime args. Helper class to process the arguments sent to vre.run()"""
+    """VRE runtime args. Helper class to process the arguments sent to vre.run()
+    Parameters:
+    - output_dir The directory used to output representations in this run.
+    - start_frame The first frame to process (inclusive). If not provided, defaults to 0.
+    - end_frame The last frame to process (inclusive). If not provided, defaults to len(video).
+    - batch_size The batch size to use when processing the video. If not provided, defaults to 1.
+    - export_npy Whether to export the npy files
+    - export_png Whether to export the png files
+    - output_dir_exist_mode What to do if the output dir already exists. Can be one of:
+        - 'overwrite' Overwrite the output dir if it already exists
+        - 'skip_computed' Skip the computed frames and continue from the last computed frame
+        - 'raise' (default) Raise an error if the output dir already exists
+    - exception_mode What to do when encountering an exception. It always writes the exception to 'exception.txt'.
+        - 'skip_representation' Will stop the run of the current representation and start the next one
+        - 'stop_execution' (default) Will stop the execution of VRE
+    - output_size The resulted output shape in the npy/png directories. Valid options: a tuple (h, w), or a string:
+        - 'native' whatever each representation outputs out of the box)
+        - 'video_shape' (default) resizing to the video shape
+    - store_thread_pool_workers The number of workers used for the ThreadPool that stores data at each step. This is
+    needed because storing data takes a lot of time sometimes, even more than the computation itself. Default: 1.
+    """
     def __init__(self, vre: "VRE", output_dir: Path, start_frame: int | None, end_frame: int | None, batch_size: int,
                  export_npy: bool, export_png: bool, output_dir_exist_mode: str, exception_mode: str,
-                 output_size: str | tuple):
+                 output_size: str | tuple, store_thread_pool_workers: int):
         assert batch_size >= 1, f"batch size must be >= 1, got {batch_size}"
         assert export_npy + export_png > 0, "At least one of export modes must be True"
         assert output_dir_exist_mode in ("overwrite", "skip_computed", "raise"), output_dir_exist_mode
@@ -39,6 +59,7 @@ class VRERuntimeArgs:
         self.output_dir_exist_mode = output_dir_exist_mode
         self.exception_mode = exception_mode
         self.output_size = tuple(output_size) if not isinstance(output_size, str) else output_size
+        self.store_thread_pool_workers = store_thread_pool_workers
 
         self.batch_sizes = {k: batch_size if r.batch_size is None else r.batch_size
                             for k, r in vre.representations.items()}
@@ -77,6 +98,7 @@ class VRERuntimeArgs:
   - Export npy: {self.export_npy}
   - Export png: {self.export_png}
   - Exception mode: '{self.exception_mode}'
+  - Thread pool workers for storing data (0 = using main thread): {self.store_thread_pool_workers}
 """)
 
     def _make_and_check_dirs(self):

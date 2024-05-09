@@ -11,4 +11,5 @@ imgur.sh
 *.ckpt
 examples/try
 exception.txt
+logs/
 

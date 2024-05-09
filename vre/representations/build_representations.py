@@ -94,7 +94,7 @@ def build_representation_from_cfg(repr_cfg: dict, name: str, built_so_far: dict[
         assert isinstance(repr_cfg["vre_parameters"], dict), type(repr_cfg["vre_parameters"])
         obj.vre_parameters = repr_cfg["vre_parameters"]
     if "batch_size" in repr_cfg:
-        logger.debug(f"Explicit batch size {repr_cfg['batch_size']} provided to {name}.")
+        logger.info(f"Explicit batch size {repr_cfg['batch_size']} provided to {name}.")
         assert isinstance(repr_cfg["batch_size"], int), type(repr_cfg["batch_size"])
         obj.batch_size = repr_cfg["batch_size"]
     return obj

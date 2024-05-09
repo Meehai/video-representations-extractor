@@ -8,11 +8,11 @@ class RGB(Representation):
     """RGB representation"""
     @overrides
     def make(self, frames: np.ndarray) -> RepresentationOutput:
-        return frames.astype(np.float32) / 255
+        return frames
 
     @overrides
     def make_images(self, frames: np.ndarray, repr_data: RepresentationOutput) -> np.ndarray:
-        return (repr_data * 255).astype(np.uint8)
+        return repr_data
 
     @overrides
     def size(self, repr_data: RepresentationOutput) -> tuple[int, int]:

@@ -78,5 +78,5 @@ class DexiNed(Representation):
         A = y_s.min(dim=-1, keepdims=True)[0].min(dim=-2, keepdims=True)[0]
         B = y_s.max(dim=-1, keepdims=True)[0].max(dim=-2, keepdims=True)[0]
         y_s_normed = 1 - (y_s - A) * (B - A)
-        y_s_final = y_s_normed.mean(dim=1).cpu().numpy()
+        y_s_final = y_s_normed.mean(dim=1).cpu().numpy().astype(np.float16)
         return y_s_final

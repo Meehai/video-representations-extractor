@@ -2,14 +2,24 @@
 from argparse import ArgumentParser
 from typing import List
 from pathlib import Path
+from datetime import datetime
+import os
 from natsort import natsorted
 import numpy as np
+import pandas as pd
 import pims
 from vre import VRE
-from vre.utils import FakeVideo, image_read
+from vre.utils import FakeVideo, image_read, get_project_root
 from vre.representations import build_representations_from_cfg
 from vre.logger import logger
 from omegaconf import OmegaConf
+
+def _print_and_store_run_stats(run_stats: pd.DataFrame):
+    print(run_stats if len(run_stats) > 1 else run_stats.T)
+    (logs_dir := Path(os.getenv("VRE_LOGS_DIR", get_project_root() / "logs"))).mkdir(exist_ok=True, parents=True)
+    run_stats_out_file = f"{logs_dir}/run_stats_{datetime.now().replace(microsecond=0).isoformat()}.csv"
+    logger.info(f"Stored vre run log file at '{run_stats_out_file}")
+    run_stats.to_csv(run_stats_out_file)
 
 def get_args():
     """cli args"""
@@ -25,6 +35,7 @@ def get_args():
     parser.add_argument("--batch_size", type=int)
     parser.add_argument("--output_size", nargs="+", default=["video_shape"])
     parser.add_argument("--representations", nargs="+", help="Subset of representations to run VRE for")
+    parser.add_argument("--store_thread_pool_workers", type=int, default=0)
 
     args = parser.parse_args()
     args.video_path = Path(args.video_path).absolute()
@@ -49,7 +60,7 @@ def get_cfg():
         return cfg
 
     cfg.vre = _update_cfg_from_args(cfg.vre, args, ["start_frame", "end_frame", "output_dir_exist_mode",
-                                                    "batch_size", "output_size"])
+                                                    "batch_size", "output_size", "store_thread_pool_workers"])
     if args.representations is not None:
         assert (d := set(args.representations).difference(r := cfg.representations.keys())) == set(), f"{d} not in {r}"
         logger.info(f"Keeping only {args.representations} from the config")
@@ -68,7 +79,7 @@ def main():
     representations = build_representations_from_cfg(cfg.representations)
     vre = VRE(video, representations)
     run_stats = vre(args.output_path, **cfg.vre)
-    print(run_stats if len(run_stats) > 1 else run_stats.T)
+    _print_and_store_run_stats(run_stats)
 
 if __name__ == "__main__":
     main()
