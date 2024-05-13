@@ -12,4 +12,6 @@ imgur.sh
 examples/try
 exception.txt
 logs/
+dist/
+*.egg-info
 
