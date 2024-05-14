@@ -72,7 +72,7 @@ def test_vre_batched():
         "normals svd (odoflow rife)": {"type": "normals", "name": "depth-svd", "dependencies": ["depth odoflow (rife)"],
                                        "parameters": {"sensor_fov": 75, "sensor_width": 3840,
                                                       "sensor_height": 2160, "window_size": 11}},
-        "semantic safeuav torch": {"type": "semantic_segmentation", "name": "safeuav", "dependencies": [],
+        "semantic safeuav torch": {"type": "semantic-segmentation", "name": "safeuav", "dependencies": [],
                                    "parameters": {"train_height": 240, "train_width": 428, "num_classes": 8,
                                                   "color_map": [[0, 255, 0], [0, 127, 0], [255, 255, 0],
                                                                 [255, 255, 255], [255, 0, 0], [0, 0, 255],
@@ -91,8 +91,11 @@ def test_vre_batched():
                                                 "sensor_fov": 75, "sensor_width": 3840, "sensor_height": 2160,
                                                 "min_depth_meters": 0, "max_depth_meters": 400},
                                  "vre_parameters": {"velocities_path": "DJI_0956_velocities.npz"}},
-        "mask2former": {"type": "semantic_segmentation", "name": "mask2former", "dependencies": [], "batch_size": 1,
+        "mask2former": {"type": "semantic-segmentation", "name": "mask2former", "dependencies": [], "batch_size": 1,
                         "parameters": {"model_id": "49189528_1", "semantic_argmax_only": False},
+                        "vre_parameters": {"device": device}},
+        "fastsam (s)": {"type": "soft-segmentation", "name": "fastsam", "dependencies": [],
+                        "parameters": {"variant": "fastsam-s", "iou": 0.9, "conf": 0.4},
                         "vre_parameters": {"device": device}},
     }
     # we'll just pick 2 random representations to test here
