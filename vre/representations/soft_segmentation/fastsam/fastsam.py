@@ -4,17 +4,18 @@ import numpy as np
 import torch as tr
 from torch.nn import functional as F
 
-from ultralytics.yolo.engine.results import Results # TODO: get rid of these
-from ultralytics.yolo.utils import ops # TODO: get rid of these
-
 try:
     from .fastsam_impl import FastSAM as Model, FastSAMPredictor, FastSAMPrompt
+    from .fastsam_impl.results import Results
     from .fastsam_impl.utils import bbox_iou
+    from .fastsam_impl.ops import scale_boxes, non_max_suppression, process_mask_native
     from ....representation import Representation, RepresentationOutput
     from ....utils import gdown_mkdir, VREVideo, image_resize_batch, get_weights_dir
 except ImportError:
     from fastsam_impl import FastSAM as Model, FastSAMPredictor, FastSAMPrompt
+    from fastsam_impl.results import Results
     from fastsam_impl.utils import bbox_iou
+    from fastsam_impl.ops import scale_boxes, non_max_suppression, process_mask_native
     from vre.representation import Representation, RepresentationOutput
     from vre.utils import gdown_mkdir, VREVideo, image_resize_batch, get_weights_dir
 
@@ -59,7 +60,7 @@ class FastSam(Representation):
     @overrides
     def make(self, frames: np.ndarray) -> RepresentationOutput:
         tr_x = self._preproces(frames)
-        tr_y = self.predictor.model.model(tr_x)
+        tr_y = self.predictor.model.forward(tr_x)
         mb, _, i_h, i_w = tr_x.shape[0:4]
         boxes = self._postprocess(preds=tr_y, inference_height=i_h, inference_width=i_w, conf=self.conf, iou=self.iou)
         extra = [{"boxes": boxes[i].to("cpu").numpy(), "inference_size": (i_h, i_w)} for i in range(mb)]
@@ -85,7 +86,7 @@ class FastSam(Representation):
             if len(scaled_box) == 0:  # save empty boxes
                 res.append(frame)
                 continue
-            masks = ops.process_mask_native(tr_y[i], scaled_box[:, 6:], scaled_box[:, :4], (frame_h, frame_w))
+            masks = process_mask_native(tr_y[i], scaled_box[:, 6:], scaled_box[:, :4], (frame_h, frame_w))
             res_i = Results(orig_img=frame, path=None, names={0: "object"}, boxes=scaled_box[:, 0:6], masks=masks)
             prompt_process = FastSAMPrompt(frame, [res_i], device=self.device)
             ann = prompt_process.results[0].masks.data
@@ -112,13 +113,13 @@ class FastSam(Representation):
         scaled_box = box.clone()
         if len(scaled_box) == 0:
             return scaled_box
-        scaled_box[:, 0:4] = ops.scale_boxes((inference_height, inference_width), scaled_box[:, 0:4],
-                                             (original_height, original_width))
+        scaled_box[:, 0:4] = scale_boxes((inference_height, inference_width), scaled_box[:, 0:4],
+                                         (original_height, original_width))
         return scaled_box
 
     def _postprocess(self, preds: tr.Tensor, inference_height: int, inference_width: int,
                      conf: float, iou: float) -> list[tr.Tensor]:
-        p = ops.non_max_suppression(preds[0], conf, iou, agnostic=False, max_det=300, nc=1, classes=None)
+        p = non_max_suppression(preds[0], conf, iou, agnostic=False, max_det=300, nc=1, classes=None)
 
         for _p in p:
             if len(_p) == 0:
@@ -165,10 +166,12 @@ def main():
         print(f"Pred took: {datetime.now() - now}")
         semantic_result = fastsam.make_images(img[None], pred)[0]
         image_write(semantic_result, sys.argv[3])
+    print(f"Written result to '{sys.argv[3]}'")
 
     pred_rsz = fastsam.resize(pred, img.shape[0:2])
     semantic_result_rsz = fastsam.make_images(img[None], pred_rsz)[0]
-    image_write(semantic_result_rsz, f"{sys.argv[3][0:-4]}_rsz.{sys.argv[3][-3:]}")
+    image_write(semantic_result_rsz, name := f"{sys.argv[3][0:-4]}_rsz.{sys.argv[3][-3:]}")
+    print(f"Written resized result to '{name}'")
 
 if __name__ == "__main__":
     main()

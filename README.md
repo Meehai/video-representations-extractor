@@ -28,13 +28,15 @@ Installation is as easy as:
 pip install video-representations-extractor
 ```
 
-You can however, use clone this repository and add it to your paths:
+You can however, clone this repository and add it to your paths:
 ```
-git clone https://gitlab.com/meehai/video-representations-extractor
+git clone https://gitlab.com/meehai/video-representations-extractor [/some/dir]
+# in .bashrc
+export PYTHONPATH="$PYTHONPATH:/some/dir"
+export PATH="$PATH:/some/dir/bin"
 ```
-Add `/path/to/video-representations-extractor` to your `$PYTHONPATH` and `/path/to/video-representations-extractor/bin/`
-directory to your `PATH` env variable to be able to access the `vre` tool directly from cli.
 
+After eithrer option, you should be able to run:
 ```bash
 vre <path/to/video.mp4> --cfg_path <path/to/cfg> -o <path/to/export_dir>
 ```
@@ -42,7 +44,7 @@ vre <path/to/video.mp4> --cfg_path <path/to/cfg> -o <path/to/export_dir>
 The magic happens inside the config file, where we define *what* representations to extract and *what* parameters are
 used to instantiate said representations.
 
-### Single image usage
+### 2.1 Single image usage
 
 You can get the representations for a single image (or a directory of images) by placing your image in a standalone
 directory.
@@ -52,6 +54,7 @@ vre <path/to/dir_of_images> --cfg_path <path/to/cfg> -o <path/to/export_dir>
 ```
 
 Note: use `--cfg_path resources/cfgs/testCfg_ootb.yaml` for 'out of the box' working representations.
+
 Note2: Use `VRE_DEVICE=cuda vre...` to use cuda. For some representations, this speeds up the process by a lot.
 
 ## 3. CFG file

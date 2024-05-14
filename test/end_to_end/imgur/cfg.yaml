@@ -59,7 +59,7 @@ representations:
       max_channels: 3
 
   # semantic safeuav torch:
-  #   type: semantic_segmentation
+  #   type: semantic-segmentation
   #   name: safeuav
   #   dependencies: []
   #   parameters:
@@ -118,7 +118,7 @@ representations:
   #     window_size: 11
 
   fastsam(s):
-    type: semantic_segmentation
+    type: soft-segmentation
     name: fastsam
     dependencies: []
     parameters:
@@ -129,7 +129,7 @@ representations:
       device: ${oc.env:VRE_DEVICE,cpu}
 
   mask2former:
-    type: semantic_segmentation
+    type: semantic-segmentation
     name: mask2former
     dependencies: []
     parameters:

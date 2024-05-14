@@ -23,7 +23,7 @@ class FastSAMDecoder:
         self.iou = iou
         self.image = None
         self.image_embedding = None
-        
+
     def run_encoder(self, image):
         if isinstance(image,str):
             image =  np.array(Image.open(image))

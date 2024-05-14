@@ -1,5 +1,5 @@
 import numpy as np
-from vre.representations.semantic_segmentation.fastsam import FastSam
+from vre.representations.soft_segmentation.fastsam import FastSam
 from vre.utils import FakeVideo
 
 def test_fastsam():

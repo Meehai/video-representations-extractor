@@ -28,6 +28,9 @@ def build_representation_type(type: str, name: str) -> Type[Representation]:
         elif name == "generalized_boundaries":
             from .soft_segmentation.generalized_boundaries import GeneralizedBoundaries
             obj_type = GeneralizedBoundaries
+        elif name == "fastsam":
+            from .soft_segmentation.fastsam import FastSam
+            obj_type = FastSam
 
     elif type == "edges":
         if name == "dexined":
@@ -53,14 +56,11 @@ def build_representation_type(type: str, name: str) -> Type[Representation]:
             from .optical_flow.raft import FlowRaft
             obj_type = FlowRaft
 
-    elif type == "semantic_segmentation":
+    elif type == "semantic-segmentation":
         if name == "safeuav":
             from .semantic_segmentation.safeuav import SafeUAV
             obj_type = SafeUAV
-        if name == "fastsam":
-            from .semantic_segmentation.fastsam import FastSam
-            obj_type = FastSam
-        if name == "mask2former":
+        elif name == "mask2former":
             from .semantic_segmentation.mask2former import Mask2Former
             obj_type = Mask2Former
 
