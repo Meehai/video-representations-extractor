@@ -1,4 +1,5 @@
 """FakeVideo module"""
+from typing import Union
 import numpy as np
 import pims
 
@@ -22,4 +23,4 @@ class FakeVideo:
     def __len__(self):
         return len(self.data)
 
-VREVideo = pims.Video | FakeVideo
+VREVideo = Union[pims.Video, FakeVideo]
