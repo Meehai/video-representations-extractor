@@ -88,7 +88,7 @@ class VRERuntimeArgs:
 
     def _print_call(self):
         logger.info(f"""
-  - Video path: '{self.vre.video.file}'
+  - Video path: '{getattr(self.vre.video, "file", "")}'
   - Output dir: '{self.output_dir}' (exist mode: '{self.output_dir_exist_mode}')
   - Representations ({len(self.vre.representations)}): {", ".join(x for x in self.vre.representations.keys())}
   - Video shape: {self.vre.video.shape} (FPS: {self.vre.video.frame_rate:.2f})

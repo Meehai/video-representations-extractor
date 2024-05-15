@@ -1,3 +1,7 @@
+# Run commands:
+# docker build . -f Dockerfile_ci -t meehai/vre-ci
+# docker push meehai/vre-ci
+
 # Use the latest Ubuntu base image
 FROM pytorch/pytorch:2.2.1-cuda12.1-cudnn8-runtime
 

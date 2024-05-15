@@ -58,18 +58,50 @@ representations:
       adjust_to_rgb: True
       max_channels: 3
 
+  # semantic safeuav torch:
+  #   type: semantic-segmentation
+  #   name: safeuav
+  #   dependencies: []
+  #   parameters:
+  #     train_height: 240
+  #     train_width: 428
+  #     num_classes: 8
+  #     color_map: [[0, 255, 0], [0, 127, 0], [255, 255, 0], [255, 255, 255],
+  #                 [255, 0, 0], [0, 0, 255], [0, 255, 255], [127, 127, 63]]
+  #   vre_parameters:
+  #     device: ${oc.env:VRE_DEVICE,cpu}
+  #     weights_file: safeuav_semantic_0956_pytorch.ckpt
+
   edges dexined:
     type: edges
     name: dexined
     dependencies: []
-    parameters:
-      inference_height: 512
-      inference_width: 512
+    parameters: {}
     vre_parameters:
       device: ${oc.env:VRE_DEVICE,cpu}
 
+  opticalflow rife:
+    type: optical-flow
+    name: rife
+    dependencies: []
+    parameters:
+      uhd: False
+      compute_backward_flow: False
+    vre_parameters:
+      device: ${oc.env:VRE_DEVICE,cpu}
+
+  # normals svd (rife):
+  #   type: normals
+  #   name: depth-svd
+  #   dependencies: [depth odoflow (rife)]
+  #   parameters:
+  #     sensor_fov: 75
+  #     sensor_width: 3840
+  #     sensor_height: 2160
+  #     window_size: 11
+
   fastsam(s):
-    type: semantic_segmentation
+    type: soft-segmentation
     name: fastsam
     dependencies: []
     parameters:
@@ -79,24 +111,59 @@ representations:
     vre_parameters:
       device: ${oc.env:VRE_DEVICE,cpu}
 
+  mask2former:
+    type: semantic-segmentation
+    name: mask2former
+    dependencies: []
+    parameters:
+      model_id: "49189528_1"
+      semantic_argmax_only: True
+    vre_parameters:
+      device: ${oc.env:VRE_DEVICE,cpu}
+
+  # # SUCKY BECAUSE SUPERSLOW. Adds like 2-3 mins in CI. Rife is good enough.
+  # opticalflow raft:
+  #   type: optical-flow
+  #   name: raft
+  #   dependencies: []
+  #   parameters:
+  #     inference_height: 720
+  #     inference_width: 1280
+  #   vre_parameters:
+  #     device: ${oc.env:VRE_DEVICE,cpu}
+
+  # depth odoflow (raft):
+  #   type: depth
+  #   name: odo-flow
+  #   dependencies: [opticalflow raft]
+  #   parameters:
+  #     velocities_path: DJI_0956_velocities.npz
+  #     linearAngVelCorrection: True
+  #     focus_correction: True
+  #     cosine_correction_scipy: False
+  #     cosine_correction_gd: True
+  #     sensor_fov: 75
+  #     sensor_width: 3840
+  #     sensor_height: 2160
+  #     min_depth_meters: 0
+  #     max_depth_meters: 400
+
+  # normals svd (raft):
+  #   type: normals
+  #   name: depth-svd
+  #   dependencies: [depth odoflow (raft)]
+  #   parameters:
+  #     sensor_fov: 75
+  #     sensor_width: 3840
+  #     sensor_height: 2160
+  #     window_size: 11
+
+  # sucky because slow, but it's good/pretrained
   depth dpt:
     type: depth
     name: dpt
     dependencies: []
     parameters: {}
-    vre_parameters:
-      device: ${oc.env:VRE_DEVICE,cpu}
-
-  mask2former:
-    type: semantic_segmentation
-    name: mask2former
-    dependencies: []
-    parameters:
-      model_id: "47429163_0" # "49189528_1" based on ResNet-50 and "47429163_0" based on SWIN
-      semantic: True
-      instance: False
-      panoptic: False
-      semantic_argmax_only: True
     vre_parameters:
       device: ${oc.env:VRE_DEVICE,cpu}
 
@@ -109,25 +176,3 @@ representations:
   #     sensor_width: 3840
   #     sensor_height: 2160
   #     window_size: 11
-
-  # only works if fps is also set (for images) via --frame_rate in cli. For videos, it works just fine.
-  # opticalflow rife:
-  #   type: optical-flow
-  #   name: rife
-  #   dependencies: []
-  #   parameters:
-  #     uhd: False
-  #     compute_backward_flow: False
-  #   vre_parameters:
-  #     device: ${oc.env:VRE_DEVICE,cpu}
-
-  # Quite slow. Same as rife, requires --frame_rate in cli for directory of images.
-  # opticalflow raft:
-  #   type: optical-flow
-  #   name: raft
-  #   dependencies: []
-  #   parameters:
-  #     inference_height: 720
-  #     inference_width: 1280
-  #   vre_parameters:
-  #     device: ${oc.env:VRE_DEVICE,cpu}

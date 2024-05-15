@@ -133,15 +133,16 @@ ffmpeg -start_number 1 -framerate 30 -i %d.png -c:v libx264 -pix_fmt yuv420p /pa
 ```
 
 ### 5. Run in docker
-- use `meehai/vre:latest` from docker hub.
+
+We don't offer a pre-pushed vre image in dockerhub. You need to build it from vre-ci (used in CI duh):
 
 ```
-mkdir example
-# move the cfg and the video in some local dir
-gdown https://drive.google.com/uc?id=158U-W-Gal6eXxYtS1ca1DAAxHvknqwAk -O example/vid.mp4
-wget https://gitlab.com/meehai/video-representations-extractor/-/raw/df15af177edf5c101bbb241428c43faac333cea4/test/end_to_end/imgur/cfg.yaml -O example/cfg.yaml
-docker run \
-  -v `pwd`/example:/app/resources \
-  meehai/vre \
-  /app/resources/vid.mp4 --cfg_path /app/resources/cfg.yaml -o /app/resources/result --start_frame 5 --end_frame 6
+git clone https://gitlab.com/meehai/video-representations-extractor
+cd video-representations-extractor
+docker build . -f Dockerfile_run -t vre
+mkdir example/
+gdown https://drive.google.com/uc?id=158U-W-Gal6eXxYtS1ca1DAAxHvknqwAk -O example/video.mp4 # you can use your video
+cp resources/cfgs/testCfg_ootb.yaml example/cfg.yaml
+docker container run -v `pwd`/example:/app/resources vre /app/resources/video.mp4 \
+  --cfg_path /app/resources/cfg.yaml -o /app/resources/output_dir --start_frame 100 --end_frame 101
 ```
