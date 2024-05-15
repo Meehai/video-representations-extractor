@@ -13,6 +13,8 @@ Usage - Predict:
 from torch import nn
 import torch
 from pathlib import Path
+import sys
+sys.path.append(Path(__file__).parents[1].__str__()) # needed to load the weights because ultralytics must be in path...
 
 from .predict import FastSAMPredictor
 from .utils import DEFAULT_CFG_DICT, DEFAULT_CFG_KEYS

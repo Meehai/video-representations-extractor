@@ -36,7 +36,7 @@ export PYTHONPATH="$PYTHONPATH:/some/dir"
 export PATH="$PATH:/some/dir/bin"
 ```
 
-After eithrer option, you should be able to run:
+After either option, you should be able to run:
 ```bash
 vre <path/to/video.mp4> --cfg_path <path/to/cfg> -o <path/to/export_dir>
 ```
@@ -60,9 +60,9 @@ Note2: Use `VRE_DEVICE=cuda vre...` to use cuda. For some representations, this 
 ## 3. CFG file
 
 The config file will have the hyperparameters required to instantiate each supported method as well as global
-hyperparameters for the output. This means that if a depth method is pre-traied for 0-300m, this information will be
-encoded in the CFG file and passed to the constructor of that particular depth method. There are also export level
-parameters, such as the output resolution of the representations.
+hyperparameters for the output. These parameters are sent to the constructor of each representation, so one can pass
+additional semantics to each representation, such as classes of a semantic segmentation or the maximum global depth
+value in meters.
 
 High level format:
 
@@ -71,21 +71,23 @@ name of representation:
   type: some high level type (such as depth, semantic, edges, etc.)
   name: the implemented method's name (i.e. dexined, dpt, odoflow etc.)
   dependencies: [a list of dependencies given by their names]
-  parameters: (as defined in the constructor of the implementation)
+  parameters: # as defined in the constructor of the implementation
     param1: value1
     param2: value2
+  vre_parameters: # also known as runtime parameters (post constructor). Calls repr.vre_setup()
+    device: "cuda" # for representations that have in their vre_setup() method a model.to(device) call
 
 name of representation 2:
   type: some other type
   name: some other method
-  dependencies: [name of representation]
+  dependencies: [name of representation] # since this representation depends on the prev one, it'll be computed after
   parameters: []
 ```
 
-Example cfg file: See [out of the box supported representations](cfgs/testCfg_ootb.yaml) and the CFG defined in
-the [CI process](.gitlab-ci.yml) for an actual export that is done at every commit on a real video.
+Example cfg file: See [out of the box supported representations](resources/cfgs/testCfg_ootb.yaml) and the CFG defined
+in the [CI process](test/end_to_end/imgur/run.sh) for an actual export that is done at every commit on a real video.
 
-Note: If the topological sort fails (because cycle dependencies), an error will be thrown.
+Note: If the topological sort fails (because of cycle dependencies), an error will be thrown.
 
 ## 4. Output format
 
@@ -117,18 +119,17 @@ can later be turned into a video as well.
 
 Usage:
 ```
-vre_collage /path/to/output_dir -o /path/to/collae_dir [--overwrite] [--video] [--fps] [--output_resolution H W]
+vre_collage /path/to/output_dir -o /path/to/collage_dir [--overwrite] [--video] [--fps] [--output_resolution H W]
 ```
 
-Note: This requries `media-processing-lib` to be installed (via pip).
+Note: Getting videos from `vre_collage` requires `media-processing-lib` to be installed (via pip). You can still get
+images without the library installed though.
 
 Note: you can also get video from a collage dir like this (in case you forgot to set --video or want more control):
 
 ```bash
-old_path=`pwd`
 cd /path/to/collage_dir
-ffmpeg -start_number 1 -framerate 30 -i %d.png -c:v libx264 -pix_fmt yuv420p $oldPath/collage.mp4;
-cd -;
+ffmpeg -start_number 1 -framerate 30 -i %d.png -c:v libx264 -pix_fmt yuv420p /path/to/collage.mp4;
 ```
 
 ### 5. Run in docker

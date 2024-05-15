@@ -2,12 +2,11 @@
 """vre_collage tool"""
 from argparse import ArgumentParser
 from pathlib import Path
-from media_processing_lib.image import image_add_title, image_read, image_write, image_resize
-from media_processing_lib.collage_maker import collage_fn
 from natsort import natsorted
 from tqdm import tqdm
 import numpy as np
 
+from vre.utils import image_read, image_write, image_resize, collage_fn
 from vre.logger import logger
 
 def get_args():
@@ -63,10 +62,15 @@ def main():
         current_frames = [image_read(x) for x in current_frame_paths]
         h, w = current_frames[0].shape[0:2]
         # keep only first 25 chars of vre representation, otherwise the title is too long
-        trimmed_keys = [k[0:25] for k in keys]
+        titles = [k[0:25] for k in keys]
         h_out, w_out = args.output_resolution if args.output_resolution is not None else (h, w)
-        titled_frames = [image_add_title(image_resize(img, height=h_out, width=w_out), title, size_px=w_out // 15)
-                         for img, title in zip(current_frames, trimmed_keys)]
+        rsz_frames = [image_resize(img, height=h_out, width=w_out) for img in current_frames]
+        try:
+            from media_processing_lib.image import image_add_title
+            titled_frames = [image_add_title(img, title, size_px=w_out // 15) for img, title in zip(rsz_frames, titles)]
+        except ImportError:
+            logger.info("media-processing-lib is not installed. No titles will be added to collage.")
+            titled_frames = rsz_frames
         img = collage_fn(titled_frames, pad_right=w_out // 75)
         image_write(img, args.output_path / f"{name}.png")
 
