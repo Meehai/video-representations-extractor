@@ -4,9 +4,6 @@ FROM meehai/vre-ci:latest
 # Set the working directory to /app
 WORKDIR /app
 
-RUN python3 -m pip install imageio moviepy
-RUN python3 -m pip install opencv-python scikit-learn
-
 ## === For actual dockerization of VRE ===
 
 # Copy the rest of the files to the container

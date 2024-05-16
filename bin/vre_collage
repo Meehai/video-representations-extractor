@@ -4,9 +4,10 @@ from argparse import ArgumentParser
 from pathlib import Path
 from natsort import natsorted
 from tqdm import tqdm
+from moviepy.editor import ImageSequenceClip
 import numpy as np
 
-from vre.utils import image_read, image_write, image_resize, collage_fn
+from vre.utils import image_read, image_write, image_resize, image_add_title, collage_fn
 from vre.logger import logger
 
 def get_args():
@@ -25,7 +26,7 @@ def get_args():
         args.output_path = args.vre_export_dir / "collage"
         logger.warning(f"--output_path not provided, defaulting to '{args.output_path}'")
     args.output_path = Path(args.output_path).absolute()
-    assert not args.output_path.exists() or args.overwrite, f"Output path '{args.output_path}' exists. Use --overwrite."
+    # assert not args.output_path.exists() or args.overwrite, f"Output path '{args.output_path}' exists. Use --overwrite."
     assert args.video is False or args.fps is not None, "If video is set, --fps must also be set."
     return args
 
@@ -65,20 +66,14 @@ def main():
         titles = [k[0:25] for k in keys]
         h_out, w_out = args.output_resolution if args.output_resolution is not None else (h, w)
         rsz_frames = [image_resize(img, height=h_out, width=w_out) for img in current_frames]
-        try:
-            from media_processing_lib.image import image_add_title
-            titled_frames = [image_add_title(img, title, size_px=w_out // 15) for img, title in zip(rsz_frames, titles)]
-        except ImportError:
-            logger.info("media-processing-lib is not installed. No titles will be added to collage.")
-            titled_frames = rsz_frames
+        titled_frames = [image_add_title(img, title, size_px=w_out // 15, top_padding=w_out // 10)
+                         for img, title in zip(rsz_frames, titles)]
         img = collage_fn(titled_frames, pad_right=w_out // 75)
         image_write(img, args.output_path / f"{name}.png")
 
     if args.video:
-        from media_processing_lib.video.backends import DiskBackend
-        from media_processing_lib.video import MPLVideo
-        video = MPLVideo(DiskBackend(list(args.output_path.iterdir())), fps=args.fps)
-        video.save(args.output_path / "collage.mp4")
+        video = ImageSequenceClip([str(x) for x in args.output_path.glob("*.png")], fps=args.fps)
+        video.write_videofile(f"{args.output_path}/collage.mp4")
 
 if __name__ == "__main__":
     main()

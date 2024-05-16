@@ -372,6 +372,7 @@ good-names=
 	   ph,
 	   pw,
 	   im,
+	   mb,
 
 
 # Include a hint for the correct naming format with invalid-name.

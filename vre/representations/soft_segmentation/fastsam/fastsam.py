@@ -1,7 +1,9 @@
 """FastSAM representation."""
-from overrides import overrides
+from datetime import datetime
+import sys
 import numpy as np
 import torch as tr
+from overrides import overrides
 from torch.nn import functional as F
 
 try:
@@ -10,14 +12,14 @@ try:
     from .fastsam_impl.utils import bbox_iou
     from .fastsam_impl.ops import scale_boxes, non_max_suppression, process_mask_native
     from ....representation import Representation, RepresentationOutput
-    from ....utils import gdown_mkdir, VREVideo, image_resize_batch, get_weights_dir
+    from ....utils import gdown_mkdir, VREVideo, image_resize_batch, get_weights_dir, image_read, image_write
 except ImportError:
     from fastsam_impl import FastSAM as Model, FastSAMPredictor, FastSAMPrompt
     from fastsam_impl.results import Results
     from fastsam_impl.utils import bbox_iou
     from fastsam_impl.ops import scale_boxes, non_max_suppression, process_mask_native
     from vre.representation import Representation, RepresentationOutput
-    from vre.utils import gdown_mkdir, VREVideo, image_resize_batch, get_weights_dir
+    from vre.utils import gdown_mkdir, VREVideo, image_resize_batch, get_weights_dir, image_read, image_write
 
 class FastSam(Representation):
     """FastSAM representation."""
@@ -152,9 +154,6 @@ class FastSam(Representation):
 
 def main():
     """main fn. Usage: python fastsam.py fastsam-x/fastsam-s demo1.jpg output1.jpg"""
-    import sys
-    from datetime import datetime # pylint: disable=all
-    from media_processing_lib.image import image_read, image_write # pylint: disable=all
     assert len(sys.argv) == 4
     img = image_read(sys.argv[2])
 
