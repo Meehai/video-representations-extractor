@@ -1,13 +1,13 @@
 """Mask2Former representation"""
 import json
-from pathlib import Path
 import sys
+from pathlib import Path
+from datetime import datetime
 from overrides import overrides
 import torch as tr
 from torch import nn
 import numpy as np
 from lovely_tensors import monkey_patch
-from PIL import Image
 from fvcore.common.config import CfgNode
 
 monkey_patch()
@@ -18,14 +18,16 @@ try:
     from .mask2former_impl.visualizer import Visualizer, ColorMode
     from ....representation import Representation, RepresentationOutput
     from ....logger import logger
-    from ....utils import gdown_mkdir, image_resize_batch, VREVideo, get_weights_dir
+    from ....utils import gdown_mkdir, image_resize_batch, VREVideo, get_weights_dir, image_read, image_write, \
+        image_resize
 except ImportError: # when running this script directly
     from mask2former_impl import MaskFormer as MaskFormerImpl
     from mask2former_impl.visualizer import Visualizer, ColorMode
     from mask2former_impl.det2_data import MetadataCatalog
     from vre.representation import Representation, RepresentationOutput
     from vre.logger import logger
-    from vre.utils import gdown_mkdir, image_resize_batch, VREVideo, get_weights_dir
+    from vre.utils import gdown_mkdir, image_resize_batch, VREVideo, get_weights_dir, image_read, image_write, \
+        image_resize
 
 def get_output_shape(oldh: int, oldw: int, short_edge_length: int, max_size: int):
     """
@@ -44,16 +46,8 @@ def get_output_shape(oldh: int, oldw: int, short_edge_length: int, max_size: int
 def apply_image(img: np.ndarray, h, w, new_h, new_w):
     """apply image transform -- see if we need the non uint8 variant"""
     assert img.shape[:2] == (h, w)
-    assert len(img.shape) <= 4
-    interp_method = Image.BILINEAR
-    assert img.dtype == np.uint8, img.dtype
-
-    if len(img.shape) > 2 and img.shape[2] == 1:
-        pil_image = Image.fromarray(img[:, :, 0], mode="L")
-    else:
-        pil_image = Image.fromarray(img)
-    pil_image = pil_image.resize((new_w, new_h), interp_method)
-    ret = np.asarray(pil_image)
+    assert len(img.shape) <= 4, img.shape
+    ret = image_resize(img, new_h, new_w)
     if len(img.shape) > 2 and img.shape[2] == 1:
         ret = np.expand_dims(ret, -1)
     return ret
@@ -133,7 +127,7 @@ class Mask2Former(Representation):
         params = {**params, "semantic_on": True, "panoptic_on": False, "instance_on": False}
         model = MaskFormerImpl(**params).eval()
         res = model.load_state_dict(ckpt_data["state_dict"], strict=False) # inference only: we remove criterion
-        assert res.unexpected_keys == ["criterion.empty_weight"] or res.unexpected_keys == [], res
+        assert res.unexpected_keys in (["criterion.empty_weight"], []), res
         model.to("cuda" if tr.cuda.is_available() else "cpu")
         assert len(cfg.DATASETS.TEST) == 1, cfg.DATASETS.TEST
         metadata = MetadataCatalog.get(cfg.DATASETS.TEST[0])
@@ -145,8 +139,6 @@ class Mask2Former(Representation):
 
 def main():
     """main fn. Usage: python mask2former.py 49189528_1/47429163_0/49189528_0 demo1.jpg output1.jpg"""
-    from datetime import datetime # pylint: disable=all
-    from media_processing_lib.image import image_read, image_write # pylint: disable=all
     assert len(sys.argv) == 4
     img = image_read(sys.argv[2])
 

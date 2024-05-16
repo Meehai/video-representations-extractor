@@ -122,9 +122,6 @@ Usage:
 vre_collage /path/to/output_dir -o /path/to/collage_dir [--overwrite] [--video] [--fps] [--output_resolution H W]
 ```
 
-Note: Getting videos from `vre_collage` requires `media-processing-lib` to be installed (via pip). You can still get
-images without the library installed though.
-
 Note: you can also get video from a collage dir like this (in case you forgot to set --video or want more control):
 
 ```bash

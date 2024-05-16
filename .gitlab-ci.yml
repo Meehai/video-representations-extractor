@@ -13,7 +13,6 @@ before_script:
   - export PYTHONPATH="$PYTHONPATH:$VRE_ROOT"
   - export PATH="$PATH:$VRE_ROOT/bin"
   - python3 -m pip install -r requirements.txt
-  - pip install media-processing-lib -U # this is not in the main req files but used for collages
 
 pylint:
   script:

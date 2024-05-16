@@ -151,7 +151,7 @@ class Halftone(Representation):
                 # Scale it back down to antialias the image.
                 w = int((xx2 - xx1) / antialias_scale)
                 h = int((yy2 - yy1) / antialias_scale)
-                half_tone = half_tone.resize((w, h), resample=Image.LANCZOS)
+                half_tone = image_resize(half_tone, h, w)
 
             dots.append(half_tone)
         return dots
