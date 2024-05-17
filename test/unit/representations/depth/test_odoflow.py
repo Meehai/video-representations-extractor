@@ -11,9 +11,8 @@ def test_odoflow_rife():
 
     rife_repr = FlowRife(name="rife", dependencies=[], compute_backward_flow=False, uhd=False)
     odoflow_repr = DepthOdoFlow(name="odoflow_rife", dependencies=[rife_repr],
-                                linear_ang_vel_correction=True, focus_correction=True, cosine_correction_scipy=True,
-                                cosine_correction_gd=False, sensor_fov=30, sensor_width=100, sensor_height=100,
-                                min_depth_meters=0, max_depth_meters=100)
+                                linear_ang_vel_correction=True, focus_correction=True, sensor_fov=30,
+                                sensor_width=100, sensor_height=100, min_depth_meters=0, max_depth_meters=100)
 
     frames = np.array(video[0:1])
     right_frames = np.array(video[1:2])
@@ -39,9 +38,8 @@ def test_odoflow_raft():
 
     raft_repr = FlowRaft(name="raft", dependencies=[], inference_height=128, inference_width=128, iters=2, small=True)
     odoflow_repr = DepthOdoFlow(name="odoflow_rife", dependencies=[raft_repr],
-                                linear_ang_vel_correction=True, focus_correction=True, cosine_correction_scipy=True,
-                                cosine_correction_gd=False, sensor_fov=30, sensor_width=100, sensor_height=100,
-                                min_depth_meters=0, max_depth_meters=100)
+                                linear_ang_vel_correction=True, focus_correction=True, sensor_fov=30, sensor_width=100,
+                                sensor_height=100, min_depth_meters=0, max_depth_meters=100)
     frames = np.array(video[0:1])
     right_frames = np.array(video[1:2])
     lin_vel = video_lin_vel[1:2]

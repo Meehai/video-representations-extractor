@@ -1,39 +1,67 @@
 """image utils for VRE"""
 from pathlib import Path
-import requests
 import numpy as np
-from skimage.transform import resize
-from skimage.io import imsave, imread
-from skimage.color import hsv2rgb
+import cv2
 from PIL import Image, ImageDraw, ImageOps, ImageFont
 
 from ..logger import logger
-from .utils import get_closest_square
+from .utils import get_closest_square, get_project_root
 
-def image_resize(data: np.ndarray, height: int, width: int, interpolation: str = "bilinear", **kwargs) -> np.ndarray:
-    """Skimage image resizer"""
-    assert interpolation in ("nearest", "bilinear", "bicubic", "biquadratic", "biquartic", "biquintic")
-    assert isinstance(height, int) and isinstance(width, int) and height > 0 and width > 0, (height, width)
-    # As per: https://github.com/scikit-image/scikit-image/blob/main/skimage/transform/_warps.py#L820
-    order = {"nearest": 0, "bilinear": 1, "biquadratic": 2, "bicubic": 3, "biquartic": 4, "biquintic": 5}[interpolation]
-    img_resized = resize(data, output_shape=(height, width), order=order, preserve_range=True, **kwargs)
-    img_resized = img_resized.astype(data.dtype)
-    return img_resized
+def _image_resize_cv2(data: np.ndarray, height: int, width: int, interpolation: str, **kwargs) -> np.ndarray:
+    interpolation = {"nearest": cv2.INTER_NEAREST, "bilinear": cv2.INTER_LINEAR, "area": cv2.INTER_AREA,
+                     "bicubic": cv2.INTER_CUBIC, "lanczos": cv2.INTER_LANCZOS4}[interpolation]
+    _data = data if data.dtype == np.uint8 else data.astype(np.float32)
+    return cv2.resize(_data, dsize=(width, height), interpolation=interpolation, **kwargs).astype(data.dtype)
 
-def image_resize_batch(x_batch: np.ndarray, height: int, width: int, **kwargs) -> np.ndarray:
+def _image_resize_pil(data: np.ndarray, height: int, width: int, interpolation: str, **kwargs) -> np.ndarray:
+    interpolation = {"nearest": Image.Resampling.NEAREST, "bilinear": Image.Resampling.BILINEAR}[interpolation]
+    assert data.dtype == np.uint8, f"Only uint8 allowed, got {data.dtype}"
+    pil_image = Image.fromarray(data).resize((width, height), interpolation, **kwargs)
+    return np.asarray(pil_image)
+
+def image_resize(data: np.ndarray, height: int, width: int, interpolation: str = "bilinear",
+                 library: str = "cv2", **kwargs) -> np.ndarray:
+    """image resize. Allows 2 libraries: PIL and opencv (to alleviate potential pre-trained issues)"""
+    assert isinstance(height, int) and isinstance(width, int)
+    return {"cv2": _image_resize_cv2, "PIL": _image_resize_pil}[library](data, height, width, interpolation, **kwargs)
+
+def image_resize_batch(x_batch: np.ndarray | list[np.ndarray], *args, **kwargs) -> np.ndarray:
     """resizes a bath of images to the given height and width"""
-    return np.array([image_resize(x, height, width, **kwargs) for x in x_batch])
+    return np.array([image_resize(x, *args, **kwargs) for x in x_batch])
 
 def image_write(x: np.ndarray, path: Path):
     """writes an image to a bytes string"""
     assert x.dtype == np.uint8, x.dtype
-    imsave(path, x, check_contrast=False)
-    logger.debug2(f"Saved image to '{path}'")
+    res = cv2.imwrite(f"{path}", x[..., ::-1])
+    assert res is not None, f"Image {x.shape} could not be saved to '{path}'"
 
-def image_read(path: str) -> np.ndarray:
-    """PIL image reader"""
-    image = np.array(imread(path), dtype=np.uint8)[..., 0:3]
+def image_read(path: Path) -> np.ndarray:
+    """Read an image from a path. Return uint8 [0:255] ndarray"""
+    cv_res = cv2.imread(f"{path}")
+    assert cv_res is not None, f"OpenCV returned None for '{path}'"
+    bgr_image = cv_res[..., 0:3]
+    b, g, r = cv2.split(bgr_image)
+    image = cv2.merge([r, g, b]).astype(np.uint8)
     return image
+
+def hsv2rgb(hsv: np.ndarray) -> np.ndarray:
+    """HSV to RGB color space conversion."""
+    arr = hsv.astype(np.float64) / 255 if hsv.dtype == np.uint8 else hsv
+
+    hi = np.floor(arr[..., 0] * 6)
+    f = arr[..., 0] * 6 - hi
+    p = arr[..., 2] * (1 - arr[..., 1])
+    q = arr[..., 2] * (1 - f * arr[..., 1])
+    t = arr[..., 2] * (1 - (1 - f) * arr[..., 1])
+    v = arr[..., 2]
+
+    out = np.choose(
+        np.stack([hi, hi, hi], axis=-1).astype(np.uint8) % 6,
+        np.stack([np.stack((v, t, p), axis=-1), np.stack((q, v, p), axis=-1), np.stack((p, v, t), axis=-1),
+                  np.stack((p, q, v), axis=-1), np.stack((t, p, v), axis=-1), np.stack((v, p, q), axis=-1)]),
+    )
+
+    return out
 
 def generate_diverse_colors(n: int, saturation: float, value: float) -> list[tuple[int, int, int]]:
     """generates a list of n diverse colors using the hue from the HSV transform"""
@@ -42,7 +70,7 @@ def generate_diverse_colors(n: int, saturation: float, value: float) -> list[tup
     colors = []
     for i in range(n):
         hue = i / n  # Vary the hue component
-        rgb = hsv2rgb([hue, saturation, value])
+        rgb = hsv2rgb(np.array([hue, saturation, value]))
         # Convert to 8-bit RGB values (0-255)
         rgb = tuple(int(255 * x) for x in rgb)
         colors.append(rgb)
@@ -144,13 +172,7 @@ def get_default_font(size_px: int | None = None):
             size_px = max(DEFAULT_FONT_HEIGHTS.keys())
         else:
             assert False
-    font_path = Path(__file__).absolute().parents[3] / "resources/OpenSans-Bold.ttf"
-    if not font_path.exists():
-        logger.debug2("Font does not exist, downloading from internet")
-        url = "https://github.com/edx/edx-fonts/raw/master/open-sans/fonts/Bold/OpenSans-Bold.ttf"
-        r = requests.get(url, allow_redirects=True, timeout=5)
-        font_path = Path.cwd() / "OpenSans-Bold.ttf"
-        open(font_path, "wb").write(r.content)
+    font_path = get_project_root() / "resources/OpenSans-Bold.ttf"
     logger.debug2(f"Getting default font from '{font_path}' for desired height = '{size_px}' px")
     size = DEFAULT_FONT_HEIGHTS[size_px]
     if size == 0:

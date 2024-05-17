@@ -1,12 +1,8 @@
 numpy>=1.21.6
 PyYAML==6.0
-argparse==1.1
 pims==0.6.1
 tqdm==4.66.1
-scikit-image==0.19.3
-scikit-learn==1.4.2
 natsort==8.2.0
-gitpython==3.1.31
 gdown==4.6.0
 torch==2.2.1
 torchvision==0.17.1
@@ -26,3 +22,4 @@ cloudpickle==3.0.0
 moviepy==1.0.3
 opencv-python==4.7.0.68
 Pillow==10.3.0
+scipy==1.8.1

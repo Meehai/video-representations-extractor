@@ -2,15 +2,11 @@
 import pyproj
 from scipy import integrate
 from scipy.spatial.transform import Rotation, Slerp, RotationSpline
-from sklearn.base import BaseEstimator
-from sklearn.decomposition import PCA
-from sklearn.linear_model import RANSACRegressor
+from scipy.interpolate import interp1d
 import numpy as np
 from transforms3d import quaternions as quat, euler, axangles
-from scipy.interpolate import interp1d
 
-
-from .utils import closest_indexes, nn_interpolation
+from .utils import nn_interpolation
 
 
 def transform_points(camera_pose, points):
@@ -41,18 +37,6 @@ def pose_to_matrix(pose):
     T[:3, :3] = pose[0]
     T[:3, 3] = pose[1]
     return T
-
-
-def fit_plane(X):
-    pca = PCA(n_components=3)
-    pca.fit(X)
-    eigenvectors, eigenvalues = pca.components_, pca.singular_values_
-    normal = eigenvectors[-1]
-    pt = np.mean(X, axis=0)
-    a, b, c, = normal
-    d = - (np.dot(normal, pt))
-    return a, b, c, d
-
 
 def get_plane_pose(plane):
     A, B, C, D = plane
@@ -204,13 +188,6 @@ def interp_vectors(source_t, vectors, target_t):
     target_t_mask = np.logical_and(source_t[0] <= target_t, source_t[-1] >= target_t)
     interp_vectors = interp1d(source_t, vectors, axis=0)(target_t[target_t_mask])
     return nn_interpolation(target_t, interp_vectors, target_t[target_t_mask])
-
-
-def get_planar_trajectory_coords(coords):
-    plane = fit_plane(coords)
-    pose = get_plane_pose(plane)
-    plane_points = transform_points(invert_pose(*pose), coords)
-    return plane_points
 
 
 def diff_rot(orientations, ts, type='central'):
