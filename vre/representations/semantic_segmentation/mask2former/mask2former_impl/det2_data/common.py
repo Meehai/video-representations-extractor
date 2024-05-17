@@ -12,27 +12,23 @@ import torch
 import torch.utils.data as data
 from torch.utils.data.sampler import Sampler
 
-import cloudpickle
-
 class PicklableWrapper:
     """
     Wrap an object to make it more picklable, note that it uses
     heavy weight serialization libraries that are slower than pickle.
     It's best to use it only on closures (which are usually not picklable).
-
-    This is a simplified version of
-    https://github.com/joblib/joblib/blob/master/joblib/externals/loky/cloudpickle_wrapper.py
     """
 
     def __init__(self, obj):
         while isinstance(obj, PicklableWrapper):
+            print("lala")
             # Wrapping an object twice is no-op
             obj = obj._obj
         self._obj = obj
 
     def __reduce__(self):
-        s = cloudpickle.dumps(self._obj)
-        return cloudpickle.loads, (s,)
+        s = pickle.dumps(self._obj)
+        return pickle.loads, (s,)
 
     def __call__(self, *args, **kwargs):
         return self._obj(*args, **kwargs)

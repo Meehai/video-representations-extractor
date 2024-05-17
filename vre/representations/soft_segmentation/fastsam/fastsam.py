@@ -1,25 +1,26 @@
 """FastSAM representation."""
+from argparse import ArgumentParser, Namespace
 from datetime import datetime
-import sys
+from pathlib import Path
 import numpy as np
 import torch as tr
 from overrides import overrides
 from torch.nn import functional as F
+
+from vre.representation import Representation, RepresentationOutput
+from vre.utils import gdown_mkdir, VREVideo, image_resize_batch, get_weights_dir, image_read, image_write
+from vre.logger import logger
 
 try:
     from .fastsam_impl import FastSAM as Model, FastSAMPredictor, FastSAMPrompt
     from .fastsam_impl.results import Results
     from .fastsam_impl.utils import bbox_iou
     from .fastsam_impl.ops import scale_boxes, non_max_suppression, process_mask_native
-    from ....representation import Representation, RepresentationOutput
-    from ....utils import gdown_mkdir, VREVideo, image_resize_batch, get_weights_dir, image_read, image_write
 except ImportError:
     from fastsam_impl import FastSAM as Model, FastSAMPredictor, FastSAMPrompt
     from fastsam_impl.results import Results
     from fastsam_impl.utils import bbox_iou
     from fastsam_impl.ops import scale_boxes, non_max_suppression, process_mask_native
-    from vre.representation import Representation, RepresentationOutput
-    from vre.utils import gdown_mkdir, VREVideo, image_resize_batch, get_weights_dir, image_read, image_write
 
 class FastSam(Representation):
     """FastSAM representation."""
@@ -152,25 +153,44 @@ class FastSam(Representation):
         tr_x = F.interpolate(tr_x, size=(new_h, new_w), mode="bilinear", align_corners=False)
         return tr_x
 
-def main():
+def get_args() -> Namespace:
+    """cli args"""
+    parser = ArgumentParser()
+    parser = ArgumentParser()
+    parser.add_argument("model_id", choices=["fastsam-x", "fastsam-s"])
+    parser.add_argument("input_image", type=Path)
+    parser.add_argument("output_path", type=Path)
+    return parser.parse_args()
+
+def main(args: Namespace):
     """main fn. Usage: python fastsam.py fastsam-x/fastsam-s demo1.jpg output1.jpg"""
-    assert len(sys.argv) == 4
-    img = image_read(sys.argv[2])
+    img = image_read(args.input_image)
 
-    fastsam = FastSam(sys.argv[1], iou=0.9, conf=0.4, name="fastsam", dependencies=[])
+    fastsam = FastSam(args.model_id, iou=0.9, conf=0.4, name="fastsam", dependencies=[])
     fastsam.predictor.model.to("cuda" if tr.cuda.is_available() else "cpu")
-    for _ in range(1):
-        now = datetime.now()
-        pred = fastsam.make(img[None])
-        print(f"Pred took: {datetime.now() - now}")
-        semantic_result = fastsam.make_images(img[None], pred)[0]
-        image_write(semantic_result, sys.argv[3])
-    print(f"Written result to '{sys.argv[3]}'")
+    now = datetime.now()
+    pred = fastsam.make(img[None])
+    logger.info(f"Pred took: {datetime.now() - now}")
+    semantic_result = fastsam.make_images(img[None], pred)[0]
+    image_write(semantic_result, args.output_path)
+    logger.info(f"Written result to '{args.output_path}'")
 
+    output_path_rsz = args.output_path.parent / f"{args.output_path.stem}_rsz.{args.output_path.suffix}"
     pred_rsz = fastsam.resize(pred, img.shape[0:2])
     semantic_result_rsz = fastsam.make_images(img[None], pred_rsz)[0]
-    image_write(semantic_result_rsz, name := f"{sys.argv[3][0:-4]}_rsz.{sys.argv[3][-3:]}")
-    print(f"Written resized result to '{name}'")
+    image_write(semantic_result_rsz, output_path_rsz)
+    logger.info(f"Written resized result to '{output_path_rsz}'")
+
+    if args.input_image.name == "demo1.jpg" and args.model_id == "fastsam-s":
+        assert np.allclose(a := pred[0].mean(), 0.8813972), a
+        assert np.allclose(b := pred[1][0]["boxes"].mean(), 46.200043), b
+        assert np.allclose(a := pred_rsz[0].mean(), 0.88434076), a
+        assert np.allclose(b := pred_rsz[1][0]["boxes"].mean(), 28.541258), b
+    elif args.input_image.name == "demo1.jpg" and args.model_id == "fastsam-x":
+        assert np.allclose(a := pred[0].mean(), 0.80122584), a
+        assert np.allclose(b := pred[1][0]["boxes"].mean(), 49.640644), b
+        assert np.allclose(a := pred_rsz[0].mean(), 0.80056435), a
+        assert np.allclose(b := pred_rsz[1][0]["boxes"].mean(), 30.688671), b
 
 if __name__ == "__main__":
-    main()
+    main(get_args())

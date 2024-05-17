@@ -1,6 +1,6 @@
 """Mask2Former representation"""
 import json
-import sys
+from argparse import ArgumentParser, Namespace
 from pathlib import Path
 from datetime import datetime
 from overrides import overrides
@@ -10,47 +10,32 @@ import numpy as np
 from lovely_tensors import monkey_patch
 from fvcore.common.config import CfgNode
 
-monkey_patch()
+from vre.representation import Representation, RepresentationOutput
+from vre.logger import logger
+from vre.utils import gdown_mkdir, image_resize_batch, VREVideo, get_weights_dir, image_read, image_write
 
 try:
     from .mask2former_impl import MaskFormer as MaskFormerImpl
     from .mask2former_impl.det2_data import MetadataCatalog
     from .mask2former_impl.visualizer import Visualizer, ColorMode
-    from ....representation import Representation, RepresentationOutput
-    from ....logger import logger
-    from ....utils import gdown_mkdir, image_resize_batch, VREVideo, get_weights_dir, image_read, image_write, \
-        image_resize
 except ImportError: # when running this script directly
     from mask2former_impl import MaskFormer as MaskFormerImpl
     from mask2former_impl.visualizer import Visualizer, ColorMode
     from mask2former_impl.det2_data import MetadataCatalog
-    from vre.representation import Representation, RepresentationOutput
-    from vre.logger import logger
-    from vre.utils import gdown_mkdir, image_resize_batch, VREVideo, get_weights_dir, image_read, image_write, \
-        image_resize
+
+monkey_patch()
 
 def get_output_shape(oldh: int, oldw: int, short_edge_length: int, max_size: int):
     """
     Compute the output size given input size and target short edge length.
     """
-    h, w = oldh, oldw
-    scale = short_edge_length / min(h, w)
-    newh, neww = (short_edge_length, scale * w) if h < w else (scale * h, short_edge_length)
+    scale = short_edge_length / min(oldh, oldw)
+    newh, neww = (short_edge_length, scale * oldw) if oldh < oldw else (scale * oldh, short_edge_length)
     if max(newh, neww) > max_size:
         scale = max_size * 1.0 / max(newh, neww)
-        newh = newh * scale
-        neww = neww * scale
+        newh, neww = newh * scale, neww * scale
     neww, newh = int(neww + 0.5), int(newh + 0.5)
     return newh, neww
-
-def apply_image(img: np.ndarray, h, w, new_h, new_w):
-    """apply image transform -- see if we need the non uint8 variant"""
-    assert img.shape[:2] == (h, w)
-    assert len(img.shape) <= 4, img.shape
-    ret = image_resize(img, new_h, new_w)
-    if len(img.shape) > 2 and img.shape[2] == 1:
-        ret = np.expand_dims(ret, -1)
-    return ret
 
 class Mask2Former(Representation):
     """Mask2Former representation implementation. Note: only semantic segmentation (not panoptic/instance) enabled."""
@@ -73,7 +58,7 @@ class Mask2Former(Representation):
     def make(self, frames: np.ndarray) -> RepresentationOutput:
         height, width = frames.shape[1:3]
         _os = get_output_shape(height, width, self.cfg.INPUT.MIN_SIZE_TEST, self.cfg.INPUT.MAX_SIZE_TEST)
-        imgs = [apply_image(img, height, width, _os[0], _os[1]).astype("float32").transpose(2, 0, 1) for img in frames]
+        imgs = image_resize_batch(frames, _os[0], _os[1], "bilinear", "PIL").transpose(0, 3, 1, 2).astype("float32")
         inputs = [{"image": tr.from_numpy(img), "height": height, "width": width} for img in imgs]
         predictions = [x["sem_seg"] for x in self.model(inputs)]
         res = []
@@ -137,30 +122,39 @@ class Mask2Former(Representation):
     def __del__(self):
         del self.model
 
-def main():
-    """main fn. Usage: python mask2former.py 49189528_1/47429163_0/49189528_0 demo1.jpg output1.jpg"""
-    assert len(sys.argv) == 4
-    img = image_read(sys.argv[2])
+def get_args() -> Namespace:
+    """cli args"""
+    parser = ArgumentParser()
+    parser.add_argument("model_id_or_path")
+    parser.add_argument("input_image", type=Path)
+    parser.add_argument("output_path", type=Path)
+    parser.add_argument("--n_tries", type=int, default=1)
+    return parser.parse_args()
 
-    m2f = Mask2Former(sys.argv[1], semantic_argmax_only=False, name="m2f", dependencies=[])
+def main(args: Namespace):
+    """main fn. Usage: python mask2former.py 49189528_1/47429163_0/49189528_0 demo1.jpg output1.jpg"""
+    img = image_read(args.input_image)
+
+    m2f = Mask2Former(args.model_id_or_path, semantic_argmax_only=False, name="m2f", dependencies=[])
     m2f.model.to("cuda" if tr.cuda.is_available() else "cpu")
-    for _ in range(1):
+    for _ in range(args.n_tries):
         now = datetime.now()
         pred = m2f.make(img[None])
-        print(f"Pred took: {datetime.now() - now}")
+        logger.info(f"Pred took: {datetime.now() - now}")
         semantic_result = m2f.make_images(img[None], pred)[0]
-        image_write(semantic_result, sys.argv[3])
+        image_write(semantic_result, args.output_path)
+    logger.info(f"Written prediction to '{args.output_path}'")
 
     # Sanity checks
-    if m2f.model_id == "47429163_0" and Path(sys.argv[2]).name == "demo1.jpg":
+    if m2f.model_id == "47429163_0" and args.input_image.name == "demo1.jpg":
         assert np.allclose(mean := semantic_result.mean(), 129.41173), (mean, semantic_result.std())
         assert np.allclose(std := semantic_result.std(), 53.33731), std
-    elif m2f.model_id == "49189528_1" and Path(sys.argv[2]).name == "demo1.jpg":
+    elif m2f.model_id == "49189528_1" and args.input_image.name == "demo1.jpg":
         assert np.allclose(mean := semantic_result.mean(), 125.23281), (mean, semantic_result.std())
         assert np.allclose(std := semantic_result.std(), 48.89948), std
-    elif m2f.model_id == "49189528_0" and Path(sys.argv[2]).name == "demo1.jpg":
+    elif m2f.model_id == "49189528_0" and args.input_image.name == "demo1.jpg":
         assert np.allclose(mean := semantic_result.mean(), 118.47982), (mean, semantic_result.std())
         assert np.allclose(std := semantic_result.std(), 52.08105), std
 
 if __name__ == "__main__":
-    main()
+    main(get_args())

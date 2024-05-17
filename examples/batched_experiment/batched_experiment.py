@@ -60,7 +60,6 @@ def get_representation_dict() -> dict:
                              "vre_parameters": {"device": device}},
         "depth odoflow (raft)": {"type": "depth", "name": "odo-flow", "dependencies": ["opticalflow raft"],
                                  "parameters": {"linear_ang_vel_correction": True, "focus_correction": True,
-                                                "cosine_correction_scipy": False, "cosine_correction_gd": True,
                                                 "sensor_fov": 75, "sensor_width": 3840, "sensor_height": 2160,
                                                 "min_depth_meters": 0, "max_depth_meters": 400},
                                  "vre_parameters": {"velocities_path": "DJI_0956_velocities.npz"}},

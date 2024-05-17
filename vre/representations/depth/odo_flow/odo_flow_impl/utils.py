@@ -2,8 +2,6 @@
 from pathlib import Path
 import numpy as np
 import multiprocessing
-from sklearn.preprocessing import MinMaxScaler
-from matplotlib import cm
 import torch
 from tqdm import tqdm
 from collections import defaultdict
@@ -236,14 +234,6 @@ def get_normalized_coords(width, height, K):
 
 def depth_to_pointcloud(depth, normalized_coords):
     return depth[:, :, None] * normalized_coords
-
-
-def get_colors(cmap_name='gist_rainbow', number_of_colors=10, xs=None):
-    map = cm.get_cmap(cmap_name)
-    if xs is None and number_of_colors:
-        xs = np.linspace(0, 1, number_of_colors)
-    colors = map(MinMaxScaler().fit_transform(xs.reshape(-1, 1)).flatten())
-    return colors[:, :3]
 
 
 LINE_STYLES = ('solid', 'dashed', 'dashdot', 'dotted')

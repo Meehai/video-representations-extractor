@@ -12,9 +12,8 @@ def test_depth_normals_svd_odoflow_raft():
     video_ang_vel = np.random.randn(len(video), 3)
     raft_repr = FlowRaft(name="raft", dependencies=[], inference_height=128, inference_width=128, iters=2, small=True)
     odoflow_repr = DepthOdoFlow(name="odoflow_rife", dependencies=[raft_repr],
-                                linear_ang_vel_correction=True, focus_correction=True, cosine_correction_scipy=True,
-                                cosine_correction_gd=False, sensor_fov=30, sensor_width=100, sensor_height=100,
-                                min_depth_meters=0, max_depth_meters=100)
+                                linear_ang_vel_correction=True, focus_correction=True, sensor_fov=30, sensor_width=100,
+                                sensor_height=100, min_depth_meters=0, max_depth_meters=100)
     depth_svd_normals_repr = DepthNormalsSVD(name="depth_svd_normals", dependencies=[odoflow_repr],
                                              sensor_fov=30, sensor_width=100, sensor_height=100, window_size=5,
                                              input_downsample_step=1, stride=1, max_distance=100, min_valid_count=0)
@@ -39,9 +38,8 @@ def test_depth_normals_svd_odoflow_rife():
     video_ang_vel = np.random.randn(len(video), 3)
     rife_repr = FlowRife(name="rife", dependencies=[], compute_backward_flow=False, uhd=False)
     odoflow_repr = DepthOdoFlow(name="odoflow_rife", dependencies=[rife_repr],
-                                linear_ang_vel_correction=True, focus_correction=True, cosine_correction_scipy=True,
-                                cosine_correction_gd=False, sensor_fov=30, sensor_width=100, sensor_height=100,
-                                min_depth_meters=0, max_depth_meters=100)
+                                linear_ang_vel_correction=True, focus_correction=True, sensor_fov=30, sensor_width=100,
+                                sensor_height=100, min_depth_meters=0, max_depth_meters=100)
     depth_svd_normals_repr = DepthNormalsSVD(name="depth_svd_normals", dependencies=[odoflow_repr],
                                              sensor_fov=30, sensor_width=100, sensor_height=100, window_size=5,
                                              input_downsample_step=1, stride=1, max_distance=100, min_valid_count=0)

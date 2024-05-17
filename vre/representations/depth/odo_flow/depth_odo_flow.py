@@ -12,15 +12,12 @@ from ....utils import image_resize_batch, VREVideo, get_weights_dir
 
 class DepthOdoFlow(Representation):
     """Depth from optical flow and odometry."""
-    def __init__(self, linear_ang_vel_correction: bool, focus_correction: bool,
-                 cosine_correction_scipy: bool, cosine_correction_gd: bool, sensor_fov: int, sensor_width: int,
+    def __init__(self, linear_ang_vel_correction: bool, focus_correction: bool, sensor_fov: int, sensor_width: int,
                  sensor_height: int, min_depth_meters: int, max_depth_meters: int, **kwargs):
         super().__init__(**kwargs)
 
         self.linear_ang_vel_correction = linear_ang_vel_correction
         self.focus_correction = focus_correction
-        self.cosine_correction_scipy = cosine_correction_scipy
-        self.cosine_correction_gd = cosine_correction_gd
         self.min_depth_meters = min_depth_meters
         self.max_depth_meters = max_depth_meters
         # TODO: thresholds picked for flow at 960x540; scaled correspondingly in filter function
@@ -79,9 +76,7 @@ class DepthOdoFlow(Representation):
 
         Zs, As, bs, derotating_flows, batch_ang_velc = depth_from_flow(flows, lin_vel, ang_vel, self.camera_info.K,
                                                                        self.linear_ang_vel_correction,
-                                                                       self.focus_correction,
-                                                                       self.cosine_correction_gd,
-                                                                       self.cosine_correction_scipy)
+                                                                       self.focus_correction)
         valid = filter_depth_from_flow(Zs, As, bs, derotating_flows, thresholds=self.thresholds)
 
         Zs[~valid] = np.nan

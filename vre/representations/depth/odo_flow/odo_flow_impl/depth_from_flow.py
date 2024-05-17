@@ -1,9 +1,7 @@
 # pylint: disable=all
 import numpy as np
 import torch
-from skimage.filters import gaussian
-from scipy import optimize
-
+from scipy import ndimage as ndi
 
 from .polyfit import linear_least_squares
 
@@ -295,9 +293,8 @@ def solve_scalar_linear_least_squares(A, b):
     return Z
 
 
-def depth_from_flow(batched_flow, linear_velocity, angular_velocity, K,
-                    adjust_ang_vel=True, use_focus_correction=False, use_cosine_correction_gd=False,
-                    use_cosine_correction_scipy=False, mesh_grid=None, axis=("x", "y", "xy")[2]):
+def depth_from_flow(batched_flow, linear_velocity, angular_velocity, K, adjust_ang_vel=True, use_focus_correction=False,
+                    use_cosine_correction_gd=True, mesh_grid=None, axis=("x", "y", "xy")[2]):
     f_u, f_v = K[0, 0], K[1, 1]
     u0, v0 = K[0, 2], K[1, 2]
 
@@ -357,10 +354,6 @@ def depth_from_flow(batched_flow, linear_velocity, angular_velocity, K,
     if use_cosine_correction_gd:
         for b_ind in range(B):
             ang_vel_correction[b_ind] = cosine_correction_torch(b[b_ind], A[b_ind], J_w,
-                                                                initial_delta=ang_vel_correction[b_ind], b_ind=b_ind)
-    if use_cosine_correction_scipy:
-        for b_ind in range(B):
-            ang_vel_correction[b_ind] = cosine_correction_scipy(b[b_ind], A[b_ind], J_w,
                                                                 initial_delta=ang_vel_correction[b_ind], b_ind=b_ind)
 
     angular_velocity = angular_velocity - ang_vel_correction
@@ -534,11 +527,36 @@ def get_feature_from_depth_from_flow_data(Zs, As, bs, derotating_flows, feature)
 
     return feature_data
 
+def gaussian(
+    image,
+    sigma=1,
+    mode='nearest',
+    cval=0,
+    preserve_range=False,
+    truncate=4.0,
+    *,
+    channel_axis=None,
+    out=None,
+):
+    """Multi-dimensional Gaussian filter."""
+    if np.any(np.asarray(sigma) < 0.0):
+        raise ValueError("Sigma values less than zero are not valid")
+    if channel_axis is not None:
+        # do not filter across channels
+        if not isinstance(sigma, (list, tuple)):
+            sigma = [sigma] * (image.ndim - 1)
+        if len(sigma) == image.ndim - 1:
+            sigma = list(sigma)
+            sigma.insert(channel_axis % image.ndim, 0)
+    assert image.dtype == np.float64, image.dtype
+    if (out is not None) and (not np.issubdtype(out.dtype, np.floating)):
+        raise ValueError(f"dtype of `out` must be float; got {out.dtype!r}.")
+    return ndi.gaussian_filter(
+        image, sigma, output=out, mode=mode, cval=cval, truncate=truncate
+    )
 
 def focus_corection(ang_vel, lin_vel, f, c, b):
     # speed check
-    low_axis_threshold = 0.1
-    low_ang_vel_threshold = 0.05
     window_size = 5
     use_real_minimum = True
     approximate_out_of_image = True
@@ -583,17 +601,8 @@ def focus_corection(ang_vel, lin_vel, f, c, b):
         jw = np.delete(jw, ang_low_idx, axis=2)
         jw = jw.reshape(jw.shape[0] * 2, 2)
 
-        # tg = np.array([-b[:, v + c[1], u + c[0]] for u, v in xy])
-        # tg = np.array([b[:, focus_real[0], focus_real[1]] - b[:, v + c[1], u + c[0]] for u, v in xy])
-        # tg = tg.mean(axis=0)
-        # tg = tg.flatten()
-
         tg = -b[:, yw[0]:yw[1], xw[0]:xw[1]]
-        # print(tg.shape)
         tg = tg.reshape(-1, tg.shape[1] * tg.shape[2]).mean(axis=1)
-        # tg = tg.flatten()
-        # print(tg.shape)
-        # print(tg)
 
         if use_real_minimum:
             norm = np.sqrt((b ** 2).sum(axis=0))
@@ -609,42 +618,6 @@ def focus_corection(ang_vel, lin_vel, f, c, b):
             pass
 
     return dw
-
-
-def cosine_correction_scipy(b, A, Jw, initial_delta=None, b_ind=None):
-    if initial_delta is not None:
-        dw = initial_delta
-    else:
-        dw = np.zeros(3)
-
-    A = A.transpose((1, 2, 0)).reshape(A.shape[1] * A.shape[2], 2)
-    b = b.transpose((1, 2, 0)).reshape(b.shape[1] * b.shape[2], 2)
-    Jw = Jw.transpose((2, 3, 0, 1)).reshape(Jw.shape[2] * Jw.shape[3], 2, 3)
-
-    Au, Av = A[:, :1], A[:, 1:]
-    bu, bv = b[:, :1], b[:, 1:]
-    Ju, Jv = Jw[:, 0], Jw[:, 1]
-
-    Ab = (A * b).sum(axis=1)[..., None]
-    nA2 = (A ** 2).sum(axis=1)[..., None]
-    AJ = Au * Ju + Av * Jv
-
-    def sim_loss(w):
-        w = w[..., None]
-        cos = (1 - (Ab + AJ @ w) / (np.sqrt(nA2) * np.sqrt((bu + Ju @ w) ** 2 + (bv + Jv @ w) ** 2))).mean()
-        return cos
-
-    res = optimize.minimize(sim_loss, dw, method='Nelder-Mead')
-    dw = res.x
-
-    if np.linalg.norm(dw) < 0.02:
-        dw = dw
-    else:
-        dw = np.zeros(3)
-        # print(b_ind, 'trigger norm', np.linalg.norm(dw))
-
-    return dw
-
 
 def cosine_correction_torch(b, A, Jw, initial_delta=None, b_ind=None):
     n_optim_steps = 50

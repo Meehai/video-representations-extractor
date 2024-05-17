@@ -97,8 +97,6 @@ representations:
     parameters:
       linear_ang_vel_correction: True
       focus_correction: True
-      cosine_correction_scipy: False
-      cosine_correction_gd: True
       sensor_fov: 75
       sensor_width: 3840
       sensor_height: 2160
@@ -157,8 +155,6 @@ representations:
   #     velocities_path: DJI_0956_velocities.npz
   #     linearAngVelCorrection: True
   #     focus_correction: True
-  #     cosine_correction_scipy: False
-  #     cosine_correction_gd: True
   #     sensor_fov: 75
   #     sensor_width: 3840
   #     sensor_height: 2160
