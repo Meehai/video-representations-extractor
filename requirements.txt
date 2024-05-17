@@ -18,7 +18,6 @@ omegaconf==2.3.0
 lovely_tensors==0.1.15
 fvcore==0.1.5.post20221221
 pycocotools==2.0.7
-cloudpickle==3.0.0
 moviepy==1.0.3
 opencv-python==4.7.0.68
 Pillow==10.3.0
