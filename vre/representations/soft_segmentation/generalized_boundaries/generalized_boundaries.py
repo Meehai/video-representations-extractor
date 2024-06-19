@@ -28,7 +28,7 @@ class GeneralizedBoundaries(Representation):
         x = x.permute(0, 3, 1, 2)
         y = soft_seg(x, use_median_filtering=self.use_median_filtering, as_image=self.adjust_to_rgb,
                      max_channels=self.max_channels)
-        y = y.permute(0, 2, 3, 1).cpu().numpy()
+        y = y.permute(0, 2, 3, 1).cpu().numpy().astype(np.float16) # TODO: float32/16 by params
         return y
 
     @overrides
