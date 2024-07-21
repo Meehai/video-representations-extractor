@@ -8,7 +8,7 @@ from matplotlib.cm import hot # pylint: disable=no-name-in-module
 from .dpt_impl.dpt_depth import DPTDepthModel
 from ....representation import Representation, RepresentationOutput
 from ....utils import gdown_mkdir, image_resize_batch, VREVideo, get_weights_dir
-from ....logger import logger
+from ....logger import vre_logger as logger
 
 def _constrain_to_multiple_of(x, multiple_of: int, min_val=0, max_val=None) -> int:
     y = (np.round(x / multiple_of) * multiple_of).astype(int)

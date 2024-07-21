@@ -1,5 +1,5 @@
 # pylint: disable=all
-from vre.logger import logger
+from vre.logger import vre_logger as logger
 from pathlib import Path
 from functools import lru_cache
 from PIL import Image, ImageDraw, ImageFont

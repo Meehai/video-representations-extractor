@@ -6,7 +6,7 @@ from overrides import overrides
 from .odo_flow_impl.camera_info import CameraInfo, CameraSensorParams
 from .odo_flow_impl.depth_from_flow import depth_from_flow, filter_depth_from_flow
 from ....representation import Representation, RepresentationOutput
-from ....logger import logger
+from ....logger import vre_logger as logger
 from ....utils import image_resize_batch, VREVideo, get_weights_dir
 
 

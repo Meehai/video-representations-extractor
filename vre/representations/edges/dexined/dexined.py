@@ -5,7 +5,7 @@ from overrides import overrides
 
 from .model_dexined import DexiNed as Model
 from ....representation import Representation, RepresentationOutput
-from ....logger import logger
+from ....logger import vre_logger as logger
 from ....utils import image_resize_batch, gdown_mkdir, VREVideo, get_weights_dir
 
 class DexiNed(Representation):

@@ -11,7 +11,7 @@ import pims
 from vre import VRE
 from vre.utils import FakeVideo, image_read, get_project_root
 from vre.representations import build_representations_from_cfg
-from vre.logger import logger
+from vre.logger import vre_logger as logger
 from omegaconf import OmegaConf
 
 def _print_and_store_run_stats(run_stats: pd.DataFrame):

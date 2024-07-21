@@ -13,7 +13,7 @@ from .representation import Representation
 from .utils import VREVideo, took, make_batches, all_batch_exists, RepresentationOutput
 from .vre_runtime_args import VRERuntimeArgs
 from .data_storer import DataStorer
-from .logger import logger
+from .logger import vre_logger as logger
 
 def _open_write_err(path: str, msg: str):
     open(path, "a").write(msg)

@@ -4,7 +4,7 @@ from pathlib import Path
 import shutil
 
 from .utils import is_dir_empty
-from .logger import logger
+from .logger import vre_logger as logger
 
 RepresentationsSetup = dict[str, dict[str, Any]]
 

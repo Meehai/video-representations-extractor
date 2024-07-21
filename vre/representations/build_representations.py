@@ -1,7 +1,7 @@
 """builder for all the representations in VRE. Can be used outside of VRE too, see examples/notebooks."""
 from typing import Type
 from omegaconf import DictConfig, OmegaConf
-from ..logger import logger
+from ..logger import vre_logger as logger
 from ..utils import topological_sort
 from ..representation import Representation
 
