@@ -4,7 +4,7 @@ import numpy as np
 import cv2
 from PIL import Image, ImageDraw, ImageOps, ImageFont
 
-from ..logger import logger
+from ..logger import vre_logger as logger
 from .utils import get_closest_square, get_project_root
 
 def _image_resize_cv2(data: np.ndarray, height: int, width: int, interpolation: str, **kwargs) -> np.ndarray:

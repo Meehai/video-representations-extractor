@@ -9,7 +9,7 @@ from .raft_impl.utils import InputPadder
 from .raft_impl.raft import RAFT
 from ....representation import Representation, RepresentationOutput
 from ....utils import gdown_mkdir, image_resize_batch, VREVideo, get_weights_dir
-from ....logger import logger
+from ....logger import vre_logger as logger
 
 class FlowRaft(Representation):
     """FlowRaft representation"""

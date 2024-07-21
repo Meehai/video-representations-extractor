@@ -8,7 +8,7 @@ from moviepy.editor import ImageSequenceClip
 import numpy as np
 
 from vre.utils import image_read, image_write, image_resize, image_add_title, collage_fn
-from vre.logger import logger
+from vre.logger import vre_logger as logger
 
 def get_args():
     """Cli args"""

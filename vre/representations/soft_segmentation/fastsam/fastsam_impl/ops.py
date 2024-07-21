@@ -4,7 +4,7 @@ import torch
 import numpy as np
 import torchvision
 from torch.nn import functional as F
-from vre.logger import logger
+from vre.logger import vre_logger as logger
 
 def scale_boxes(img1_shape, boxes, img0_shape, ratio_pad=None):
     """

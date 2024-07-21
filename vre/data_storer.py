@@ -7,7 +7,7 @@ import numpy as np
 
 from .vre_runtime_args import VRERuntimeArgs
 from .utils import image_write
-from .logger import logger
+from .logger import vre_logger as logger
 
 class DataStorer:
     """Class used to store the representations on disk. It supports multi-threading so we don't block the compute one"""

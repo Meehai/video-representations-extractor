@@ -9,7 +9,7 @@ from torch.nn import functional as F
 
 from vre.representation import Representation, RepresentationOutput
 from vre.utils import gdown_mkdir, VREVideo, image_resize_batch, get_weights_dir, image_read, image_write
-from vre.logger import logger
+from vre.logger import vre_logger as logger
 
 try:
     from .fastsam_impl import FastSAM as Model, FastSAMPredictor, FastSAMPrompt

@@ -2,7 +2,7 @@
 import numpy as np
 import torch
 from PIL import Image
-from vre.logger import logger
+from vre.logger import vre_logger as logger
 import math
 from types import SimpleNamespace
 import re

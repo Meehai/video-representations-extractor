@@ -1,6 +1,6 @@
 """Helper mixin class that adds the VRE relevant methods & properties such that a representation works in vre loop"""
 from .utils import parsed_str_type, VREVideo, RepresentationOutput
-from .logger import logger
+from .logger import vre_logger as logger
 
 class VRERepresentationMixin:
     """VRERepresentationMixin class"""

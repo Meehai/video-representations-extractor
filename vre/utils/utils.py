@@ -6,7 +6,7 @@ import os
 import gdown
 import numpy as np
 
-from ..logger import logger
+from ..logger import vre_logger as logger
 from .fake_video import VREVideo
 
 RepresentationOutput = np.ndarray | tuple[np.ndarray, list[dict]]

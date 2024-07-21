@@ -11,7 +11,7 @@ from lovely_tensors import monkey_patch
 from fvcore.common.config import CfgNode
 
 from vre.representation import Representation, RepresentationOutput
-from vre.logger import logger
+from vre.logger import vre_logger as logger
 from vre.utils import gdown_mkdir, image_resize_batch, VREVideo, get_weights_dir, image_read, image_write
 
 try:

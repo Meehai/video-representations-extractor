@@ -8,7 +8,7 @@ from torch.nn import functional as F
 from .Map2Map import EncoderMap2Map, DecoderMap2Map
 from ....representation import Representation, RepresentationOutput
 from ....utils import image_resize_batch, VREVideo, get_weights_dir
-from ....logger import logger
+from ....logger import vre_logger as logger
 
 class _SafeUavWrapper(nn.Module):
     """Wrapper. TODO: Replace with nn.Sequential"""

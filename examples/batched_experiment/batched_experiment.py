@@ -10,7 +10,7 @@ import torch as tr
 import os
 
 from vre import VRE
-from vre.logger import logger
+from vre.logger import vre_logger as logger
 from vre.representations import build_representations_from_cfg
 from vre.utils import get_project_root
 
