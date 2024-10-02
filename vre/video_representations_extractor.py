@@ -35,7 +35,7 @@ class VideoRepresentationsExtractor:
         self._data_storer: DataStorer | None = None
 
     def _make_one_frame(self, _repr: Representation, ix: slice, runtime_args: VRERuntimeArgs) \
-            -> (RepresentationOutput, np.ndarray | None):
+            -> tuple[RepresentationOutput, np.ndarray | None]:
         """
         Method used to integrate with VRE. Gets the entire data (video) and a slice of it (ix) and returns the
         representation for that slice. Additionally, if makes_images is set to True, it also returns the image
