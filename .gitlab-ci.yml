@@ -18,7 +18,7 @@ before_script:
 
 pylint:
   script:
-    - pip install pylint
+    - pip install pylint==3.2.7
     - python -m pylint --rcfile=.pylintrc $(git ls-files "*.py" | grep -v "test/\|examples/")
 
 test_end_to_end_imgur:
