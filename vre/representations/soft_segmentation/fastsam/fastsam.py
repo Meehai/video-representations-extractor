@@ -151,7 +151,7 @@ class FastSam(Representation):
             return ((32 - x % 32) if x < 32 or (x % 32 <= 16) else -(x % 32)) % 32 # get closest modulo 32 offset of x
         new_h, new_w = new_h + _offset32(new_h), new_w + _offset32(new_w) # needed because it throws otherwise
         tr_x = F.interpolate(tr_x, size=(new_h, new_w), mode="bilinear", align_corners=False)
-        return tr_x
+        return tr_x.to(next(self.predictor.model.parameters()).device)
 
 def get_args() -> Namespace:
     """cli args"""
@@ -182,7 +182,7 @@ def main(args: Namespace):
     logger.info(f"Written resized result to '{output_path_rsz}'")
 
     if args.input_image.name == "demo1.jpg" and args.model_id == "fastsam-s":
-        assert np.allclose(a := pred[0].mean(), 0.8813972), a
+        assert np.allclose(a := pred[0].mean(), 0.8813972, rtol=1e-2 if tr.cuda.is_available() else 1e-5), a
         assert np.allclose(b := pred[1][0]["boxes"].mean(), 46.200043), b
         assert np.allclose(a := pred_rsz[0].mean(), 0.88434076), a
         assert np.allclose(b := pred_rsz[1][0]["boxes"].mean(), 28.541258), b

@@ -49,7 +49,7 @@ representations:
   #     max_iterations: 10
   #     attempts: 3
 
-  softseg gb:
+  softseg_gb:
     type: soft-segmentation
     name: generalized_boundaries
     dependencies: []
@@ -58,7 +58,7 @@ representations:
       adjust_to_rgb: True
       max_channels: 3
 
-  edges dexined:
+  edges_dexined:
     type: edges
     name: dexined
     dependencies: []
@@ -66,7 +66,7 @@ representations:
     vre_parameters:
       device: ${oc.env:VRE_DEVICE,cpu}
 
-  opticalflow rife:
+  opticalflow_rife:
     type: optical-flow
     name: rife
     dependencies: []
@@ -76,7 +76,7 @@ representations:
     vre_parameters:
       device: ${oc.env:VRE_DEVICE,cpu}
 
-  fastsam(s):
+  fastsam_s:
     type: soft-segmentation
     name: fastsam
     dependencies: []
@@ -87,7 +87,7 @@ representations:
     vre_parameters:
       device: cpu #${oc.env:VRE_DEVICE,cpu}
 
-  fastsam(x):
+  fastsam_x:
     type: soft-segmentation
     name: fastsam
     dependencies: []
@@ -132,10 +132,20 @@ representations:
       device: ${oc.env:VRE_DEVICE,cpu}
 
   # sucky because slow, but it's good/pretrained
-  depth dpt:
+  depth_dpt:
     type: depth
     name: dpt
     dependencies: []
     parameters: {}
     vre_parameters:
       device: ${oc.env:VRE_DEVICE,cpu}
+
+  normals svd (rife):
+    type: normals
+    name: depth-svd
+    dependencies: [depth_dpt]
+    parameters:
+      sensor_fov: 75
+      sensor_width: 3840
+      sensor_height: 2160
+      window_size: 11
