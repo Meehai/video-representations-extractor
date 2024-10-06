@@ -46,11 +46,9 @@ class Mask2Former(Representation):
         self.model_id = model_id
         self.semantic_argmax_only = semantic_argmax_only
 
-    # pylint: disable=arguments-differ
-    @overrides(check_signature=False)
-    def vre_setup(self, device: str):
-        self.model = self.model.to(device)
-        self.device = device
+    @overrides
+    def vre_setup(self):
+        self.model = self.model.to(self.device)
 
     @tr.no_grad()
     @overrides

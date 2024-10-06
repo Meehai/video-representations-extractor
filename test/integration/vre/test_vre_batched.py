@@ -46,47 +46,38 @@ def test_vre_batched():
     all_representations_dict = {
         "rgb": {"type": "default", "name": "rgb", "dependencies": [], "parameters": {}},
         "hsv": {"type": "default", "name": "hsv", "dependencies": [], "parameters": {}},
-        "dexined": {"type": "edges", "name": "dexined", "dependencies": [],
-                    "parameters": {},
-                    "vre_parameters": {"device": device}},
+        "dexined": {"type": "edges", "name": "dexined", "dependencies": [], "parameters": {}, "device": device},
         "softseg gb": {"type": "soft-segmentation", "name": "generalized_boundaries", "dependencies": [],
                        "parameters": {"use_median_filtering": True, "adjust_to_rgb": True, "max_channels": 3}},
         "canny": {"type": "edges", "name": "canny", "dependencies": [],
                   "parameters": {"threshold1": 100, "threshold2": 200, "aperture_size": 3, "l2_gradient": True}},
-        "depth dpt": {"type": "depth", "name": "dpt", "dependencies": [], "parameters": {},
-                      "vre_parameters": {"device": device}},
+        "depth dpt": {"type": "depth", "name": "dpt", "dependencies": [], "parameters": {}, "device": device},
         "normals svd (dpt)": {"type": "normals", "name": "depth-svd", "dependencies": ["depth dpt"],
                               "parameters": {"sensor_fov": 75, "sensor_width": 3840,
                                              "sensor_height": 2160, "window_size": 11}},
         "opticalflow rife": {"type": "optical-flow", "name": "rife", "dependencies": [],
-                             "parameters": {"compute_backward_flow": False, "uhd": False},
-                             "vre_parameters": {"device": device}},
+                             "parameters": {"compute_backward_flow": False, "uhd": False}, "device": device},
         "semantic safeuav torch": {"type": "semantic-segmentation", "name": "safeuav", "dependencies": [],
                                    "parameters": {"train_height": 240, "train_width": 428, "num_classes": 8,
                                                   "color_map": [[0, 255, 0], [0, 127, 0], [255, 255, 0],
                                                                 [255, 255, 255], [255, 0, 0], [0, 0, 255],
                                                                 [0, 255, 255], [127, 127, 63]]},
-                                   "vre_parameters": {"device": device, "weights_file": None}},
+                                   "device": device},
         "halftone": {"type": "soft-segmentation", "name": "python-halftone", "dependencies": [],
                      "parameters": {"sample": 3, "scale": 1, "percentage": 91, "angles": [0, 15, 30, 45],
                                     "antialias": False, "resolution": [240, 426]}},
         "opticalflow raft": {"type": "optical-flow", "name": "raft", "dependencies": [],
                              "parameters": {"inference_height": 360, "inference_width": 640,
-                                            "small": False, "iters": 20},
-                             "vre_parameters": {"device": device}},
+                                            "small": False, "iters": 20}, "device": device},
         "mask2former": {"type": "semantic-segmentation", "name": "mask2former", "dependencies": [], "batch_size": 1,
-                        "parameters": {"model_id": "49189528_1", "semantic_argmax_only": False},
-                        "vre_parameters": {"device": device}},
+                        "parameters": {"model_id": "49189528_1", "semantic_argmax_only": False}, "device": device},
         "fastsam (s)": {"type": "soft-segmentation", "name": "fastsam", "dependencies": [],
-                        "parameters": {"variant": "fastsam-s", "iou": 0.9, "conf": 0.4},
-                        "vre_parameters": {"device": device}},
+                        "parameters": {"variant": "fastsam-s", "iou": 0.9, "conf": 0.4}, "device": device},
     }
     # we'll just pick 2 random representations to test here
     representations_dict = sample_representations(all_representations_dict, n=2)
     representations = build_representations_from_cfg(representations_dict)
     representations_bs = build_representations_from_cfg(representations_dict)
-    for v in representations.values():
-        assert hasattr(v, "vre_parameters"), v.name
 
     tmp_dir = Path("here1" if __name__ == "__main__" else TemporaryDirectory().name)
     tmp_dir_bs = Path("here2" if __name__ == "__main__" else TemporaryDirectory().name)

@@ -83,10 +83,10 @@ def build_representation_from_cfg(repr_cfg: dict, name: str, built_so_far: dict[
     dependencies = [built_so_far[dep] for dep in repr_cfg["dependencies"]]
     obj: Representation = obj_type(name=name, dependencies=dependencies, **repr_cfg["parameters"])
 
-    if "vre_parameters" in repr_cfg:
-        logger.info(f"Explicit VRE parameters provided to '{name}'")
-        assert isinstance(repr_cfg["vre_parameters"], dict), type(repr_cfg["vre_parameters"])
-        obj.vre_parameters = repr_cfg["vre_parameters"]
+    assert "vre_parameters" not in repr_cfg, "Old config file, remove 'vre_parameters'"
+    if "device" in repr_cfg:
+        logger.info(f"Explicit device provide: {repr_cfg['device']}. This device will be used at vre.run()")
+        obj.device = repr_cfg["device"]
     if "batch_size" in repr_cfg:
         logger.info(f"Explicit batch size {repr_cfg['batch_size']} provided to {name}.")
         assert isinstance(repr_cfg["batch_size"], int), type(repr_cfg["batch_size"])

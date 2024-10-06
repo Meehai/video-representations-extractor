@@ -74,8 +74,7 @@ name of representation:
   parameters: # as defined in the constructor of the implementation
     param1: value1
     param2: value2
-  vre_parameters: # also known as runtime parameters (post constructor). Calls repr.vre_setup()
-    device: "cuda" # for representations that have in their vre_setup() method a model.to(device) call
+  device: "cuda" # for representations that have in their vre_setup() method a model.to(device) call
 
 name of representation 2:
   type: some other type

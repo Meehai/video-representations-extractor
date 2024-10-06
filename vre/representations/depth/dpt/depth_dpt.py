@@ -45,10 +45,8 @@ class DepthDpt(Representation):
         tr.manual_seed(42)
         self.model = DPTDepthModel(backbone="vitl16_384", non_negative=True).to("cpu")
 
-    # pylint: disable=arguments-differ
-    @overrides(check_signature=False)
-    def vre_setup(self, device: str):
-        assert tr.cuda.is_available() or device == "cpu", "CUDA not available"
+    @overrides
+    def vre_setup(self):
         # our backup
         weights_file = get_weights_dir() / "depth_dpt_midas.pth"
         url_weights = "https://drive.google.com/u/0/uc?id=15JbN2YSkZFSaSV2CGkU1kVSxCBrNtyhD"
@@ -56,7 +54,6 @@ class DepthDpt(Representation):
         if not weights_file.exists():
             gdown_mkdir(url_weights, weights_file)
 
-        self.device = device
         logger.info(f"Loading weights from '{weights_file}'")
         weights_data = tr.load(weights_file, map_location="cpu")
         self.model.load_state_dict(weights_data)

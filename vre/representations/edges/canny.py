@@ -36,3 +36,7 @@ class Canny(Representation):
                         apertureSize=self.aperture_size, L2gradient=self.l2_gradient)
         res = np.float32(res) / 255
         return res
+
+    @overrides
+    def vre_setup(self):
+        pass
