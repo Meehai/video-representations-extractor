@@ -22,9 +22,6 @@ def build_representation_type(type: str, name: str) -> Type[Representation]:
         if name == "python-halftone":
             from .soft_segmentation.halftone import Halftone
             obj_type = Halftone
-        elif name == "kmeans":
-            from .soft_segmentation.kmeans import KMeans
-            obj_type = KMeans
         elif name == "generalized_boundaries":
             from .soft_segmentation.generalized_boundaries import GeneralizedBoundaries
             obj_type = GeneralizedBoundaries

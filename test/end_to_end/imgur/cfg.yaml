@@ -39,16 +39,6 @@ representations:
       aperture_size: 3
       l2_gradient: True
 
-  softseg kmeans:
-    type: soft-segmentation
-    name: kmeans
-    dependencies: []
-    parameters:
-      n_clusters: 6
-      epsilon: 2
-      max_iterations: 10
-      attempts: 3
-
   softseg gb:
     type: soft-segmentation
     name: generalized_boundaries
@@ -57,20 +47,6 @@ representations:
       use_median_filtering: True
       adjust_to_rgb: True
       max_channels: 3
-
-  # semantic safeuav torch:
-  #   type: semantic-segmentation
-  #   name: safeuav
-  #   dependencies: []
-  #   parameters:
-  #     train_height: 240
-  #     train_width: 428
-  #     num_classes: 8
-  #     color_map: [[0, 255, 0], [0, 127, 0], [255, 255, 0], [255, 255, 255],
-  #                 [255, 0, 0], [0, 0, 255], [0, 255, 255], [127, 127, 63]]
-  #   vre_parameters:
-  #     device: ${oc.env:VRE_DEVICE,cpu}
-  #     weights_file: safeuav_semantic_0956_pytorch.ckpt
 
   edges dexined:
     type: edges
@@ -90,30 +66,15 @@ representations:
     vre_parameters:
       device: ${oc.env:VRE_DEVICE,cpu}
 
-  depth odoflow (rife):
-    type: depth
-    name: odo-flow
-    dependencies: [opticalflow rife]
+  normals_svd(depth_dpt):
+    type: normals
+    name: depth-svd
+    dependencies: [depth_dpt]
     parameters:
-      linear_ang_vel_correction: True
-      focus_correction: True
       sensor_fov: 75
       sensor_width: 3840
       sensor_height: 2160
-      min_depth_meters: 0
-      max_depth_meters: 400
-    vre_parameters:
-      velocities_path: DJI_0956_velocities.npz
-
-  # normals svd (rife):
-  #   type: normals
-  #   name: depth-svd
-  #   dependencies: [depth odoflow (rife)]
-  #   parameters:
-  #     sensor_fov: 75
-  #     sensor_width: 3840
-  #     sensor_height: 2160
-  #     window_size: 11
+      window_size: 11
 
   fastsam(s):
     type: soft-segmentation
@@ -136,7 +97,7 @@ representations:
     vre_parameters:
       device: ${oc.env:VRE_DEVICE,cpu}
 
-  # # SUCKY BECAUSE SUPERSLOW. Adds like 2-3 mins in CI. Rife is good enough.
+  # SUCKY BECAUSE SUPERSLOW. Adds like 2-3 mins in CI. Rife is good enough.
   # opticalflow raft:
   #   type: optical-flow
   #   name: raft
@@ -147,32 +108,8 @@ representations:
   #   vre_parameters:
   #     device: ${oc.env:VRE_DEVICE,cpu}
 
-  # depth odoflow (raft):
-  #   type: depth
-  #   name: odo-flow
-  #   dependencies: [opticalflow raft]
-  #   parameters:
-  #     velocities_path: DJI_0956_velocities.npz
-  #     linearAngVelCorrection: True
-  #     focus_correction: True
-  #     sensor_fov: 75
-  #     sensor_width: 3840
-  #     sensor_height: 2160
-  #     min_depth_meters: 0
-  #     max_depth_meters: 400
-
-  # normals svd (raft):
-  #   type: normals
-  #   name: depth-svd
-  #   dependencies: [depth odoflow (raft)]
-  #   parameters:
-  #     sensor_fov: 75
-  #     sensor_width: 3840
-  #     sensor_height: 2160
-  #     window_size: 11
-
   # sucky because slow, but it's good/pretrained
-  depth dpt:
+  depth_dpt:
     type: depth
     name: dpt
     dependencies: []
@@ -180,12 +117,3 @@ representations:
     vre_parameters:
       device: ${oc.env:VRE_DEVICE,cpu}
 
-  # normals svd (dpt):
-  #   type: normals
-  #   name: depth-svd
-  #   dependencies: [depth dpt]
-  #   parameters:
-  #     sensor_fov: 75
-  #     sensor_width: 3840
-  #     sensor_height: 2160
-  #     window_size: 11

@@ -8,6 +8,9 @@ import numpy as np
 import cv2
 import os
 from copy import deepcopy
+from vre.utils import image_resize
+from vre.utils.cv2_utils import (cv2_copyMakeBorder, cv2_BORDER_CONSTANT, cv2_rectangle, cv2_putText, cv2_getTextSize,
+                                 cv2_LINE_AA)
 from .ops import xyxy2xywh, xywh2xyxy, clip_boxes
 
 class Colors:
@@ -111,7 +114,6 @@ def save_one_box(xyxy, im, file=Path('im.jpg'), gain=1.02, pad=10, square=False,
     if save:
         file.parent.mkdir(parents=True, exist_ok=True)  # make directory
         f = str(increment_path(file).with_suffix('.jpg'))
-        # cv2.imwrite(f, crop)  # save BGR, https://github.com/ultralytics/yolov5/issues/7007 chroma subsampling issue
         Image.fromarray(crop[..., ::-1]).save(f, quality=95, subsampling=0)  # save RGB
     return crop
 
@@ -743,10 +745,10 @@ class LetterBox:
             labels['ratio_pad'] = (labels['ratio_pad'], (dw, dh))  # for evaluation
 
         if shape[::-1] != new_unpad:  # resize
-            img = cv2.resize(img, new_unpad, interpolation=cv2.INTER_LINEAR)
+            img = image_resize(img, new_unpad[1], new_unpad[0], "bilinear", library="cv2")
         top, bottom = int(round(dh - 0.1)), int(round(dh + 0.1))
         left, right = int(round(dw - 0.1)), int(round(dw + 0.1))
-        img = cv2.copyMakeBorder(img, top, bottom, left, right, cv2.BORDER_CONSTANT,
+        img = cv2_copyMakeBorder(img, top, bottom, left, right, cv2_BORDER_CONSTANT,
                                  value=(114, 114, 114))  # add border
 
         if len(labels):
@@ -824,17 +826,12 @@ class Annotator:
                 self.draw.text((box[0], box[1] - h if outside else box[1]), label, fill=txt_color, font=self.font)
         else:  # cv2
             p1, p2 = (int(box[0]), int(box[1])), (int(box[2]), int(box[3]))
-            cv2.rectangle(self.im, p1, p2, color, thickness=self.lw, lineType=cv2.LINE_AA)
+            cv2_rectangle(self.im, p1, p2, color, thickness=self.lw, lineType=cv2_LINE_AA)
             if label:
                 tf = max(self.lw - 1, 1)  # font thickness
-                w, h = cv2.getTextSize(label, 0, fontScale=self.lw / 3, thickness=tf)[0]  # text width, height
+                w, h = cv2_getTextSize(label, 0, fontScale=self.lw / 3, thickness=tf)[0]  # text width, height
                 outside = p1[1] - h >= 3
                 p2 = p1[0] + w, p1[1] - h - 3 if outside else p1[1] + h + 3
-                cv2.rectangle(self.im, p1, p2, color, -1, cv2.LINE_AA)  # filled
-                cv2.putText(self.im,
-                            label, (p1[0], p1[1] - 2 if outside else p1[1] + h + 2),
-                            0,
-                            self.lw / 3,
-                            txt_color,
-                            thickness=tf,
-                            lineType=cv2.LINE_AA)
+                cv2_rectangle(self.im, p1, p2, color, -1, cv2_LINE_AA)  # filled
+                cv2_putText(self.im, label, (p1[0], p1[1] - 2 if outside else p1[1] + h + 2), 0,
+                            self.lw / 3, txt_color, thickness=tf, lineType=cv2_LINE_AA)

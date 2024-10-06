@@ -39,16 +39,6 @@ representations:
   #     aperture_size: 3
   #     l2_gradient: True
 
-  # softseg kmeans:
-  #   type: soft-segmentation
-  #   name: kmeans
-  #   dependencies: []
-  #   parameters:
-  #     n_clusters: 6
-  #     epsilon: 2
-  #     max_iterations: 10
-  #     attempts: 3
-
   softseg_gb:
     type: soft-segmentation
     name: generalized_boundaries
@@ -140,7 +130,7 @@ representations:
     vre_parameters:
       device: ${oc.env:VRE_DEVICE,cpu}
 
-  normals svd (rife):
+  normals_svd(depth_dpt):
     type: normals
     name: depth-svd
     dependencies: [depth_dpt]

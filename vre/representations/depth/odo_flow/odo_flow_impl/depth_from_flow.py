@@ -4,6 +4,7 @@ import torch
 from scipy import ndimage as ndi
 
 from .polyfit import linear_least_squares
+from vre.utils.cv2_utils import cv2_connectedComponents
 
 
 def solve_delta_ang_vel_old(jacobian_z, jacobian_ang_vel, b):
@@ -488,7 +489,7 @@ def filter_depth_from_flow(Zs, As, bs, derotating_flows, thresholds, virtual_hei
         if filter_zone == "around_focus_expansion_A":
             A_norm = np.linalg.norm(As, axis=1)
             for ind, mask in enumerate(cvalid):
-                num_comp, labels = cv2.connectedComponents((~mask).astype(np.uint8), connectivity=8)
+                num_comp, labels = cv2_connectedComponents((~mask).astype(np.uint8), connectivity=8)
                 if num_comp == 0:
                     cvalid[ind].fill(False)
                     continue

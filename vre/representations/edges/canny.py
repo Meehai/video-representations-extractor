@@ -4,6 +4,7 @@ from overrides import overrides
 from matplotlib.cm import gray # pylint: disable=no-name-in-module
 from ...representation import Representation, RepresentationOutput
 from ...utils import image_resize_batch
+from ...utils.cv2_utils import cv2_Canny
 
 class Canny(Representation):
     """Canny edge detector representation."""
@@ -31,9 +32,7 @@ class Canny(Representation):
         return image_resize_batch(repr_data, *new_size)
 
     def _make_one(self, x: np.ndarray) -> np.ndarray:
-        # pylint: disable=import-outside-toplevel
-        import cv2
-        res = cv2.Canny(x, threshold1=self.threshold1, threshold2=self.threshold2,
+        res = cv2_Canny(x, threshold1=self.threshold1, threshold2=self.threshold2,
                         apertureSize=self.aperture_size, L2gradient=self.l2_gradient)
         res = np.float32(res) / 255
         return res

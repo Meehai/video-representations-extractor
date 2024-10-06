@@ -33,8 +33,6 @@ def get_representation_dict() -> dict:
                     "vre_parameters": {"device": device}},
         "softseg gb": {"type": "soft-segmentation", "name": "generalized_boundaries", "dependencies": [],
                        "parameters": {"use_median_filtering": True, "adjust_to_rgb": True, "max_channels": 3}},
-        "softseg kmeans": {"type": "soft-segmentation", "name": "kmeans", "dependencies": [],
-                           "parameters": {"n_clusters": 6, "epsilon": 2, "max_iterations": 10, "attempts": 3}},
         "canny": {"type": "edges", "name": "canny", "dependencies": [],
                   "parameters": {"threshold1": 100, "threshold2": 200, "aperture_size": 3, "l2_gradient": True}},
         "depth dpt": {"type": "depth", "name": "dpt", "dependencies": [], "parameters": {},

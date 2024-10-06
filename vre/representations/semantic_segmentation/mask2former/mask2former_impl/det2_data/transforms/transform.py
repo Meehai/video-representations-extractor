@@ -10,29 +10,12 @@ https://detectron2.readthedocs.io/tutorials/augmentation.html
 import numpy as np
 import torch
 import torch.nn.functional as F
-from fvcore.transforms.transform import (
-    CropTransform,
-    HFlipTransform,
-    NoOpTransform,
-    Transform,
-    TransformList,
-)
+from fvcore.transforms.transform import CropTransform, HFlipTransform, NoOpTransform, Transform, TransformList
 from PIL import Image
+from vre.utils.cv2_utils import (cv2_INTER_LINEAR, cv2_transform, cv2_INTER_NEAREST, cv2_warpAffine,
+                                 cv2_getRotationMatrix2D)
 
-try:
-    import cv2  # noqa
-except ImportError:
-    # OpenCV is an optional dependency at the moment
-    pass
-
-__all__ = [
-    "ExtentTransform",
-    "ResizeTransform",
-    "RotationTransform",
-    "ColorTransform",
-    "PILColorTransform",
-]
-
+__all__ = ["ExtentTransform", "ResizeTransform", "RotationTransform", "ColorTransform", "PILColorTransform"]
 
 class ExtentTransform(Transform):
     """
@@ -176,14 +159,14 @@ class RotationTransform(Transform):
             center (tuple (width, height)): coordinates of the rotation center
                 if left to None, the center will be fit to the center of each image
                 center has no effect if expand=True because it only affects shifting
-            interp: cv2 interpolation method, default cv2.INTER_LINEAR
+            interp: cv2 interpolation method, default cv2_INTER_LINEAR
         """
         super().__init__()
         image_center = np.array((w / 2, h / 2))
         if center is None:
             center = image_center
         if interp is None:
-            interp = cv2.INTER_LINEAR
+            interp = cv2_INTER_LINEAR
         abs_cos, abs_sin = (abs(np.cos(np.deg2rad(angle))), abs(np.sin(np.deg2rad(angle))))
         if expand:
             # find the new width and height bounds
@@ -206,7 +189,7 @@ class RotationTransform(Transform):
             return img
         assert img.shape[:2] == (self.h, self.w)
         interp = interp if interp is not None else self.interp
-        return cv2.warpAffine(img, self.rm_image, (self.bound_w, self.bound_h), flags=interp)
+        return cv2_warpAffine(img, self.rm_image, (self.bound_w, self.bound_h), flags=interp)
 
     def apply_coords(self, coords):
         """
@@ -215,19 +198,19 @@ class RotationTransform(Transform):
         coords = np.asarray(coords, dtype=float)
         if len(coords) == 0 or self.angle % 360 == 0:
             return coords
-        return cv2.transform(coords[:, np.newaxis, :], self.rm_coords)[:, 0, :]
+        return cv2_transform(coords[:, np.newaxis, :], self.rm_coords)[:, 0, :]
 
     def apply_segmentation(self, segmentation):
-        segmentation = self.apply_image(segmentation, interp=cv2.INTER_NEAREST)
+        segmentation = self.apply_image(segmentation, interp=cv2_INTER_NEAREST)
         return segmentation
 
     def create_rotation_matrix(self, offset=0):
         center = (self.center[0] + offset, self.center[1] + offset)
-        rm = cv2.getRotationMatrix2D(tuple(center), self.angle, 1)
+        rm = cv2_getRotationMatrix2D(tuple(center), self.angle, 1)
         if self.expand:
             # Find the coordinates of the center of rotation in the new image
             # The only point for which we know the future coordinates is the center of the image
-            rot_im_center = cv2.transform(self.image_center[None, None, :] + offset, rm)[0, 0, :]
+            rot_im_center = cv2_transform(self.image_center[None, None, :] + offset, rm)[0, 0, :]
             new_center = np.array([self.bound_w / 2, self.bound_h / 2]) + offset - rot_im_center
             # shift the rotation center to the new coordinates
             rm[:, 2] += new_center
