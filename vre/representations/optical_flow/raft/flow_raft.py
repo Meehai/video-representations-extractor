@@ -8,7 +8,7 @@ import flow_vis
 from .raft_impl.utils import InputPadder
 from .raft_impl.raft import RAFT
 from ....representation import Representation, RepresentationOutput
-from ....utils import gdown_mkdir, image_resize_batch, VREVideo, get_weights_dir
+from ....utils import gdown_mkdir, image_resize_batch, get_weights_dir
 from ....logger import vre_logger as logger
 
 class FlowRaft(Representation):
@@ -26,15 +26,13 @@ class FlowRaft(Representation):
         self.inference_width = inference_width
         self.inference_height = inference_height
 
-    # pylint: disable=arguments-differ
-    @overrides(check_signature=False)
-    def vre_setup(self, device: str):
+    @overrides
+    def vre_setup(self):
         assert self.video.frame_shape[0] >= 128 and self.video.frame_shape[1] >= 128, \
             f"This flow doesn't work with small videos. At least 128x128 is required, but got {self.video.shape}"
         assert self.video.frame_shape[0] >= self.inference_height \
             and self.video.frame_shape[1] >= self.inference_width, \
             f"{self.video.frame_shape} vs {self.inference_height}x{self.inference_width}"
-        self.device = device
         weights_dir = get_weights_dir() / "raft"
         weights_dir.mkdir(exist_ok=True, parents=True)
 
@@ -53,10 +51,10 @@ class FlowRaft(Representation):
         self.model = self.model.eval().to(self.device)
 
     @overrides
-    def vre_dep_data(self, video: VREVideo, ix: slice) -> dict[str, RepresentationOutput]:
-        right_frames = np.array(video[ix.start + 1: min(ix.stop + 1, len(video))])
-        if ix.stop + 1 > len(video):
-            right_frames = np.concatenate([right_frames, np.array([video[-1]])], axis=0)
+    def vre_dep_data(self, ix: slice) -> dict[str, RepresentationOutput]:
+        right_frames = np.array(self.video[ix.start + 1: min(ix.stop + 1, len(self.video))])
+        if ix.stop + 1 > len(self.video):
+            right_frames = np.concatenate([right_frames, np.array([self.video[-1]])], axis=0)
         return {"right_frames": right_frames}
 
     # pylint: disable=arguments-differ

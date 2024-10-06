@@ -41,7 +41,7 @@ class VideoRepresentationsExtractor:
         # call vre_setup here so expensive representations get lazy deep instantiated (i.e. models loading)
         try:
             representation.video = self.video
-            representation.vre_setup(**representation.vre_parameters) # these come from the yaml file
+            representation.vre_setup()
         except Exception:
             _open_write_err("exception.txt", f"\n[{name} {datetime.now()} {batch_size=} {traceback.format_exc()}\n")
             del representation
@@ -59,7 +59,7 @@ class VideoRepresentationsExtractor:
 
             now = datetime.now()
             try:
-                y_repr, imgs = representation.make_one_frame(slice(l, r), runtime_args)
+                y_repr, imgs = representation.vre_make_one_frame(slice(l, r), runtime_args)
                 self._data_storer(name, y_repr, imgs, l, r, runtime_args, self.video.frame_shape[0:2])
             except Exception:
                 _open_write_err("exception.txt", f"\n[{name} {now} {batch_size=} {l=} {r=}] {traceback.format_exc()}\n")

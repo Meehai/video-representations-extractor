@@ -53,8 +53,7 @@ representations:
     name: dexined
     dependencies: []
     parameters: {}
-    vre_parameters:
-      device: ${oc.env:VRE_DEVICE,cpu}
+    device: ${oc.env:VRE_DEVICE,cpu}
 
   opticalflow_rife:
     type: optical-flow
@@ -63,8 +62,7 @@ representations:
     parameters:
       uhd: False
       compute_backward_flow: False
-    vre_parameters:
-      device: ${oc.env:VRE_DEVICE,cpu}
+    device: ${oc.env:VRE_DEVICE,cpu}
 
   fastsam_s:
     type: soft-segmentation
@@ -74,8 +72,7 @@ representations:
       variant: fastsam-s
       iou: 0.9
       conf: 0.4
-    vre_parameters:
-      device: cpu #${oc.env:VRE_DEVICE,cpu}
+    device: cpu #${oc.env:VRE_DEVICE,cpu}
 
   fastsam_x:
     type: soft-segmentation
@@ -85,8 +82,7 @@ representations:
       variant: fastsam-x
       iou: 0.9
       conf: 0.4
-    vre_parameters:
-      device: cpu # ${oc.env:VRE_DEVICE,cpu}
+    device: cpu # ${oc.env:VRE_DEVICE,cpu}
 
   mask2former_mapilary_r50:
     type: semantic-segmentation
@@ -95,8 +91,7 @@ representations:
     parameters:
       model_id: "49189528_1"
       semantic_argmax_only: True
-    vre_parameters:
-      device: ${oc.env:VRE_DEVICE,cpu}
+    device: ${oc.env:VRE_DEVICE,cpu}
 
   mask2former_coco_swin:
     type: semantic-segmentation
@@ -105,8 +100,7 @@ representations:
     parameters:
       model_id: "47429163_0"
       semantic_argmax_only: True
-    vre_parameters:
-      device: ${oc.env:VRE_DEVICE,cpu}
+    device: ${oc.env:VRE_DEVICE,cpu}
 
   # # SUCKY BECAUSE SUPERSLOW. Adds like 2-3 mins in CI. Rife is good enough.
   opticalflow_raft:
@@ -118,8 +112,7 @@ representations:
       inference_width: 1280
       iters: 20
       small: False
-    vre_parameters:
-      device: ${oc.env:VRE_DEVICE,cpu}
+    device: ${oc.env:VRE_DEVICE,cpu}
 
   # sucky because slow, but it's good/pretrained
   depth_dpt:
@@ -127,8 +120,7 @@ representations:
     name: dpt
     dependencies: []
     parameters: {}
-    vre_parameters:
-      device: ${oc.env:VRE_DEVICE,cpu}
+    device: ${oc.env:VRE_DEVICE,cpu}
 
   normals_svd(depth_dpt):
     type: normals

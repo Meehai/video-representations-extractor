@@ -40,26 +40,25 @@ def _convert(data: dict[str, tr.Tensor]) -> dict[str, tr.Tensor]:
 class SafeUAV(Representation):
     """SafeUAV semantic segmentation representation"""
     def __init__(self, num_classes: int, train_height: int, train_width: int,
-                 color_map: list[tuple[int, int, int]], semantic_argmax_only: bool = True, **kwargs):
+                 color_map: list[tuple[int, int, int]], semantic_argmax_only: bool = True,
+                 weights_file: str | None = None, **kwargs):
+        super().__init__(**kwargs)
         self.num_classes = num_classes
         assert len(color_map) == num_classes, f"{color_map} ({len(color_map)}) vs {num_classes}"
         self.color_map = color_map
         self.train_height = train_height
         self.train_width = train_width
         self.semantic_argmax_only = semantic_argmax_only
-        super().__init__(**kwargs)
+        self.weights_file = weights_file
         self.model = _SafeUavWrapper(ch_in=3, ch_out=self.num_classes).eval().to("cpu")
 
-    @overrides(check_signature=False)
-    def vre_setup(self, weights_file: str | None, device: str, **kwargs):
-        # pylint: disable=arguments-differ
-        self.device = device
-        if weights_file is None:
+    def vre_setup(self):
+        if self.weights_file is None:
             self.model = self.model.eval().to(self.device)
             logger.warning("No weights file provided, using random weights.")
             return
 
-        weights_file_abs = get_weights_dir() / weights_file
+        weights_file_abs = get_weights_dir() / self.weights_file
         assert weights_file_abs.exists(), f"Weights file '{weights_file_abs}' does not exist."
         data = tr.load(weights_file_abs, map_location="cpu")["state_dict"]
         self.model.load_state_dict(_convert(data))

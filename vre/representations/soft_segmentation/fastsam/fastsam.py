@@ -53,11 +53,9 @@ class FastSam(Representation):
             gdown_mkdir(links[variant], weights_path)
         return f"{weights_path}"
 
-    # pylint: disable=arguments-differ
-    @overrides(check_signature=False)
-    def vre_setup(self, device: str):
-        self.predictor.model = self.predictor.model.to(device)
-        self.device = device
+    @overrides
+    def vre_setup(self):
+        self.predictor.model = self.predictor.model.to(self.device)
 
     @overrides
     def make(self, frames: np.ndarray) -> RepresentationOutput:

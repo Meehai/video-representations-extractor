@@ -5,7 +5,7 @@ import torch.nn.functional as F
 import flow_vis
 from overrides import overrides
 
-from ....utils import gdown_mkdir, image_resize_batch, VREVideo, get_weights_dir
+from ....utils import gdown_mkdir, image_resize_batch, get_weights_dir
 from ....representation import Representation, RepresentationOutput
 from .rife_impl.RIFE_HDv2 import Model
 
@@ -19,10 +19,8 @@ class FlowRife(Representation):
         self.no_backward_flow = True if compute_backward_flow is None else not compute_backward_flow
         super().__init__(**kwargs)
 
-    # pylint: disable=arguments-differ
-    @overrides(check_signature=False)
-    def vre_setup(self, device: str):
-        self.device = device
+    @overrides
+    def vre_setup(self):
         weights_dir = get_weights_dir() / "rife"
         weights_dir.mkdir(exist_ok=True, parents=True)
 
@@ -49,10 +47,10 @@ class FlowRife(Representation):
         self.model = self.model.eval().to(self.device)
 
     @overrides
-    def vre_dep_data(self, video: VREVideo, ix: slice) -> dict[str, RepresentationOutput]:
-        right_frames = np.array(video[ix.start + 1: min(ix.stop + 1, len(video))])
-        if ix.stop + 1 > len(video):
-            right_frames = np.concatenate([right_frames, np.array([video[-1]])], axis=0)
+    def vre_dep_data(self, ix: slice) -> dict[str, RepresentationOutput]:
+        right_frames = np.array(self.video[ix.start + 1: min(ix.stop + 1, len(self.video))])
+        if ix.stop + 1 > len(self.video):
+            right_frames = np.concatenate([right_frames, np.array([self.video[-1]])], axis=0)
         return {"right_frames": right_frames}
 
     # pylint: disable=arguments-differ

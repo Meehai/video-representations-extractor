@@ -1,7 +1,5 @@
 import numpy as np
 from vre.representations.depth.dpt import DepthDpt
-from vre.representations.optical_flow.rife import FlowRife
-from vre.representations.optical_flow.raft import FlowRaft
 from vre.representations.normals.depth_svd import DepthNormalsSVD
 from vre.utils import FakeVideo
 
@@ -12,8 +10,9 @@ def test_depth_normals_svd_dpt():
                                              sensor_fov=30, sensor_width=100, sensor_height=100, window_size=5,
                                              input_downsample_step=1, stride=1, max_distance=100, min_valid_count=0)
 
+    depth_svd_normals_repr.video = video
     frames = np.array(video[0:1])
-    y_deps = depth_svd_normals_repr.vre_dep_data(video, slice(0, 1))
+    y_deps = depth_svd_normals_repr.vre_dep_data(slice(0, 1))
     # y_dpt = dpt_repr(frames)
     y_normals = depth_svd_normals_repr(frames, **y_deps)
     assert y_normals.shape == (1, y_deps["depths"].shape[1], y_deps["depths"].shape[2], 3), y_normals.shape

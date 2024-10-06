@@ -3,31 +3,25 @@ import torch as tr
 import numpy as np
 from .utils import VREVideo, RepresentationOutput
 from .vre_runtime_args import VRERuntimeArgs
-from .logger import vre_logger as logger
 
 class VRERepresentationMixin:
     """VRERepresentationMixin class"""
     def __init__(self):
-        self.vre_parameters = {}
         self.batch_size: int | None = None
         self.output_size: tuple[int, int] | str | None = None
         self.device: str | tr.device = "cpu"
         self.video: VREVideo | None = None
 
-    # pylint: disable=unused-argument
-    def vre_setup(self, **kwargs):
+    def vre_setup(self):
         """
         Setup method for this representation. This is required to run this representation from within VRE.
         We do this setup separately, so we can instatiate the representation without doing any VRE specific setup,
         like loading weights.
-        Parameters:
-        - video The video we are working with during the VRE run
-        - kwargs Any other parameters that can be passed via `build_representation`
         """
-        logger.debug(f"[{self}] No runtime setup provided.")
+        raise RuntimeError(f"[{self}] No runtime setup provided. Override with a 'pass' method if not needed.")
 
     # pylint: disable=unused-argument
-    def vre_dep_data(self, video: VREVideo, ix: slice) -> dict[str, RepresentationOutput]:
+    def vre_dep_data(self, ix: slice) -> dict[str, RepresentationOutput]:
         """method used to retrieve the dependencies' data for this frames during a vre run"""
         return {}
 
@@ -36,19 +30,20 @@ class VRERepresentationMixin:
         Support for representation.to(device). Must be updated by all the representations
         that support devices (i.e. cuda torch models)
         """
-        self.device = device
+        raise NotImplementedError("TODO")
 
-    def make_one_frame(self, ix: slice, runtime_args: VRERuntimeArgs) -> tuple[RepresentationOutput, np.ndarray | None]:
+    def vre_make_one_frame(self, ix: slice, runtime_args: VRERuntimeArgs) \
+            -> tuple[RepresentationOutput, np.ndarray | None]:
         """
         Method used to integrate with VRE. Gets the entire data (video) and a slice of it (ix) and returns the
         representation for that slice. Additionally, if makes_images is set to True, it also returns the image
         representations of this slice.
         """
-        assert self.video is not None, f"[{self}] self.video must be set before calling make_one_frame()"
+        assert self.video is not None, f"[{self}] self.video must be set before calling vre_make_one_frame()"
         if tr.cuda.is_available():
             tr.cuda.empty_cache()
         frames = np.array(self.video[ix])
-        dep_data = self.vre_dep_data(self.video, ix)
+        dep_data = self.vre_dep_data(ix)
         res_native = self.make(frames, **dep_data)
         if (o_s := runtime_args.output_sizes[self.name]) == "native":
             res = res_native

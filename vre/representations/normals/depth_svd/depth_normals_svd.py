@@ -5,7 +5,7 @@ import numpy as np
 from .depth_svd_impl.cam import fov_diag_to_intrinsic
 from .depth_svd_impl.utils import get_sampling_grid, get_normalized_coords, depth_to_normals
 from ....representation import Representation, RepresentationOutput
-from ....utils import image_resize_batch, VREVideo
+from ....utils import image_resize_batch
 
 class DepthNormalsSVD(Representation):
     """
@@ -30,8 +30,8 @@ class DepthNormalsSVD(Representation):
         self._grid_cache = {}
 
     @overrides
-    def vre_dep_data(self, video: VREVideo, ix: slice) -> dict[str, RepresentationOutput]:
-        dph = self.depth_dep(np.array(video[ix]), **self.depth_dep.vre_dep_data(video, ix))
+    def vre_dep_data(self, ix: slice) -> dict[str, RepresentationOutput]:
+        dph = self.depth_dep(np.array(self.video[ix]), **self.depth_dep.vre_dep_data(ix))
         dph = dph[0] if isinstance(dph, tuple) else dph
         assert isinstance(dph, np.ndarray), type(dph)
         return {"depths": dph}

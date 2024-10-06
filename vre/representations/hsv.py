@@ -70,3 +70,7 @@ class HSV(Representation):
     @overrides
     def resize(self, repr_data: RepresentationOutput, new_size: tuple[int, int]) -> RepresentationOutput:
         return image_resize_batch(repr_data, height=new_size[0], width=new_size[1])
+
+    @overrides
+    def vre_setup(self):
+        pass
