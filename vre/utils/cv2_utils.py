@@ -1,5 +1,5 @@
 """cv2 utils. All the calls to opencv must be condensed here so eventually we can get rid of them"""
-# pylint: disable=invalid-name
+# pylint: disable=invalid-name, no-member
 from pathlib import Path
 import numpy as np
 from ..logger import vre_logger as logger

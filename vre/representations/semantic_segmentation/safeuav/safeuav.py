@@ -7,7 +7,7 @@ from torch.nn import functional as F
 
 from .Map2Map import EncoderMap2Map, DecoderMap2Map
 from ....representation import Representation, RepresentationOutput
-from ....utils import image_resize_batch, VREVideo, get_weights_dir
+from ....utils import image_resize_batch, get_weights_dir
 from ....logger import vre_logger as logger
 
 class _SafeUavWrapper(nn.Module):
@@ -51,7 +51,7 @@ class SafeUAV(Representation):
         self.model = _SafeUavWrapper(ch_in=3, ch_out=self.num_classes).eval().to("cpu")
 
     @overrides(check_signature=False)
-    def vre_setup(self, video: VREVideo, weights_file: str | None, device: str, **kwargs):
+    def vre_setup(self, weights_file: str | None, device: str, **kwargs):
         # pylint: disable=arguments-differ
         self.device = device
         if weights_file is None:

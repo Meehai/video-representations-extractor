@@ -6,7 +6,7 @@ from overrides import overrides
 from .model_dexined import DexiNed as Model
 from ....representation import Representation, RepresentationOutput
 from ....logger import vre_logger as logger
-from ....utils import image_resize_batch, gdown_mkdir, VREVideo, get_weights_dir
+from ....utils import image_resize_batch, gdown_mkdir, get_weights_dir
 
 class DexiNed(Representation):
     """Dexined representation."""
@@ -22,7 +22,7 @@ class DexiNed(Representation):
 
     # pylint: disable=arguments-differ
     @overrides(check_signature=False)
-    def vre_setup(self, video: VREVideo, device: str):
+    def vre_setup(self, device: str):
         assert tr.cuda.is_available() or device == "cpu", "CUDA not available"
         self.device = device
         weights_file = get_weights_dir() / "dexined.pth"

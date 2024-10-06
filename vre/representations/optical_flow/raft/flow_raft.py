@@ -28,11 +28,12 @@ class FlowRaft(Representation):
 
     # pylint: disable=arguments-differ
     @overrides(check_signature=False)
-    def vre_setup(self, video: VREVideo, device: str):
-        assert video.frame_shape[0] >= 128 and video.frame_shape[1] >= 128, \
-            f"This flow doesn't work with small videos. At least 128x128 is required, but got {video.shape}"
-        assert video.frame_shape[0] >= self.inference_height and video.frame_shape[1] >= self.inference_width, \
-            f"{video.frame_shape} vs {self.inference_height}x{self.inference_width}"
+    def vre_setup(self, device: str):
+        assert self.video.frame_shape[0] >= 128 and self.video.frame_shape[1] >= 128, \
+            f"This flow doesn't work with small videos. At least 128x128 is required, but got {self.video.shape}"
+        assert self.video.frame_shape[0] >= self.inference_height \
+            and self.video.frame_shape[1] >= self.inference_width, \
+            f"{self.video.frame_shape} vs {self.inference_height}x{self.inference_width}"
         self.device = device
         weights_dir = get_weights_dir() / "raft"
         weights_dir.mkdir(exist_ok=True, parents=True)

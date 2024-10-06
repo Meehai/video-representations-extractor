@@ -5,12 +5,10 @@ from datetime import datetime
 from functools import reduce
 import traceback
 from tqdm import tqdm
-import numpy as np
-import torch as tr
 import pandas as pd
 
 from .representation import Representation
-from .utils import VREVideo, took, make_batches, all_batch_exists, RepresentationOutput
+from .utils import VREVideo, took, make_batches, all_batch_exists
 from .vre_runtime_args import VRERuntimeArgs
 from .data_storer import DataStorer
 from .logger import vre_logger as logger
@@ -34,28 +32,6 @@ class VideoRepresentationsExtractor:
         self.representations: dict[str, Representation] = representations
         self._data_storer: DataStorer | None = None
 
-    def _make_one_frame(self, _repr: Representation, ix: slice, runtime_args: VRERuntimeArgs) \
-            -> tuple[RepresentationOutput, np.ndarray | None]:
-        """
-        Method used to integrate with VRE. Gets the entire data (video) and a slice of it (ix) and returns the
-        representation for that slice. Additionally, if makes_images is set to True, it also returns the image
-        representations of this slice.
-        """
-        if tr.cuda.is_available():
-            tr.cuda.empty_cache()
-        frames = np.array(self.video[ix])
-        dep_data = _repr.vre_dep_data(self.video, ix)
-        res_native = _repr.make(frames, **dep_data)
-        if (o_s := runtime_args.output_sizes[_repr.name]) == "native":
-            res = res_native
-        elif o_s == "video_shape":
-            res = _repr.resize(res_native, self.video.frame_shape[0:2])
-        else:
-            res = _repr.resize(res_native, o_s)
-        repr_data, extra = res if isinstance(res, tuple) else (res, {})
-        imgs = _repr.make_images(frames, res) if runtime_args.export_png else None
-        return (repr_data, extra), imgs
-
     def _do_one_representation(self, representation: Representation, runtime_args: VRERuntimeArgs):
         """main loop of each representation."""
         name = representation.name
@@ -64,7 +40,8 @@ class VideoRepresentationsExtractor:
 
         # call vre_setup here so expensive representations get lazy deep instantiated (i.e. models loading)
         try:
-            representation.vre_setup(video=self.video, **representation.vre_parameters) # these come from the yaml file
+            representation.video = self.video
+            representation.vre_setup(**representation.vre_parameters) # these come from the yaml file
         except Exception:
             _open_write_err("exception.txt", f"\n[{name} {datetime.now()} {batch_size=} {traceback.format_exc()}\n")
             del representation
@@ -82,7 +59,7 @@ class VideoRepresentationsExtractor:
 
             now = datetime.now()
             try:
-                y_repr, imgs = self._make_one_frame(representation, slice(l, r), runtime_args) # noqa
+                y_repr, imgs = representation.make_one_frame(slice(l, r), runtime_args)
                 self._data_storer(name, y_repr, imgs, l, r, runtime_args, self.video.frame_shape[0:2])
             except Exception:
                 _open_write_err("exception.txt", f"\n[{name} {now} {batch_size=} {l=} {r=}] {traceback.format_exc()}\n")

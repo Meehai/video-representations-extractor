@@ -39,13 +39,13 @@ class DepthOdoFlow(Representation):
 
     # pylint: disable=arguments-differ
     @overrides(check_signature=False)
-    def vre_setup(self, video: VREVideo, velocities_path: str):
+    def vre_setup(self, velocities_path: str):
         velocities_path_pth = get_weights_dir() / velocities_path
         logger.info(f"Loading velocities from '{velocities_path_pth}'")
         data = np.load(velocities_path_pth)
         if isinstance(data, np.lib.npyio.NpzFile):
             data = data["arr_0"]
-        self.camera_info = CameraInfo(data=data, dt=1 / video.frame_rate, camera_params=self.camera_params)
+        self.camera_info = CameraInfo(data=data, dt=1 / self.video.frame_rate, camera_params=self.camera_params)
         self._linear_velocities = data[:, 0:3]
         self._angular_velocities = data[:, 3:6]
 

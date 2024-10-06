@@ -23,4 +23,4 @@ class FakeVideo:
     def __len__(self):
         return len(self.data)
 
-VREVideo = Union[pims.Video, FakeVideo]
+VREVideo = Union[pims.FramesSequence, FakeVideo]
