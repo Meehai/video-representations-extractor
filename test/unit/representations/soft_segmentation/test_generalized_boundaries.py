@@ -9,7 +9,7 @@ def test_generalized_boundaries():
 
     frames = video[0:1]
     y_gb = gb_repr(frames)
-    assert y_gb.shape == (1, 64, 128, 3), y_gb.shape
+    assert y_gb.output.shape == (1, 64, 128, 3), y_gb.output.shape
     y_gb_images = gb_repr.make_images(frames, y_gb)
     assert y_gb_images.shape == (1, 64, 128, 3), y_gb_images.shape
     assert y_gb_images.dtype == np.uint8, y_gb_images.dtype

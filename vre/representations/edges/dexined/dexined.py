@@ -12,19 +12,12 @@ class DexiNed(Representation):
     """Dexined representation."""
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.model: Model = None
-        self._setup()
+        self.model = Model().eval()
         self.inference_height, self.inference_width = 512, 512 # fixed for this model
-
-    def _setup(self):
-        tr.manual_seed(42)
-        self.model = Model().eval().to("cpu")
 
     # pylint: disable=arguments-differ
     @overrides(check_signature=False)
-    def vre_setup(self, device: str):
-        assert tr.cuda.is_available() or device == "cpu", "CUDA not available"
-        self.device = device
+    def vre_setup(self):
         weights_file = get_weights_dir() / "dexined.pth"
         url_weights = "https://drive.google.com/u/0/uc?id=1oT1iKdRRKJpQO-DTYWUnZSK51QnJ-mnP" # our backup weights
 
@@ -38,25 +31,25 @@ class DexiNed(Representation):
         logger.debug2(f"Loaded weights from '{weights_file}'")
 
     @overrides
-    def make(self, frames: np.ndarray) -> RepresentationOutput:
+    def make(self, frames: np.ndarray, dep_data: dict[str, RepresentationOutput] | None = None) -> RepresentationOutput:
         tr_frames = self._preprocess(frames, self.inference_height, self.inference_width)
         with tr.no_grad():
             y = self.model.forward(tr_frames)
         outs = self._postprocess(y)
-        return outs
+        return RepresentationOutput(output=outs)
 
     @overrides
     def make_images(self, frames: np.ndarray, repr_data: RepresentationOutput) -> np.ndarray:
-        x = np.repeat(np.expand_dims(repr_data, axis=-1), 3, axis=-1)
+        x = np.repeat(np.expand_dims(repr_data.output, axis=-1), 3, axis=-1)
         return (x * 255).astype(np.uint8)
 
     @overrides
     def size(self, repr_data: RepresentationOutput) -> tuple[int, int]:
-        return repr_data.shape[1:3]
+        return repr_data.output.shape[1:3]
 
     @overrides
     def resize(self, repr_data: RepresentationOutput, new_size: tuple[int, int]) -> RepresentationOutput:
-        return image_resize_batch(repr_data, *new_size)
+        return RepresentationOutput(output=image_resize_batch(repr_data.output, *new_size))
 
     def _preprocess(self, images: np.ndarray, height: int, width: int) -> tr.Tensor:
         assert len(images.shape) == 4, images.shape
@@ -76,6 +69,6 @@ class DexiNed(Representation):
         y_s = y_cat.sigmoid()
         A = y_s.min(dim=-1, keepdims=True)[0].min(dim=-2, keepdims=True)[0]
         B = y_s.max(dim=-1, keepdims=True)[0].max(dim=-2, keepdims=True)[0]
-        y_s_normed = 1 - (y_s - A) * (B - A)
-        y_s_final = y_s_normed.mean(dim=1).cpu().numpy().astype(np.float16)
+        y_s_normed: tr.Tensor = 1 - (y_s - A) * (B - A)
+        y_s_final = y_s_normed.mean(dim=1).cpu().numpy().astype(np.float32)
         return y_s_final

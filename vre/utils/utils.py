@@ -2,6 +2,7 @@
 from typing import Any
 from pathlib import Path
 from datetime import datetime
+from dataclasses import dataclass
 import os
 import gdown
 import numpy as np
@@ -9,7 +10,11 @@ import numpy as np
 from ..logger import vre_logger as logger
 from .fake_video import VREVideo
 
-RepresentationOutput = np.ndarray | tuple[np.ndarray, list[dict]]
+@dataclass
+class RepresentationOutput:
+    """The output of representation.make()"""
+    output: np.ndarray
+    extra: list[dict] | None = None
 
 def get_project_root() -> Path:
     """gets the root of this project"""

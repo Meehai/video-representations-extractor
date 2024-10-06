@@ -59,8 +59,15 @@ class VideoRepresentationsExtractor:
 
             now = datetime.now()
             try:
-                y_repr, imgs = representation.vre_make_one_frame(slice(l, r), runtime_args)
-                self._data_storer(name, y_repr, imgs, l, r, runtime_args, self.video.frame_shape[0:2])
+                y_repr = representation.vre_make(slice(l, r))
+                if (o_s := runtime_args.output_sizes[representation.name]) == "native":
+                    y_repr_rsz = y_repr
+                elif o_s == "video_shape":
+                    y_repr_rsz = representation.resize(y_repr, self.video.frame_shape[0:2])
+                else:
+                    y_repr_rsz = representation.resize(y_repr, o_s)
+                imgs = representation.make_images(self.video[l: r], y_repr_rsz) if runtime_args.export_png else None
+                self._data_storer(name, y_repr_rsz, imgs, l, r, runtime_args, self.video.frame_shape[0:2])
             except Exception:
                 _open_write_err("exception.txt", f"\n[{name} {now} {batch_size=} {l=} {r=}] {traceback.format_exc()}\n")
                 repr_stats.extend([1 << 31] * (runtime_args.end_frame - l))
@@ -72,7 +79,7 @@ class VideoRepresentationsExtractor:
         return {name: repr_stats}
 
     def run(self, output_dir: Path, start_frame: int | None = None, end_frame: int | None = None, batch_size: int = 1,
-            export_npy: bool = True, export_png: bool = True, output_dir_exist_mode: str = "raise",
+            export_npy: bool = True, export_png: bool = True, output_dir_exists_mode: str = "raise",
             exception_mode: str = "stop_execution", output_size: str | tuple = "video_shape",
             n_threads_data_storer: int = 0) -> pd.DataFrame:
         """
@@ -81,8 +88,12 @@ class VideoRepresentationsExtractor:
         Returns:
         - A dataframe with the run statistics for each representation
         """
-        runtime_args = VRERuntimeArgs(self, output_dir, start_frame, end_frame, batch_size, export_npy, export_png,
-                                      output_dir_exist_mode, exception_mode, output_size, n_threads_data_storer)
+        if end_frame is None:
+            logger.warning(f"end frame not set, default to the last frame of the video: {len(self.video)}")
+            end_frame = len(self.video)
+        runtime_args = VRERuntimeArgs(self.video, self.representations, output_dir, start_frame, end_frame, batch_size,
+                                      export_npy, export_png, output_dir_exists_mode, exception_mode,
+                                      output_size, n_threads_data_storer)
         self._data_storer = DataStorer(n_threads_data_storer)
         run_stats = []
         for name, vre_repr in self.representations.items():

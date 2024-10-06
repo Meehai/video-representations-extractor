@@ -65,7 +65,7 @@ class SafeUAV(Representation):
         self.model = self.model.eval().to(self.device)
 
     @overrides
-    def make(self, frames: np.ndarray) -> RepresentationOutput:
+    def make(self, frames: np.ndarray, dep_data: dict[str, RepresentationOutput] | None = None) -> RepresentationOutput:
         tr_frames = tr.from_numpy(frames).to(self.device)
         frames_norm = tr_frames.permute(0, 3, 1, 2) / 255
         frames_resized = F.interpolate(frames_norm, (self.train_height, self.train_width), mode="bilinear")

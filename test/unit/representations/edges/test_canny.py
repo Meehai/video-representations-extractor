@@ -8,7 +8,7 @@ def test_canny_1():
 
     frames = np.array(video[0:1])
     y_canny = canny_repr(frames)
-    assert y_canny.shape == (1, 64, 128)
+    assert y_canny.output.shape == (1, 64, 128)
     y_canny_images = canny_repr.make_images(slice(0, 1), y_canny)
     assert y_canny_images.shape == (1, 64, 128, 3)
     assert y_canny_images.dtype == np.uint8, y_canny_images.dtype

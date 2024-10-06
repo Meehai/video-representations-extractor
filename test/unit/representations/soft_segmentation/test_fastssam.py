@@ -8,10 +8,10 @@ def test_fastsam():
 
     frames = np.array(video[0:1])
     y_fastsam = fastsam_repr(frames)
-    assert y_fastsam[0].shape == (1, 32, 128, 256)
-    # no objects in random images
-    assert len(y_fastsam[1]) == 1
-    assert y_fastsam[1][0]["boxes"].shape == (0, 38) and y_fastsam[1][0]["inference_size"] == (512, 1024)
+    assert y_fastsam.output.shape == (1, 32, 128, 256)
+    assert len(y_fastsam.extra) == 1 # no objects in random images
+    assert y_fastsam.extra[0]["boxes"].shape == (0, 38), y_fastsam.extra[0]["boxes"].shape
+    assert y_fastsam.extra[0]["inference_size"] == (512, 1024), y_fastsam.extra[0]["inference_size"]
 
     y_fastsam_rgb = fastsam_repr.make_images(frames, y_fastsam)
     assert y_fastsam_rgb.shape == (1, 512, 1024, 3) # no guarantee about the raw inference output

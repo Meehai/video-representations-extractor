@@ -16,20 +16,20 @@ class Canny(Representation):
         self.l2_gradient = l2_gradient
 
     @overrides
-    def make(self, frames: np.ndarray) -> RepresentationOutput:
-        return np.array([self._make_one(frame) for frame in frames])
+    def make(self, frames: np.ndarray, dep_data: dict[str, RepresentationOutput] | None = None) -> RepresentationOutput:
+        return RepresentationOutput(output=np.array([self._make_one(frame) for frame in frames]))
 
     @overrides
     def make_images(self, frames: np.ndarray, repr_data: RepresentationOutput) -> np.ndarray:
-        return (255 * gray(repr_data)[..., 0:3]).astype(np.uint8)
+        return (255 * gray(repr_data.output)[..., 0:3]).astype(np.uint8)
 
     @overrides
     def size(self, repr_data: RepresentationOutput) -> tuple[int, int]:
-        return repr_data.shape[1:3]
+        return repr_data.output.shape[1:3]
 
     @overrides
     def resize(self, repr_data: RepresentationOutput, new_size: tuple[int, int]) -> RepresentationOutput:
-        return image_resize_batch(repr_data, *new_size)
+        return RepresentationOutput(output=image_resize_batch(repr_data.output, *new_size))
 
     def _make_one(self, x: np.ndarray) -> np.ndarray:
         res = cv2_Canny(x, threshold1=self.threshold1, threshold2=self.threshold2,

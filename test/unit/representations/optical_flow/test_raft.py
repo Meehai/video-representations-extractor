@@ -11,7 +11,7 @@ def test_raft():
 
     frames = np.array(video[0:1])
     right_frames = np.array(video[1:2])
-    y_raft = raft_repr.make(frames, right_frames)
+    y_raft = raft_repr.make(frames, {"right_frames": right_frames})
     assert y_raft.shape == (1, 128, 128, 2), (y_raft.shape, iters)
 
     y_raft_images = raft_repr.make_images(frames, y_raft)

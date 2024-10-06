@@ -29,7 +29,7 @@ representations:
       antialias: False
       resolution: [240, 426]
 
-  edges canny:
+  edges_canny:
     type: edges
     name: canny
     dependencies: []
@@ -39,7 +39,7 @@ representations:
       aperture_size: 3
       l2_gradient: True
 
-  softseg gb:
+  softseg_gb:
     type: soft-segmentation
     name: generalized_boundaries
     dependencies: []
@@ -48,14 +48,14 @@ representations:
       adjust_to_rgb: True
       max_channels: 3
 
-  edges dexined:
+  edges_dexined:
     type: edges
     name: dexined
     dependencies: []
     parameters: {}
     device: ${oc.env:VRE_DEVICE,cpu}
 
-  opticalflow rife:
+  opticalflow_rife:
     type: optical-flow
     name: rife
     dependencies: []
@@ -110,4 +110,3 @@ representations:
     dependencies: []
     parameters: {}
     device: ${oc.env:VRE_DEVICE,cpu}
-

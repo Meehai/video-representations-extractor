@@ -2,7 +2,6 @@
 import torch as tr
 import numpy as np
 from .utils import VREVideo, RepresentationOutput
-from .vre_runtime_args import VRERuntimeArgs
 
 class VRERepresentationMixin:
     """VRERepresentationMixin class"""
@@ -20,10 +19,21 @@ class VRERepresentationMixin:
         """
         raise RuntimeError(f"[{self}] No runtime setup provided. Override with a 'pass' method if not needed.")
 
-    # pylint: disable=unused-argument
     def vre_dep_data(self, ix: slice) -> dict[str, RepresentationOutput]:
-        """method used to retrieve the dependencies' data for this frames during a vre run"""
-        return {}
+        """iteratively collects all the dependencies needed by this representation"""
+        assert self.video is not None, f"[{self}] self.video must be set before calling this"
+        return {dep.name: dep.vre_make(ix) for dep in self.dependencies}
+
+    def vre_make(self, ix: slice) -> RepresentationOutput:
+        """wrapper on top of make() that is ran in VRE context. TODO: support loading from disk if needed"""
+        assert self.video is not None, f"[{self}] self.video must be set before calling this"
+        if tr.cuda.is_available():
+            tr.cuda.empty_cache()
+        frames = np.array(self.video[ix])
+        dep_data = self.vre_dep_data(ix)
+        res = self.make(frames, dep_data)
+        assert isinstance(res, RepresentationOutput) and not isinstance(res.output, RepresentationOutput), (self, res)
+        return res
 
     def to(self, device: str | tr.device):
         """
@@ -31,31 +41,3 @@ class VRERepresentationMixin:
         that support devices (i.e. cuda torch models)
         """
         raise NotImplementedError("TODO")
-
-    def vre_make_one_frame(self, ix: slice, runtime_args: VRERuntimeArgs) \
-            -> tuple[RepresentationOutput, np.ndarray | None]:
-        """
-        Method used to integrate with VRE. Gets the entire data (video) and a slice of it (ix) and returns the
-        representation for that slice. Additionally, if makes_images is set to True, it also returns the image
-        representations of this slice.
-        """
-        assert self.video is not None, f"[{self}] self.video must be set before calling vre_make_one_frame()"
-        if tr.cuda.is_available():
-            tr.cuda.empty_cache()
-        frames = np.array(self.video[ix])
-        dep_data = self.vre_dep_data(ix)
-        res_native = self.make(frames, **dep_data)
-        if (o_s := runtime_args.output_sizes[self.name]) == "native":
-            res = res_native
-        elif o_s == "video_shape":
-            res = self.resize(res_native, self.video.frame_shape[0:2])
-        else:
-            res = self.resize(res_native, o_s)
-        if isinstance(res, tuple):
-            repr_data, extra = res
-        else:
-            repr_data, extra = res, {}
-        imgs = None
-        if runtime_args.export_png:
-            imgs = self.make_images(frames, res)
-        return (repr_data, extra), imgs

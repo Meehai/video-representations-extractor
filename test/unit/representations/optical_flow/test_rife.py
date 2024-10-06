@@ -1,6 +1,6 @@
 import numpy as np
 from vre.representations.optical_flow.rife import FlowRife
-from vre.utils import FakeVideo
+from vre.utils import FakeVideo, RepresentationOutput
 
 def test_rife_uhd_false():
     video = FakeVideo(np.random.randint(0, 255, size=(20, 64, 128, 3), dtype=np.uint8), frame_rate=30)
@@ -9,9 +9,9 @@ def test_rife_uhd_false():
 
     frames = np.array(video[0:1])
     right_frames = np.array(video[1:2])
-    y_rife = rife_repr(frames, right_frames)
+    y_rife = rife_repr(frames, {"right_frames": RepresentationOutput(right_frames)})
     out_shape = (32, 64) if not uhd else (16, 32)
-    assert y_rife.shape == (1, *out_shape, 2), y_rife.shape
+    assert y_rife.output.shape == (1, *out_shape, 2), y_rife.output.shape
 
     y_rife_images = rife_repr.make_images(frames, y_rife)
     assert y_rife_images.shape == (1, *out_shape, 3), y_rife_images.shape
