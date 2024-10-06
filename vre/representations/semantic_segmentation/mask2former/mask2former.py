@@ -12,7 +12,7 @@ from fvcore.common.config import CfgNode
 
 from vre.representation import Representation, RepresentationOutput
 from vre.logger import vre_logger as logger
-from vre.utils import gdown_mkdir, image_resize_batch, VREVideo, get_weights_dir, image_read, image_write
+from vre.utils import gdown_mkdir, image_resize_batch, get_weights_dir, image_read, image_write
 
 try:
     from .mask2former_impl import MaskFormer as MaskFormerImpl
@@ -48,7 +48,7 @@ class Mask2Former(Representation):
 
     # pylint: disable=arguments-differ
     @overrides(check_signature=False)
-    def vre_setup(self, video: VREVideo, device: str):
+    def vre_setup(self, device: str):
         self.model = self.model.to(device)
         self.device = device
 
@@ -145,15 +145,16 @@ def main(args: Namespace):
     logger.info(f"Written prediction to '{args.output_path}'")
 
     # Sanity checks
+    rtol = 1e-2 if tr.cuda.is_available() else 1e-5
     if m2f.model_id == "47429163_0" and args.input_image.name == "demo1.jpg":
-        assert np.allclose(mean := semantic_result.mean(), 129.41, rtol=1e-2), (mean, semantic_result.std())
-        assert np.allclose(std := semantic_result.std(), 53.33, rtol=1e-2), std
+        assert np.allclose(mean := semantic_result.mean(), 129.41, rtol=rtol), (mean, semantic_result.std())
+        assert np.allclose(std := semantic_result.std(), 53.33, rtol=rtol), std
     elif m2f.model_id == "49189528_1" and args.input_image.name == "demo1.jpg":
-        assert np.allclose(mean := semantic_result.mean(), 125.23, rtol=1e-2), (mean, semantic_result.std())
-        assert np.allclose(std := semantic_result.std(), 48.89, rtol=1e-2), std
+        assert np.allclose(mean := semantic_result.mean(), 125.23, rtol=rtol), (mean, semantic_result.std())
+        assert np.allclose(std := semantic_result.std(), 48.89, rtol=rtol), std
     elif m2f.model_id == "49189528_0" and args.input_image.name == "demo1.jpg":
-        assert np.allclose(mean := semantic_result.mean(), 118.47, rtol=1e-2), (mean, semantic_result.std())
-        assert np.allclose(std := semantic_result.std(), 52.08, rtol=1e-2), std
+        assert np.allclose(mean := semantic_result.mean(), 118.47, rtol=rtol), (mean, semantic_result.std())
+        assert np.allclose(std := semantic_result.std(), 52.08, rtol=rtol), std
 
 if __name__ == "__main__":
     main(get_args())

@@ -8,7 +8,7 @@ from overrides import overrides
 from torch.nn import functional as F
 
 from vre.representation import Representation, RepresentationOutput
-from vre.utils import gdown_mkdir, VREVideo, image_resize_batch, get_weights_dir, image_read, image_write
+from vre.utils import gdown_mkdir, image_resize_batch, get_weights_dir, image_read, image_write
 from vre.logger import vre_logger as logger
 
 try:
@@ -53,9 +53,9 @@ class FastSam(Representation):
             gdown_mkdir(links[variant], weights_path)
         return f"{weights_path}"
 
-    # pylint: disable=unused-argument, arguments-differ
+    # pylint: disable=arguments-differ
     @overrides(check_signature=False)
-    def vre_setup(self, video: VREVideo, device: str):
+    def vre_setup(self, device: str):
         self.predictor.model = self.predictor.model.to(device)
         self.device = device
 
@@ -180,16 +180,17 @@ def main(args: Namespace):
     image_write(semantic_result_rsz, output_path_rsz)
     logger.info(f"Written resized result to '{output_path_rsz}'")
 
+    rtol = 1e-2 if tr.cuda.is_available() else 1e-5
     if args.input_image.name == "demo1.jpg" and args.model_id == "fastsam-s":
-        assert np.allclose(a := pred[0].mean(), 0.8813972, rtol=1e-2 if tr.cuda.is_available() else 1e-5), a
-        assert np.allclose(b := pred[1][0]["boxes"].mean(), 46.200043), b
-        assert np.allclose(a := pred_rsz[0].mean(), 0.88434076), a
-        assert np.allclose(b := pred_rsz[1][0]["boxes"].mean(), 28.541258), b
+        assert np.allclose(a := pred[0].mean(), 0.8813972, rtol=rtol), a
+        assert np.allclose(b := pred[1][0]["boxes"].mean(), 46.200043, rtol=rtol), b
+        assert np.allclose(a := pred_rsz[0].mean(), 0.88434076, rtol=rtol), a
+        assert np.allclose(b := pred_rsz[1][0]["boxes"].mean(), 28.541258, rtol=rtol), b
     elif args.input_image.name == "demo1.jpg" and args.model_id == "fastsam-x":
-        assert np.allclose(a := pred[0].mean(), 0.80122584), a
-        assert np.allclose(b := pred[1][0]["boxes"].mean(), 49.640644), b
-        assert np.allclose(a := pred_rsz[0].mean(), 0.80056435), a
-        assert np.allclose(b := pred_rsz[1][0]["boxes"].mean(), 30.688671), b
+        assert np.allclose(a := pred[0].mean(), 0.80122584, rtol=rtol), a
+        assert np.allclose(b := pred[1][0]["boxes"].mean(), 49.640644, rtol=rtol), b
+        assert np.allclose(a := pred_rsz[0].mean(), 0.80056435, rtol=rtol), a
+        assert np.allclose(b := pred_rsz[1][0]["boxes"].mean(), 30.688671, rtol=rtol), b
 
 if __name__ == "__main__":
     main(get_args())

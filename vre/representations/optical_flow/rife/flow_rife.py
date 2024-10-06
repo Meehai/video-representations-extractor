@@ -21,7 +21,7 @@ class FlowRife(Representation):
 
     # pylint: disable=arguments-differ
     @overrides(check_signature=False)
-    def vre_setup(self, video: VREVideo, device: str):
+    def vre_setup(self, device: str):
         self.device = device
         weights_dir = get_weights_dir() / "rife"
         weights_dir.mkdir(exist_ok=True, parents=True)
