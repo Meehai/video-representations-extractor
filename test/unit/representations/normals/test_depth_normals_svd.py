@@ -50,7 +50,7 @@ def test_depth_normals_svd_odoflow_rife():
     ang_vel = video_ang_vel[1:2]
 
     y_rife = rife_repr(frames, right_frames=right_frames)
-    y_odoflow, extra = odoflow_repr(frames, flows=y_rife, lin_vel=lin_vel, ang_vel=ang_vel)
+    y_odoflow, _ = odoflow_repr(frames, flows=y_rife, lin_vel=lin_vel, ang_vel=ang_vel)
     y_normals = depth_svd_normals_repr(frames, depths=y_odoflow)
     assert y_normals.shape == (1, y_rife.shape[1], y_rife.shape[2], 3), y_normals.shape
 
@@ -83,3 +83,4 @@ def test_depth_normals_svd_dpt():
     y_normals_resized = depth_svd_normals_repr.resize(y_normals, (64, 128)) # we can resize it though
     assert depth_svd_normals_repr.size(y_normals_resized) == (64, 128)
     assert depth_svd_normals_repr.make_images(frames, y_normals_resized).shape == (1, 64, 128, 3)
+

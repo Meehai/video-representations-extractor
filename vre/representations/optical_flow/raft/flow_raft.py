@@ -19,7 +19,6 @@ class FlowRaft(Representation):
         self.mixed_precision = False
         self.small = small
         self.iters = iters
-        self.device = "cpu"
 
         tr.manual_seed(42)
         self.model = RAFT(self).to("cpu")

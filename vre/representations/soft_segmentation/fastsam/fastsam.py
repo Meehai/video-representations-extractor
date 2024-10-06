@@ -42,7 +42,6 @@ class FastSam(Representation):
                       "mode": "predict", "save": False}
         self.predictor = FastSAMPredictor(overrides=_overrides)
         self.predictor.setup_model(model=model.model, verbose=False)
-        self.device = "cpu"
 
     def _get_weights_path(self, variant: str) -> str:
         weights_path = get_weights_dir() / f"FastSAM-{'s' if variant == 'fastsam-s' else 'x'}.pt"
