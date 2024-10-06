@@ -52,23 +52,23 @@ class Mask2Former(Representation):
 
     @tr.no_grad()
     @overrides
-    def make(self, frames: np.ndarray) -> RepresentationOutput:
+    def make(self, frames: np.ndarray, dep_data: dict[str, RepresentationOutput] | None = None) -> RepresentationOutput:
         height, width = frames.shape[1:3]
         _os = get_output_shape(height, width, self.cfg.INPUT.MIN_SIZE_TEST, self.cfg.INPUT.MAX_SIZE_TEST)
         imgs = image_resize_batch(frames, _os[0], _os[1], "bilinear", "PIL").transpose(0, 3, 1, 2).astype("float32")
         inputs = [{"image": tr.from_numpy(img), "height": height, "width": width} for img in imgs]
-        predictions = [x["sem_seg"] for x in self.model(inputs)]
+        predictions: list[tr.Tensor] = [x["sem_seg"] for x in self.model(inputs)]
         res = []
         for pred in predictions:
             _pred = pred.argmax(0).byte() if self.semantic_argmax_only else pred.half().permute(1, 2, 0)
             res.append(_pred.to("cpu").numpy())
-        return np.stack(res)
+        return RepresentationOutput(output=np.stack(res))
 
     @overrides
     def make_images(self, frames: np.ndarray, repr_data: RepresentationOutput) -> np.ndarray:
         res = []
-        frames_rsz = image_resize_batch(frames, *repr_data.shape[1:3])
-        for img, pred in zip(frames_rsz, repr_data):
+        frames_rsz = image_resize_batch(frames, *repr_data.output.shape[1:3])
+        for img, pred in zip(frames_rsz, repr_data.output):
             v = Visualizer(img, self.metadata, instance_mode=ColorMode.IMAGE_BW)
             _pred = pred if self.semantic_argmax_only else pred.argmax(-1)
             res.append(v.draw_sem_seg(_pred).get_image())
@@ -77,12 +77,12 @@ class Mask2Former(Representation):
 
     @overrides
     def size(self, repr_data: RepresentationOutput) -> tuple[int, int]:
-        return repr_data.shape[1:3]
+        return repr_data.output.shape[1:3]
 
     @overrides
     def resize(self, repr_data: RepresentationOutput, new_size: tuple[int, int]) -> RepresentationOutput:
         interpolation = "nearest" if self.semantic_argmax_only else "bilinear"
-        return image_resize_batch(repr_data, *new_size, interpolation=interpolation)
+        return RepresentationOutput(output=image_resize_batch(repr_data.output, *new_size, interpolation=interpolation))
 
     def _get_weights(self, model_id: str | dict) -> str:
         links = {
@@ -138,7 +138,7 @@ def main(args: Namespace):
         now = datetime.now()
         pred = m2f.make(img[None])
         logger.info(f"Pred took: {datetime.now() - now}")
-        semantic_result = m2f.make_images(img[None], pred)[0]
+        semantic_result: np.ndarray = m2f.make_images(img[None], pred)[0]
         image_write(semantic_result, args.output_path)
     logger.info(f"Written prediction to '{args.output_path}'")
 

@@ -60,26 +60,26 @@ class DepthDpt(Representation):
         self.model = self.model.eval().to(self.device)
 
     @overrides
-    def make(self, frames: np.ndarray) -> RepresentationOutput:
+    def make(self, frames: np.ndarray, dep_data: dict[str, RepresentationOutput] | None = None) -> RepresentationOutput:
         tr_frames = self._preprocess(frames)
         with tr.no_grad():
             predictions = self.model(tr_frames)
         res = self._postprocess(predictions)
-        return res
+        return RepresentationOutput(output=res)
 
     @overrides
     def make_images(self, frames: np.ndarray, repr_data: RepresentationOutput) -> np.ndarray:
-        y = hot(repr_data)[..., 0:3]
+        y = hot(repr_data.output)[..., 0:3]
         y = np.uint8(y * 255)
         return y
 
     @overrides
     def size(self, repr_data: RepresentationOutput) -> tuple[int, int]:
-        return repr_data.shape[1:3]
+        return repr_data.output.shape[1:3]
 
     @overrides
     def resize(self, repr_data: RepresentationOutput, new_size: tuple[int, int]) -> RepresentationOutput:
-        return image_resize_batch(repr_data, *new_size)
+        return RepresentationOutput(output=image_resize_batch(repr_data.output, *new_size))
 
     def _preprocess(self, x: np.ndarray) -> tr.Tensor:
         tr_frames = tr.from_numpy(x).to(self.device)

@@ -57,9 +57,9 @@ class FlowRaft(Representation):
             right_frames = np.concatenate([right_frames, np.array([self.video[-1]])], axis=0)
         return {"right_frames": right_frames}
 
-    # pylint: disable=arguments-differ
-    @overrides(check_signature=False)
-    def make(self, frames: np.ndarray, right_frames: np.ndarray) -> RepresentationOutput:
+    @overrides
+    def make(self, frames: np.ndarray, dep_data: dict[str, RepresentationOutput] | None = None) -> RepresentationOutput:
+        right_frames = dep_data["right_frames"]
         assert frames.shape == right_frames.shape, (frames.shape, right_frames.shape)
         assert frames.shape[1] >= self.inference_height and frames.shape[2] >= self.inference_width, \
             f"{frames.shape} vs {self.inference_height}x{self.inference_width}. Must be at least 128x128 usually."

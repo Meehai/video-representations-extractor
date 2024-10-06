@@ -8,7 +8,7 @@ def test_dpt():
 
     frames = np.array(video[0:1])
     y_dpt = dpt_repr(frames)
-    assert y_dpt.shape == (1, 192, 384), y_dpt.shape
+    assert y_dpt.output.shape == (1, 192, 384), y_dpt.output.shape
 
     y_dpt_images = dpt_repr.make_images(frames, y_dpt)
     assert y_dpt_images.shape == (1, 192, 384, 3), y_dpt_images.shape

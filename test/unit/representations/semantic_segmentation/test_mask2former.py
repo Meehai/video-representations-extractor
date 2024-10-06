@@ -12,7 +12,7 @@ def test_mask2former():
 
     frames = np.array(video[0:1])
     y_m2f = m2f_repr(frames)
-    assert y_m2f.shape == (1, 64, 128)
+    assert y_m2f.output.shape == (1, 64, 128)
 
     y_m2f_rgb = m2f_repr.make_images(frames, y_m2f)
     assert y_m2f_rgb.shape == (1, 64, 128, 3)

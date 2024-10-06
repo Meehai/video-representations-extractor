@@ -15,7 +15,7 @@ class Representation(ABC, VRERepresentationMixin):
         self.dependencies = dependencies
 
     @abstractmethod
-    def make(self, frames: np.ndarray) -> RepresentationOutput:
+    def make(self, frames: np.ndarray, dep_data: dict[str, RepresentationOutput] | None = None) -> RepresentationOutput:
         """
         Main method of this representation. Calls the internal representation's logic to transform the current provided
         RGB frame of the attached video into the output representation.

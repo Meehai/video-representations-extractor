@@ -58,7 +58,7 @@ class FastSam(Representation):
         self.predictor.model = self.predictor.model.to(self.device)
 
     @overrides
-    def make(self, frames: np.ndarray) -> RepresentationOutput:
+    def make(self, frames: np.ndarray, dep_data: dict[str, RepresentationOutput] | None = None) -> RepresentationOutput:
         tr_x = self._preproces(frames)
         tr_y = self.predictor.model.forward(tr_x)
         mb, _, i_h, i_w = tr_x.shape[0:4]
@@ -67,11 +67,11 @@ class FastSam(Representation):
         assert len(tr_y[1]) == 3, len(tr_y[1])
         # Note: this is called 'proto' in the original implementation. Only this part of predictions is used for plots.
         res = tr_y[1][-1].to("cpu").numpy()
-        return res, extra
+        return RepresentationOutput(output=res, extra=extra)
 
     @overrides(check_signature=False)
     def make_images(self, frames: np.ndarray, repr_data: RepresentationOutput) -> np.ndarray:
-        y_fastsam, extra = repr_data
+        y_fastsam, extra = repr_data.output, repr_data.extra
         assert len(frames) == len(extra) == len(y_fastsam), (len(frames), len(extra), len(y_fastsam))
         assert all(e["inference_size"] == extra[0]["inference_size"] for e in extra), extra
         frames_rsz = image_resize_batch(frames, *self.size(repr_data))
@@ -97,16 +97,16 @@ class FastSam(Representation):
 
     @overrides
     def size(self, repr_data: RepresentationOutput) -> tuple[int, int]:
-        return repr_data[1][0]["inference_size"]
+        return repr_data.extra[0]["inference_size"]
 
     @overrides
     def resize(self, repr_data: RepresentationOutput, new_size: tuple[int, int]) -> RepresentationOutput:
-        y_fastsam, extra = repr_data
+        y_fastsam, extra = repr_data.output, repr_data.extra
         old_size = extra[0]["inference_size"]
         new_extra = [{"boxes": self._scale_box(tr.from_numpy(e["boxes"]), *old_size, *new_size).numpy(),
                       "inference_size": new_size} for e in extra]
         new_y_fastsam = F.interpolate(tr.from_numpy(y_fastsam), (new_size[0] // 4, new_size[1] // 4)).numpy()
-        return new_y_fastsam, new_extra
+        return RepresentationOutput(output=new_y_fastsam, extra=new_extra)
 
     def _scale_box(self, box: tr.Tensor, inference_height: int, inference_width: int, original_height: int,
                    original_width: int) -> tr.Tensor:
@@ -180,15 +180,15 @@ def main(args: Namespace):
 
     rtol = 1e-2 if tr.cuda.is_available() else 1e-5
     if args.input_image.name == "demo1.jpg" and args.model_id == "fastsam-s":
-        assert np.allclose(a := pred[0].mean(), 0.8813972, rtol=rtol), a
-        assert np.allclose(b := pred[1][0]["boxes"].mean(), 46.200043, rtol=rtol), b
-        assert np.allclose(a := pred_rsz[0].mean(), 0.88434076, rtol=rtol), a
-        assert np.allclose(b := pred_rsz[1][0]["boxes"].mean(), 28.541258, rtol=rtol), b
+        assert np.allclose(a := pred.output.mean(), 0.8813972, rtol=rtol), a
+        assert np.allclose(b := pred.extra[0]["boxes"].mean(), 46.200043, rtol=rtol), b
+        assert np.allclose(a := pred_rsz.output.mean(), 0.88434076, rtol=rtol), a
+        assert np.allclose(b := pred_rsz.extra[0]["boxes"].mean(), 28.541258, rtol=rtol), b
     elif args.input_image.name == "demo1.jpg" and args.model_id == "fastsam-x":
-        assert np.allclose(a := pred[0].mean(), 0.80122584, rtol=rtol), a
-        assert np.allclose(b := pred[1][0]["boxes"].mean(), 49.640644, rtol=rtol), b
-        assert np.allclose(a := pred_rsz[0].mean(), 0.80056435, rtol=rtol), a
-        assert np.allclose(b := pred_rsz[1][0]["boxes"].mean(), 30.688671, rtol=rtol), b
+        assert np.allclose(a := pred.output.mean(), 0.80122584, rtol=rtol), a
+        assert np.allclose(b := pred.extra[0]["boxes"].mean(), 49.640644, rtol=rtol), b
+        assert np.allclose(a := pred_rsz.output.mean(), 0.80056435, rtol=rtol), a
+        assert np.allclose(b := pred_rsz.extra[0]["boxes"].mean(), 30.688671, rtol=rtol), b
 
 if __name__ == "__main__":
     main(get_args())

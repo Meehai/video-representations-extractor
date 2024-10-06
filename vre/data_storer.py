@@ -6,7 +6,7 @@ from time import time
 import numpy as np
 
 from .vre_runtime_args import VRERuntimeArgs
-from .utils import image_write
+from .utils import image_write, RepresentationOutput
 from .logger import vre_logger as logger
 
 class DataStorer:
@@ -28,10 +28,9 @@ class DataStorer:
             queue.task_done()
 
     @staticmethod
-    def _store_data(name: str, y_repr: tuple[np.ndarray, dict], imgs: np.ndarray | None,
+    def _store_data(name: str, y_repr: RepresentationOutput, imgs: np.ndarray | None,
                     l: int, r: int, runtime_args: VRERuntimeArgs, frame_size: tuple[int, int]):
         """store the data in the right format"""
-        raw_data, extra = y_repr
         if runtime_args.export_png:
             if (o_s := runtime_args.output_sizes[name]) != "native": # if native, godbless on the expected sizes.
                 h, w = frame_size if o_s == "video_shape" else o_s
@@ -42,8 +41,8 @@ class DataStorer:
         for i, t in enumerate(range(l, r)):
             if runtime_args.export_npy:
                 if not runtime_args.npy_paths[name][t].exists():
-                    np.savez(runtime_args.npy_paths[name][t], raw_data[i])
-                    if len(extra) > 0:
+                    np.savez(runtime_args.npy_paths[name][t], y_repr.output[i])
+                    if (extra := y_repr.extra) is not None and len(y_repr.extra) > 0:
                         assert len(extra) == r - l, f"Extra must be a list of len ({len(extra)}) = batch_size ({r-l})"
                         np.savez(runtime_args.npy_paths[name][t].parent / f"{t}_extra.npz", extra[i])
             if runtime_args.export_png:
@@ -63,8 +62,9 @@ class DataStorer:
         finally:
             self.queue.all_tasks_done.release()
 
-    def __call__(self, name: str, y_repr: tuple[np.ndarray, dict], imgs: np.ndarray | None,
+    def __call__(self, name: str, y_repr: RepresentationOutput, imgs: np.ndarray | None,
                  l: int, r: int, runtime_args: VRERuntimeArgs, frame_size: tuple[int, int]):
+        assert isinstance(y_repr, RepresentationOutput), f"{name=}, {type(y_repr)=}"
         self.queue.put((name, y_repr, imgs, l, r, runtime_args, frame_size), block=True, timeout=30)
         if self.n_threads == 0: # call here if no threads are used.
             self._store_data(*self.queue.get())

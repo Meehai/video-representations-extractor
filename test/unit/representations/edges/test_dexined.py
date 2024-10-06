@@ -8,7 +8,7 @@ def test_dexined_1():
 
     frames = np.array(video[0:1])
     y_dexined = dexined_repr(frames)
-    assert y_dexined.shape == (1, 512, 512)
+    assert y_dexined.output.shape == (1, 512, 512), y_dexined.output
 
     y_dexined_images = dexined_repr.make_images(frames, y_dexined)
     assert y_dexined_images.shape == (1, 512, 512, 3)

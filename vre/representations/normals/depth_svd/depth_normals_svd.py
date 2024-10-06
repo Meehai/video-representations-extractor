@@ -30,32 +30,29 @@ class DepthNormalsSVD(Representation):
         self._grid_cache = {}
 
     @overrides
-    def vre_dep_data(self, ix: slice) -> dict[str, RepresentationOutput]:
-        dph = self.depth_dep(np.array(self.video[ix]), **self.depth_dep.vre_dep_data(ix))
-        dph = dph[0] if isinstance(dph, tuple) else dph
-        assert isinstance(dph, np.ndarray), type(dph)
-        return {"depths": dph}
-
-    # pylint: disable=arguments-differ
-    @overrides(check_signature=False)
-    def make(self, frames: np.ndarray, depths: np.ndarray) -> RepresentationOutput:
+    def make(self, frames: np.ndarray, dep_data: dict[str, RepresentationOutput] | None = None) -> RepresentationOutput:
+        depths = dep_data[self.dependencies[0].name].output
         assert len(depths.shape) == 3, f"Expected (T, H, W) got: {depths.shape}"
-        res = np.array([self._make_one_depth(depth) for depth in depths])
-        return res
+        res = np.array([self._make_one_normal(depth) for depth in depths])
+        return RepresentationOutput(output=res)
 
     @overrides
     def make_images(self, frames: np.ndarray, repr_data: RepresentationOutput) -> np.ndarray:
-        return (repr_data * 255).astype(np.uint8)
+        return (repr_data.output * 255).astype(np.uint8)
 
     @overrides
     def size(self, repr_data: RepresentationOutput) -> tuple[int, int]:
-        return repr_data.shape[1:3]
+        return repr_data.output.shape[1:3]
 
     @overrides
     def resize(self, repr_data: RepresentationOutput, new_size: tuple[int, int]) -> RepresentationOutput:
-        return image_resize_batch(repr_data, *new_size)
+        return RepresentationOutput(output=image_resize_batch(repr_data.output, *new_size))
 
-    def _make_one_depth(self, depth: np.ndarray) -> np.ndarray:
+    @overrides
+    def vre_setup(self):
+        pass
+
+    def _make_one_normal(self, depth: np.ndarray) -> np.ndarray:
         # TODO: batch vectorize this if possible
         sampling_grid, normalized_grid = self._get_grid(depth)
         if self.input_downsample_step is not None:

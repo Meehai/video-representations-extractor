@@ -18,7 +18,7 @@ class DummyRepresentation(Representation):
         self.make_image_fn = make_image_fn
 
     @overrides
-    def make(self, frames: np.ndarray) -> RepresentationOutput:
+    def make(self, frames: np.ndarray, dep_data: dict[str, RepresentationOutput] | None = None) -> RepresentationOutput:
         assert False, f"Dummy representation ({self.name}) has no precomputted npz files!"
 
     @overrides
