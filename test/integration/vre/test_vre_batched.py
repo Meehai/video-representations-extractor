@@ -61,14 +61,6 @@ def test_vre_batched():
         "opticalflow rife": {"type": "optical-flow", "name": "rife", "dependencies": [],
                              "parameters": {"compute_backward_flow": False, "uhd": False},
                              "vre_parameters": {"device": device}},
-        "depth odoflow (rife)": {"type": "depth", "name": "odo-flow", "dependencies": ["opticalflow rife"],
-                                 "parameters": {"linear_ang_vel_correction": True, "focus_correction": True,
-                                                "sensor_fov": 75, "sensor_width": 3840, "sensor_height": 2160,
-                                                "min_depth_meters": 0, "max_depth_meters": 400},
-                                 "vre_parameters": {"velocities_path": "DJI_0956_velocities.npz"}},
-        "normals svd (odoflow rife)": {"type": "normals", "name": "depth-svd", "dependencies": ["depth odoflow (rife)"],
-                                       "parameters": {"sensor_fov": 75, "sensor_width": 3840,
-                                                      "sensor_height": 2160, "window_size": 11}},
         "semantic safeuav torch": {"type": "semantic-segmentation", "name": "safeuav", "dependencies": [],
                                    "parameters": {"train_height": 240, "train_width": 428, "num_classes": 8,
                                                   "color_map": [[0, 255, 0], [0, 127, 0], [255, 255, 0],
@@ -82,11 +74,6 @@ def test_vre_batched():
                              "parameters": {"inference_height": 360, "inference_width": 640,
                                             "small": False, "iters": 20},
                              "vre_parameters": {"device": device}},
-        "depth odoflow (raft)": {"type": "depth", "name": "odo-flow", "dependencies": ["opticalflow raft"],
-                                 "parameters": {"linear_ang_vel_correction": True, "focus_correction": True,
-                                                "sensor_fov": 75, "sensor_width": 3840, "sensor_height": 2160,
-                                                "min_depth_meters": 0, "max_depth_meters": 400},
-                                 "vre_parameters": {"velocities_path": "DJI_0956_velocities.npz"}},
         "mask2former": {"type": "semantic-segmentation", "name": "mask2former", "dependencies": [], "batch_size": 1,
                         "parameters": {"model_id": "49189528_1", "semantic_argmax_only": False},
                         "vre_parameters": {"device": device}},
@@ -122,8 +109,6 @@ def test_vre_batched():
 
     for representation in vre.representations.keys():
         for t in range(start_frame, end_frame):
-            if "odoflow" in representation: # cannot make this one reproductible :/
-                continue
             a = np.load(tmp_dir / representation / "npy/" / f"{t}.npz")["arr_0"]
             b = np.load(tmp_dir_bs / representation / "npy/" / f"{t}.npz")["arr_0"]
             assert np.abs(a - b).mean() < 1e-2, (representation, t)

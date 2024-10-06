@@ -68,8 +68,8 @@ High level format:
 
 ```
 name of representation:
-  type: some high level type (such as depth, semantic, edges, etc.)
-  name: the implemented method's name (i.e. dexined, dpt, odoflow etc.)
+  type: some high level type (such as depth, semantic, edges etc.)
+  name: the implemented method's name (i.e. dexined, dpt etc.)
   dependencies: [a list of dependencies given by their names]
   parameters: # as defined in the constructor of the implementation
     param1: value1
