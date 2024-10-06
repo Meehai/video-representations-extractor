@@ -64,7 +64,7 @@ class DepthNormalsSVD(Representation):
         normals = (normals.astype(np.float32) + 1) / 2
         return normals
 
-    def _get_grid(self, depth: np.ndarray) -> (np.ndarray, np.ndarray):
+    def _get_grid(self, depth: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         height, width = depth.shape[:2]
         if (height, width) in self._grid_cache:
             return self._grid_cache[(height, width)]

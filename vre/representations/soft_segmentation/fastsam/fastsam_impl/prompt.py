@@ -1,13 +1,16 @@
 # pylint: disable=all
 import os
 import sys
-import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from .utils import image_to_np_ndarray
 from PIL import Image
 
+from vre.utils.cv2_utils import (cv2_findContours, cv2_boundingRect, cv2_drawContours, cv2_morphologyEx,
+                                 cv2_RETR_TREE, cv2_CHAIN_APPROX_SIMPLE, cv2_RETR_EXTERNAL, cv2_MORPH_OPEN,
+                                 cv2_MORPH_CLOSE, cv2_COLOR_BGR2RGB, cv2_COLOR_RGB2BGR, cv2_cvtColor)
+from vre.utils import image_write, image_resize
 
 class FastSAMPrompt:
 
@@ -17,7 +20,7 @@ class FastSAMPrompt:
         self.device = device
         self.results = results
         self.img = image
-    
+
     def _segment_image(self, image, bbox):
         if isinstance(image, Image.Image):
             image_array = np.array(image)
@@ -69,12 +72,12 @@ class FastSAMPrompt:
 
     def _get_bbox_from_mask(self, mask):
         mask = mask.astype(np.uint8)
-        contours, hierarchy = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        x1, y1, w, h = cv2.boundingRect(contours[0])
+        contours, _ = cv2_findContours(mask, cv2_RETR_EXTERNAL, cv2_CHAIN_APPROX_SIMPLE)
+        x1, y1, w, h = cv2_boundingRect(contours[0])
         x2, y2 = x1 + w, y1 + h
         if len(contours) > 1:
             for b in contours:
-                x_t, y_t, w_t, h_t = cv2.boundingRect(b)
+                x_t, y_t, w_t, h_t = cv2_boundingRect(b)
                 # Merge multiple bounding boxes into one.
                 x1 = min(x1, x_t)
                 y1 = min(y1, y_t)
@@ -96,7 +99,7 @@ class FastSAMPrompt:
         if isinstance(annotations[0], dict):
             annotations = [annotation['segmentation'] for annotation in annotations]
         image = self.img
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        image = cv2_cvtColor(image, cv2_COLOR_BGR2RGB)
         original_h = image.shape[0]
         original_w = image.shape[1]
         if sys.platform == "darwin":
@@ -113,8 +116,8 @@ class FastSAMPrompt:
             if isinstance(annotations[0], torch.Tensor):
                 annotations = np.array(annotations.cpu())
             for i, mask in enumerate(annotations):
-                mask = cv2.morphologyEx(mask.astype(np.uint8), cv2.MORPH_CLOSE, np.ones((3, 3), np.uint8))
-                annotations[i] = cv2.morphologyEx(mask.astype(np.uint8), cv2.MORPH_OPEN, np.ones((8, 8), np.uint8))
+                mask = cv2_morphologyEx(mask.astype(np.uint8), cv2_MORPH_CLOSE, np.ones((3, 3), np.uint8))
+                annotations[i] = cv2_morphologyEx(mask.astype(np.uint8), cv2_MORPH_OPEN, np.ones((8, 8), np.uint8))
         if self.device == 'cpu':
             annotations = np.array(annotations)
             self.fast_show_mask(
@@ -152,15 +155,11 @@ class FastSAMPrompt:
                     mask = mask['segmentation']
                 annotation = mask.astype(np.uint8)
                 if not retina:
-                    annotation = cv2.resize(
-                        annotation,
-                        (original_w, original_h),
-                        interpolation=cv2.INTER_NEAREST,
-                    )
-                contours, hierarchy = cv2.findContours(annotation, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+                    annotation = image_resize(annotation, original_h, original_w, "nearest", library="cv2")
+                contours, _ = cv2_findContours(annotation, cv2_RETR_TREE, cv2_CHAIN_APPROX_SIMPLE)
                 for contour in contours:
                     contour_all.append(contour)
-            cv2.drawContours(temp, contour_all, -1, (255, 255, 255), 2)
+            cv2_drawContours(temp, contour_all, -1, (255, 255, 255), 2)
             color = np.array([0 / 255, 0 / 255, 255 / 255, 0.8])
             contour_mask = temp / 255 * color.reshape(1, 1, -1)
             plt.imshow(contour_mask)
@@ -176,10 +175,10 @@ class FastSAMPrompt:
             buf = fig.canvas.tostring_rgb()
         cols, rows = fig.canvas.get_width_height()
         img_array = np.frombuffer(buf, dtype=np.uint8).reshape(rows, cols, 3)
-        result = cv2.cvtColor(img_array, cv2.COLOR_RGB2BGR)
+        result = cv2_cvtColor(img_array, cv2_COLOR_RGB2BGR)
         plt.close()
         return result
-            
+
     # Remark for refactoring: IMO a function should do one thing only, storing the image and plotting should be seperated and do not necessarily need to be class functions but standalone utility functions that the user can chain in his scripts to have more fine-grained control. 
     def plot(self,
              annotations,
@@ -194,13 +193,13 @@ class FastSAMPrompt:
         if len(annotations) == 0:
             return None
         result = self.plot_to_result(
-            annotations, 
-            bboxes, 
-            points, 
-            point_label, 
+            annotations,
+            bboxes,
+            points,
+            point_label,
             mask_random_color,
-            better_quality, 
-            retina, 
+            better_quality,
+            retina,
             withContours,
         )
 
@@ -208,8 +207,8 @@ class FastSAMPrompt:
         if not os.path.exists(path):
             os.makedirs(path)
         result = result[:, :, ::-1]
-        cv2.imwrite(output_path, result)
-     
+        image_write(result, output_path, library="cv2")
+
     #   CPU post process
     def fast_show_mask(
         self,
@@ -265,7 +264,7 @@ class FastSAMPrompt:
             )
 
         if not retinamask:
-            show = cv2.resize(show, (target_width, target_height), interpolation=cv2.INTER_NEAREST)
+            show = image_resize(show, target_height, target_width, "nearest", library="cv2")
         ax.imshow(show)
 
     def fast_show_mask_gpu(
@@ -322,7 +321,7 @@ class FastSAMPrompt:
                 c='m',
             )
         if not retinamask:
-            show_cpu = cv2.resize(show_cpu, (target_width, target_height), interpolation=cv2.INTER_NEAREST)
+            show_cpu = image_resize(show_cpu, target_height, target_width, "nearest", library="cv2")
         ax.imshow(show_cpu)
 
     # clip
@@ -341,7 +340,7 @@ class FastSAMPrompt:
 
     def _crop_image(self, format_results):
 
-        image = Image.fromarray(cv2.cvtColor(self.img, cv2.COLOR_BGR2RGB))
+        image = Image.fromarray(cv2_cvtColor(self.img, cv2_COLOR_BGR2RGB))
         ori_w, ori_h = image.size
         annotations = format_results
         mask_h, mask_w = annotations[0]['segmentation'].shape
@@ -358,7 +357,7 @@ class FastSAMPrompt:
                 filter_id.append(_)
                 continue
             bbox = self._get_bbox_from_mask(mask['segmentation'])  # mask 的 bbox
-            cropped_boxes.append(self._segment_image(image, bbox))  
+            cropped_boxes.append(self._segment_image(image, bbox))
             # cropped_boxes.append(segment_image(image,mask["segmentation"]))
             cropped_images.append(bbox)  # Save the bounding box of the cropped image.
 
@@ -401,7 +400,7 @@ class FastSAMPrompt:
         max_iou_index = list(set(max_iou_index))
         return np.array(masks[max_iou_index].cpu().numpy())
 
-    def point_prompt(self, points, pointlabel):  # numpy 
+    def point_prompt(self, points, pointlabel):  # numpy
         if self.results == None:
             return []
         masks = self._format_results(self.results[0], 0)
@@ -443,4 +442,4 @@ class FastSAMPrompt:
         if self.results == None:
             return []
         return self.results[0].masks.data
-        
+

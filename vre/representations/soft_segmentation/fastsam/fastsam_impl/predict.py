@@ -21,7 +21,7 @@ class BasePredictor:
         device (torch.device): Device used for prediction.
         dataset (Dataset): Dataset used for prediction.
         vid_path (str): Path to video file.
-        vid_writer (cv2.VideoWriter): Video writer for saving video output.
+        vid_writer (VideoWriter): Video writer for saving video output.
         data_path (str): Path to data.
     """
 

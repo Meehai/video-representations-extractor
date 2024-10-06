@@ -13,6 +13,8 @@ import pycocotools.mask as mask_util
 import torch
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 from PIL import Image
+from vre.utils.cv2_utils import (cv2_CHAIN_APPROX_NONE, cv2_findContours, cv2_RETR_CCOMP,
+                                 cv2_connectedComponentsWithStats)
 
 from .det2_data import MetadataCatalog
 from .structures import BitMasks, Boxes, BoxMode, PolygonMasks, RotatedBoxes
@@ -207,12 +209,12 @@ class GenericMask:
         return self._has_holes
 
     def mask_to_polygons(self, mask):
-        # cv2.RETR_CCOMP flag retrieves all the contours and arranges them to a 2-level
+        # cv2_RETR_CCOMP flag retrieves all the contours and arranges them to a 2-level
         # hierarchy. External contours (boundary) of the object are placed in hierarchy-1.
         # Internal contours (holes) are placed in hierarchy-2.
-        # cv2.CHAIN_APPROX_NONE flag gets vertices of polygons from contours.
+        # cv2_CHAIN_APPROX_NONE flag gets vertices of polygons from contours.
         mask = np.ascontiguousarray(mask)  # some versions of cv2 does not support incontiguous arr
-        res = cv2.findContours(mask.astype("uint8"), cv2.RETR_CCOMP, cv2.CHAIN_APPROX_NONE)
+        res = cv2_findContours(mask.astype("uint8"), cv2_RETR_CCOMP, cv2_CHAIN_APPROX_NONE)
         hierarchy = res[-1]
         if hierarchy is None:  # empty mask
             return [], False
@@ -1332,7 +1334,7 @@ class Visualizer:
         Find proper places to draw text given a binary mask.
         """
         # TODO sometimes drawn on wrong objects. the heuristics here can improve.
-        _num_cc, cc_labels, stats, centroids = cv2.connectedComponentsWithStats(binary_mask, 8)
+        _num_cc, cc_labels, stats, centroids = cv2_connectedComponentsWithStats(binary_mask, 8)
         if stats[1:, -1].size == 0:
             return
         largest_component_id = np.argmax(stats[1:, -1]) + 1
