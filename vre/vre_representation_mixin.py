@@ -1,4 +1,5 @@
 """Helper mixin class that adds the VRE relevant methods & properties such that a representation works in vre loop"""
+import torch as tr
 from .utils import parsed_str_type, VREVideo, RepresentationOutput
 from .logger import vre_logger as logger
 
@@ -8,6 +9,7 @@ class VRERepresentationMixin:
         self.vre_parameters = {}
         self.batch_size: int | None = None
         self.output_size: tuple[int, int] | str | None = None
+        self.device = "cpu"
 
     # pylint: disable=unused-argument
     def vre_setup(self, video: VREVideo, **kwargs):
@@ -25,3 +27,10 @@ class VRERepresentationMixin:
     def vre_dep_data(self, video: VREVideo, ix: slice) -> dict[str, RepresentationOutput]:
         """method used to retrieve the dependencies' data for this frames during a vre run"""
         return {}
+
+    def to(self, device: str | tr.device):
+        """
+        Support for representation.to(device). Must be updated by all the representations
+        that support devices (i.e. cuda torch models)
+        """
+        self.device = device

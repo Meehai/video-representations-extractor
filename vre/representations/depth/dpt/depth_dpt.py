@@ -42,7 +42,6 @@ class DepthDpt(Representation):
         # VRE setup stuff
         self.net_w, self.net_h = 384, 384
         self.multiple_of = 32
-        self.device: str = "cpu"
         tr.manual_seed(42)
         self.model = DPTDepthModel(backbone="vitl16_384", non_negative=True).to("cpu")
 

@@ -14,7 +14,6 @@ class DexiNed(Representation):
         super().__init__(**kwargs)
         self.model: Model = None
         self._setup()
-        self.device = "cpu"
         self.inference_height, self.inference_width = 512, 512 # fixed for this model
 
     def _setup(self):

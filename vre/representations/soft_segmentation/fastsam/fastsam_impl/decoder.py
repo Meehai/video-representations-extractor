@@ -2,7 +2,7 @@
 from .model import FastSAM
 import numpy as np
 from PIL import Image
-from typing import Optional, List, Tuple, Union
+from typing import Optional
 
 
 class FastSAMDecoder:
@@ -10,7 +10,7 @@ class FastSAMDecoder:
         self,
         model: FastSAM,
         device: str='cpu',
-        conf: float=0.4, 
+        conf: float=0.4,
         iou: float=0.9,
         imgsz: int=1024,
         retina_masks: bool=True,
@@ -29,18 +29,18 @@ class FastSAMDecoder:
             image =  np.array(Image.open(image))
         self.image = image
         image_embedding = self.model(
-            self.image, 
-            device=self.device, 
-            retina_masks=self.retina_masks, 
-            imgsz=self.imgsz, 
-            conf=self.conf, 
+            self.image,
+            device=self.device,
+            retina_masks=self.retina_masks,
+            imgsz=self.imgsz,
+            conf=self.conf,
             iou=self.iou
             )
         return image_embedding[0].numpy()
 
     def run_decoder(
             self,
-            image_embedding, 
+            image_embedding,
             point_prompt: Optional[np.ndarray]=None,
             point_label: Optional[np.ndarray]=None,
             box_prompt: Optional[np.ndarray]=None,
@@ -89,7 +89,7 @@ class FastSAMDecoder:
 
         return np.array([masks[max_iou_index].cpu().numpy()])
 
-    def point_prompt(self, points, pointlabel):  # numpy 
+    def point_prompt(self, points, pointlabel):  # numpy
 
         masks = self._format_results(self.image_embedding[0], 0)
         target_height = self.image.shape[0]
@@ -112,7 +112,7 @@ class FastSAMDecoder:
                     onemask[mask] = 0
         onemask = onemask >= 1
         return np.array([onemask])
-    
+
     def _format_results(self, result, filter=0):
         annotations = []
         n = len(result.masks.data)

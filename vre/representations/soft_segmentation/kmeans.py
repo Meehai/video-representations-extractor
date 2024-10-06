@@ -59,7 +59,7 @@ class KMeans(Representation):
         data_resized = image_resize_batch(repr_data[0], *new_size, interpolation="nearest")
         return (data_resized, repr_data[1]) # no need to resize centers as they are in color space
 
-    def _make_one_frame(self, frame: np.ndarray) -> (np.ndarray, list[tuple[int, int]]):
+    def _make_one_frame(self, frame: np.ndarray) -> tuple[np.ndarray, list[tuple[int, int]]]:
         # pylint: disable=import-outside-toplevel, too-many-function-args
         import cv2
         Z = np.float32(frame).reshape(-1, 3).copy()

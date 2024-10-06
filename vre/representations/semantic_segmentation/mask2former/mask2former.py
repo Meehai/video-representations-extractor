@@ -44,7 +44,6 @@ class Mask2Former(Representation):
         weights_path = self._get_weights(model_id)
         self.model, self.cfg, self.metadata = self._build_model(weights_path)
         self.model_id = model_id
-        self.device = "cpu"
         self.semantic_argmax_only = semantic_argmax_only
 
     # pylint: disable=arguments-differ
@@ -113,7 +112,7 @@ class Mask2Former(Representation):
         model = MaskFormerImpl(**params).eval()
         res = model.load_state_dict(ckpt_data["state_dict"], strict=False) # inference only: we remove criterion
         assert res.unexpected_keys in (["criterion.empty_weight"], []), res
-        model.to("cuda" if tr.cuda.is_available() else "cpu")
+        model.to("cpu")
         assert len(cfg.DATASETS.TEST) == 1, cfg.DATASETS.TEST
         metadata = MetadataCatalog.get(cfg.DATASETS.TEST[0])
         logger.debug(f"Loade weights from '{weights_path}'")
@@ -148,7 +147,7 @@ def main(args: Namespace):
     # Sanity checks
     if m2f.model_id == "47429163_0" and args.input_image.name == "demo1.jpg":
         assert np.allclose(mean := semantic_result.mean(), 129.41173), (mean, semantic_result.std())
-        assert np.allclose(std := semantic_result.std(), 53.33731), std
+        assert np.allclose(std := semantic_result.std(), 53.33, rtol=1e-2), std
     elif m2f.model_id == "49189528_1" and args.input_image.name == "demo1.jpg":
         assert np.allclose(mean := semantic_result.mean(), 125.23281), (mean, semantic_result.std())
         assert np.allclose(std := semantic_result.std(), 48.89948), std

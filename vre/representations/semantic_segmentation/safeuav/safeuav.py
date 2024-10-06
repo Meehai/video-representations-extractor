@@ -46,7 +46,6 @@ class SafeUAV(Representation):
         self.color_map = color_map
         self.train_height = train_height
         self.train_width = train_width
-        self.device = "cpu"
         self.semantic_argmax_only = semantic_argmax_only
         super().__init__(**kwargs)
         self.model = _SafeUavWrapper(ch_in=3, ch_out=self.num_classes).eval().to("cpu")

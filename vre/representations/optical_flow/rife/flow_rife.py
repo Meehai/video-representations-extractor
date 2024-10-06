@@ -17,8 +17,6 @@ class FlowRife(Representation):
         self.uhd = uhd
         assert compute_backward_flow is False, "Not supported"
         self.no_backward_flow = True if compute_backward_flow is None else not compute_backward_flow
-        self.device = "cpu"
-        assert tr.cuda.is_available() or self.device == "cpu", "CUDA not available"
         super().__init__(**kwargs)
 
     # pylint: disable=arguments-differ
