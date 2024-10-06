@@ -41,9 +41,6 @@ def build_representation_type(type: str, name: str) -> Type[Representation]:
         if name == "dpt":
             from .depth.dpt import DepthDpt
             obj_type = DepthDpt
-        elif name == "odo-flow":
-            from .depth.odo_flow import DepthOdoFlow
-            obj_type = DepthOdoFlow
 
     elif type == "optical-flow":
         if name == "rife":

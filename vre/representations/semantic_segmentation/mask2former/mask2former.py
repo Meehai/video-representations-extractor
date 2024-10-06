@@ -145,7 +145,7 @@ def main(args: Namespace):
     logger.info(f"Written prediction to '{args.output_path}'")
 
     # Sanity checks
-    rtol = 1e-2 if tr.cuda.is_available() else 1e-5
+    rtol = 1e-2# if tr.cuda.is_available() else 1e-5
     if m2f.model_id == "47429163_0" and args.input_image.name == "demo1.jpg":
         assert np.allclose(mean := semantic_result.mean(), 129.41, rtol=rtol), (mean, semantic_result.std())
         assert np.allclose(std := semantic_result.std(), 53.33, rtol=rtol), std

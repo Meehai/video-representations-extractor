@@ -1,9 +1,6 @@
 # pylint: disable=all
 import torch
 import torch.nn.functional as F
-import numpy as np
-from scipy import interpolate
-
 
 class InputPadder:
     """ Pads images such that dimensions are divisible by 8 """
@@ -24,37 +21,6 @@ class InputPadder:
         ht, wd = x.shape[-2:]
         c = [self._pad[2], ht-self._pad[3], self._pad[0], wd-self._pad[1]]
         return x[..., c[0]:c[1], c[2]:c[3]]
-
-def forward_interpolate(flow):
-    flow = flow.detach().cpu().numpy()
-    dx, dy = flow[0], flow[1]
-
-    ht, wd = dx.shape
-    x0, y0 = np.meshgrid(np.arange(wd), np.arange(ht))
-
-    x1 = x0 + dx
-    y1 = y0 + dy
-
-    x1 = x1.reshape(-1)
-    y1 = y1.reshape(-1)
-    dx = dx.reshape(-1)
-    dy = dy.reshape(-1)
-
-    valid = (x1 > 0) & (x1 < wd) & (y1 > 0) & (y1 < ht)
-    x1 = x1[valid]
-    y1 = y1[valid]
-    dx = dx[valid]
-    dy = dy[valid]
-
-    flow_x = interpolate.griddata(
-        (x1, y1), dx, (x0, y0), method='nearest', fill_value=0)
-
-    flow_y = interpolate.griddata(
-        (x1, y1), dy, (x0, y0), method='nearest', fill_value=0)
-
-    flow = np.stack([flow_x, flow_y], axis=0)
-    return torch.from_numpy(flow).float()
-
 
 def bilinear_sampler(img, coords, mode='bilinear', mask=False):
     """ Wrapper for grid_sample, uses pixel coordinates """
