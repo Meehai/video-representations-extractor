@@ -6,20 +6,17 @@ vre:
 
 representations:
   rgb:
-    type: default
-    name: rgb
+    type: default/rgb
     dependencies: []
     parameters: {}
 
   hsv:
-    type: default
-    name: hsv
+    type: default/hsv
     dependencies: []
     parameters: {}
 
   halftone1:
-    type: soft-segmentation
-    name: python-halftone
+    type: soft-segmentation/python-halftone
     dependencies: []
     parameters:
       sample: 3
@@ -30,8 +27,7 @@ representations:
       resolution: [240, 426]
 
   edges_canny:
-    type: edges
-    name: canny
+    type: edges/canny
     dependencies: []
     parameters:
       threshold1: 100
@@ -40,8 +36,7 @@ representations:
       l2_gradient: True
 
   softseg_gb:
-    type: soft-segmentation
-    name: generalized_boundaries
+    type: soft-segmentation/generalized_boundaries
     dependencies: []
     parameters:
       use_median_filtering: True
@@ -49,15 +44,13 @@ representations:
       max_channels: 3
 
   edges_dexined:
-    type: edges
-    name: dexined
+    type: edges/dexined
     dependencies: []
     parameters: {}
     device: ${oc.env:VRE_DEVICE,cpu}
 
   opticalflow_rife:
-    type: optical-flow
-    name: rife
+    type: optical-flow/rife
     dependencies: []
     parameters:
       uhd: False
@@ -65,8 +58,7 @@ representations:
     device: ${oc.env:VRE_DEVICE,cpu}
 
   normals_svd(depth_dpt):
-    type: normals
-    name: depth-svd
+    type: normals/depth-svd
     dependencies: [depth_dpt]
     parameters:
       sensor_fov: 75
@@ -75,8 +67,7 @@ representations:
       window_size: 11
 
   fastsam(s):
-    type: soft-segmentation
-    name: fastsam
+    type: soft-segmentation/fastsam
     dependencies: []
     parameters:
       variant: fastsam-s
@@ -85,8 +76,7 @@ representations:
     device: ${oc.env:VRE_DEVICE,cpu}
 
   mask2former:
-    type: semantic-segmentation
-    name: mask2former
+    type: semantic-segmentation/mask2former
     dependencies: []
     parameters:
       model_id: "49189528_1"
@@ -95,8 +85,7 @@ representations:
 
   # SUCKY BECAUSE SUPERSLOW. Adds like 2-3 mins in CI. Rife is good enough.
   # opticalflow raft:
-  #   type: optical-flow
-  #   name: raft
+  #   type: optical-flow/raft
   #   dependencies: []
   #   parameters:
   #     inference_height: 720
@@ -105,8 +94,7 @@ representations:
 
   # sucky because slow, but it's good/pretrained
   depth_dpt:
-    type: depth
-    name: dpt
+    type: depth/dpt
     dependencies: []
     parameters: {}
     device: ${oc.env:VRE_DEVICE,cpu}
