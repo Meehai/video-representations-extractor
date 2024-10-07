@@ -2,6 +2,7 @@ import shutil
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any
+import yaml
 import pims
 import pandas as pd
 import numpy as np
@@ -35,37 +36,111 @@ def sample_representations(all_representations_dict: dict[str, Any], n: int) -> 
 def test_vre_batched():
     video = pims.Video(get_project_root() / "resources/test_video.mp4")
     device = "cuda" if tr.cuda.is_available() else "cpu"
-    all_representations_dict = {
-        "rgb": {"type": "default", "name": "rgb", "dependencies": [], "parameters": {}},
-        "hsv": {"type": "default", "name": "hsv", "dependencies": [], "parameters": {}},
-        "dexined": {"type": "edges", "name": "dexined", "dependencies": [], "parameters": {}, "device": device},
-        "softseg gb": {"type": "soft-segmentation", "name": "generalized_boundaries", "dependencies": [],
-                       "parameters": {"use_median_filtering": True, "adjust_to_rgb": True, "max_channels": 3}},
-        "canny": {"type": "edges", "name": "canny", "dependencies": [],
-                  "parameters": {"threshold1": 100, "threshold2": 200, "aperture_size": 3, "l2_gradient": True}},
-        "depth dpt": {"type": "depth", "name": "dpt", "dependencies": [], "parameters": {}, "device": device},
-        "normals svd (dpt)": {"type": "normals", "name": "depth-svd", "dependencies": ["depth dpt"],
-                              "parameters": {"sensor_fov": 75, "sensor_width": 3840,
-                                             "sensor_height": 2160, "window_size": 11}},
-        "opticalflow rife": {"type": "optical-flow", "name": "rife", "dependencies": [],
-                             "parameters": {"compute_backward_flow": False, "uhd": False}, "device": device},
-        "semantic safeuav torch": {"type": "semantic-segmentation", "name": "safeuav", "dependencies": [],
-                                   "parameters": {"train_height": 240, "train_width": 428, "num_classes": 8,
-                                                  "color_map": [[0, 255, 0], [0, 127, 0], [255, 255, 0],
-                                                                [255, 255, 255], [255, 0, 0], [0, 0, 255],
-                                                                [0, 255, 255], [127, 127, 63]]},
-                                   "device": device},
-        "halftone": {"type": "soft-segmentation", "name": "python-halftone", "dependencies": [],
-                     "parameters": {"sample": 3, "scale": 1, "percentage": 91, "angles": [0, 15, 30, 45],
-                                    "antialias": False, "resolution": [240, 426]}},
-        "opticalflow raft": {"type": "optical-flow", "name": "raft", "dependencies": [],
-                             "parameters": {"inference_height": 360, "inference_width": 640,
-                                            "small": False, "iters": 20}, "device": device},
-        "mask2former": {"type": "semantic-segmentation", "name": "mask2former", "dependencies": [], "batch_size": 1,
-                        "parameters": {"model_id": "49189528_1", "semantic_argmax_only": False}, "device": device},
-        "fastsam (s)": {"type": "soft-segmentation", "name": "fastsam", "dependencies": [],
-                        "parameters": {"variant": "fastsam-s", "iou": 0.9, "conf": 0.4}, "device": device},
-    }
+    all_representations_dict = yaml.safe_load(f"""
+  rgb:
+    type: default/rgb
+    dependencies: []
+    parameters: {{}}
+
+  hsv:
+    type: default/hsv
+    dependencies: []
+    parameters: {{}}
+
+  halftone:
+    type: soft-segmentation/python-halftone
+    dependencies: []
+    parameters:
+      sample: 3
+      scale: 1
+      percentage: 91
+      angles: [0, 15, 30, 45]
+      antialias: False
+      resolution: [240, 426]
+
+  edges_canny:
+    type: edges/canny
+    dependencies: []
+    parameters:
+      threshold1: 100
+      threshold2: 200
+      aperture_size: 3
+      l2_gradient: True
+
+  softseg_gb:
+    type: soft-segmentation/generalized_boundaries
+    dependencies: []
+    parameters:
+      use_median_filtering: True
+      adjust_to_rgb: True
+      max_channels: 3
+
+  edges_dexined:
+    type: edges/dexined
+    dependencies: []
+    parameters: {{}}
+    device: {device}
+
+  opticalflow_rife:
+    type: optical-flow/rife
+    dependencies: []
+    parameters:
+      uhd: False
+      compute_backward_flow: False
+    device: {device}
+
+  normals_svd(depth_dpt):
+    type: normals/depth-svd
+    dependencies: [depth_dpt]
+    parameters:
+      sensor_fov: 75
+      sensor_width: 3840
+      sensor_height: 2160
+      window_size: 11
+
+  fastsam(s):
+    type: soft-segmentation/fastsam
+    dependencies: []
+    parameters:
+      variant: fastsam-s
+      iou: 0.9
+      conf: 0.4
+    device: {device}
+
+  mask2former:
+    type: semantic-segmentation/mask2former
+    dependencies: []
+    parameters:
+      model_id: "49189528_1"
+      semantic_argmax_only: True
+    device: {device}
+
+  opticalflow raft:
+    type: optical-flow/raft
+    dependencies: []
+    parameters:
+      inference_height: 720
+      inference_width: 1280
+    device: {device}
+
+  depth_dpt:
+    type: depth/dpt
+    dependencies: []
+    parameters: {{}}
+    device: {device}
+
+  semantic_safeuav_torch:
+    type: semantic-segmentation/safeuav
+    dependencies: []
+    parameters:
+      train_height: 240
+      train_width: 428
+      num_classes: 8
+      color_map: [[0, 255, 0], [0, 127, 0], [255, 255, 0], [255, 255, 255],
+                  [255, 0, 0] ,[0, 0, 255], [0, 255, 255], [127, 127, 63]]
+    device: {device}
+""")
+
     # we'll just pick 2 random representations to test here
     representations_dict = sample_representations(all_representations_dict, n=2)
     representations = build_representations_from_cfg(representations_dict)
