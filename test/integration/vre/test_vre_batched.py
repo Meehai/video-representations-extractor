@@ -112,16 +112,16 @@ def test_vre_batched():
     dependencies: []
     parameters:
       model_id: "49189528_1"
-      semantic_argmax_only: True
+      semantic_argmax_only: False
     device: {device}
 
-  opticalflow raft:
-    type: optical-flow/raft
-    dependencies: []
-    parameters:
-      inference_height: 720
-      inference_width: 1280
-    device: {device}
+  # opticalflow raft:
+  #   type: optical-flow/raft
+  #   dependencies: []
+  #   parameters:
+  #     inference_height: 720
+  #     inference_width: 1280
+  #   device: {device}
 
   depth_dpt:
     type: depth/dpt

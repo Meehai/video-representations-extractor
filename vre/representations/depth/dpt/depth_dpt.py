@@ -3,11 +3,10 @@ import numpy as np
 import torch as tr
 import torch.nn.functional as F
 from overrides import overrides
-from matplotlib.cm import hot # pylint: disable=no-name-in-module
 
 from .dpt_impl.dpt_depth import DPTDepthModel
 from ....representation import Representation, RepresentationOutput
-from ....utils import image_resize_batch, get_weights_dir
+from ....utils import image_resize_batch, get_weights_dir, colorize_depth_maps
 from ....logger import vre_logger as logger
 
 def _constrain_to_multiple_of(x, multiple_of: int, min_val=0, max_val=None) -> int:
@@ -66,9 +65,7 @@ class DepthDpt(Representation):
 
     @overrides
     def make_images(self, frames: np.ndarray, repr_data: RepresentationOutput) -> np.ndarray:
-        y = hot(repr_data.output)[..., 0:3]
-        y = np.uint8(y * 255)
-        return y
+        return (colorize_depth_maps(repr_data.output, min_depth=0, max_depth=1) * 255).astype(np.uint8)
 
     @overrides
     def size(self, repr_data: RepresentationOutput) -> tuple[int, int]:
