@@ -1,10 +1,9 @@
 """utils for vre"""
 from typing import Any
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone as tz
 from dataclasses import dataclass
 import os
-import gdown
 import numpy as np
 
 from ..logger import vre_logger as logger
@@ -22,17 +21,11 @@ def get_project_root() -> Path:
 
 def get_weights_dir() -> Path:
     """gets the weights dir of this project"""
-    return Path(os.getenv("VRE_WEIGHTS_DIR", get_project_root() / "weights"))
+    return Path(os.getenv("VRE_WEIGHTS_DIR", get_project_root() / "resources/weights"))
 
 def parsed_str_type(item: Any) -> str:
     """Given an object with a type of the format: <class 'A.B.C.D'>, parse it and return 'A.B.C.D'"""
     return str(type(item)).rsplit(".", maxsplit=1)[-1][0:-2]
-
-def gdown_mkdir(uri: str, local_path: Path):
-    """calls gdown but also makes the directory of the parent path just to be sure it exists"""
-    logger.debug(f"Downloading '{uri}' to '{local_path}'")
-    local_path.parent.mkdir(exist_ok=True, parents=True)
-    gdown.download(uri, f"{local_path}")
 
 def to_categorical(data: np.ndarray, num_classes: int = None) -> np.ndarray:
     """converts the data to categorical. If num classes is not provided, it is infered from the data"""
@@ -96,3 +89,7 @@ def get_closest_square(n: int) -> tuple[int, int]:
         r += 1
     assert (c + 1) * r > n and c * (r + 1) > n
     return r, c
+
+def now_fmt() -> str:
+    """Returns now() as a UTC isoformat string"""
+    return datetime.now(tz=tz.utc).replace(tzinfo=None).isoformat(timespec="milliseconds")

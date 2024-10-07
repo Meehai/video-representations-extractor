@@ -12,16 +12,10 @@ from fvcore.common.config import CfgNode
 
 from vre.representation import Representation, RepresentationOutput
 from vre.logger import vre_logger as logger
-from vre.utils import gdown_mkdir, image_resize_batch, get_weights_dir, image_read, image_write
-
-try:
-    from .mask2former_impl import MaskFormer as MaskFormerImpl
-    from .mask2former_impl.det2_data import MetadataCatalog
-    from .mask2former_impl.visualizer import Visualizer, ColorMode
-except ImportError: # when running this script directly
-    from mask2former_impl import MaskFormer as MaskFormerImpl
-    from mask2former_impl.visualizer import Visualizer, ColorMode
-    from mask2former_impl.det2_data import MetadataCatalog
+from vre.utils import image_resize_batch, get_weights_dir, image_read, image_write
+from vre.representations.semantic_segmentation.mask2former.mask2former_impl import MaskFormer as MaskFormerImpl
+from vre.representations.semantic_segmentation.mask2former.mask2former_impl.det2_data import MetadataCatalog
+from vre.representations.semantic_segmentation.mask2former.mask2former_impl.visualizer import Visualizer, ColorMode
 
 monkey_patch()
 
@@ -85,21 +79,16 @@ class Mask2Former(Representation):
         return RepresentationOutput(output=image_resize_batch(repr_data.output, *new_size, interpolation=interpolation))
 
     def _get_weights(self, model_id: str | dict) -> str:
-        links = {
-            "47429163_0": "https://drive.google.com/u/0/uc?id=1a5WOek1NyEqccBJuZQKSgsUU7drzjLY5", # COCO SWIN
-            "49189528_1": "https://drive.google.com/u/0/uc?id=1Ypzs7nXoqxsYwLrlt2rojr6T9t2MJkLH", # Mapillary R50
-            "49189528_0": "https://drive.google.com/u/0/uc?id=1fQevKfynhTqYI-7qinQp9ewQbDMT6NTN" # Mapillary SWIN
-        }
+        model_ids = {"47429163_0", "49189528_1", "49189528_0"}
         if isinstance(model_id, dict):
             logger.warning("Unknown model provided as dict. Loading as is.")
             return model_id
-        if model_id not in links.keys():
+        if model_id not in model_ids:
             logger.warning(f"Unknown model provided: {model_id}. Loading as is.")
             return model_id
 
         weights_path = get_weights_dir() / f"{model_id}.ckpt"
-        if not weights_path.exists():
-            gdown_mkdir(links[model_id], weights_path)
+        assert weights_path.exists(), weights_path
         return weights_path
 
     def _build_model(self, weights_path: Path | dict) -> tuple[nn.Module, CfgNode, MetadataCatalog]:

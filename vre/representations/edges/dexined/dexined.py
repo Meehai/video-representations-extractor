@@ -6,7 +6,7 @@ from overrides import overrides
 from .model_dexined import DexiNed as Model
 from ....representation import Representation, RepresentationOutput
 from ....logger import vre_logger as logger
-from ....utils import image_resize_batch, gdown_mkdir, get_weights_dir
+from ....utils import image_resize_batch, get_weights_dir
 
 class DexiNed(Representation):
     """Dexined representation."""
@@ -19,16 +19,12 @@ class DexiNed(Representation):
     @overrides(check_signature=False)
     def vre_setup(self):
         weights_file = get_weights_dir() / "dexined.pth"
-        url_weights = "https://drive.google.com/u/0/uc?id=1oT1iKdRRKJpQO-DTYWUnZSK51QnJ-mnP" # our backup weights
-
-        if not weights_file.exists():
-            gdown_mkdir(url_weights, weights_file)
+        assert weights_file.exists(), weights_file
 
         logger.info(f"Loading weights from '{weights_file}'")
         weights_data = tr.load(weights_file, map_location="cpu")
         self.model.load_state_dict(weights_data)
         self.model = self.model.to(self.device)
-        logger.debug2(f"Loaded weights from '{weights_file}'")
 
     @overrides
     def make(self, frames: np.ndarray, dep_data: dict[str, RepresentationOutput] | None = None) -> RepresentationOutput:

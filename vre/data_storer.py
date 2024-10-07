@@ -46,7 +46,8 @@ class DataStorer:
                         assert len(extra) == r - l, f"Extra must be a list of len ({len(extra)}) = batch_size ({r-l})"
                         np.savez(runtime_args.npy_paths[name][t].parent / f"{t}_extra.npz", extra[i])
             if runtime_args.export_png:
-                image_write(imgs[i], runtime_args.png_paths[name][t])
+                if not runtime_args.png_paths[name][t].exists():
+                    image_write(imgs[i], runtime_args.png_paths[name][t])
 
     def join_with_timeout(self, timeout: int):
         """calls queue.join() but throws after timeout seconds if it doesn't end"""

@@ -7,7 +7,7 @@ from matplotlib.cm import hot # pylint: disable=no-name-in-module
 
 from .dpt_impl.dpt_depth import DPTDepthModel
 from ....representation import Representation, RepresentationOutput
-from ....utils import gdown_mkdir, image_resize_batch, get_weights_dir
+from ....utils import image_resize_batch, get_weights_dir
 from ....logger import vre_logger as logger
 
 def _constrain_to_multiple_of(x, multiple_of: int, min_val=0, max_val=None) -> int:
@@ -18,7 +18,7 @@ def _constrain_to_multiple_of(x, multiple_of: int, min_val=0, max_val=None) -> i
         y = (np.ceil(x / multiple_of) * multiple_of).astype(int)
     return int(y)
 
-def _get_size(__height, __width, height, width, multiple_of) -> (int, int):
+def _get_size(__height, __width, height, width, multiple_of) -> tuple[int, int]:
     # determine new height and width
     scale_height = __height / height
     scale_width = __width / width
@@ -49,10 +49,7 @@ class DepthDpt(Representation):
     def vre_setup(self):
         # our backup
         weights_file = get_weights_dir() / "depth_dpt_midas.pth"
-        url_weights = "https://drive.google.com/u/0/uc?id=15JbN2YSkZFSaSV2CGkU1kVSxCBrNtyhD"
-
-        if not weights_file.exists():
-            gdown_mkdir(url_weights, weights_file)
+        assert weights_file.exists(), weights_file
 
         logger.info(f"Loading weights from '{weights_file}'")
         weights_data = tr.load(weights_file, map_location="cpu")

@@ -8,7 +8,7 @@ import flow_vis
 from .raft_impl.utils import InputPadder
 from .raft_impl.raft import RAFT
 from ....representation import Representation, RepresentationOutput
-from ....utils import gdown_mkdir, image_resize_batch, get_weights_dir
+from ....utils import image_resize_batch, get_weights_dir
 from ....logger import vre_logger as logger
 
 class FlowRaft(Representation):
@@ -33,15 +33,9 @@ class FlowRaft(Representation):
         assert self.video.frame_shape[0] >= self.inference_height \
             and self.video.frame_shape[1] >= self.inference_width, \
             f"{self.video.frame_shape} vs {self.inference_height}x{self.inference_width}"
-        weights_dir = get_weights_dir() / "raft"
-        weights_dir.mkdir(exist_ok=True, parents=True)
 
-        # original files
-        raft_things_url = "https://drive.google.com/u/0/uc?id=1MqDajR89k-xLV0HIrmJ0k-n8ZpG6_suM"
-
-        raft_things_path = weights_dir / "raft-things.pkl"
-        if not raft_things_path.exists():
-            gdown_mkdir(raft_things_url, raft_things_path)
+        raft_things_path = get_weights_dir() / "raft/raft-things.pkl"
+        assert raft_things_path.exists(), raft_things_path
 
         def convert(data: dict[str, tr.Tensor]) -> dict[str, tr.Tensor]:
             return {k.replace("module.", ""): v for k, v in data.items()}

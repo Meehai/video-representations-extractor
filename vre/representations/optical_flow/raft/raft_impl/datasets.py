@@ -95,10 +95,10 @@ class FlowDataset(data.Dataset):
         self.flow_list = v * self.flow_list
         self.image_list = v * self.image_list
         return self
-        
+
     def __len__(self):
         return len(self.image_list)
-        
+
 
 class MpiSintel(FlowDataset):
     def __init__(self, aug_params=None, split='training', root='datasets/Sintel', dstype='clean'):

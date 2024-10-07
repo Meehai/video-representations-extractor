@@ -8,19 +8,13 @@ from overrides import overrides
 from torch.nn import functional as F
 
 from vre.representation import Representation, RepresentationOutput
-from vre.utils import gdown_mkdir, image_resize_batch, get_weights_dir, image_read, image_write
+from vre.utils import image_resize_batch, get_weights_dir, image_read, image_write
 from vre.logger import vre_logger as logger
-
-try:
-    from .fastsam_impl import FastSAM as Model, FastSAMPredictor, FastSAMPrompt
-    from .fastsam_impl.results import Results
-    from .fastsam_impl.utils import bbox_iou
-    from .fastsam_impl.ops import scale_boxes, non_max_suppression, process_mask_native
-except ImportError:
-    from fastsam_impl import FastSAM as Model, FastSAMPredictor, FastSAMPrompt
-    from fastsam_impl.results import Results
-    from fastsam_impl.utils import bbox_iou
-    from fastsam_impl.ops import scale_boxes, non_max_suppression, process_mask_native
+from vre.representations.soft_segmentation.fastsam.fastsam_impl import FastSAM as Model, FastSAMPredictor, FastSAMPrompt
+from vre.representations.soft_segmentation.fastsam.fastsam_impl.results import Results
+from vre.representations.soft_segmentation.fastsam.fastsam_impl.utils import bbox_iou
+from vre.representations.soft_segmentation.fastsam.fastsam_impl.ops import \
+    scale_boxes, non_max_suppression, process_mask_native
 
 class FastSam(Representation):
     """FastSAM representation."""
@@ -44,14 +38,12 @@ class FastSam(Representation):
         self.predictor.setup_model(model=model.model, verbose=False)
 
     def _get_weights_path(self, variant: str) -> str:
-        weights_path = get_weights_dir() / f"FastSAM-{'s' if variant == 'fastsam-s' else 'x'}.pt"
-        links = {
-            "fastsam-s": "https://drive.google.com/u/0/uc?id=1DlAy02fyGpRQHZThVEEpwKdlXKphSHbk",
-            "fastsam-x": "https://drive.google.com/u/0/uc?id=1B2rGiBYCjk4B-jHMNzwgywpIdQjtKVRI",
-        }
-        if not weights_path.exists():
-            gdown_mkdir(links[variant], weights_path)
-        return f"{weights_path}"
+        weights_file = {
+            "fastsam-s": get_weights_dir() / "FastSAM-s.pt",
+            "fastsam-x": get_weights_dir() / "FastSAM-x.pt"
+        }[variant]
+        assert weights_file.exists(), weights_file
+        return f"{weights_file}"
 
     @overrides
     def vre_setup(self):

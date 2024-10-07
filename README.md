@@ -18,8 +18,7 @@ For GitHub users: this is a mirror of the
 - See [here](vre/representations/build_representations.py) for a comprehensive list, since it updates faster
 than this README.
 
-Weights repository for supported pretrained neural-network based representations is
-[here](https://drive.google.com/drive/folders/1bWKEAiTXDpgaY2YOAFBvMqqyOGSafoIm?usp=sharing).
+Weights are stored in this directory using `git-lfs`: [weights dir](./resources/weights/)
 
 ## 2. Usage
 
@@ -130,15 +129,17 @@ ffmpeg -start_number 1 -framerate 30 -i %d.png -c:v libx264 -pix_fmt yuv420p /pa
 
 ### 5. Run in docker
 
-We don't offer a pre-pushed vre image in dockerhub. You need to build it from vre-ci (used in CI duh):
+We offer a pre-pushed VRE image in dockerhub.
 
 ```
-git clone https://gitlab.com/meehai/video-representations-extractor
-cd video-representations-extractor
-docker build . -f Dockerfile_run -t vre
 mkdir example/
-gdown https://drive.google.com/uc?id=158U-W-Gal6eXxYtS1ca1DAAxHvknqwAk -O example/video.mp4 # you can use your video
-cp resources/cfgs/testCfg_ootb.yaml example/cfg.yaml
-docker container run -v `pwd`/example:/app/resources vre /app/resources/video.mp4 \
+chmod 777 -R example/ # optional ?
+curl "https://gitlab.com/meehai/video-representations-extractor/-/raw/master/resources/test_video.mp4" \
+  -o example/video.mp4 # you can of course use any video, not just our test one
+curl https://gitlab.com/meehai/video-representations-extractor/-/raw/master/resources/cfgs/cfg.yaml -o example/cfg.yaml
+docker run -v `pwd`/example:/app/resources meehai/vre:latest /app/resources/video.mp4 \
   --cfg_path /app/resources/cfg.yaml -o /app/resources/output_dir --start_frame 100 --end_frame 101
 ```
+
+Note: you can also use `docker run -v `pwd`/example:/app/resources --gpus all -e VRE_DEVICE='cuda' ...` but you need
+to install `nvidia-container-toolkit` as well. Check NVIDIA's documentation for this.

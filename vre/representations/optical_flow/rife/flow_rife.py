@@ -5,7 +5,7 @@ import torch.nn.functional as F
 import flow_vis
 from overrides import overrides
 
-from ....utils import gdown_mkdir, image_resize_batch, get_weights_dir
+from ....utils import image_resize_batch, get_weights_dir
 from ....representation import Representation, RepresentationOutput
 from .rife_impl.RIFE_HDv2 import Model
 
@@ -21,29 +21,15 @@ class FlowRife(Representation):
 
     @overrides
     def vre_setup(self):
-        weights_dir = get_weights_dir() / "rife"
-        weights_dir.mkdir(exist_ok=True, parents=True)
 
-        # original files
-        # urlWeights = "https://drive.google.com/u/0/uc?id=1wsQIhHZ3Eg4_AfCXItFKqqyDMB4NS0Yd"
-        # our backup / dragos' better/sharper version
-        contextnet_url = "https://drive.google.com/u/0/uc?id=1x2_inKGBxjTYvdn58GyRnog0C7YdzE7-"
-        flownet_url = "https://drive.google.com/u/0/uc?id=1aqR0ciMzKcD-N4bwkTK8go5FW4WAKoWc"
-        unet_url = "https://drive.google.com/u/0/uc?id=1Fv27pNAbrmqQJolCFkD1Qm1RgKBRotME"
+        contextnet_path = get_weights_dir() / "rife/contextnet.pkl"
+        flownet_path = get_weights_dir() / "rife/flownet.pkl"
+        unet_path = get_weights_dir() / "rife/unet.pkl"
+        assert contextnet_path.exists(), contextnet_path
+        assert flownet_path.exists(), flownet_path
+        assert unet_path.exists(), unet_path
 
-        contextnet_path = weights_dir / "contextnet.pkl"
-        if not contextnet_path.exists():
-            gdown_mkdir(contextnet_url, contextnet_path)
-
-        flownet_path = weights_dir / "flownet.pkl"
-        if not flownet_path.exists():
-            gdown_mkdir(flownet_url, flownet_path)
-
-        unet_path = weights_dir / "unet.pkl"
-        if not unet_path.exists():
-            gdown_mkdir(unet_url, unet_path)
-
-        self.model.load_model(weights_dir)
+        self.model.load_model(get_weights_dir() / "rife")
         self.model = self.model.eval().to(self.device)
 
     @overrides

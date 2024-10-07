@@ -3,19 +3,16 @@ from __future__ import annotations
 from pathlib import Path
 from datetime import datetime
 from functools import reduce
+import os
 import traceback
 from tqdm import tqdm
 import pandas as pd
 
 from .representation import Representation
-from .utils import VREVideo, took, make_batches, all_batch_exists
+from .utils import VREVideo, took, make_batches, all_batch_exists, now_fmt
 from .vre_runtime_args import VRERuntimeArgs
 from .data_storer import DataStorer
 from .logger import vre_logger as logger
-
-def _open_write_err(path: str, msg: str):
-    open(path, "a").write(msg)
-    logger.debug(f"Error: {msg}")
 
 class VideoRepresentationsExtractor:
     """Video Representations Extractor class"""
@@ -31,6 +28,14 @@ class VideoRepresentationsExtractor:
         self.video = video
         self.representations: dict[str, Representation] = representations
         self._data_storer: DataStorer | None = None
+        self._logs_file_name: str | None = None
+
+    def _log_error(self, msg: str):
+        assert self._logs_file_name is not None
+        logs_dir = Path(os.getenv("VRE_LOGS_DIR", str(Path.cwd())))
+        logs_dir.mkdir(exist_ok=True, parents=True)
+        open(f"{logs_dir}/{self._logs_file_name}", "a").write(f"{'=' * 80}\n{now_fmt()}\n{msg}\n{'=' * 80}")
+        logger.debug(f"Error: {msg}")
 
     def _do_one_representation(self, representation: Representation, runtime_args: VRERuntimeArgs):
         """main loop of each representation."""
@@ -41,9 +46,10 @@ class VideoRepresentationsExtractor:
         # call vre_setup here so expensive representations get lazy deep instantiated (i.e. models loading)
         try:
             representation.video = self.video
+            representation.output_dir = runtime_args.output_dir if runtime_args.load_from_disk_if_computed else None
             representation.vre_setup()
         except Exception:
-            _open_write_err("exception.txt", f"\n[{name} {datetime.now()} {batch_size=} {traceback.format_exc()}\n")
+            self._log_error(f"\n[{name} {batch_size=}] {traceback.format_exc()}\n")
             del representation
             return {name: [1 << 31] * (runtime_args.end_frame - runtime_args.start_frame)}
 
@@ -69,7 +75,7 @@ class VideoRepresentationsExtractor:
                 imgs = representation.make_images(self.video[l: r], y_repr_rsz) if runtime_args.export_png else None
                 self._data_storer(name, y_repr_rsz, imgs, l, r, runtime_args, self.video.frame_shape[0:2])
             except Exception:
-                _open_write_err("exception.txt", f"\n[{name} {now} {batch_size=} {l=} {r=}] {traceback.format_exc()}\n")
+                self._log_error(f"\n[{name} {batch_size=} {l=} {r=}] {traceback.format_exc()}\n")
                 repr_stats.extend([1 << 31] * (runtime_args.end_frame - l))
                 del representation # noqa
                 break
@@ -81,25 +87,26 @@ class VideoRepresentationsExtractor:
     def run(self, output_dir: Path, start_frame: int | None = None, end_frame: int | None = None, batch_size: int = 1,
             export_npy: bool = True, export_png: bool = True, output_dir_exists_mode: str = "raise",
             exception_mode: str = "stop_execution", output_size: str | tuple = "video_shape",
-            n_threads_data_storer: int = 0) -> pd.DataFrame:
+            n_threads_data_storer: int = 0, load_from_disk_if_computed: bool = True) -> pd.DataFrame:
         """
         The main loop of the VRE. This will run all the representations on the video and store results in the output_dir
         See VRERuntimeArgs for parameters definition.
         Returns:
         - A dataframe with the run statistics for each representation
         """
+        self._logs_file_name = f"logs-{now_fmt()}.txt"
         if end_frame is None:
             logger.warning(f"end frame not set, default to the last frame of the video: {len(self.video)}")
             end_frame = len(self.video)
         runtime_args = VRERuntimeArgs(self.video, self.representations, output_dir, start_frame, end_frame, batch_size,
                                       export_npy, export_png, output_dir_exists_mode, exception_mode,
-                                      output_size, n_threads_data_storer)
+                                      output_size, n_threads_data_storer, load_from_disk_if_computed)
         self._data_storer = DataStorer(n_threads_data_storer)
         run_stats = []
         for name, vre_repr in self.representations.items():
             repr_res = self._do_one_representation(vre_repr, runtime_args)
             if repr_res[name][-1] == 1 << 31 and runtime_args.exception_mode == "stop_execution":
-                raise RuntimeError(f"Representation '{name}' threw. Check 'exceptions.txt' for information")
+                raise RuntimeError(f"Representation '{name}' threw. Check '{self._logs_file_name}' for information")
             run_stats.append(repr_res)
             del vre_repr
         df_run_stats = pd.DataFrame(reduce(lambda a, b: {**a, **b}, run_stats),
