@@ -67,7 +67,7 @@ def build_representation_from_cfg(repr_cfg: dict, name: str, built_so_far: dict[
     assert isinstance(repr_cfg, dict), f"Broken format (not a dict) for {name}. Type: {type(repr_cfg)}."
     assert {"type", "parameters", "dependencies"}.issubset(repr_cfg), f"{name} wrong keys: {repr_cfg.keys()}"
     assert isinstance(repr_cfg["parameters"], dict), type(repr_cfg["parameters"])
-    assert len(name.find("/")) == -1, "No '/' allowed in the representation name. Got '{name}'"
+    assert name.find("/") == -1, "No '/' allowed in the representation name. Got '{name}'"
     logger.info(f"Building '{repr_cfg['type']}' (vre name: {name})")
     obj_type = build_representation_type(repr_cfg["type"])
     dependencies = [built_so_far[dep] for dep in repr_cfg["dependencies"]]
