@@ -2,14 +2,15 @@
 
 export CWD=$(dirname $(readlink -f ${BASH_SOURCE[0]}))
 export VRE_ROOT=$CWD/../../../
+export VRE_LOGS_DIR=$CWD/logs
+export VID=$CWD/test_video.mp4
 
-# download stuff
-## imgur upload script
+test -e $VID || \
+    curl "https://gitlab.com/meehai/video-representations-extractor/-/raw/master/resources/test_video.mp4" -o $VID
+
+# download imgur upload script
 test -e $CWD/imgur.sh || wget https://raw.githubusercontent.com/tremby/imgur.sh/main/imgur.sh -O $CWD/imgur.sh
 chmod +x $CWD/imgur.sh
-## test video
-export VID=$VRE_ROOT/resources/test_video.mp4
-test -e $VID || ( echo "$VID does not exist"; kill $$ )
 
 # make sure we start from scratch
 test -f $CWD/cfg.yaml || ( echo "$CWD/cfg.yaml does not exist"; kill $$ )
