@@ -18,7 +18,8 @@ For GitHub users: this is a mirror of the
 - See [here](vre/representations/build_representations.py) for a comprehensive list, since it updates faster
 than this README.
 
-Weights are stored in this directory using `git-lfs`: [weights dir](./resources/weights/)
+Weights are stored in this directory using `git-lfs`: [weights dir](./resources/weights/). If you just want to download
+the code, without the weights resources, use `GIT_LFS_SKIP_SMUDGE=1 git clone ...`.
 
 ## 2. Usage
 
@@ -136,10 +137,12 @@ mkdir example/
 chmod 777 -R example/ # optional ?
 curl "https://gitlab.com/meehai/video-representations-extractor/-/raw/master/resources/test_video.mp4" \
   -o example/video.mp4 # you can of course use any video, not just our test one
-curl https://gitlab.com/meehai/video-representations-extractor/-/raw/master/resources/cfgs/cfg.yaml -o example/cfg.yaml
-docker run -v `pwd`/example:/app/resources meehai/vre:latest /app/resources/video.mp4 \
-  --cfg_path /app/resources/cfg.yaml -o /app/resources/output_dir --start_frame 100 --end_frame 101
+curl https://gitlab.com/meehai/video-representations-extractor/-/raw/master/test/end_to_end/imgur/cfg.yaml -o example/cfg.yaml
+docker run -v `pwd`/example:/app/example -v `pwd`/resources/weights:/app/weights \
+  --gpus all -e VRE_DEVICE='cuda' -e VRE_WEIGHTS_DIR=/app/weights \
+  meehai/vre:latest /app/example/video.mp4 \
+  --cfg_path /app/example/cfg.yaml -o /app/example/output_dir --start_frame 100 --end_frame 101
 ```
 
-Note: you can also use `docker run -v `pwd`/example:/app/resources --gpus all -e VRE_DEVICE='cuda' ...` but you need
-to install `nvidia-container-toolkit` as well. Check NVIDIA's documentation for this.
+Note: For the `--gpus all -e VRE_DEVICE='cuda'` part to work, you need to install `nvidia-container-toolkit` as well.
+Check NVIDIA's documentation for this. If you are only on a CPU machine, then remove them from the docker run command.
