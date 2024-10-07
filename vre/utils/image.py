@@ -1,6 +1,7 @@
 """image utils for VRE"""
 from pathlib import Path
 import numpy as np
+import matplotlib
 
 from ..logger import vre_logger as logger
 from .utils import get_closest_square
@@ -140,3 +141,12 @@ def image_add_title(image: np.ndarray, text: str, font: str = None, font_color: 
                     background_color: str = "black", top_padding: int = None, library: str = "PIL") -> np.ndarray:
     """Calls image_add_text to add title on an updated image with padding on top for space and text centered"""
     return {"PIL": pil_image_add_title}[library](image, text, font, font_color, size_px, background_color, top_padding)
+
+def colorize_depth_maps(depth_map: np.ndarray, min_depth: float, max_depth: float, cmap="Spectral") -> np.ndarray:
+    """Colorize depth maps. Returns a [0:1] (H, W, 3) float image."""
+    assert len(depth_map.shape) == 3 or (len(depth_map.shape) == 4 and depth_map.shape[-1] == 1), depth_map.shape
+    assert isinstance(depth_map, np.ndarray), depth_map
+    cm = matplotlib.colormaps[cmap]
+    depth = ((depth_map - min_depth) / (max_depth - min_depth)).clip(0, 1)
+    img_colored_np = cm(depth, bytes=False)[..., 0:3]  # value from 0 to 1
+    return img_colored_np
