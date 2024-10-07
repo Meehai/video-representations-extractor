@@ -6,42 +6,37 @@ vre:
 
 representations:
   rgb:
-    type: default
-    name: rgb
+    type: default/rgb
     dependencies: []
     parameters: {}
 
-  # hsv:
-  #   type: default
-  #   name: hsv
-  #   dependencies: []
-  #   parameters: {}
+  hsv:
+    type: default/hsv
+    dependencies: []
+    parameters: {}
 
-  # halftone1:
-  #   type: soft-segmentation
-  #   name: python-halftone
-  #   dependencies: []
-  #   parameters:
-  #     sample: 3
-  #     scale: 1
-  #     percentage: 91
-  #     angles: [0, 15, 30, 45]
-  #     antialias: False
-  #     resolution: [240, 426]
+  halftone1:
+    type: soft-segmentation/python-halftone
+    dependencies: []
+    parameters:
+      sample: 3
+      scale: 1
+      percentage: 91
+      angles: [0, 15, 30, 45]
+      antialias: False
+      resolution: [240, 426]
 
-  # edges canny:
-  #   type: edges
-  #   name: canny
-  #   dependencies: []
-  #   parameters:
-  #     threshold1: 100
-  #     threshold2: 200
-  #     aperture_size: 3
-  #     l2_gradient: True
+  edges_canny:
+    type: edges/canny
+    dependencies: []
+    parameters:
+      threshold1: 100
+      threshold2: 200
+      aperture_size: 3
+      l2_gradient: True
 
   softseg_gb:
-    type: soft-segmentation
-    name: generalized_boundaries
+    type: soft-segmentation/generalized_boundaries
     dependencies: []
     parameters:
       use_median_filtering: True
@@ -49,85 +44,57 @@ representations:
       max_channels: 3
 
   edges_dexined:
-    type: edges
-    name: dexined
+    type: edges/dexined
     dependencies: []
     parameters: {}
     device: ${oc.env:VRE_DEVICE,cpu}
 
   opticalflow_rife:
-    type: optical-flow
-    name: rife
+    type: optical-flow/rife
     dependencies: []
     parameters:
       uhd: False
       compute_backward_flow: False
     device: ${oc.env:VRE_DEVICE,cpu}
 
-  fastsam_s:
-    type: soft-segmentation
-    name: fastsam
-    dependencies: []
-    parameters:
-      variant: fastsam-s
-      iou: 0.9
-      conf: 0.4
-    device: cpu #${oc.env:VRE_DEVICE,cpu}
-
-  fastsam_x:
-    type: soft-segmentation
-    name: fastsam
-    dependencies: []
-    parameters:
-      variant: fastsam-x
-      iou: 0.9
-      conf: 0.4
-    device: cpu # ${oc.env:VRE_DEVICE,cpu}
-
-  mask2former_mapilary_r50:
-    type: semantic-segmentation
-    name: mask2former
-    dependencies: []
-    parameters:
-      model_id: "49189528_1"
-      semantic_argmax_only: True
-    device: ${oc.env:VRE_DEVICE,cpu}
-
-  mask2former_coco_swin:
-    type: semantic-segmentation
-    name: mask2former
-    dependencies: []
-    parameters:
-      model_id: "47429163_0"
-      semantic_argmax_only: True
-    device: ${oc.env:VRE_DEVICE,cpu}
-
-  # # SUCKY BECAUSE SUPERSLOW. Adds like 2-3 mins in CI. Rife is good enough.
-  opticalflow_raft:
-    type: optical-flow
-    name: raft
-    dependencies: []
-    parameters:
-      inference_height: 720
-      inference_width: 1280
-      iters: 20
-      small: False
-    device: ${oc.env:VRE_DEVICE,cpu}
-
-  # sucky because slow, but it's good/pretrained
-  depth_dpt:
-    type: depth
-    name: dpt
-    dependencies: []
-    parameters: {}
-    device: ${oc.env:VRE_DEVICE,cpu}
-
   normals_svd(depth_dpt):
-    type: normals
-    name: depth-svd
+    type: normals/depth-svd
     dependencies: [depth_dpt]
     parameters:
       sensor_fov: 75
       sensor_width: 3840
       sensor_height: 2160
       window_size: 11
+
+  fastsam(s):
+    type: soft-segmentation/fastsam
+    dependencies: []
+    parameters:
+      variant: fastsam-s
+      iou: 0.9
+      conf: 0.4
+    device: ${oc.env:VRE_DEVICE,cpu}
+
+  mask2former:
+    type: semantic-segmentation/mask2former
+    dependencies: []
+    parameters:
+      model_id: "49189528_1"
+      semantic_argmax_only: True
+    device: ${oc.env:VRE_DEVICE,cpu}
+
+  # SUCKY BECAUSE SUPERSLOW. Adds like 2-3 mins in CI. Rife is good enough.
+  opticalflow raft:
+    type: optical-flow/raft
+    dependencies: []
+    parameters:
+      inference_height: 720
+      inference_width: 1280
+    device: ${oc.env:VRE_DEVICE,cpu}
+
+  # sucky because slow, but it's good/pretrained
+  depth_dpt:
+    type: depth/dpt
+    dependencies: []
+    parameters: {}
+    device: ${oc.env:VRE_DEVICE,cpu}
