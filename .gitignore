@@ -1,5 +1,4 @@
 resources/
-weights/
 imgur.sh
 *.pyc
 *.mp4
@@ -8,11 +7,11 @@ imgur.sh
 *.npz
 *.npy
 *.png
-*.ckpt
 examples/try
 exception.txt
 logs/
 dist/
 *.egg-info
 example/
+logs*.txt
 

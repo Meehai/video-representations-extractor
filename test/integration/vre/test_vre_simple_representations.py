@@ -1,4 +1,3 @@
-import gdown
 import pims
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -7,15 +6,9 @@ from vre import VRE
 from vre.representations import build_representations_from_cfg
 from vre.utils import get_project_root
 
-def setup():
-    video_path = get_project_root() / "resources/testVideo.mp4"
-    if not video_path.exists():
-        gdown.download("https://drive.google.com/uc?id=158U-W-Gal6eXxYtS1ca1DAAxHvknqwAk", str(video_path))
-    return str(video_path)
 
 def test_vre_simple_representations():
-    video_path = setup()
-    video = pims.Video(video_path)
+    video = pims.Video(get_project_root() / "resources/test_video.mp4")
     representations_dict = {"rgb": {"type": "default", "name": "rgb", "dependencies": [], "parameters": {}}}
     representations = build_representations_from_cfg(representations_dict)
     tmp_dir = Path(TemporaryDirectory().name)

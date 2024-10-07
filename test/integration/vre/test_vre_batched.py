@@ -2,7 +2,6 @@ import shutil
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any
-import gdown
 import pims
 import pandas as pd
 import numpy as np
@@ -11,12 +10,6 @@ import torch as tr
 from vre import VRE
 from vre.representations import build_representations_from_cfg
 from vre.utils import get_project_root
-
-def setup():
-    video_path = get_project_root() / "resources/testVideo.mp4"
-    if not video_path.exists():
-        gdown.download("https://drive.google.com/uc?id=158U-W-Gal6eXxYtS1ca1DAAxHvknqwAk", str(video_path))
-    return str(video_path)
 
 def sample_representations(all_representations_dict: dict[str, Any], n: int) -> dict:
     np.random.seed(41)
@@ -40,8 +33,7 @@ def sample_representations(all_representations_dict: dict[str, Any], n: int) -> 
     return res_dict
 
 def test_vre_batched():
-    video_path = setup()
-    video = pims.Video(video_path)
+    video = pims.Video(get_project_root() / "resources/test_video.mp4")
     device = "cuda" if tr.cuda.is_available() else "cpu"
     all_representations_dict = {
         "rgb": {"type": "default", "name": "rgb", "dependencies": [], "parameters": {}},

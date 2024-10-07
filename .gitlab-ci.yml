@@ -1,4 +1,4 @@
-image: meehai/vre-ci:latest
+image: python:3.11-bullseye
 
 workflow:
   rules:
@@ -9,16 +9,21 @@ workflow:
   - when: never
 
 before_script:
+  - apt-get update
+  - curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
+  - apt-get install -y iproute2 ffmpeg fonts-open-sans vim git-lfs
   - export VRE_ROOT=`pwd`
-  - export VRE_WEIGHTS_DIR=$VRE_ROOT/resources/weights
+  - export VRE_LOGS_DIR=$VRE_ROOT/logs
   - export VRE_LOGLEVEL=3
   - export PYTHONPATH="$PYTHONPATH:$VRE_ROOT"
   - export PATH="$PATH:$VRE_ROOT/bin"
-  - python3 -m pip install -r requirements.txt
+  - cat requirements.txt | sed "s/torch==2.4.1/torch @ https:\/\/download.pytorch.org\/whl\/cpu\/torch-2.4.1%2Bcpu-cp311-cp311-linux_x86_64.whl/g" | sed "s/torchvision==0.19.1/torchvision @ https:\/\/download.pytorch.org\/whl\/cpu\/torchvision-0.19.1%2Bcpu-cp311-cp311-linux_x86_64.whl/g" > /tmp/requirements_ci.txt
+  - pip install -r /tmp/requirements_ci.txt
+  - pip install pylint==3.2.7 pytest
+  - git lfs pull
 
 pylint:
   script:
-    - pip install pylint==3.2.7
     - python -m pylint --rcfile=.pylintrc $(git ls-files "*.py" | grep -v "test/\|examples/")
 
 test_end_to_end_imgur:
@@ -31,5 +36,4 @@ unit_tests:
 
 integration_tests:
   script:
-    - mkdir -p $VRE_WEIGHTS_DIR && gdown https://drive.google.com/uc?id=1yafmmiHGMsgX6ym9Pbx2X2OxJtCY1xrT -O $VRE_WEIGHTS_DIR/DJI_0956_velocities.npz
     - python3 -m pytest test/integration

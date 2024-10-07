@@ -26,7 +26,6 @@ class DepthNormalsSVD(Representation):
         self.min_valid = min_valid_count if min_valid_count is not None else 0
         super().__init__(**kwargs)
         assert len(self.dependencies) == 1, "Expected one depth method!"
-        self.depth_dep: Representation = self.dependencies[0]
         self._grid_cache = {}
 
     @overrides

@@ -32,11 +32,12 @@ class VRERuntimeArgs:
         - 'video_shape' (default) resizing to the video shape
     - n_threads_data_storer The number of workers used for the ThreadPool that stores data at each step. This is
     needed because storing data takes a lot of time sometimes, even more than the computation itself. Default: 1.
+    - load_from_disk_if_computed If true, then it will try to read from the disk if a representation is computed.
     """
     def __init__(self, video: VREVideo, representations: dict[str, "Representation"], output_dir: Path,
                  start_frame: int | None, end_frame: int | None, batch_size: int, export_npy: bool, export_png: bool,
                  output_dir_exists_mode: str, exception_mode: str, output_size: str | tuple,
-                 n_threads_data_storer: int):
+                 n_threads_data_storer: int, load_from_disk_if_computed: bool):
         assert batch_size >= 1, f"batch size must be >= 1, got {batch_size}"
         assert export_npy + export_png > 0, "At least one of export modes must be True"
         assert output_dir_exists_mode in ("overwrite", "skip_computed", "raise"), output_dir_exists_mode
@@ -62,6 +63,7 @@ class VRERuntimeArgs:
         self.output_size = tuple(output_size) if not isinstance(output_size, str) else output_size
         self.n_threads_data_storer = n_threads_data_storer
         self.representations = representations
+        self.load_from_disk_if_computed = load_from_disk_if_computed
 
         self.batch_sizes = {k: batch_size if r.batch_size is None else r.batch_size
                             for k, r in representations.items()}
@@ -124,4 +126,6 @@ class VRERuntimeArgs:
 - Export png: {self.export_png}
 - Exception mode: '{self.exception_mode}'
 - Output dir exists mode: '{self.output_dir_exists_mode}'
-- Thread pool workers for storing data (0 = using main thread): {self.n_threads_data_storer}"""
+- Thread pool workers for storing data (0 = using main thread): {self.n_threads_data_storer}
+- Load from disk if computed: {self.load_from_disk_if_computed}
+"""
