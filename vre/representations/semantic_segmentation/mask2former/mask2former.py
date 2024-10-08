@@ -3,6 +3,7 @@ import json
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
 from datetime import datetime
+from typing import Any
 from overrides import overrides
 import torch as tr
 from torch import nn
@@ -14,7 +15,8 @@ from vre.representation import Representation, RepresentationOutput
 from vre.logger import vre_logger as logger
 from vre.utils import image_resize_batch, fetch_weights, image_read, image_write, load_weights
 from vre.representations.semantic_segmentation.mask2former.mask2former_impl import MaskFormer as MaskFormerImpl
-from vre.representations.semantic_segmentation.mask2former.mask2former_impl.det2_data import MetadataCatalog
+from vre.representations.semantic_segmentation.mask2former.mask2former_impl.det2_data.catalog \
+    import MetadataCatalog, Metadata
 from vre.representations.semantic_segmentation.mask2former.mask2former_impl.visualizer import Visualizer, ColorMode
 
 monkey_patch()
@@ -35,13 +37,23 @@ class Mask2Former(Representation):
     """Mask2Former representation implementation. Note: only semantic segmentation (not panoptic/instance) enabled."""
     def __init__(self, model_id: str, semantic_argmax_only: bool, **kwargs):
         super().__init__(**kwargs)
-        weights_path = self._get_weights(model_id)
-        self.model, self.cfg, self.metadata = self._build_model(weights_path)
-        self.model_id = model_id
+        assert isinstance(model_id, str) and model_id in {"47429163_0", "49189528_1", "49189528_0", "dummy"}, model_id
         self.semantic_argmax_only = semantic_argmax_only
+        self.model_id = model_id
+        self.model: MaskFormerImpl | None = None
+        self.cfg: CfgNode | None = None
+        self.metadata: Metadata | None = None
 
-    @overrides
-    def vre_setup(self):
+    @overrides(check_signature=False)
+    def vre_setup(self, ckpt_data: dict | None = None):
+        if self.model_id == "dummy":
+            assert ckpt_data is not None
+        else:
+            assert ckpt_data is None
+            weights_path = fetch_weights(__file__) / f"{self.model_id}.ckpt"
+            assert isinstance(weights_path, Path), type(weights_path)
+            ckpt_data = load_weights(weights_path)
+        self.model, self.cfg, self.metadata = self._build_model(ckpt_data)
         self.model = self.model.to(self.device)
 
     @tr.no_grad()
@@ -78,17 +90,7 @@ class Mask2Former(Representation):
         interpolation = "nearest" if self.semantic_argmax_only else "bilinear"
         return RepresentationOutput(output=image_resize_batch(repr_data.output, *new_size, interpolation=interpolation))
 
-    def _get_weights(self, model_id: str | dict) -> str:
-        model_ids = {"47429163_0", "49189528_1", "49189528_0"}
-        if model_id not in model_ids:
-            logger.warning(f"Unknown model provided: {model_id}. Loading as is.")
-            return model_id
-        weights_path = fetch_weights(__file__) / f"{model_id}.ckpt"
-        return weights_path
-
-    def _build_model(self, weights_path: Path) -> tuple[nn.Module, CfgNode, MetadataCatalog]:
-        assert isinstance(weights_path, Path), type(weights_path)
-        ckpt_data = load_weights(weights_path)
+    def _build_model(self, ckpt_data: dict[str, Any]) -> tuple[nn.Module, CfgNode, Metadata]:
         cfg = CfgNode(json.loads(ckpt_data["cfg"]))
         params = MaskFormerImpl.from_config(cfg)
         params = {**params, "semantic_on": True, "panoptic_on": False, "instance_on": False}
@@ -108,7 +110,7 @@ class Mask2Former(Representation):
 def get_args() -> Namespace:
     """cli args"""
     parser = ArgumentParser()
-    parser.add_argument("model_id_or_path")
+    parser.add_argument("model_id", choices=["49189528_1", "47429163_0", "49189528_0"])
     parser.add_argument("input_image", type=Path)
     parser.add_argument("output_path", type=Path)
     parser.add_argument("--n_tries", type=int, default=1)
@@ -119,7 +121,8 @@ def main(args: Namespace):
     img = image_read(args.input_image)
 
     m2f = Mask2Former(args.model_id_or_path, semantic_argmax_only=False, name="m2f", dependencies=[])
-    m2f.model.to("cuda" if tr.cuda.is_available() else "cpu")
+    m2f.device = "cuda" if tr.cuda.is_available() else "cpu"
+    m2f.vre_setup()
     for _ in range(args.n_tries):
         now = datetime.now()
         pred = m2f.make(img[None])
@@ -129,7 +132,7 @@ def main(args: Namespace):
     logger.info(f"Written prediction to '{args.output_path}'")
 
     # Sanity checks
-    rtol = 1e-2# if tr.cuda.is_available() else 1e-5
+    rtol = 1e-2
     if m2f.model_id == "47429163_0" and args.input_image.name == "demo1.jpg":
         assert np.allclose(mean := semantic_result.mean(), 129.41, rtol=rtol), (mean, semantic_result.std())
         assert np.allclose(std := semantic_result.std(), 53.33, rtol=rtol), std

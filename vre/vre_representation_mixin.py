@@ -16,9 +16,8 @@ class VRERepresentationMixin:
 
     def vre_setup(self):
         """
-        Setup method for this representation. This is required to run this representation from within VRE.
-        We do this setup separately, so we can instatiate the representation without doing any VRE specific setup,
-        like loading weights.
+        Setup method for this representation. This is required to run this representation from within VRE. We do this
+        setup separately, so we can instatiate the object without doing any VRE specific setup, like loading weights.
         """
         raise RuntimeError(f"[{self}] No runtime setup provided. Override with a 'pass' method if not needed.")
 
@@ -50,11 +49,5 @@ class VRERepresentationMixin:
 
     def vre_free(self):
         """Needed to deallocate stuff from cuda mostly. After this, you need to run vre_setup() again."""
-        #raise RuntimeError(f"[{self}] No runtime free provided. Override with a 'pass' method if not needed.")
-
-    def to(self, device: str | tr.device):
-        """
-        Support for representation.to(device). Must be updated by all the representations
-        that support devices (i.e. cuda torch models)
-        """
-        raise NotImplementedError("TODO")
+        if str(self.device).startswith("cuda"):
+            logger.warning(f"[{self}] Representation has device that is not CPU {self.device}, with default vre_free()")

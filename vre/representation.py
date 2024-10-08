@@ -46,7 +46,7 @@ class Representation(ABC, VRERepresentationMixin):
         """Returns the (h, w) tuple of the size of the current representation"""
 
     def __getitem__(self, t: slice | int) -> RepresentationOutput:
-        return self.__call__(t)
+        return self.__call__(self.video[t])
 
     def __call__(self, *args, **kwargs) -> RepresentationOutput:
         return self.make(*args, **kwargs)
