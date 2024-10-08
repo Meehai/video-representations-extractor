@@ -21,6 +21,7 @@ class Marigold(Representation):
                  seed: int | None = None, **kwargs):
         super().__init__(**kwargs)
         assert variant in ("marigold-v1-0", "marigold-lcm-v1-0"), variant
+        assert variant == "marigold-lcm-v1-0", "Need to figure how to store the marigold-v1-0 unet weights..."
         self.variant = variant
         self.denoising_steps = denoising_steps
         self.ensemble_size = ensemble_size
