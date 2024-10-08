@@ -43,6 +43,12 @@ class DexiNed(Representation):
     def resize(self, repr_data: RepresentationOutput, new_size: tuple[int, int]) -> RepresentationOutput:
         return RepresentationOutput(output=image_resize_batch(repr_data.output, *new_size))
 
+    @overrides
+    def vre_free(self):
+        if str(self.device).startswith("cuda"):
+            self.model.to("cpu")
+            tr.cuda.empty_cache()
+
     def _preprocess(self, images: np.ndarray, height: int, width: int) -> tr.Tensor:
         assert len(images.shape) == 4, images.shape
         logger.debug2(f"Original shape: {images.shape}")

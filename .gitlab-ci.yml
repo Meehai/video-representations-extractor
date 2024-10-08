@@ -1,5 +1,8 @@
 image: python:3.11-bullseye
 
+variables:
+  GIT_LFS_SKIP_SMUDGE: "1"
+
 workflow:
   rules:
   - if: $CI_COMMIT_BRANCH == "master"
@@ -14,13 +17,13 @@ before_script:
   - apt-get install -y iproute2 ffmpeg fonts-open-sans vim git-lfs
   - export VRE_ROOT=`pwd`
   - export VRE_LOGS_DIR=$VRE_ROOT/logs
+  - export VRE_WEIGHTS_DIR=$VRE_ROOT/weights
   - export VRE_LOGLEVEL=3
   - export PYTHONPATH="$PYTHONPATH:$VRE_ROOT"
   - export PATH="$PATH:$VRE_ROOT/bin"
   - cat requirements.txt | sed "s/torch==2.4.1/torch @ https:\/\/download.pytorch.org\/whl\/cpu\/torch-2.4.1%2Bcpu-cp311-cp311-linux_x86_64.whl/g" | sed "s/torchvision==0.19.1/torchvision @ https:\/\/download.pytorch.org\/whl\/cpu\/torchvision-0.19.1%2Bcpu-cp311-cp311-linux_x86_64.whl/g" > /tmp/requirements_ci.txt
   - pip install -r /tmp/requirements_ci.txt
   - pip install pylint==3.2.7 pytest
-  - git lfs pull
 
 pylint:
   script:
