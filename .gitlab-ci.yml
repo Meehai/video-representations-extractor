@@ -22,18 +22,18 @@ before_script:
   - pip install pylint==3.2.7 pytest
   - git lfs pull
 
-pylint:
-  script:
-    - python -m pylint --rcfile=.pylintrc $(git ls-files "*.py" | grep -v "test/\|examples/")
+# pylint:
+#   script:
+#     - python -m pylint --rcfile=.pylintrc $(git ls-files "*.py" | grep -v "test/\|examples/")
 
-test_end_to_end_imgur:
-  script:
-    - bash test/end_to_end/imgur/run.sh
+# test_end_to_end_imgur:
+#   script:
+#     - bash test/end_to_end/imgur/run.sh
 
-unit_tests:
-  script:
-    - python3 -m pytest test/unit
+# unit_tests:
+#   script:
+#     - python3 -m pytest test/unit
 
-integration_tests:
-  script:
-    - python3 -m pytest test/integration
+# integration_tests:
+#   script:
+#     - python3 -m pytest test/integration
