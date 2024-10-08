@@ -8,7 +8,7 @@ from overrides import overrides
 from torch.nn import functional as F
 
 from vre.representation import Representation, RepresentationOutput
-from vre.utils import image_resize_batch, get_weights_dir, image_read, image_write
+from vre.utils import image_resize_batch, fetch_weights, image_read, image_write
 from vre.logger import vre_logger as logger
 from vre.representations.soft_segmentation.fastsam.fastsam_impl import FastSAM as Model, FastSAMPredictor, FastSAMPrompt
 from vre.representations.soft_segmentation.fastsam.fastsam_impl.results import Results
@@ -39,10 +39,9 @@ class FastSam(Representation):
 
     def _get_weights_path(self, variant: str) -> str:
         weights_file = {
-            "fastsam-s": get_weights_dir() / "FastSAM-s.pt",
-            "fastsam-x": get_weights_dir() / "FastSAM-x.pt"
+            "fastsam-s": fetch_weights(__file__) / "FastSAM-s.pt",
+            "fastsam-x": fetch_weights(__file__) / "FastSAM-x.pt"
         }[variant]
-        assert weights_file.exists(), weights_file
         return f"{weights_file}"
 
     @overrides
@@ -141,6 +140,11 @@ class FastSam(Representation):
         new_h, new_w = new_h + _offset32(new_h), new_w + _offset32(new_w) # needed because it throws otherwise
         tr_x = F.interpolate(tr_x, size=(new_h, new_w), mode="bilinear", align_corners=False)
         return tr_x.to(next(self.predictor.model.parameters()).device)
+
+    def vre_free(self):
+        if str(self.device).startswith("cuda"):
+            self.predictor.model.to("cpu")
+            tr.cuda.empty_cache()
 
 def get_args() -> Namespace:
     """cli args"""

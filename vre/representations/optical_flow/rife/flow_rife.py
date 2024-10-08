@@ -5,7 +5,7 @@ import torch.nn.functional as F
 import flow_vis
 from overrides import overrides
 
-from ....utils import image_resize_batch, get_weights_dir
+from ....utils import image_resize_batch, fetch_weights
 from ....representation import Representation, RepresentationOutput
 from .rife_impl.RIFE_HDv2 import Model
 
@@ -21,15 +21,7 @@ class FlowRife(Representation):
 
     @overrides
     def vre_setup(self):
-
-        contextnet_path = get_weights_dir() / "rife/contextnet.pkl"
-        flownet_path = get_weights_dir() / "rife/flownet.pkl"
-        unet_path = get_weights_dir() / "rife/unet.pkl"
-        assert contextnet_path.exists(), contextnet_path
-        assert flownet_path.exists(), flownet_path
-        assert unet_path.exists(), unet_path
-
-        self.model.load_model(get_weights_dir() / "rife")
+        self.model.load_model(fetch_weights(__file__))
         self.model = self.model.eval().to(self.device)
 
     @overrides
@@ -83,3 +75,8 @@ class FlowRife(Representation):
         flow = flow[:, 0: returned_shape[0] - half_ph, 0: returned_shape[1] - half_pw]
         flow = flow / returned_shape # [-px : px] => [-1 : 1]
         return flow.astype(np.float16)
+
+    def vre_free(self):
+        if str(self.device).startswith("cuda"):
+            self.model.to("cpu")
+            tr.cuda.empty_cache()

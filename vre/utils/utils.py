@@ -3,6 +3,7 @@ from typing import Any
 from pathlib import Path
 from datetime import datetime, timezone as tz
 from dataclasses import dataclass
+import urllib.request # pylint: disable=unused-import
 import os
 import numpy as np
 import torch as tr
@@ -23,6 +24,15 @@ def get_project_root() -> Path:
 def get_weights_dir() -> Path:
     """gets the weights dir of this project"""
     return Path(os.getenv("VRE_WEIGHTS_DIR", get_project_root() / "resources/weights"))
+
+def fetch_weights(repr_file: Path) -> Path:
+    """fetches weights for a representation. repr_file is expected to be Path(__file__) from the caller script"""
+    repr_name = "/".join([x.name for x in Path(repr_file).parents[0:2][::-1]]) # i.e. [depth/marigold]/{marigold.py}
+    repr_weights_dir = get_weights_dir() / repr_name
+    if not repr_weights_dir.exists():
+        logger.debug(f"'{repr_weights_dir}' does not exist. Downloading from remote weights repository")
+        raise NotImplementedError
+    return repr_weights_dir
 
 def parsed_str_type(item: Any) -> str:
     """Given an object with a type of the format: <class 'A.B.C.D'>, parse it and return 'A.B.C.D'"""
@@ -97,10 +107,10 @@ def now_fmt() -> str:
 
 def load_weights(path: Path) -> dict[str, tr.Tensor]:
     """load weights from disk. weights can be sharded as well. Sometimes we store this due to git-lfs big files bug."""
+    logger.debug(f"Loading weights from '{path}'")
     if path.is_dir():
         res = {}
         for item in path.iterdir():
             res = {**res, **tr.load(item, map_location="cpu")}
         return res
-    else:
-        return tr.load(path, map_location="cpu")
+    return tr.load(path, map_location="cpu")
