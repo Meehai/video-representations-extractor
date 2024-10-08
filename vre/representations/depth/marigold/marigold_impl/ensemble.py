@@ -1,6 +1,5 @@
 """ensemble module for marigold"""
 from functools import partial
-from typing import Optional, Tuple
 
 import numpy as np
 import torch
@@ -25,7 +24,7 @@ def ensemble_depth(
     max_iter: int = 2,
     tol: float = 1e-3,
     max_res: int = 1024,
-) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
+) -> tuple[torch.Tensor, torch.Tensor | None]:
     """
     Ensembles depth maps represented by the `depth` tensor with expected shape `(B, 1, H, W)`, where B is the
     number of ensemble members for a given prediction of size `(H x W)`. Even though the function is designed for
@@ -96,9 +95,8 @@ def ensemble_depth(
             raise ValueError("Unrecognized alignment.")
         return out
 
-    def ensemble(
-        depth_aligned: torch.Tensor, return_uncertainty: bool = False
-    ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
+    def ensemble(depth_aligned: torch.Tensor,
+                 return_uncertainty: bool = False) -> tuple[torch.Tensor, torch.Tensor | None]:
         uncertainty = None
         if reduction == "mean":
             prediction = torch.mean(depth_aligned, dim=0, keepdim=True)
@@ -107,9 +105,7 @@ def ensemble_depth(
         elif reduction == "median":
             prediction = torch.median(depth_aligned, dim=0, keepdim=True).values
             if return_uncertainty:
-                uncertainty = torch.median(
-                    torch.abs(depth_aligned - prediction), dim=0, keepdim=True
-                ).values
+                uncertainty = torch.median(torch.abs(depth_aligned - prediction), dim=0, keepdim=True).values
         else:
             raise ValueError(f"Unrecognized reduction method: {reduction}.")
         return prediction, uncertainty

@@ -1,22 +1,21 @@
 """marigold pipeline impl"""
 import logging
-from typing import Dict, Optional, Union
 import os
+from pathlib import Path
 
 import numpy as np
 import torch
-from diffusers import AutoencoderKL, DDIMScheduler, DiffusionPipeline, LCMScheduler, UNet2DConditionModel
-from PIL import Image
+from diffusers import AutoencoderKL, DDIMScheduler, LCMScheduler, UNet2DConditionModel
+from diffusers.configuration_utils import FrozenDict
 from torch.utils.data import DataLoader, TensorDataset
 from torchvision.transforms import InterpolationMode
 from tqdm.auto import tqdm
-from transformers import CLIPTextModel, CLIPTokenizer
 
 from .ensemble import ensemble_depth
 from .marigold_util import resize_max_res, find_batch_size
 
 
-class MarigoldPipeline(DiffusionPipeline):
+class MarigoldPipeline(torch.nn.Module):
     """
     Pipeline for monocular depth estimation using Marigold: https://marigoldmonodepth.github.io.
 
@@ -31,10 +30,6 @@ class MarigoldPipeline(DiffusionPipeline):
             to and from latent representations.
         scheduler (`DDIMScheduler`):
             A scheduler to be used in combination with `unet` to denoise the encoded image latents.
-        text_encoder (`CLIPTextModel`):
-            Text-encoder, for empty text embedding.
-        tokenizer (`CLIPTokenizer`):
-            CLIP tokenizer.
         scale_invariant (`bool`, *optional*):
             A model property specifying whether the predicted depth maps are scale-invariant. This value must be set in
             the model config. When used together with the `shift_invariant=True` flag, the model is also called
@@ -63,37 +58,42 @@ class MarigoldPipeline(DiffusionPipeline):
         self,
         unet: UNet2DConditionModel,
         vae: AutoencoderKL,
-        scheduler: Union[DDIMScheduler, LCMScheduler],
-        text_encoder: CLIPTextModel,
-        tokenizer: CLIPTokenizer,
-        scale_invariant: Optional[bool] = True,
-        shift_invariant: Optional[bool] = True,
-        default_denoising_steps: Optional[int] = None,
-        default_processing_resolution: Optional[int] = None,
+        scheduler: DDIMScheduler | LCMScheduler,
+        scale_invariant: bool = True,
+        shift_invariant: bool = True,
+        default_denoising_steps: int | None = None,
+        default_processing_resolution: int | None = None,
     ):
         super().__init__()
-        self.register_modules(unet=unet, vae=vae, scheduler=scheduler, text_encoder=text_encoder, tokenizer=tokenizer)
-        self.register_to_config(scale_invariant=scale_invariant, shift_invariant=shift_invariant,
-                                default_denoising_steps=default_denoising_steps,
-                                default_processing_resolution=default_processing_resolution)
+        self.unet = unet
+        self.vae = vae
+        self.diffusion_scheduler = scheduler
+        self.dtype = torch.float32
+        self._internal_dict = FrozenDict(scale_invariant=scale_invariant, shift_invariant=shift_invariant,
+                                         default_denoising_steps=default_denoising_steps,
+                                         default_processing_resolution=default_processing_resolution)
 
         self.scale_invariant = scale_invariant
         self.shift_invariant = shift_invariant
         self.default_denoising_steps = default_denoising_steps
         self.default_processing_resolution = default_processing_resolution
-        self.empty_text_embed = None
+        # This used to be clip.encode("") + clip tokenizer. Since it's fixed and static, we stored it to disk and
+        # removed clip and the transformers librarry as a dependency.
+        self.empty_text_embed: torch.Tensor = torch.load(Path(__file__).parent / "empty_text_embed.pt").to(self.dtype)
+        assert abs(self.empty_text_embed.mean().item() - -0.174562573) < 1e-3, self.empty_text_embed.mean().item()
+        assert abs(self.empty_text_embed.std().item() - 0.8112) < 1e-3, self.empty_text_embed.std().item()
 
     @torch.no_grad()
     def __call__(
         self,
-        rgb: Union[Image.Image, torch.Tensor],
-        denoising_steps: Optional[int] = None,
+        rgb: torch.Tensor,
+        denoising_steps: int | None = None,
         ensemble_size: int = 5,
-        processing_res: Optional[int] = None,
+        processing_res: int | None = None,
         batch_size: int = 0,
-        generator: Union[torch.Generator, None] = None,
-        ensemble_kwargs: Dict = None,
-    ) -> np.ndarray:
+        generator: torch.Generator | None = None,
+        ensemble_kwargs: dict = None,
+    ) -> tuple[np.ndarray, np.ndarray | None]:
         """
         Function invoked when calling the pipeline.
 
@@ -165,45 +165,29 @@ class MarigoldPipeline(DiffusionPipeline):
 
         # ----------------- Test-time ensembling -----------------
         if ensemble_size > 1:
-            depth_pred, pred_uncert = ensemble_depth(
-                depth_preds,
-                scale_invariant=self.scale_invariant,
-                shift_invariant=self.shift_invariant,
-                max_res=50,
-                **(ensemble_kwargs or {}),
-            )
+            assert False, "Ensembles not supported yet"
+            depth_pred, pred_uncert = ensemble_depth(depth_preds, self.scale_invariant, self.shift_invariant,
+                                                     max_res=50, **(ensemble_kwargs or {}))
         else:
-            depth_pred = depth_preds
-            pred_uncert = None
+            depth_pred, pred_uncert = depth_preds, None
 
-        assert pred_uncert is None, "Ensembles not supported yet"
-        return depth_pred.squeeze().cpu().numpy()
+        return depth_pred.squeeze().cpu().numpy(), pred_uncert
 
     def _check_inference_step(self, n_step: int) -> None:
-        """
-        Check if denoising step is reasonable
-        Args:
-            n_step (`int`): denoising steps
-        """
+        """Check if denoising step is reasonable"""
         assert n_step >= 1
-
-        if isinstance(self.scheduler, DDIMScheduler):
+        if isinstance(self.diffusion_scheduler, DDIMScheduler):
             if n_step < 10:
-                logging.warning(
-                    f"Too few denoising steps: {n_step}. Recommended to use the LCM checkpoint for few-step inference."
-                )
-        elif isinstance(self.scheduler, LCMScheduler):
+                logging.warning(f"Too few denoising steps: {n_step}. Use the LCM checkpoint for few-step inference.")
+        elif isinstance(self.diffusion_scheduler, LCMScheduler):
             if not 1 <= n_step <= 4:
-                logging.warning(
-                    f"Non-optimal setting of denoising steps: {n_step}. Recommended setting is 1-4 steps."
-                )
+                logging.warning(f"Non-optimal setting of denoising steps: {n_step}. Recommended setting is 1-4 steps.")
         else:
-            raise RuntimeError(f"Unsupported scheduler type: {type(self.scheduler)}")
-
+            raise RuntimeError(f"Unsupported scheduler type: {type(self.diffusion_scheduler)}")
 
     @torch.no_grad()
     def single_infer(self, rgb_in: torch.Tensor, num_inference_steps: int,
-                     generator: Union[torch.Generator, None]) -> torch.Tensor:
+                     generator: torch.Generator |  None) -> torch.Tensor:
         """
         Perform an individual depth prediction without ensembling.
 
@@ -217,12 +201,12 @@ class MarigoldPipeline(DiffusionPipeline):
         Returns:
             `torch.Tensor`: Predicted depth map.
         """
-        device = self.device
+        device = next(self.parameters()).device
         rgb_in = rgb_in.to(device)
 
         # Set timesteps
-        self.scheduler.set_timesteps(num_inference_steps, device=device)
-        timesteps = self.scheduler.timesteps  # [T]
+        self.diffusion_scheduler.set_timesteps(num_inference_steps, device=device)
+        timesteps = self.diffusion_scheduler.timesteps  # [T]
 
         # Encode image
         rgb_latent = self.encode_rgb(rgb_in)
@@ -230,12 +214,6 @@ class MarigoldPipeline(DiffusionPipeline):
         # Initial depth map (noise)
         depth_latent = torch.randn(rgb_latent.shape, device=device, dtype=self.dtype, generator=generator)# [B, 4, h, w]
 
-        # Batched empty text embedding TODO: can we remove this ??
-        if self.empty_text_embed is None:
-            text_inputs = self.tokenizer("", padding="do_not_pad", max_length=self.tokenizer.model_max_length,
-                                         truncation=True, return_tensors="pt")
-            text_input_ids = text_inputs.input_ids.to(self.text_encoder.device)
-            self.empty_text_embed = self.text_encoder(text_input_ids)[0].to(self.dtype)
         batch_empty_text_embed = self.empty_text_embed.repeat((rgb_latent.shape[0], 1, 1)).to(device)  # [B, 2, 1024]
 
         # Denoising loop
@@ -245,7 +223,7 @@ class MarigoldPipeline(DiffusionPipeline):
             # predict the noise residual
             noise_pred = self.unet(unet_input, t, encoder_hidden_states=batch_empty_text_embed).sample  # [B, 4, h, w]
             # compute the previous noisy sample x_t -> x_t-1
-            depth_latent = self.scheduler.step(noise_pred, t, depth_latent, generator=generator).prev_sample
+            depth_latent = self.diffusion_scheduler.step(noise_pred, t, depth_latent, generator=generator).prev_sample
 
         depth = self.decode_depth(depth_latent)
 
