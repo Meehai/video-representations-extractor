@@ -57,7 +57,7 @@ def find_batch_size(ensemble_size: int, input_res: int, dtype: torch.dtype) -> i
             bs = settings["bs"]
             if bs > ensemble_size:
                 bs = ensemble_size
-            elif bs > math.ceil(ensemble_size / 2) and bs < ensemble_size:
+            elif bs > math.ceil(ensemble_size / 2) and bs < ensemble_size: # pylint: disable=chained-comparison
                 bs = math.ceil(ensemble_size / 2)
             return bs
 
