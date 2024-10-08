@@ -35,6 +35,9 @@ def build_representation_type(repr_type: str) -> Type[Representation]:
     elif repr_type == "depth/dpt":
         from .depth.dpt import DepthDpt
         obj_type = DepthDpt
+    elif repr_type == "depth/marigold":
+        from .depth.marigold import Marigold
+        obj_type = Marigold
     elif repr_type == "optical-flow/rife":
         from .optical_flow.rife import FlowRife
         obj_type = FlowRife
