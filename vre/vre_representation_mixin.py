@@ -30,7 +30,7 @@ class VRERepresentationMixin:
     def vre_make(self, ix: slice) -> RepresentationOutput:
         """wrapper on top of make() that is ran in VRE context. TODO: support loading from disk if needed"""
         assert self.video is not None, f"[{self}] self.video must be set before calling this"
-        if tr.cuda.is_available():
+        if str(self.device).startswith("cuda"):
             tr.cuda.empty_cache()
         if self.output_dir is not None:
             npy_paths: list[Path] = [self.output_dir / self.name / f"npy/{i}.npz" for i in range(ix.start, ix.stop)]
@@ -47,6 +47,10 @@ class VRERepresentationMixin:
         res = self.make(frames, dep_data)
         assert isinstance(res, RepresentationOutput) and not isinstance(res.output, RepresentationOutput), (self, res)
         return res
+
+    def vre_free(self):
+        """Needed to deallocate stuff from cuda mostly. After this, you need to run vre_setup() again."""
+        #raise RuntimeError(f"[{self}] No runtime free provided. Override with a 'pass' method if not needed.")
 
     def to(self, device: str | tr.device):
         """

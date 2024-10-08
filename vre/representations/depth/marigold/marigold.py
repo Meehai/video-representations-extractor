@@ -6,14 +6,14 @@ Standaline usage: `./marigold.py input/ output/` where `input/` is a directory o
 import sys
 from pathlib import Path
 import numpy as np
-import torch
+import torch as tr
 from overrides import overrides
 from tqdm.auto import tqdm
 from diffusers import AutoencoderKL, DDIMScheduler, LCMScheduler, UNet2DConditionModel
 from vre.utils import (RepresentationOutput, image_resize_batch, image_read, colorize_depth_maps, image_write,
-                       get_weights_dir, load_weights)
-from vre.representations.depth.marigold.marigold_impl import MarigoldPipeline
+                       fetch_weights, load_weights)
 from vre.representation import Representation
+from vre.representations.depth.marigold.marigold_impl import MarigoldPipeline
 
 class Marigold(Representation):
     """Marigold VRE implementation"""
@@ -31,45 +31,45 @@ class Marigold(Representation):
 
     @overrides
     def vre_setup(self):
-        unet = UNet2DConditionModel(**{'sample_size': 96, 'in_channels': 8, 'out_channels': 4,
-                                        'center_input_sample': False, 'flip_sin_to_cos': True, 'freq_shift': 0,
-                                        'down_block_types': ['CrossAttnDownBlock2D', 'CrossAttnDownBlock2D',
-                                                            'CrossAttnDownBlock2D', 'DownBlock2D'],
-                                        'mid_block_type': 'UNetMidBlock2DCrossAttn',
-                                        'up_block_types': ['UpBlock2D', 'CrossAttnUpBlock2D', 'CrossAttnUpBlock2D',
-                                                            'CrossAttnUpBlock2D'],
-                                        'only_cross_attention': False, 'block_out_channels': [320, 640, 1280, 1280],
-                                        'layers_per_block': 2, 'downsample_padding': 1, 'mid_block_scale_factor': 1,
-                                        'dropout': 0.0, 'act_fn': 'silu', 'norm_num_groups': 32, 'norm_eps': 1e-05,
-                                        'cross_attention_dim': 1024, 'transformer_layers_per_block': 1,
-                                        'reverse_transformer_layers_per_block': None, 'encoder_hid_dim': None,
-                                        'encoder_hid_dim_type': None, 'attention_head_dim': [5, 10, 20, 20],
-                                        'num_attention_heads': None, 'dual_cross_attention': False,
-                                        'use_linear_projection': True, 'class_embed_type': None,
-                                        'addition_embed_type': None, 'addition_time_embed_dim': None,
-                                        'num_class_embeds': None, 'upcast_attention': False,
-                                        'resnet_time_scale_shift': 'default', 'resnet_skip_time_act': False,
-                                        'resnet_out_scale_factor': 1.0, 'time_embedding_type': 'positional',
-                                        'time_embedding_dim': None, 'time_embedding_act_fn': None,
-                                        'timestep_post_act': None, 'time_cond_proj_dim': None, 'conv_in_kernel': 3,
-                                        'conv_out_kernel': 3, 'projection_class_embeddings_input_dim': None,
-                                        'attention_type': 'default', 'class_embeddings_concat': False,
-                                        'mid_block_only_cross_attention': None, 'cross_attention_norm': None,
-                                        'addition_embed_type_num_heads': 64
+        unet = UNet2DConditionModel(**{"sample_size": 96, "in_channels": 8, "out_channels": 4,
+                                        "center_input_sample": False, "flip_sin_to_cos": True, "freq_shift": 0,
+                                        "down_block_types": ["CrossAttnDownBlock2D", "CrossAttnDownBlock2D",
+                                                            "CrossAttnDownBlock2D", "DownBlock2D"],
+                                        "mid_block_type": "UNetMidBlock2DCrossAttn",
+                                        "up_block_types": ["UpBlock2D", "CrossAttnUpBlock2D", "CrossAttnUpBlock2D",
+                                                            "CrossAttnUpBlock2D"],
+                                        "only_cross_attention": False, "block_out_channels": [320, 640, 1280, 1280],
+                                        "layers_per_block": 2, "downsample_padding": 1, "mid_block_scale_factor": 1,
+                                        "dropout": 0.0, "act_fn": "silu", "norm_num_groups": 32, "norm_eps": 1e-05,
+                                        "cross_attention_dim": 1024, "transformer_layers_per_block": 1,
+                                        "reverse_transformer_layers_per_block": None, "encoder_hid_dim": None,
+                                        "encoder_hid_dim_type": None, "attention_head_dim": [5, 10, 20, 20],
+                                        "num_attention_heads": None, "dual_cross_attention": False,
+                                        "use_linear_projection": True, "class_embed_type": None,
+                                        "addition_embed_type": None, "addition_time_embed_dim": None,
+                                        "num_class_embeds": None, "upcast_attention": False,
+                                        "resnet_time_scale_shift": "default", "resnet_skip_time_act": False,
+                                        "resnet_out_scale_factor": 1.0, "time_embedding_type": "positional",
+                                        "time_embedding_dim": None, "time_embedding_act_fn": None,
+                                        "timestep_post_act": None, "time_cond_proj_dim": None, "conv_in_kernel": 3,
+                                        "conv_out_kernel": 3, "projection_class_embeddings_input_dim": None,
+                                        "attention_type": "default", "class_embeddings_concat": False,
+                                        "mid_block_only_cross_attention": None, "cross_attention_norm": None,
+                                        "addition_embed_type_num_heads": 64
         })
-        vae = AutoencoderKL(**{'in_channels': 3, 'out_channels': 3,
-                                'down_block_types': ['DownEncoderBlock2D', 'DownEncoderBlock2D',
-                                                    'DownEncoderBlock2D', 'DownEncoderBlock2D'],
-                                'up_block_types': ['UpDecoderBlock2D', 'UpDecoderBlock2D',
-                                                    'UpDecoderBlock2D', 'UpDecoderBlock2D'],
-                                'block_out_channels': [128, 256, 512, 512], 'layers_per_block': 2, 'act_fn': 'silu',
-                                'latent_channels': 4, 'norm_num_groups': 32, 'sample_size': 768,
-                                'scaling_factor': 0.18215, 'shift_factor': None, 'latents_mean': None,
-                                'latents_std': None, 'force_upcast': True, 'use_quant_conv': True,
-                                'use_post_quant_conv': True, 'mid_block_add_attention': True
+        vae = AutoencoderKL(**{"in_channels": 3, "out_channels": 3,
+                                "down_block_types": ["DownEncoderBlock2D", "DownEncoderBlock2D",
+                                                    "DownEncoderBlock2D", "DownEncoderBlock2D"],
+                                "up_block_types": ["UpDecoderBlock2D", "UpDecoderBlock2D",
+                                                    "UpDecoderBlock2D", "UpDecoderBlock2D"],
+                                "block_out_channels": [128, 256, 512, 512], "layers_per_block": 2, "act_fn": "silu",
+                                "latent_channels": 4, "norm_num_groups": 32, "sample_size": 768,
+                                "scaling_factor": 0.18215, "shift_factor": None, "latents_mean": None,
+                                "latents_std": None, "force_upcast": True, "use_quant_conv": True,
+                                "use_post_quant_conv": True, "mid_block_add_attention": True
         })
-        vae.load_state_dict(load_weights(get_weights_dir() / "depth/marigold/vae.pt")) # VAE is common for both variants
-        unet.load_state_dict(load_weights(get_weights_dir() / f"depth/marigold/{self.variant}_unet.pt"))
+        vae.load_state_dict(load_weights(fetch_weights(__file__) / "vae.pt")) # VAE is common for both variants
+        unet.load_state_dict(load_weights(fetch_weights(__file__) / f"{self.variant}_unet.pt"))
         dim_scheduler_config = {"beta_end": 0.012, "beta_schedule": "scaled_linear", "beta_start": 0.00085,
                                 "clip_sample": False, "clip_sample_range": 1.0,
                                 "dynamic_thresholding_ratio": 0.995, "num_train_timesteps": 1000,
@@ -90,13 +90,13 @@ class Marigold(Representation):
                                       default_denoising_steps=default_denoising_steps)
         self.model = self.model.to(self.device)
 
-    @torch.no_grad
+    @tr.no_grad
     def _make_one_frame(self, frame: np.ndarray):
         assert self.model is not None
-        tr_rgb = torch.from_numpy(frame).permute(2, 0, 1)[None]
+        tr_rgb = tr.from_numpy(frame).permute(2, 0, 1)[None]
         generator = None
         if self.seed is not None:
-            generator = torch.Generator(self.device)
+            generator = tr.Generator(self.device)
             generator.manual_seed(self.seed)
         return self.model(tr_rgb, denoising_steps=self.denoising_steps, ensemble_size=self.ensemble_size,
                           processing_res=self.processing_resolution, generator=generator)[0]
@@ -119,11 +119,16 @@ class Marigold(Representation):
     def size(self, repr_data: RepresentationOutput) -> tuple[int, int]:
         return repr_data.output.shape[0:2]
 
+    def vre_free(self):
+        if str(self.device).startswith("cuda"):
+            self.model.to("cpu")
+            tr.cuda.empty_cache()
+
 def main():
     """main fn"""
     input_dir = Path(sys.argv[1])
     variant = "marigold-lcm-v1-0" if len(sys.argv) == 3 else sys.argv[3]
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = "cuda" if tr.cuda.is_available() else "cpu"
     output_dir = Path(sys.argv[2]) / f"{variant}/{device}"
     image_paths = [x for x in input_dir.iterdir() if x.suffix in [".jpg", ".jpeg", ".png"]]
     assert len(image_paths) > 0, f"{input_dir} is empty of supported images"

@@ -28,13 +28,12 @@ class VideoRepresentationsExtractor:
         self.video = video
         self.representations: dict[str, Representation] = representations
         self._data_storer: DataStorer | None = None
-        self._logs_file_name: str | None = None
+        self._logs_file: Path | None = None
 
     def _log_error(self, msg: str):
-        assert self._logs_file_name is not None
-        logs_dir = Path(os.getenv("VRE_LOGS_DIR", str(Path.cwd())))
-        logs_dir.mkdir(exist_ok=True, parents=True)
-        open(f"{logs_dir}/{self._logs_file_name}", "a").write(f"{'=' * 80}\n{now_fmt()}\n{msg}\n{'=' * 80}")
+        assert self._logs_file is not None, "_log_error can be called only after run() when self._log_file is set"
+        self._logs_file.parent.mkdir(exist_ok=True, parents=True)
+        open(self._logs_file, "a").write(f"{'=' * 80}\n{now_fmt()}\n{msg}\n{'=' * 80}")
         logger.debug(f"Error: {msg}")
 
     def _do_one_representation(self, representation: Representation, runtime_args: VRERuntimeArgs):
@@ -94,7 +93,7 @@ class VideoRepresentationsExtractor:
         Returns:
         - A dataframe with the run statistics for each representation
         """
-        self._logs_file_name = f"logs-{now_fmt()}.txt"
+        self._logs_file = Path(os.getenv("VRE_LOGS_DIR", str(Path.cwd()))) / f"logs-{now_fmt()}.txt"
         if end_frame is None:
             logger.warning(f"end frame not set, default to the last frame of the video: {len(self.video)}")
             end_frame = len(self.video)
@@ -106,9 +105,9 @@ class VideoRepresentationsExtractor:
         for name, vre_repr in self.representations.items():
             repr_res = self._do_one_representation(vre_repr, runtime_args)
             if repr_res[name][-1] == 1 << 31 and runtime_args.exception_mode == "stop_execution":
-                raise RuntimeError(f"Representation '{name}' threw. Check '{self._logs_file_name}' for information")
+                raise RuntimeError(f"Representation '{name}' threw. Check '{self._logs_file}' for information")
             run_stats.append(repr_res)
-            del vre_repr
+            vre_repr.vre_free()
         df_run_stats = pd.DataFrame(reduce(lambda a, b: {**a, **b}, run_stats),
                                     index=range(runtime_args.start_frame, runtime_args.end_frame))
         self._data_storer.join_with_timeout(timeout=30)

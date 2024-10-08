@@ -6,7 +6,7 @@ from overrides import overrides
 from .model_dexined import DexiNed as Model
 from ....representation import Representation, RepresentationOutput
 from ....logger import vre_logger as logger
-from ....utils import image_resize_batch, get_weights_dir
+from ....utils import image_resize_batch, fetch_weights, load_weights
 
 class DexiNed(Representation):
     """Dexined representation."""
@@ -18,11 +18,7 @@ class DexiNed(Representation):
     # pylint: disable=arguments-differ
     @overrides(check_signature=False)
     def vre_setup(self):
-        weights_file = get_weights_dir() / "dexined.pth"
-        assert weights_file.exists(), weights_file
-
-        logger.info(f"Loading weights from '{weights_file}'")
-        weights_data = tr.load(weights_file, map_location="cpu")
+        weights_data = load_weights(fetch_weights(__file__) / "dexined.pth")
         self.model.load_state_dict(weights_data)
         self.model = self.model.to(self.device)
 

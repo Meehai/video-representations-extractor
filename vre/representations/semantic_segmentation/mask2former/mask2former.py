@@ -12,7 +12,7 @@ from fvcore.common.config import CfgNode
 
 from vre.representation import Representation, RepresentationOutput
 from vre.logger import vre_logger as logger
-from vre.utils import image_resize_batch, get_weights_dir, image_read, image_write
+from vre.utils import image_resize_batch, fetch_weights, image_read, image_write, load_weights
 from vre.representations.semantic_segmentation.mask2former.mask2former_impl import MaskFormer as MaskFormerImpl
 from vre.representations.semantic_segmentation.mask2former.mask2former_impl.det2_data import MetadataCatalog
 from vre.representations.semantic_segmentation.mask2former.mask2former_impl.visualizer import Visualizer, ColorMode
@@ -80,19 +80,15 @@ class Mask2Former(Representation):
 
     def _get_weights(self, model_id: str | dict) -> str:
         model_ids = {"47429163_0", "49189528_1", "49189528_0"}
-        if isinstance(model_id, dict):
-            logger.warning("Unknown model provided as dict. Loading as is.")
-            return model_id
         if model_id not in model_ids:
             logger.warning(f"Unknown model provided: {model_id}. Loading as is.")
             return model_id
-
-        weights_path = get_weights_dir() / f"{model_id}.ckpt"
-        assert weights_path.exists(), weights_path
+        weights_path = fetch_weights(__file__) / f"{model_id}.ckpt"
         return weights_path
 
-    def _build_model(self, weights_path: Path | dict) -> tuple[nn.Module, CfgNode, MetadataCatalog]:
-        ckpt_data = tr.load(weights_path, map_location="cpu") if isinstance(weights_path, Path) else weights_path
+    def _build_model(self, weights_path: Path) -> tuple[nn.Module, CfgNode, MetadataCatalog]:
+        assert isinstance(weights_path, Path), type(weights_path)
+        ckpt_data = load_weights(weights_path)
         cfg = CfgNode(json.loads(ckpt_data["cfg"]))
         params = MaskFormerImpl.from_config(cfg)
         params = {**params, "semantic_on": True, "panoptic_on": False, "instance_on": False}
@@ -102,11 +98,12 @@ class Mask2Former(Representation):
         model.to("cpu")
         assert len(cfg.DATASETS.TEST) == 1, cfg.DATASETS.TEST
         metadata = MetadataCatalog.get(cfg.DATASETS.TEST[0])
-        logger.debug(f"Loade weights from '{weights_path}'")
         return model, cfg, metadata
 
-    def __del__(self):
-        del self.model
+    def vre_free(self):
+        if str(self.device).startswith("cuda"):
+            self.model.to("cpu")
+            tr.cuda.empty_cache()
 
 def get_args() -> Namespace:
     """cli args"""

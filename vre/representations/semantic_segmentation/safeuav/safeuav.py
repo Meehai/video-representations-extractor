@@ -7,7 +7,7 @@ from torch.nn import functional as F
 
 from .Map2Map import EncoderMap2Map, DecoderMap2Map
 from ....representation import Representation, RepresentationOutput
-from ....utils import image_resize_batch, get_weights_dir
+from ....utils import image_resize_batch, fetch_weights, load_weights
 from ....logger import vre_logger as logger
 
 class _SafeUavWrapper(nn.Module):
@@ -23,18 +23,6 @@ class _SafeUavWrapper(nn.Module):
         y_encoder = self.encoder(x)
         y_decoder = self.decoder(y_encoder)
         return y_decoder
-
-def _convert(data: dict[str, tr.Tensor]) -> dict[str, tr.Tensor]:
-    new_data = {}
-    for k in data.keys():
-        if k.startswith("model.0."):
-            other = k.replace("model.0.", "encoder.")
-        elif k.startswith("model.1."):
-            other = k.replace("model.1.", "decoder.")
-        else:
-            assert False, k
-        new_data[other] = data[k]
-    return new_data
 
 # TODO: make semantic_argmax_only not optional
 class SafeUAV(Representation):
@@ -58,10 +46,23 @@ class SafeUAV(Representation):
             logger.warning("No weights file provided, using random weights.")
             return
 
-        weights_file_abs = get_weights_dir() / self.weights_file
-        assert weights_file_abs.exists(), f"Weights file '{weights_file_abs}' does not exist."
-        data = tr.load(weights_file_abs, map_location="cpu")["state_dict"]
-        self.model.load_state_dict(_convert(data))
+        def _convert(data: dict[str, tr.Tensor]) -> dict[str, tr.Tensor]:
+            logger.warning("GET RID OF THIS WHEN THERE'S TIME")
+            new_data = {}
+            for k in data.keys():
+                if k.startswith("model.0."):
+                    other = k.replace("model.0.", "encoder.")
+                elif k.startswith("model.1."):
+                    other = k.replace("model.1.", "decoder.")
+                else:
+                    assert False, k
+                new_data[other] = data[k]
+            return new_data
+
+
+        weights_file_abs = fetch_weights(__file__) / self.weights_file
+        data = _convert(load_weights(weights_file_abs)["state_dict"])
+        self.model.load_state_dict(data)
         self.model = self.model.eval().to(self.device)
 
     @overrides
@@ -92,3 +93,8 @@ class SafeUAV(Representation):
     def resize(self, repr_data: RepresentationOutput, new_size: tuple[int, int]) -> RepresentationOutput:
         interpolation = "nearest" if self.semantic_argmax_only else "bilinear"
         return image_resize_batch(repr_data, *new_size, interpolation=interpolation)
+
+    def vre_free(self):
+        if str(self.device).startswith("cuda"):
+            self.model.to("cpu")
+            tr.cuda.empty_cache()

@@ -8,7 +8,7 @@ import flow_vis
 from .raft_impl.utils import InputPadder
 from .raft_impl.raft import RAFT
 from ....representation import Representation, RepresentationOutput
-from ....utils import image_resize_batch, get_weights_dir
+from ....utils import image_resize_batch, fetch_weights, load_weights
 from ....logger import vre_logger as logger
 
 class FlowRaft(Representation):
@@ -34,14 +34,11 @@ class FlowRaft(Representation):
             and self.video.frame_shape[1] >= self.inference_width, \
             f"{self.video.frame_shape} vs {self.inference_height}x{self.inference_width}"
 
-        raft_things_path = get_weights_dir() / "raft/raft-things.pkl"
-        assert raft_things_path.exists(), raft_things_path
-
         def convert(data: dict[str, tr.Tensor]) -> dict[str, tr.Tensor]:
+            logger.warning("REMOVE THIS WHEN THERE'S TIME")
             return {k.replace("module.", ""): v for k, v in data.items()}
-        logger.info(f"Loading weights from '{raft_things_path}'")
-        weights_data = convert(tr.load(raft_things_path, map_location="cpu"))
-        self.model.load_state_dict(weights_data)
+        raft_things_path = fetch_weights(__file__) / "raft-things.pkl"
+        self.model.load_state_dict(convert(load_weights(raft_things_path)))
         self.model = self.model.eval().to(self.device)
 
     @overrides
@@ -61,22 +58,22 @@ class FlowRaft(Representation):
         with tr.no_grad():
             _, predictions = self.model(source, dest, iters=self.iters, test_mode=True)
         flow = self._postporcess(predictions)
-        return flow
+        return RepresentationOutput(output=flow)
 
     @overrides
     def make_images(self, frames: np.ndarray, repr_data: RepresentationOutput) -> np.ndarray:
-        y = np.array([flow_vis.flow_to_color(_pred) for _pred in repr_data])
+        y = np.array([flow_vis.flow_to_color(_pred) for _pred in repr_data.output])
         return y
 
     @overrides
     def size(self, repr_data: RepresentationOutput) -> tuple[int, int]:
-        return repr_data.shape[1:3]
+        return repr_data.output.shape[1:3]
 
     @overrides
     def resize(self, repr_data: RepresentationOutput, new_size: tuple[int, int]) -> RepresentationOutput:
-        return image_resize_batch(repr_data, *new_size)
+        return RepresentationOutput(output=image_resize_batch(repr_data.output, *new_size))
 
-    def _preprocess(self, frames: np.ndarray) -> (tr.Tensor, tr.Tensor):
+    def _preprocess(self, frames: np.ndarray) -> tuple[tr.Tensor, tr.Tensor]:
         tr_frames = tr.from_numpy(frames).to(self.device)
         tr_frames = tr_frames.permute(0, 3, 1, 2).float() # (B, C, H, W)
         frames_rsz = F.interpolate(tr_frames, (self.inference_height, self.inference_width), mode="bilinear")
@@ -91,3 +88,8 @@ class FlowRaft(Representation):
         flow_unpad_norm = flow_perm / (self.inference_height, self.inference_width) # [-1 : 1]
         flow_unpad_norm = flow_unpad_norm.astype(np.float16)
         return flow_unpad_norm
+
+    def vre_free(self):
+        if str(self.device).startswith("cuda"):
+            self.model.to("cpu")
+            tr.cuda.empty_cache()

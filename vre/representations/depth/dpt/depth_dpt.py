@@ -6,8 +6,7 @@ from overrides import overrides
 
 from .dpt_impl.dpt_depth import DPTDepthModel
 from ....representation import Representation, RepresentationOutput
-from ....utils import image_resize_batch, get_weights_dir, colorize_depth_maps
-from ....logger import vre_logger as logger
+from ....utils import image_resize_batch, fetch_weights, colorize_depth_maps, load_weights
 
 def _constrain_to_multiple_of(x, multiple_of: int, min_val=0, max_val=None) -> int:
     y = (np.round(x / multiple_of) * multiple_of).astype(int)
@@ -46,13 +45,8 @@ class DepthDpt(Representation):
 
     @overrides
     def vre_setup(self):
-        # our backup
-        weights_file = get_weights_dir() / "depth_dpt_midas.pth"
-        assert weights_file.exists(), weights_file
-
-        logger.info(f"Loading weights from '{weights_file}'")
-        weights_data = tr.load(weights_file, map_location="cpu")
-        self.model.load_state_dict(weights_data)
+        weights_file = fetch_weights(__file__) / "depth_dpt_midas.pth"
+        self.model.load_state_dict(load_weights(weights_file))
         self.model = self.model.eval().to(self.device)
 
     @overrides

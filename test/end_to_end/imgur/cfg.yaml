@@ -83,18 +83,30 @@ representations:
       semantic_argmax_only: True
     device: ${oc.env:VRE_DEVICE,cpu}
 
-  # SUCKY BECAUSE SUPERSLOW. Adds like 2-3 mins in CI. Rife is good enough.
+  depth_dpt:
+    type: depth/dpt
+    dependencies: []
+    parameters: {}
+    device: ${oc.env:VRE_DEVICE,cpu}
+
+  # # SUCKY BECAUSE SUPERSLOW. Adds like 2-3 mins in CI. Rife is good enough.
   # opticalflow raft:
   #   type: optical-flow/raft
   #   dependencies: []
   #   parameters:
   #     inference_height: 720
   #     inference_width: 1280
+  #     iters: 5
+  #     small: False
   #   device: ${oc.env:VRE_DEVICE,cpu}
 
-  # sucky because slow, but it's good/pretrained
-  depth_dpt:
-    type: depth/dpt
-    dependencies: []
-    parameters: {}
-    device: ${oc.env:VRE_DEVICE,cpu}
+  # # SUCKY BECAUSE SUPERSLOW. But really good depth.
+  # depth_marigold:
+  #   type: depth/marigold
+  #   dependencies: []
+  #   parameters:
+  #     variant: marigold-lcm-v1-0
+  #     denoising_steps: 1
+  #     ensemble_size: 1
+  #     processing_resolution: 768
+  #   device: ${oc.env:VRE_DEVICE,cpu}
