@@ -4,11 +4,11 @@ from tempfile import TemporaryDirectory
 
 from vre import VRE
 from vre.representations import build_representations_from_cfg
-from vre.utils import get_project_root
+from vre.utils import fetch_resource
 
 
 def test_vre_simple_representations():
-    video = pims.Video(get_project_root() / "resources/test_video.mp4")
+    video = pims.Video(fetch_resource("test_video.mp4"))
     representations_dict = {"rgb": {"type": "default/rgb", "dependencies": [], "parameters": {}}}
     representations = build_representations_from_cfg(representations_dict)
     tmp_dir = Path(TemporaryDirectory().name)

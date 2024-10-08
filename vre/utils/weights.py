@@ -4,18 +4,9 @@ from pathlib import Path
 from pprint import pformat
 import os
 import torch as tr
-from tqdm import tqdm
 
 from ..logger import vre_logger as logger
-from .utils import get_project_root
-
-class _DownloadProgressBar(tqdm):
-    """requests + tqdm"""
-    def update_to(self, b=1, bsize=1, tsize=None):
-        """Callback from tqdm"""
-        if tsize is not None:
-            self.total = tsize
-        self.update(b * bsize - self.n)
+from .utils import get_project_root, is_git_lfs, DownloadProgressBar
 
 # TODO: this is a stupid way to do it but i can't get git-lfs info or scrap gitlab yet.
 def _get_weights_files_for_representation(repr_name: str) -> list[str]:
@@ -57,11 +48,11 @@ def fetch_weights(repr_file: Path) -> Path:
     for file in files:
         url = f"{base_url}/{repr_name}/{file}"
         output_path = _get_weights_dir() / repr_name / file
-        if output_path.exists():
+        if output_path.exists() and not is_git_lfs(output_path):
             continue
         output_path.parent.mkdir(exist_ok=True, parents=True)
         logger.debug(f"'{repr_name}/{file}' does not exist. Downloading from remote weights repository")
-        with _DownloadProgressBar(unit="B", unit_scale=True, miniters=1, desc=f"{repr_name}/{file}") as t:
+        with DownloadProgressBar(unit="B", unit_scale=True, miniters=1, desc=f"{repr_name}/{file}") as t:
             urllib.request.urlretrieve(url, filename=output_path, reporthook=t.update_to)
     return _get_weights_dir() / repr_name
 
