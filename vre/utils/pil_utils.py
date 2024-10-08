@@ -128,3 +128,20 @@ def pil_image_add_title(image: np.ndarray, text: str, font: str = None, font_col
     position = -text_height // 4.8, (expanded_image.shape[1] - text_width) // 2
     return _image_add_text(expanded_image, text=text, position=position, font=font,
                            font_color=font_color, font_size_px=size_px)
+
+def pil_image_read(path: str) -> np.ndarray:
+    """PIL image reader"""
+    # TODO: for grayscale, this returns a RGB image too
+    img_pil = Image.open(path)
+    img_np = np.array(img_pil, dtype=np.uint8)
+    # grayscale -> 3 gray channels repeated.
+    if img_pil.mode == "L":
+        return np.repeat(img_np[..., None], 3, axis=-1)
+    # RGB or RGBA
+    return img_np[..., 0:3]
+
+def pil_image_write(file: np.ndarray, path: str):
+    """PIL image writer"""
+    assert file.min() >= 0 and file.max() <= 255
+    img = Image.fromarray(file.astype(np.uint8), "RGB")
+    img.save(path)

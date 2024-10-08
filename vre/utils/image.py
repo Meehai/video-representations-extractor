@@ -6,7 +6,7 @@ import matplotlib
 from ..logger import vre_logger as logger
 from .utils import get_closest_square
 from .cv2_utils import cv2_image_resize, cv2_image_write, cv2_image_read
-from .pil_utils import pil_image_resize, pil_image_add_title
+from .pil_utils import pil_image_resize, pil_image_add_title, pil_image_read, pil_image_write
 
 def image_resize(data: np.ndarray, height: int, width: int, interpolation: str = "bilinear",
                  library: str = "cv2", **kwargs) -> np.ndarray:
@@ -21,11 +21,11 @@ def image_resize_batch(x_batch: np.ndarray | list[np.ndarray], *args, **kwargs) 
 def image_write(x: np.ndarray, path: Path, library: str = "cv2"):
     """writes an image to a bytes string"""
     assert x.dtype == np.uint8, x.dtype
-    return {"cv2": cv2_image_write}[library](x, path)
+    return {"cv2": cv2_image_write, "PIL": pil_image_write}[library](x, path)
 
 def image_read(path: Path, library: str = "cv2") -> np.ndarray:
     """Read an image from a path. Return uint8 [0:255] ndarray"""
-    return {"cv2": cv2_image_read}[library](path)
+    return {"cv2": cv2_image_read, "PIL": pil_image_read}[library](path)
 
 def hsv2rgb(hsv: np.ndarray) -> np.ndarray:
     """HSV to RGB color space conversion."""
@@ -149,4 +149,4 @@ def colorize_depth_maps(depth_map: np.ndarray, min_depth: float, max_depth: floa
     cm = matplotlib.colormaps[cmap]
     depth = ((depth_map - min_depth) / (max_depth - min_depth)).clip(0, 1)
     img_colored_np = cm(depth, bytes=False)[..., 0:3]  # value from 0 to 1
-    return img_colored_np
+    return img_colored_np.astype(np.float32)
