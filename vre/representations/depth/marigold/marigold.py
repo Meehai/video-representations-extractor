@@ -11,7 +11,7 @@ from overrides import overrides
 from tqdm.auto import tqdm
 from diffusers import AutoencoderKL, DDIMScheduler, LCMScheduler, UNet2DConditionModel
 from vre.utils import (RepresentationOutput, image_resize_batch, image_read, colorize_depth_maps, image_write,
-                       get_weights_dir)
+                       get_weights_dir, load_weights)
 from vre.representations.depth.marigold.marigold_impl import MarigoldPipeline
 from vre.representation import Representation
 
@@ -68,8 +68,8 @@ class Marigold(Representation):
                                 'latents_std': None, 'force_upcast': True, 'use_quant_conv': True,
                                 'use_post_quant_conv': True, 'mid_block_add_attention': True
         })
-        vae.load_state_dict(torch.load(get_weights_dir() / "depth/marigold/vae.pt")) # VAE is common for both variants
-        unet.load_state_dict(torch.load(get_weights_dir() / f"depth/marigold/{self.variant}_unet.pt"))
+        vae.load_state_dict(load_weights(get_weights_dir() / "depth/marigold/vae.pt")) # VAE is common for both variants
+        unet.load_state_dict(load_weights(get_weights_dir() / f"depth/marigold/{self.variant}_unet.pt"))
         dim_scheduler_config = {"beta_end": 0.012, "beta_schedule": "scaled_linear", "beta_start": 0.00085,
                                 "clip_sample": False, "clip_sample_range": 1.0,
                                 "dynamic_thresholding_ratio": 0.995, "num_train_timesteps": 1000,

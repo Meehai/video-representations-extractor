@@ -5,6 +5,7 @@ from datetime import datetime, timezone as tz
 from dataclasses import dataclass
 import os
 import numpy as np
+import torch as tr
 
 from ..logger import vre_logger as logger
 from .fake_video import VREVideo
@@ -93,3 +94,13 @@ def get_closest_square(n: int) -> tuple[int, int]:
 def now_fmt() -> str:
     """Returns now() as a UTC isoformat string"""
     return datetime.now(tz=tz.utc).replace(tzinfo=None).isoformat(timespec="milliseconds")
+
+def load_weights(path: Path) -> dict[str, tr.Tensor]:
+    """load weights from disk. weights can be sharded as well. Sometimes we store this due to git-lfs big files bug."""
+    if path.is_dir():
+        res = {}
+        for item in path.iterdir():
+            res = {**res, **tr.load(item, map_location="cpu")}
+        return res
+    else:
+        return tr.load(path, map_location="cpu")
