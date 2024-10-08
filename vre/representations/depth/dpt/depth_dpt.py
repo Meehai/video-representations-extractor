@@ -69,6 +69,12 @@ class DepthDpt(Representation):
     def resize(self, repr_data: RepresentationOutput, new_size: tuple[int, int]) -> RepresentationOutput:
         return RepresentationOutput(output=image_resize_batch(repr_data.output, *new_size))
 
+    @overrides
+    def vre_free(self):
+        if str(self.device).startswith("cuda"):
+            self.model.to("cpu")
+            tr.cuda.empty_cache()
+
     def _preprocess(self, x: np.ndarray) -> tr.Tensor:
         tr_frames = tr.from_numpy(x).to(self.device)
         tr_frames_perm = tr_frames.permute(0, 3, 1, 2).float() / 255
