@@ -3,6 +3,8 @@ from typing import Any
 from pathlib import Path
 from datetime import datetime, timezone as tz
 from dataclasses import dataclass
+import urllib.request
+from tqdm import tqdm
 import numpy as np
 
 from ..logger import vre_logger as logger
@@ -13,6 +15,14 @@ class RepresentationOutput:
     """The output of representation.make()"""
     output: np.ndarray
     extra: list[dict] | None = None
+
+class DownloadProgressBar(tqdm):
+    """requests + tqdm"""
+    def update_to(self, b=1, bsize=1, tsize=None):
+        """Callback from tqdm"""
+        if tsize is not None:
+            self.total = tsize
+        self.update(b * bsize - self.n)
 
 def get_project_root() -> Path:
     """gets the root of this project"""
@@ -88,3 +98,21 @@ def get_closest_square(n: int) -> tuple[int, int]:
 def now_fmt() -> str:
     """Returns now() as a UTC isoformat string"""
     return datetime.now(tz=tz.utc).replace(tzinfo=None).isoformat(timespec="milliseconds")
+
+def is_git_lfs(path: Path) -> bool:
+    """Returns true if a path is a git lfs link"""
+    with open(path, "rb") as fp:
+        try:
+            return fp.read(7).decode("utf-8") == "version"
+        except UnicodeDecodeError:
+            return False
+
+def fetch_resource(resource_name: str) -> Path:
+    """fetches a resources from gitlab LFS if needed"""
+    base_url = "https://gitlab.com/meehai/video-representations-extractor/-/raw/master/resources/"
+    url = f"{base_url}/{resource_name}"
+    path = get_project_root() / "resources" / resource_name
+    if not Path(resource_name).exists() is is_git_lfs(path):
+        with DownloadProgressBar(unit="B", unit_scale=True, miniters=1, desc=resource_name) as t:
+            urllib.request.urlretrieve(url, filename=path, reporthook=t.update_to)
+    return path

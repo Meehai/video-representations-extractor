@@ -10,7 +10,7 @@ import torch as tr
 
 from vre import VRE
 from vre.representations import build_representations_from_cfg
-from vre.utils import get_project_root
+from vre.utils import get_project_root, fetch_resource
 
 def sample_representations(all_representations_dict: dict[str, Any], n: int) -> dict:
     np.random.seed(41)
@@ -34,7 +34,7 @@ def sample_representations(all_representations_dict: dict[str, Any], n: int) -> 
     return res_dict
 
 def test_vre_batched():
-    video = pims.Video(get_project_root() / "resources/test_video.mp4")
+    video = pims.Video(fetch_resource("test_video.mp4"))
     device = "cuda" if tr.cuda.is_available() else "cpu"
     all_representations_dict = yaml.safe_load(f"""
   rgb:
