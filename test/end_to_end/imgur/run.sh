@@ -6,7 +6,7 @@ export VRE_LOGS_DIR=$CWD/logs
 export VID=$CWD/test_video.mp4
 
 test -e $VID || \
-    curl "https://gitlab.com/meehai/video-representations-extractor/-/raw/master/resources/test_video.mp4" -o $VID
+    curl "https://gitlab.com/video-representations-extractor/video-representations-extractor/-/raw/master/resources/test_video.mp4" -o $VID
 
 # download imgur upload script
 test -e $CWD/imgur.sh || wget https://raw.githubusercontent.com/tremby/imgur.sh/main/imgur.sh -O $CWD/imgur.sh

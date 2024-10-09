@@ -3,9 +3,9 @@ from pathlib import Path
 from setuptools import setup, find_packages
 
 NAME = "video-representations-extractor"
-VERSION = "1.0.11"
+VERSION = "1.0.12"
 DESCRIPTION = "Video Representations Extractor (VRE) for computing algorithmic or neural representations of each frame."
-URL = "https://gitlab.com/meehai/video-representations-extractor"
+URL = "https://gitlab.com/video-representations-extractor/video-representations-extractor"
 
 with open(f"{Path(__file__).absolute().parent}/README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()

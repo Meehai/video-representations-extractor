@@ -11,7 +11,7 @@ defined as ways of 'looking at the world'. One can watch at various levels of in
 - high level: semantics and actions
 
 For GitHub users: this is a mirror of the
-[gitlab repository](https://gitlab.com/meehai/video-representations-extractor).
+[gitlab repository](https://gitlab.com/video-representations-extractor/video-representations-extractor).
 
 <u>Supported representations</u>
 
@@ -37,9 +37,9 @@ We offer a pre-pushed VRE image in dockerhub.
 ```
 mkdir example/
 chmod 777 -R example/ # optional ?
-curl "https://gitlab.com/meehai/video-representations-extractor/-/raw/master/resources/test_video.mp4" \
+curl "https://gitlab.com/video-representations-extractor/video-representations-extractor/-/raw/master/resources/test_video.mp4" \
   -o example/video.mp4 # you can of course use any video, not just our test one
-curl https://gitlab.com/meehai/video-representations-extractor/-/raw/master/test/end_to_end/imgur/cfg.yaml -o example/cfg.yaml
+curl https://gitlab.com/video-representations-extractor/video-representations-extractor/-/raw/master/test/end_to_end/imgur/cfg.yaml -o example/cfg.yaml
 docker run -v `pwd`/example:/app/example -v `pwd`/resources/weights:/app/weights \
   --gpus all -e VRE_DEVICE='cuda' -e VRE_WEIGHTS_DIR=/app/weights \
   meehai/vre:latest /app/example/video.mp4 \
@@ -52,7 +52,7 @@ Check NVIDIA's documentation for this. If you are only on a CPU machine, then re
 ### Development
 You can, of course, clone this repository and add it to your path for development:
 ```
-GIT_LFS_SKIP_SMUDGE=1 git clone https://gitlab.com/meehai/video-representations-extractor [/some/dir]
+GIT_LFS_SKIP_SMUDGE=1 git clone https://gitlab.com/video-representations-extractor/video-representations-extractor [/some/dir]
 # in .bashrc
 export PYTHONPATH="$PYTHONPATH:/some/dir"
 export PATH="$PATH:/some/dir/bin"
