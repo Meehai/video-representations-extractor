@@ -29,8 +29,6 @@ Installation is as easy as:
 ```
 conda create -n vre python=3.11 anaconda # >=py3.8 in theory, >=3.10 tested
 pip install video-representations-extractor
-pytest test/
-[VRE_DEVICE=cuda CUDA_VISIBLE_DEVICES=0] bash test/end_to_end/imgur/run.sh
 ```
 
 ### Docker
@@ -54,10 +52,12 @@ Check NVIDIA's documentation for this. If you are only on a CPU machine, then re
 ### Development
 You can, of course, clone this repository and add it to your path for development:
 ```
-git clone https://gitlab.com/meehai/video-representations-extractor [/some/dir]
+GIT_LFS_SKIP_SMUDGE=1 git clone https://gitlab.com/meehai/video-representations-extractor [/some/dir]
 # in .bashrc
 export PYTHONPATH="$PYTHONPATH:/some/dir"
 export PATH="$PATH:/some/dir/bin"
+pytest test/
+[VRE_DEVICE=cuda CUDA_VISIBLE_DEVICES=0] bash test/end_to_end/imgur/run.sh
 ```
 
 After either option, you should be able to run:
@@ -67,7 +67,6 @@ vre <path/to/video.mp4> --cfg_path <path/to/cfg> -o <path/to/export_dir>
 
 The magic happens inside the config file, where we define *what* representations to extract and *what* parameters are
 used to instantiate said representations.
-
 
 ### 2.1 Single image usage
 
