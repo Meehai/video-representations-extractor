@@ -72,7 +72,8 @@ def main():
         image_write(img, args.output_path / f"{name}.png")
 
     if args.video:
-        video = ImageSequenceClip([str(x) for x in args.output_path.glob("*.png")], fps=args.fps)
+        files = natsorted([str(x) for x in args.output_path.iterdir() if x.suffix == ".png"], key=lambda p: p.name)
+        video = ImageSequenceClip(files, fps=args.fps)
         video.write_videofile(f"{args.output_path}/collage.mp4")
 
 if __name__ == "__main__":
