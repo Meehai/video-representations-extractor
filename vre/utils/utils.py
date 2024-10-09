@@ -109,7 +109,8 @@ def is_git_lfs(path: Path) -> bool:
 
 def fetch_resource(resource_name: str) -> Path:
     """fetches a resources from gitlab LFS if needed"""
-    base_url = "https://gitlab.com/video-representations-extractor/video-representations-extractor/-/raw/master/resources/"
+    base_url = ("https://gitlab.com/video-representations-extractor/"
+                "video-representations-extractor/-/raw/master/resources/")
     url = f"{base_url}/{resource_name}"
     path = get_project_root() / "resources" / resource_name
     if not Path(resource_name).exists() is is_git_lfs(path):

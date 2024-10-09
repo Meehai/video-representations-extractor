@@ -44,7 +44,8 @@ def fetch_weights(repr_file: Path) -> Path:
     """fetches weights for a representation. repr_file is expected to be Path(__file__) from the caller script"""
     repr_name = "/".join([x.name for x in Path(repr_file).parents[0:2][::-1]]) # i.e. [depth/marigold]/{marigold.py}
     files = _get_weights_files_for_representation(repr_name)
-    base_url = "https://gitlab.com/video-representations-extractor/video-representations-extractor/-/raw/master/resources/weights"
+    base_url = ("https://gitlab.com/video-representations-extractor/"
+                "video-representations-extractor/-/raw/master/resources/")
     for file in files:
         url = f"{base_url}/{repr_name}/{file}"
         output_path = _get_weights_dir() / repr_name / file
