@@ -78,7 +78,7 @@ directory.
 vre <path/to/dir_of_images> --cfg_path <path/to/cfg> -o <path/to/export_dir>
 ```
 
-Note: use `--cfg_path resources/cfgs/testCfg_ootb.yaml` for 'out of the box' working representations.
+Note: use `--cfg_path test/end_to_end/imgur/cfg.yaml` for 'out of the box' working representations.
 
 Note2: Use `VRE_DEVICE=cuda vre...` to use cuda. For some representations, this speeds up the process by a lot.
 
