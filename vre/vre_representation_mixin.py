@@ -39,7 +39,7 @@ class VRERepresentationMixin:
                 data, extra = np.stack([np.load(x)["arr_0"] for x in npy_paths]), None
                 if all(x.exists() for x in extra_paths):
                     extra = [np.load(x, allow_pickle=True)["arr_0"].item() for x in extra_paths]
-                logger.debug(f"[{self}] Slice: [{ix.start}:{ix.stop - 1}]. All data found on disk and loaded")
+                logger.debug2(f"[{self}] Slice: [{ix.start}:{ix.stop - 1}]. All data found on disk and loaded")
                 return RepresentationOutput(output=data, extra=extra)
         frames = np.array(self.video[ix])
         dep_data = self.vre_dep_data(ix)
