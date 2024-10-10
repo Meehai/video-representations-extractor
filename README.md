@@ -118,7 +118,7 @@ in the [CI process](test/end_to_end/imgur/run.sh) for an actual export that is d
 
 Note: If the topological sort fails (because of cycle dependencies), an error will be thrown.
 
-## 3.3. Output format
+### 3.3. Output format
 
 All the outputs are going to be stored as [0-1] float32 npz files, one for each frame in a directory specified by
 `--output_dir/-o`. A subdirectory will be created for each representation.
@@ -140,7 +140,7 @@ For the above CFG file, 2 subdirectories will be created:
 The `cfg.yaml` file for each representation is created so that we know what parameters were used for that
 representation.
 
-## 3.4 Collages
+### 3.4 Collages
 
 In `bin/` we provide a secondary tool, `vre_collage` that takes all the png files from an output_dir as above and
 stacks them together in a single image. This is useful if we want to create a single image of all representations which
