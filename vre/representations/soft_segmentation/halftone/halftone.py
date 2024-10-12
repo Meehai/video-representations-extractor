@@ -9,9 +9,8 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageStat
 from overrides import overrides
 
-from ....representation import Representation, RepresentationOutput
-from ....utils import image_resize, image_resize_batch
-
+from vre.representations import Representation, ReprOut
+from vre.utils import image_resize, image_resize_batch
 
 class Halftone(Representation):
     """
@@ -37,24 +36,20 @@ class Halftone(Representation):
         self._check_arguments()
 
     @overrides
-    def make(self, frames: np.ndarray, dep_data: dict[str, RepresentationOutput] | None = None) -> RepresentationOutput:
-        return RepresentationOutput(output=np.array([self._make_one_image(frame) for frame in frames]))
+    def make(self, frames: np.ndarray, dep_data: dict[str, ReprOut] | None = None) -> ReprOut:
+        return ReprOut(output=np.array([self._make_one_image(frame) for frame in frames]))
 
     @overrides
-    def make_images(self, frames: np.ndarray, repr_data: RepresentationOutput) -> np.ndarray:
+    def make_images(self, frames: np.ndarray, repr_data: ReprOut) -> np.ndarray:
         return (repr_data.output * 255).astype(np.uint8)
 
     @overrides
-    def size(self, repr_data: RepresentationOutput) -> tuple[int, int]:
+    def size(self, repr_data: ReprOut) -> tuple[int, int]:
         return repr_data.output.shape[1:3]
 
     @overrides
-    def resize(self, repr_data: RepresentationOutput, new_size: tuple[int, int]) -> RepresentationOutput:
-        return RepresentationOutput(output=image_resize_batch(repr_data.output, height=new_size[0], width=new_size[1]))
-
-    @overrides
-    def vre_setup(self):
-        pass
+    def resize(self, repr_data: ReprOut, new_size: tuple[int, int]) -> ReprOut:
+        return ReprOut(output=image_resize_batch(repr_data.output, height=new_size[0], width=new_size[1]))
 
     def _gcr(self, im, percentage):
         """

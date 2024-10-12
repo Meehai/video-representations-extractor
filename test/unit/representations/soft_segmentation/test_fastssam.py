@@ -3,14 +3,16 @@ from vre.representations.soft_segmentation.fastsam import FastSam
 from vre.utils import FakeVideo
 
 def test_fastsam():
+    np.random.seed(42)
     video = FakeVideo(np.random.randint(0, 255, size=(20, 64, 128, 3), dtype=np.uint8), 30)
-    fastsam_repr = FastSam(variant="fastsam-s", iou=0.9, conf=0.4, name="fastsam-s", dependencies=[])
+    fastsam_repr = FastSam(variant="testing", iou=0.9, conf=0.4, name="fastsam", dependencies=[])
+    fastsam_repr.vre_setup(load_weights=False)
 
     frames = np.array(video[0:1])
     y_fastsam = fastsam_repr(frames)
     assert y_fastsam.output.shape == (1, 32, 128, 256)
     assert len(y_fastsam.extra) == 1 # no objects in random images
-    assert y_fastsam.extra[0]["boxes"].shape == (0, 38), y_fastsam.extra[0]["boxes"].shape
+    assert y_fastsam.extra[0]["boxes"].shape == (300, 38), y_fastsam.extra[0]["boxes"].shape
     assert y_fastsam.extra[0]["inference_size"] == (512, 1024), y_fastsam.extra[0]["inference_size"]
 
     y_fastsam_rgb = fastsam_repr.make_images(frames, y_fastsam)

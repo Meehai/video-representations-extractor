@@ -2,46 +2,49 @@
 import numpy as np
 import torch as tr
 from overrides import overrides
+from vre.representations import Representation, ReprOut, LearnedRepresentationMixin
+from vre.logger import vre_logger as logger
+from vre.utils import image_resize_batch, fetch_weights, vre_load_weights
 
-from .model_dexined import DexiNed as Model
-from ....representation import Representation, RepresentationOutput
-from ....logger import vre_logger as logger
-from ....utils import image_resize_batch, fetch_weights, load_weights
+try:
+    from .model_dexined import DexiNed as Model
+except ImportError:
+    from model_dexined import DexiNed as Model
 
-class DexiNed(Representation):
+class DexiNed(Representation, LearnedRepresentationMixin):
     """Dexined representation."""
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.model = Model().eval()
+        self.model: Model | None = None
         self.inference_height, self.inference_width = 512, 512 # fixed for this model
 
-    # pylint: disable=arguments-differ
-    @overrides(check_signature=False)
-    def vre_setup(self):
-        weights_data = load_weights(fetch_weights(__file__) / "dexined.pth")
-        self.model.load_state_dict(weights_data)
+    @overrides
+    def vre_setup(self, load_weights: bool = True):
+        self.model = Model().eval()
+        if load_weights:
+            self.model.load_state_dict(vre_load_weights(fetch_weights(__file__) / "dexined.pth"))
         self.model = self.model.to(self.device)
 
     @overrides
-    def make(self, frames: np.ndarray, dep_data: dict[str, RepresentationOutput] | None = None) -> RepresentationOutput:
+    def make(self, frames: np.ndarray, dep_data: dict[str, ReprOut] | None = None) -> ReprOut:
         tr_frames = self._preprocess(frames, self.inference_height, self.inference_width)
         with tr.no_grad():
             y = self.model.forward(tr_frames)
         outs = self._postprocess(y)
-        return RepresentationOutput(output=outs)
+        return ReprOut(output=outs)
 
     @overrides
-    def make_images(self, frames: np.ndarray, repr_data: RepresentationOutput) -> np.ndarray:
+    def make_images(self, frames: np.ndarray, repr_data: ReprOut) -> np.ndarray:
         x = np.repeat(np.expand_dims(repr_data.output, axis=-1), 3, axis=-1)
         return (x * 255).astype(np.uint8)
 
     @overrides
-    def size(self, repr_data: RepresentationOutput) -> tuple[int, int]:
+    def size(self, repr_data: ReprOut) -> tuple[int, int]:
         return repr_data.output.shape[1:3]
 
     @overrides
-    def resize(self, repr_data: RepresentationOutput, new_size: tuple[int, int]) -> RepresentationOutput:
-        return RepresentationOutput(output=image_resize_batch(repr_data.output, *new_size))
+    def resize(self, repr_data: ReprOut, new_size: tuple[int, int]) -> ReprOut:
+        return ReprOut(output=image_resize_batch(repr_data.output, *new_size))
 
     @overrides
     def vre_free(self):

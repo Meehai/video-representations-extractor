@@ -11,6 +11,7 @@ def test_depth_normals_svd_dpt():
                                        input_downsample_step=1, stride=1, max_distance=100, min_valid_count=0)
     normals_svd_repr.video = video
     dpt_repr.video = video
+    dpt_repr.vre_setup(load_weights=False)
     frames = np.array(video[0:1])
     y_deps = normals_svd_repr.vre_dep_data(slice(0, 1))
     y_normals = normals_svd_repr(frames, y_deps)

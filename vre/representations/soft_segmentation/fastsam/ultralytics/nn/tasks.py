@@ -2,12 +2,6 @@
 
 import torch.nn as nn
 
-try:
-    import thop
-except ImportError:
-    thop = None
-
-
 class BaseModel(nn.Module):
     """
     The BaseModel class serves as a base class for all the models in the Ultralytics YOLO family.

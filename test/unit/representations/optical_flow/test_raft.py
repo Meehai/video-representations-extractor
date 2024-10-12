@@ -8,6 +8,8 @@ def test_raft():
     small = bool(np.random.randint(0, 2))
     raft_repr = FlowRaft(name="raft", dependencies=[], inference_height=128, inference_width=128,
                          iters=iters, small=small)
+    raft_repr.video = video
+    raft_repr.vre_setup(load_weights=False)
 
     frames = np.array(video[0:1])
     right_frames = np.array(video[1:2])

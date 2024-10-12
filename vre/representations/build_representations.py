@@ -3,9 +3,9 @@ from typing import Type
 from omegaconf import DictConfig, OmegaConf
 from ..logger import vre_logger as logger
 from ..utils import topological_sort
-from ..representation import Representation
+from .representation import Representation
 
-# pylint: disable=import-outside-toplevel, redefined-builtin, too-many-branches, too-many-statements
+# pylint: disable=import-outside-toplevel, redefined-builtin, too-many-branches, too-many-statements, cyclic-import
 def build_representation_type(repr_type: str) -> Type[Representation]:
     """Gets the representation type from a type and a name (the two identifiers of a representation)"""
     obj_type: Type[Representation] | None = None
