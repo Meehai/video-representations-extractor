@@ -10,18 +10,21 @@ import torch as tr
 from overrides import overrides
 from tqdm.auto import tqdm
 from diffusers import AutoencoderKL, DDIMScheduler, LCMScheduler, UNet2DConditionModel
-from vre.utils import (RepresentationOutput, image_resize_batch, image_read, colorize_depth_maps, image_write,
-                       fetch_weights, load_weights)
-from vre.representation import Representation
-from vre.representations.depth.marigold.marigold_impl import MarigoldPipeline
+from vre.utils import image_resize_batch, image_read, colorize_depth_maps, image_write, fetch_weights, vre_load_weights
+from vre.representations import Representation, ReprOut, LearnedRepresentationMixin
 
-class Marigold(Representation):
+try:
+    from .marigold_impl import MarigoldPipeline
+except ImportError:
+    from marigold_impl import MarigoldPipeline
+
+class Marigold(Representation, LearnedRepresentationMixin):
     """Marigold VRE implementation"""
     def __init__(self, variant: str, denoising_steps: int, ensemble_size: int, processing_resolution: int,
                  seed: int | None = None, **kwargs):
         super().__init__(**kwargs)
-        assert variant in ("marigold-v1-0", "marigold-lcm-v1-0"), variant
-        assert variant == "marigold-lcm-v1-0", "Need to figure how to store the marigold-v1-0 unet weights..."
+        assert variant in ("marigold-v1-0", "marigold-lcm-v1-0", "testing"), variant
+        assert variant != "marigold-v1-0", "Need to figure how to store the marigold-v1-0 unet weights..."
         self.variant = variant
         self.denoising_steps = denoising_steps
         self.ensemble_size = ensemble_size
@@ -30,64 +33,21 @@ class Marigold(Representation):
         self.seed = seed
 
     @overrides
-    def vre_setup(self):
-        unet = UNet2DConditionModel(**{"sample_size": 96, "in_channels": 8, "out_channels": 4,
-                                        "center_input_sample": False, "flip_sin_to_cos": True, "freq_shift": 0,
-                                        "down_block_types": ["CrossAttnDownBlock2D", "CrossAttnDownBlock2D",
-                                                            "CrossAttnDownBlock2D", "DownBlock2D"],
-                                        "mid_block_type": "UNetMidBlock2DCrossAttn",
-                                        "up_block_types": ["UpBlock2D", "CrossAttnUpBlock2D", "CrossAttnUpBlock2D",
-                                                            "CrossAttnUpBlock2D"],
-                                        "only_cross_attention": False, "block_out_channels": [320, 640, 1280, 1280],
-                                        "layers_per_block": 2, "downsample_padding": 1, "mid_block_scale_factor": 1,
-                                        "dropout": 0.0, "act_fn": "silu", "norm_num_groups": 32, "norm_eps": 1e-05,
-                                        "cross_attention_dim": 1024, "transformer_layers_per_block": 1,
-                                        "reverse_transformer_layers_per_block": None, "encoder_hid_dim": None,
-                                        "encoder_hid_dim_type": None, "attention_head_dim": [5, 10, 20, 20],
-                                        "num_attention_heads": None, "dual_cross_attention": False,
-                                        "use_linear_projection": True, "class_embed_type": None,
-                                        "addition_embed_type": None, "addition_time_embed_dim": None,
-                                        "num_class_embeds": None, "upcast_attention": False,
-                                        "resnet_time_scale_shift": "default", "resnet_skip_time_act": False,
-                                        "resnet_out_scale_factor": 1.0, "time_embedding_type": "positional",
-                                        "time_embedding_dim": None, "time_embedding_act_fn": None,
-                                        "timestep_post_act": None, "time_cond_proj_dim": None, "conv_in_kernel": 3,
-                                        "conv_out_kernel": 3, "projection_class_embeddings_input_dim": None,
-                                        "attention_type": "default", "class_embeddings_concat": False,
-                                        "mid_block_only_cross_attention": None, "cross_attention_norm": None,
-                                        "addition_embed_type_num_heads": 64
-        })
-        vae = AutoencoderKL(**{"in_channels": 3, "out_channels": 3,
-                                "down_block_types": ["DownEncoderBlock2D", "DownEncoderBlock2D",
-                                                    "DownEncoderBlock2D", "DownEncoderBlock2D"],
-                                "up_block_types": ["UpDecoderBlock2D", "UpDecoderBlock2D",
-                                                    "UpDecoderBlock2D", "UpDecoderBlock2D"],
-                                "block_out_channels": [128, 256, 512, 512], "layers_per_block": 2, "act_fn": "silu",
-                                "latent_channels": 4, "norm_num_groups": 32, "sample_size": 768,
-                                "scaling_factor": 0.18215, "shift_factor": None, "latents_mean": None,
-                                "latents_std": None, "force_upcast": True, "use_quant_conv": True,
-                                "use_post_quant_conv": True, "mid_block_add_attention": True
-        })
-        vae.load_state_dict(load_weights(fetch_weights(__file__) / "vae.pt")) # VAE is common for both variants
-        unet.load_state_dict(load_weights(fetch_weights(__file__) / f"{self.variant}_unet.pt"))
-        dim_scheduler_config = {"beta_end": 0.012, "beta_schedule": "scaled_linear", "beta_start": 0.00085,
-                                "clip_sample": False, "clip_sample_range": 1.0,
-                                "dynamic_thresholding_ratio": 0.995, "num_train_timesteps": 1000,
-                                "prediction_type": "v_prediction", "rescale_betas_zero_snr": False,
-                                "sample_max_value": 1.0, "set_alpha_to_one": False, "steps_offset": 1,
-                                "thresholding": False, "timestep_spacing": "leading", "trained_betas": None
-        }
+    def vre_setup(self, load_weights: bool=True):
+        unet = UNet2DConditionModel(**self._get_unet_cfg())
+        vae = AutoencoderKL(**self._get_vae_cfg())
+        if load_weights:
+            assert self.variant != "testing"
+            vae.load_state_dict(vre_load_weights(fetch_weights(__file__) / "vae.pt")) # VAE is common for both variants
+            unet.load_state_dict(vre_load_weights(fetch_weights(__file__) / f"{self.variant}_unet.pt"))
 
         if self.variant == "marigold-lcm-v1-0":
-            lcm_scheduler_config = {**dim_scheduler_config, "original_inference_steps": 50, "timestep_scaling": 10.0}
+            lcm_scheduler_config = {**self._get_ddim_cfg(), "original_inference_steps": 50, "timestep_scaling": 10.0}
             scheduler = LCMScheduler(**lcm_scheduler_config)
-            default_denoising_steps = 1
         else:
-            scheduler = DDIMScheduler(**dim_scheduler_config)
-            default_denoising_steps = 10
-        self.model = MarigoldPipeline(unet=unet, vae=vae, scheduler=scheduler, scale_invariant=True,
-                                      shift_invariant=True, default_processing_resolution=768,
-                                      default_denoising_steps=default_denoising_steps)
+            scheduler = DDIMScheduler(**self._get_ddim_cfg())
+        self.model = MarigoldPipeline(unet=unet, vae=vae, scheduler=scheduler,
+                                      scale_invariant=True, shift_invariant=True)
         self.model = self.model.to(self.device)
 
     @tr.no_grad
@@ -102,27 +62,96 @@ class Marigold(Representation):
                           processing_res=self.processing_resolution, generator=generator)[0]
 
     @overrides
-    def make(self, frames: np.ndarray, dep_data: dict[str, RepresentationOutput] | None = None) -> RepresentationOutput:
+    def make(self, frames: np.ndarray, dep_data: dict[str, ReprOut] | None = None) -> ReprOut:
         res = np.stack([self._make_one_frame(frame) for frame in frames])
-        return RepresentationOutput(output=res)
+        return ReprOut(output=res)
 
     @overrides
-    def make_images(self, frames: np.ndarray, repr_data: RepresentationOutput) -> np.ndarray:
+    def make_images(self, frames: np.ndarray, repr_data: ReprOut) -> np.ndarray:
         depth_colored = colorize_depth_maps(repr_data.output, 0, 1)
         return (depth_colored * 255).astype(np.uint8)
 
     @overrides
-    def resize(self, repr_data: RepresentationOutput, new_size: tuple[int, int]) -> RepresentationOutput:
-        return RepresentationOutput(output=image_resize_batch(repr_data.output, *new_size, "bilinear").clip(0, 1))
+    def resize(self, repr_data: ReprOut, new_size: tuple[int, int]) -> ReprOut:
+        return ReprOut(output=image_resize_batch(repr_data.output, *new_size, "bilinear").clip(0, 1))
 
     @overrides
-    def size(self, repr_data: RepresentationOutput) -> tuple[int, int]:
-        return repr_data.output.shape[0:2]
+    def size(self, repr_data: ReprOut) -> tuple[int, int]:
+        return repr_data.output.shape[1:3]
 
+    @overrides
     def vre_free(self):
         if str(self.device).startswith("cuda"):
             self.model.to("cpu")
             tr.cuda.empty_cache()
+
+    def _get_ddim_cfg(self) -> dict:
+        return {
+            "beta_end": 0.012, "beta_schedule": "scaled_linear", "beta_start": 0.00085,
+            "clip_sample": False, "clip_sample_range": 1.0,
+            "dynamic_thresholding_ratio": 0.995, "num_train_timesteps": 1000,
+            "prediction_type": "v_prediction", "rescale_betas_zero_snr": False,
+            "sample_max_value": 1.0, "set_alpha_to_one": False, "steps_offset": 1,
+            "thresholding": False, "timestep_spacing": "leading", "trained_betas": None
+        }
+
+    def _get_unet_cfg(self) -> dict:
+        block_out_channels = {
+            "testing": [8, 16, 32, 32],
+            "marigold-lcm-v1-0": [320, 640, 1280, 1280],
+            "marigold-v1-0": [320, 640, 1280, 1280],
+        }[self.variant]
+        norm_num_groups = {
+            "testing": 8,
+            "marigold-lcm-v1-0": 32,
+            "marigold-v1-0": 32,
+        }[self.variant]
+        cfg = {
+            "sample_size": 96, "in_channels": 8, "out_channels": 4, "center_input_sample": False,
+            "flip_sin_to_cos": True, "freq_shift": 0,
+            "down_block_types": ["CrossAttnDownBlock2D", "CrossAttnDownBlock2D", "CrossAttnDownBlock2D", "DownBlock2D"],
+            "mid_block_type": "UNetMidBlock2DCrossAttn",
+            "up_block_types": ["UpBlock2D", "CrossAttnUpBlock2D", "CrossAttnUpBlock2D", "CrossAttnUpBlock2D"],
+            "only_cross_attention": False, "block_out_channels": block_out_channels, "layers_per_block": 2,
+            "downsample_padding": 1, "mid_block_scale_factor": 1, "dropout": 0.0, "act_fn": "silu",
+            "norm_num_groups": norm_num_groups, "norm_eps": 1e-05, "cross_attention_dim": 1024,
+            "transformer_layers_per_block": 1, "reverse_transformer_layers_per_block": None,
+            "encoder_hid_dim": None, "encoder_hid_dim_type": None, "attention_head_dim": [5, 10, 20, 20],
+            "num_attention_heads": None, "dual_cross_attention": False, "use_linear_projection": True,
+            "class_embed_type": None, "addition_embed_type": None, "addition_time_embed_dim": None,
+            "num_class_embeds": None, "upcast_attention": False, "resnet_time_scale_shift": "default",
+            "resnet_skip_time_act": False, "resnet_out_scale_factor": 1.0, "time_embedding_type": "positional",
+            "time_embedding_dim": None, "time_embedding_act_fn": None, "timestep_post_act": None,
+            "time_cond_proj_dim": None, "conv_in_kernel": 3, "conv_out_kernel": 3,
+            "projection_class_embeddings_input_dim": None, "attention_type": "default",
+            "class_embeddings_concat": False, "mid_block_only_cross_attention": None, "cross_attention_norm": None,
+            "addition_embed_type_num_heads": 64
+        }
+        return cfg
+
+    def _get_vae_cfg(self):
+        block_out_channels = {
+            "testing": [8, 16, 32, 32],
+            "marigold-lcm-v1-0": [128, 256, 512, 512],
+            "marigold-v1-0": [128, 256, 512, 512],
+        }[self.variant]
+        norm_num_groups = {
+            "testing": 8,
+            "marigold-lcm-v1-0": 32,
+            "marigold-v1-0": 32,
+        }[self.variant]
+
+        return {
+            "in_channels": 3, "out_channels": 3,
+            "down_block_types": ["DownEncoderBlock2D", "DownEncoderBlock2D",
+            "DownEncoderBlock2D", "DownEncoderBlock2D"],
+            "up_block_types": ["UpDecoderBlock2D", "UpDecoderBlock2D", "UpDecoderBlock2D", "UpDecoderBlock2D"],
+            "block_out_channels": block_out_channels, "layers_per_block": 2, "act_fn": "silu",
+            "latent_channels": 4, "norm_num_groups": norm_num_groups, "sample_size": 768,
+            "scaling_factor": 0.18215, "shift_factor": None, "latents_mean": None,
+            "latents_std": None, "force_upcast": True, "use_quant_conv": True,
+            "use_post_quant_conv": True, "mid_block_add_attention": True
+        }
 
 def main():
     """main fn"""

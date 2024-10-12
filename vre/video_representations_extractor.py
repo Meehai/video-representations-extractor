@@ -7,11 +7,12 @@ import os
 import traceback
 from tqdm import tqdm
 import pandas as pd
+import torch as tr
 
-from .representation import Representation
-from .utils import VREVideo, took, make_batches, all_batch_exists, now_fmt
+from .representations import Representation, LearnedRepresentationMixin
 from .vre_runtime_args import VRERuntimeArgs
 from .data_storer import DataStorer
+from .utils import VREVideo, took, make_batches, all_batch_exists, now_fmt, get_project_root
 from .logger import vre_logger as logger
 
 class VideoRepresentationsExtractor:
@@ -46,7 +47,7 @@ class VideoRepresentationsExtractor:
         try:
             representation.video = self.video
             representation.output_dir = runtime_args.output_dir if runtime_args.load_from_disk_if_computed else None
-            representation.vre_setup()
+            representation.vre_setup() if isinstance(representation, LearnedRepresentationMixin) else None # device
         except Exception:
             self._log_error(f"\n[{name} {batch_size=}] {traceback.format_exc()}\n")
             del representation
@@ -64,6 +65,7 @@ class VideoRepresentationsExtractor:
 
             now = datetime.now()
             try:
+                tr.cuda.empty_cache() # might empty some unused memory, not 100% if needed.
                 y_repr = representation.vre_make(slice(l, r))
                 if (o_s := runtime_args.output_sizes[representation.name]) == "native":
                     y_repr_rsz = y_repr
@@ -93,7 +95,9 @@ class VideoRepresentationsExtractor:
         Returns:
         - A dataframe with the run statistics for each representation
         """
-        self._logs_file = Path(os.getenv("VRE_LOGS_DIR", str(Path.cwd()))) / f"logs-{now_fmt()}.txt"
+        self._logs_file = Path(os.getenv("VRE_LOGS_DIR", get_project_root() / "logs")) / f"logs-{now_fmt()}.txt"
+        self._logs_file.parent.mkdir(exist_ok=True, parents=True)
+        logger.add_file_handler(self._logs_file)
         if end_frame is None:
             logger.warning(f"end frame not set, default to the last frame of the video: {len(self.video)}")
             end_frame = len(self.video)
@@ -107,10 +111,11 @@ class VideoRepresentationsExtractor:
             if repr_res[name][-1] == 1 << 31 and runtime_args.exception_mode == "stop_execution":
                 raise RuntimeError(f"Representation '{name}' threw. Check '{self._logs_file}' for information")
             run_stats.append(repr_res)
-            vre_repr.vre_free()
+            vre_repr.vre_free() if isinstance(vre_repr, LearnedRepresentationMixin) else None # free device
         df_run_stats = pd.DataFrame(reduce(lambda a, b: {**a, **b}, run_stats),
                                     index=range(runtime_args.start_frame, runtime_args.end_frame))
         self._data_storer.join_with_timeout(timeout=30)
+        logger.remove_file_handler()
         return df_run_stats
 
     # pylint: disable=too-many-branches, too-many-nested-blocks

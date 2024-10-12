@@ -1,10 +1,11 @@
 """Init file"""
+# pylint: disable=reimported
 import warnings
 from lovely_tensors import monkey_patch
 from diffusers.utils.logging import disable_progress_bar
 
-# pylint: disable=reimported
 from .video_representations_extractor import VideoRepresentationsExtractor, VideoRepresentationsExtractor as VRE
+from .representations import Representation, ReprOut
 
 monkey_patch()
 disable_progress_bar()

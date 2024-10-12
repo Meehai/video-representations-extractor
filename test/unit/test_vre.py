@@ -2,8 +2,8 @@ from tempfile import TemporaryDirectory
 from pathlib import Path
 import time
 import numpy as np
-from vre import VRE
-from vre.utils import FakeVideo, image_resize_batch, RepresentationOutput
+from vre import VRE, ReprOut
+from vre.utils import FakeVideo, image_resize_batch
 from vre.representations.rgb import RGB
 
 def test_vre_1():
@@ -15,14 +15,14 @@ def test_vre_1():
 
 def test_vre_2():
     video = FakeVideo(np.random.randint(0, 255, size=(2, 128, 128, 3), dtype=np.uint8), frame_rate=30)
-    vre = VRE(video=video, representations={"rgb": RGB("rgb", [])})
+    vre = VRE(video=video, representations={"rgb": RGB("rgb")})
     res = vre(Path(TemporaryDirectory().name), export_npy=True, export_png=False)
     assert len(res) == 2, res
 
 def test_vre_ouput_dir_exist_mode():
     video = FakeVideo(np.random.randint(0, 255, size=(2, 128, 128, 3), dtype=np.uint8), frame_rate=30)
 
-    vre = VRE(video=video, representations={"rgb": RGB("rgb", [])})
+    vre = VRE(video=video, representations={"rgb": RGB("rgb")})
     _ = vre(tmp_dir := Path(TemporaryDirectory().name), export_npy=True, export_png=False)
     creation_time1 = (tmp_dir / "rgb/npy").stat().st_ctime
     try:
@@ -39,16 +39,16 @@ def test_vre_ouput_dir_exist_mode():
     assert creation_time1 < creation_time3
 
 def test_vre_ouput_shape():
-    class FakeRGB(RGB):
+    class RGBWithShape(RGB):
         def __init__(self, shape, *args, **kwargs):
             super().__init__(*args, **kwargs)
             self.shape = shape
 
-        def make(self, frames: np.ndarray, dep_data: dict) -> RepresentationOutput:
-            return RepresentationOutput(output=image_resize_batch(super().make(frames).output, *self.shape))
+        def make(self, frames: np.ndarray, dep_data: dict) -> ReprOut:
+            return ReprOut(output=image_resize_batch(super().make(frames).output, *self.shape))
 
     video = FakeVideo(np.random.randint(0, 255, size=(2, 128, 128, 3), dtype=np.uint8), frame_rate=30)
-    vre = VRE(video=video, representations={"rgb": FakeRGB((64, 64), "rgb", [])})
+    vre = VRE(video=video, representations={"rgb": RGBWithShape((64, 64), "rgb")})
 
     _ = vre(tmp_dir := Path(TemporaryDirectory().name), export_npy=True, export_png=False, output_size="video_shape")
     assert np.load(tmp_dir / "rgb/npy/0.npz")["arr_0"].shape == (128, 128, 3)

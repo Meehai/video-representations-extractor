@@ -7,6 +7,7 @@ def test_safeuav():
     train_height, train_width = 100, 200
     safeuav_repr = SafeUAV(name="safeuav", dependencies=[], num_classes=3, train_height=train_height,
                            train_width=train_width, color_map=[[0, 255, 0], [0, 127, 0], [255, 255, 0]])
+    safeuav_repr.vre_setup(load_weights=False)
 
     frames = np.array(video[0:1])
     y_safeuav = safeuav_repr(frames)

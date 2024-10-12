@@ -1,8 +1,8 @@
 """HSV module"""
 import numpy as np
 from overrides import overrides
-from ..representation import Representation, RepresentationOutput
-from ..utils import image_resize_batch
+from vre.utils import image_resize_batch
+from .representation import Representation, ReprOut
 
 def rgb2hsv(rgb: np.ndarray) -> np.ndarray:
     """RGB to HSV color space conversion."""
@@ -56,21 +56,17 @@ def rgb2hsv(rgb: np.ndarray) -> np.ndarray:
 class HSV(Representation):
     """HSV representation"""
     @overrides
-    def make(self, frames: np.ndarray, dep_data: dict[str, RepresentationOutput] | None = None) -> RepresentationOutput:
-        return RepresentationOutput(output=rgb2hsv(frames).astype(np.float32))
+    def make(self, frames: np.ndarray, dep_data: dict[str, ReprOut] | None = None) -> ReprOut:
+        return ReprOut(output=rgb2hsv(frames).astype(np.float32))
 
     @overrides
-    def make_images(self, frames: np.ndarray, repr_data: RepresentationOutput) -> np.ndarray:
+    def make_images(self, frames: np.ndarray, repr_data: ReprOut) -> np.ndarray:
         return (repr_data.output * 255).astype(np.uint8)
 
     @overrides
-    def size(self, repr_data: RepresentationOutput) -> tuple[int, int]:
+    def size(self, repr_data: ReprOut) -> tuple[int, int]:
         return repr_data.output.shape[1:3]
 
     @overrides
-    def resize(self, repr_data: RepresentationOutput, new_size: tuple[int, int]) -> RepresentationOutput:
-        return RepresentationOutput(output=image_resize_batch(repr_data.output, height=new_size[0], width=new_size[1]))
-
-    @overrides
-    def vre_setup(self):
-        pass
+    def resize(self, repr_data: ReprOut, new_size: tuple[int, int]) -> ReprOut:
+        return ReprOut(output=image_resize_batch(repr_data.output, height=new_size[0], width=new_size[1]))

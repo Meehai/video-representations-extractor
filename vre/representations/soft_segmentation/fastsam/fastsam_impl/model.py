@@ -16,6 +16,8 @@ from pathlib import Path
 import sys
 sys.path.append(Path(__file__).parents[1].__str__()) # needed to load the weights because ultralytics must be in path...
 
+from ultralytics.nn.tasks import SegmentationModel
+from ultralytics.nn.modules import Segment
 from .predict import FastSAMPredictor
 from .utils import DEFAULT_CFG_DICT, DEFAULT_CFG_KEYS
 
@@ -80,31 +82,25 @@ def make_anchors(feats, strides, grid_cell_offset=0.5):
         stride_tensor.append(torch.full((h * w, 1), stride, dtype=dtype, device=device))
     return torch.cat(anchor_points), torch.cat(stride_tensor)
 
-def attempt_load_one_weight(weight, device=None, inplace=True, fuse=False):
-    """Loads a single model weights."""
-    ckpt = torch.load(weight)
-    args = {**DEFAULT_CFG_DICT, **(ckpt.get('train_args', {}))}  # combine model and default args, preferring model args
-    model = (ckpt.get('ema') or ckpt['model']).to(device).float()  # FP32 model
 
-    # Model compatibility updates
-    model.args = {k: v for k, v in args.items() if k in DEFAULT_CFG_KEYS}  # attach args to model
-    model.pt_path = weight  # attach *.pt file path to model
-    model.task = "segment"
-    if not hasattr(model, 'stride'):
-        model.stride = torch.tensor([32.])
+class FakeSAM(SegmentationModel):
+    def __init__(self):
+        super().__init__()
+        self.head = Segment(nc=1, nm=32, npr=128, ch=(128, 256, 512), reg_max=26)
 
-    model = model.fuse().eval() if fuse and hasattr(model, 'fuse') else model.eval()  # model in eval mode
-
-    # Module compatibility updates
-    for m in model.modules():
-        t = type(m)
-        if t in (nn.Hardswish, nn.LeakyReLU, nn.ReLU, nn.ReLU6, nn.SiLU):
-            m.inplace = inplace  # torch 1.7.0 compatibility
-        elif t is nn.Upsample and not hasattr(m, 'recompute_scale_factor'):
-            m.recompute_scale_factor = None  # torch 1.11.0 compatibility
-
-    # Return model and ckpt
-    return model, ckpt
+    @torch.no_grad
+    def forward(self, x: torch.FloatTensor) -> torch.FloatTensor:
+        mb, device = len(x), next(self.head.parameters()).device
+        # [tensor[1, 320, 72, 128] n=2949120 (11Mb) x∈[-0.278, 6.678] μ=0.216 σ=0.407 cuda:0,
+        #  tensor[1, 640, 36, 64] n=1474560 (5.6Mb) x∈[-0.278, 9.127] μ=0.034 σ=0.335 cuda:0,
+        #  tensor[1, 640, 18, 32] n=368640 (1.4Mb) x∈[-0.278, 7.905] μ=0.173 σ=0.529 cuda:0]
+        x = [
+            torch.randn(mb, 128, 64, 128).to(device),
+            torch.randn(mb, 256, 32, 64).to(device),
+            torch.randn(mb, 512, 16, 32).to(device)
+        ]
+        y = self.head(x)
+        return y
 
 class FastSAM:
 
@@ -140,14 +136,32 @@ class FastSAM:
             weights (str): model checkpoint to be loaded
             task (str | None): model task
         """
-        suffix = Path(weights).suffix
-        assert suffix == ".pt", suffix
-        self.model, self.ckpt = attempt_load_one_weight(weights)
-        self.task = self.model.args['task']
-        self.overrides = self.model.args = self._reset_ckpt_args(self.model.args)
-        self.ckpt_path = self.model.pt_path
-        self.overrides['model'] = weights
-        self.overrides['task'] = self.task
+        if weights == "testing":
+            model = FakeSAM()
+            args = DEFAULT_CFG_DICT
+        else:
+            # self.model, _ = attempt_load_one_weight(weights)
+            ckpt = torch.load(weights)
+            args = {**DEFAULT_CFG_DICT, **(ckpt.get('train_args', {}))}  # combine model and default args, preferring model args
+            model = (ckpt.get('ema') or ckpt['model']).to("cpu").float()  # FP32 model
+
+            # Model compatibility updates
+            model.pt_path = weights  # attach *.pt file path to model
+            if not hasattr(model, 'stride'):
+                model.stride = torch.tensor([32.])
+
+            model = model.fuse().eval() if hasattr(model, 'fuse') else model.eval()  # model in eval mode
+
+            # Module compatibility updates
+            for m in model.modules():
+                t = type(m)
+                if t in (nn.Hardswish, nn.LeakyReLU, nn.ReLU, nn.ReLU6, nn.SiLU):
+                    m.inplace = True  # torch 1.7.0 compatibility
+                elif t is nn.Upsample and not hasattr(m, 'recompute_scale_factor'):
+                    m.recompute_scale_factor = None  # torch 1.11.0 compatibility
+        model.args = {k: v for k, v in args.items() if k in DEFAULT_CFG_KEYS}  # attach args to model
+        model.task = "segment"
+        self.model = model
 
     @staticmethod
     def _reset_ckpt_args(args):

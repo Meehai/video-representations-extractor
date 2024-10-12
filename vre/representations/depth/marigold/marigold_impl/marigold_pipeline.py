@@ -14,7 +14,6 @@ from tqdm.auto import tqdm
 from .ensemble import ensemble_depth
 from .marigold_util import resize_max_res, find_batch_size
 
-
 class MarigoldPipeline(torch.nn.Module):
     """
     Pipeline for monocular depth estimation using Marigold: https://marigoldmonodepth.github.io.
@@ -69,6 +68,8 @@ class MarigoldPipeline(torch.nn.Module):
         self.vae = vae
         self.diffusion_scheduler = scheduler
         self.dtype = torch.float32
+        assert isinstance(default_denoising_steps, type(None)), default_denoising_steps
+        assert isinstance(default_processing_resolution, type(None)), default_processing_resolution
         self._internal_dict = FrozenDict(scale_invariant=scale_invariant, shift_invariant=shift_invariant,
                                          default_denoising_steps=default_denoising_steps,
                                          default_processing_resolution=default_processing_resolution)
@@ -78,8 +79,8 @@ class MarigoldPipeline(torch.nn.Module):
         self.default_denoising_steps = default_denoising_steps
         self.default_processing_resolution = default_processing_resolution
         # This used to be clip.encode("") + clip tokenizer. Since it's fixed and static, we stored it to disk and
-        # removed clip and the transformers librarry as a dependency.
-        self.empty_text_embed: torch.Tensor = torch.load(Path(__file__).parent / "empty_text_embed.pt").to(self.dtype)
+        # removed clip and the transformers library as a dependency.
+        self.empty_text_embed: torch.Tensor = torch.load(Path(__file__).parent / "empty_text_embed.pkl").to(self.dtype)
         assert abs(self.empty_text_embed.mean().item() - -0.174562573) < 1e-3, self.empty_text_embed.mean().item()
         assert abs(self.empty_text_embed.std().item() - 0.8112) < 1e-3, self.empty_text_embed.std().item()
 

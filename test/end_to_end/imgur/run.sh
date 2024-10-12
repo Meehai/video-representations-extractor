@@ -1,5 +1,5 @@
 #!/bin/bash
-
+set -ex
 export CWD=$(dirname $(readlink -f ${BASH_SOURCE[0]}))
 export VRE_ROOT=$CWD/../../../
 export VRE_LOGS_DIR=$CWD/logs

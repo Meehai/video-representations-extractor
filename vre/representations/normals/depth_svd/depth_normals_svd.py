@@ -2,10 +2,10 @@
 from overrides import overrides
 import numpy as np
 
-from .depth_svd_impl.cam import fov_diag_to_intrinsic
-from .depth_svd_impl.utils import get_sampling_grid, get_normalized_coords, depth_to_normals
-from ....representation import Representation, RepresentationOutput
-from ....utils import image_resize_batch
+from vre.representations.normals.depth_svd.depth_svd_impl import \
+    fov_diag_to_intrinsic, get_sampling_grid, get_normalized_coords, depth_to_normals
+from vre.representations import Representation, ReprOut
+from vre.utils import image_resize_batch
 
 class DepthNormalsSVD(Representation):
     """
@@ -29,27 +29,23 @@ class DepthNormalsSVD(Representation):
         self._grid_cache = {}
 
     @overrides
-    def make(self, frames: np.ndarray, dep_data: dict[str, RepresentationOutput] | None = None) -> RepresentationOutput:
+    def make(self, frames: np.ndarray, dep_data: dict[str, ReprOut] | None = None) -> ReprOut:
         depths = dep_data[self.dependencies[0].name].output
         assert len(depths.shape) == 3, f"Expected (T, H, W) got: {depths.shape}"
         res = np.array([self._make_one_normal(depth) for depth in depths])
-        return RepresentationOutput(output=res)
+        return ReprOut(output=res)
 
     @overrides
-    def make_images(self, frames: np.ndarray, repr_data: RepresentationOutput) -> np.ndarray:
+    def make_images(self, frames: np.ndarray, repr_data: ReprOut) -> np.ndarray:
         return (repr_data.output * 255).astype(np.uint8)
 
     @overrides
-    def size(self, repr_data: RepresentationOutput) -> tuple[int, int]:
+    def size(self, repr_data: ReprOut) -> tuple[int, int]:
         return repr_data.output.shape[1:3]
 
     @overrides
-    def resize(self, repr_data: RepresentationOutput, new_size: tuple[int, int]) -> RepresentationOutput:
-        return RepresentationOutput(output=image_resize_batch(repr_data.output, *new_size))
-
-    @overrides
-    def vre_setup(self):
-        pass
+    def resize(self, repr_data: ReprOut, new_size: tuple[int, int]) -> ReprOut:
+        return ReprOut(output=image_resize_batch(repr_data.output, *new_size))
 
     def _make_one_normal(self, depth: np.ndarray) -> np.ndarray:
         # TODO: batch vectorize this if possible

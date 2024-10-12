@@ -124,14 +124,14 @@ class Model(nn.Module):
     def load_model(self, path):
         def convert(param):
             return {k.replace("module.", ""): v for k, v in param.items() if "module." in k}
-        self.flownet.load_state_dict(convert(torch.load('{}/flownet.pkl'.format(path), map_location="cpu")))
-        self.contextnet.load_state_dict(convert(torch.load('{}/contextnet.pkl'.format(path), map_location="cpu")))
-        self.fusionnet.load_state_dict(convert(torch.load('{}/unet.pkl'.format(path), map_location="cpu")))
+        self.flownet.load_state_dict(convert(torch.load('{}/flownet.ckpt'.format(path), map_location="cpu")))
+        self.contextnet.load_state_dict(convert(torch.load('{}/contextnet.ckpt'.format(path), map_location="cpu")))
+        self.fusionnet.load_state_dict(convert(torch.load('{}/unet.ckpt'.format(path), map_location="cpu")))
 
     def save_model(self, path):
-        torch.save(self.flownet.state_dict(), '{}/flownet.pkl'.format(path))
-        torch.save(self.contextnet.state_dict(), '{}/contextnet.pkl'.format(path))
-        torch.save(self.fusionnet.state_dict(), '{}/unet.pkl'.format(path))
+        torch.save(self.flownet.state_dict(), '{}/flownet.ckpt'.format(path))
+        torch.save(self.contextnet.state_dict(), '{}/contextnet.ckpt'.format(path))
+        torch.save(self.fusionnet.state_dict(), '{}/unet.ckpt'.format(path))
 
     def predict(self, imgs, flow, training=True, flow_gt=None, UHD=False):
         img0 = imgs[:, :3]

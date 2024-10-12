@@ -11,20 +11,19 @@ import numpy as np
 from lovely_tensors import monkey_patch
 from fvcore.common.config import CfgNode
 
-from vre.representation import Representation, RepresentationOutput
+from vre.representations import Representation, ReprOut, LearnedRepresentationMixin
 from vre.logger import vre_logger as logger
-from vre.utils import image_resize_batch, fetch_weights, image_read, image_write, load_weights
-from vre.representations.semantic_segmentation.mask2former.mask2former_impl import MaskFormer as MaskFormerImpl
-from vre.representations.semantic_segmentation.mask2former.mask2former_impl.det2_data.catalog \
-    import MetadataCatalog, Metadata
-from vre.representations.semantic_segmentation.mask2former.mask2former_impl.visualizer import Visualizer, ColorMode
+from vre.utils import image_resize_batch, fetch_weights, image_read, image_write, vre_load_weights
+
+try:
+    from .mask2former_impl import MaskFormer as MaskFormerImpl, MetadataCatalog, Metadata, Visualizer, ColorMode
+except ImportError:
+    from mask2former_impl import MaskFormer as MaskFormerImpl, MetadataCatalog, Metadata, Visualizer, ColorMode
 
 monkey_patch()
 
-def get_output_shape(oldh: int, oldw: int, short_edge_length: int, max_size: int):
-    """
-    Compute the output size given input size and target short edge length.
-    """
+def _get_output_shape(oldh: int, oldw: int, short_edge_length: int, max_size: int):
+    """Compute the output size given input size and target short edge length."""
     scale = short_edge_length / min(oldh, oldw)
     newh, neww = (short_edge_length, scale * oldw) if oldh < oldw else (scale * oldh, short_edge_length)
     if max(newh, neww) > max_size:
@@ -33,7 +32,7 @@ def get_output_shape(oldh: int, oldw: int, short_edge_length: int, max_size: int
     neww, newh = int(neww + 0.5), int(newh + 0.5)
     return newh, neww
 
-class Mask2Former(Representation):
+class Mask2Former(Representation, LearnedRepresentationMixin):
     """Mask2Former representation implementation. Note: only semantic segmentation (not panoptic/instance) enabled."""
     def __init__(self, model_id: str, semantic_argmax_only: bool, **kwargs):
         super().__init__(**kwargs)
@@ -44,23 +43,23 @@ class Mask2Former(Representation):
         self.cfg: CfgNode | None = None
         self.metadata: Metadata | None = None
 
-    @overrides(check_signature=False)
-    def vre_setup(self, ckpt_data: dict | None = None):
+    @overrides(check_signature=False) # TODO: use load_weights: bool pattern here too
+    def vre_setup(self, ckpt_data: dict | None = None): # pylint: disable=arguments-renamed
         if self.model_id == "dummy":
             assert ckpt_data is not None
         else:
             assert ckpt_data is None
             weights_path = fetch_weights(__file__) / f"{self.model_id}.ckpt"
             assert isinstance(weights_path, Path), type(weights_path)
-            ckpt_data = load_weights(weights_path)
+            ckpt_data = vre_load_weights(weights_path)
         self.model, self.cfg, self.metadata = self._build_model(ckpt_data)
         self.model = self.model.to(self.device)
 
     @tr.no_grad()
     @overrides
-    def make(self, frames: np.ndarray, dep_data: dict[str, RepresentationOutput] | None = None) -> RepresentationOutput:
+    def make(self, frames: np.ndarray, dep_data: dict[str, ReprOut] | None = None) -> ReprOut:
         height, width = frames.shape[1:3]
-        _os = get_output_shape(height, width, self.cfg.INPUT.MIN_SIZE_TEST, self.cfg.INPUT.MAX_SIZE_TEST)
+        _os = _get_output_shape(height, width, self.cfg.INPUT.MIN_SIZE_TEST, self.cfg.INPUT.MAX_SIZE_TEST)
         imgs = image_resize_batch(frames, _os[0], _os[1], "bilinear", "PIL").transpose(0, 3, 1, 2).astype("float32")
         inputs = [{"image": tr.from_numpy(img), "height": height, "width": width} for img in imgs]
         predictions: list[tr.Tensor] = [x["sem_seg"] for x in self.model(inputs)]
@@ -68,10 +67,10 @@ class Mask2Former(Representation):
         for pred in predictions:
             _pred = pred.argmax(0).byte() if self.semantic_argmax_only else pred.half().permute(1, 2, 0)
             res.append(_pred.to("cpu").numpy())
-        return RepresentationOutput(output=np.stack(res))
+        return ReprOut(output=np.stack(res))
 
     @overrides
-    def make_images(self, frames: np.ndarray, repr_data: RepresentationOutput) -> np.ndarray:
+    def make_images(self, frames: np.ndarray, repr_data: ReprOut) -> np.ndarray:
         res = []
         frames_rsz = image_resize_batch(frames, *repr_data.output.shape[1:3])
         for img, pred in zip(frames_rsz, repr_data.output):
@@ -82,13 +81,13 @@ class Mask2Former(Representation):
         return res
 
     @overrides
-    def size(self, repr_data: RepresentationOutput) -> tuple[int, int]:
+    def size(self, repr_data: ReprOut) -> tuple[int, int]:
         return repr_data.output.shape[1:3]
 
     @overrides
-    def resize(self, repr_data: RepresentationOutput, new_size: tuple[int, int]) -> RepresentationOutput:
+    def resize(self, repr_data: ReprOut, new_size: tuple[int, int]) -> ReprOut:
         interpolation = "nearest" if self.semantic_argmax_only else "bilinear"
-        return RepresentationOutput(output=image_resize_batch(repr_data.output, *new_size, interpolation=interpolation))
+        return ReprOut(output=image_resize_batch(repr_data.output, *new_size, interpolation=interpolation))
 
     def _build_model(self, ckpt_data: dict[str, Any]) -> tuple[nn.Module, CfgNode, Metadata]:
         cfg = CfgNode(json.loads(ckpt_data["cfg"]))

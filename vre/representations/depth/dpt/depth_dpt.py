@@ -4,9 +4,13 @@ import torch as tr
 import torch.nn.functional as F
 from overrides import overrides
 
-from .dpt_impl.dpt_depth import DPTDepthModel
-from ....representation import Representation, RepresentationOutput
-from ....utils import image_resize_batch, fetch_weights, colorize_depth_maps, load_weights
+from vre.representations import Representation, ReprOut, LearnedRepresentationMixin
+from vre.utils import image_resize_batch, fetch_weights, colorize_depth_maps, vre_load_weights
+
+try:
+    from .dpt_impl.dpt_depth import DPTDepthModel
+except ImportError:
+    from dpt_impl.dpt_depth import DPTDepthModel
 
 def _constrain_to_multiple_of(x, multiple_of: int, min_val=0, max_val=None) -> int:
     y = (np.round(x / multiple_of) * multiple_of).astype(int)
@@ -33,7 +37,7 @@ def _get_size(__height, __width, height, width, multiple_of) -> tuple[int, int]:
     return new_height, new_width
 
 
-class DepthDpt(Representation):
+class DepthDpt(Representation, LearnedRepresentationMixin):
     """DPT Depth Estimation representation"""
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -41,33 +45,35 @@ class DepthDpt(Representation):
         self.net_w, self.net_h = 384, 384
         self.multiple_of = 32
         tr.manual_seed(42)
-        self.model = DPTDepthModel(backbone="vitl16_384", non_negative=True).to("cpu")
+        self.model: DPTDepthModel | None = None
 
     @overrides
-    def vre_setup(self):
-        weights_file = fetch_weights(__file__) / "depth_dpt_midas.pth"
-        self.model.load_state_dict(load_weights(weights_file))
+    def vre_setup(self, load_weights: bool = True):
+        self.model = DPTDepthModel(backbone="vitl16_384", non_negative=True).to("cpu")
+        if load_weights:
+            weights_file = fetch_weights(__file__) / "depth_dpt_midas.pth"
+            self.model.load_state_dict(vre_load_weights(weights_file))
         self.model = self.model.eval().to(self.device)
 
     @overrides
-    def make(self, frames: np.ndarray, dep_data: dict[str, RepresentationOutput] | None = None) -> RepresentationOutput:
+    def make(self, frames: np.ndarray, dep_data: dict[str, ReprOut] | None = None) -> ReprOut:
         tr_frames = self._preprocess(frames)
         with tr.no_grad():
             predictions = self.model(tr_frames)
         res = self._postprocess(predictions)
-        return RepresentationOutput(output=res)
+        return ReprOut(output=res)
 
     @overrides
-    def make_images(self, frames: np.ndarray, repr_data: RepresentationOutput) -> np.ndarray:
+    def make_images(self, frames: np.ndarray, repr_data: ReprOut) -> np.ndarray:
         return (colorize_depth_maps(repr_data.output, min_depth=0, max_depth=1) * 255).astype(np.uint8)
 
     @overrides
-    def size(self, repr_data: RepresentationOutput) -> tuple[int, int]:
+    def size(self, repr_data: ReprOut) -> tuple[int, int]:
         return repr_data.output.shape[1:3]
 
     @overrides
-    def resize(self, repr_data: RepresentationOutput, new_size: tuple[int, int]) -> RepresentationOutput:
-        return RepresentationOutput(output=image_resize_batch(repr_data.output, *new_size))
+    def resize(self, repr_data: ReprOut, new_size: tuple[int, int]) -> ReprOut:
+        return ReprOut(output=image_resize_batch(repr_data.output, *new_size))
 
     @overrides
     def vre_free(self):
