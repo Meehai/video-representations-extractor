@@ -5,7 +5,7 @@ import torch as tr
 from torch import nn
 from torch.nn import functional as F
 from vre.representations import Representation, ReprOut, LearnedRepresentationMixin
-from vre.utils import image_resize_batch, fetch_weights, vre_load_weights
+from vre.utils import image_resize_batch, fetch_weights, vre_load_weights, colorize_semantic_segmentation
 from vre.logger import vre_logger as logger
 
 try:
@@ -78,25 +78,22 @@ class SafeUAV(Representation, LearnedRepresentationMixin):
             prediction = self.model.forward(frames_resized)
         np_pred = prediction.permute(0, 2, 3, 1).cpu().numpy()
         y_out = np.argmax(np_pred, axis=-1).astype(np.uint8) if self.semantic_argmax_only else np_pred
-        return y_out
+        return ReprOut(output=y_out)
 
     @overrides
     def make_images(self, frames: np.ndarray, repr_data: ReprOut) -> np.ndarray:
         # TODO: use visualizer from M2F.
-        repr_data = repr_data if self.semantic_argmax_only else repr_data.argmax(-1)
-        new_images = np.zeros((*repr_data.shape, 3), dtype=np.uint8)
-        for i in range(self.num_classes):
-            new_images[repr_data == i] = self.color_map[i]
-        return new_images
+        repr_data = repr_data.output if self.semantic_argmax_only else repr_data.output.argmax(-1)
+        return colorize_semantic_segmentation(repr_data, self.color_map)
 
     @overrides
     def size(self, repr_data: ReprOut) -> tuple[int, int]:
-        return repr_data.shape[1:3]
+        return repr_data.output.shape[1:3]
 
     @overrides
     def resize(self, repr_data: ReprOut, new_size: tuple[int, int]) -> ReprOut:
         interpolation = "nearest" if self.semantic_argmax_only else "bilinear"
-        return image_resize_batch(repr_data, *new_size, interpolation=interpolation)
+        return ReprOut(image_resize_batch(repr_data.output, *new_size, interpolation=interpolation))
 
     def vre_free(self):
         if str(self.device).startswith("cuda"):

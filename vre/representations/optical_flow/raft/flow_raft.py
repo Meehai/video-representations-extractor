@@ -4,9 +4,8 @@ from overrides import overrides
 import numpy as np
 import torch as tr
 from torch.nn import functional as F
-import flow_vis
 from vre.representations import Representation, ReprOut, LearnedRepresentationMixin
-from vre.utils import image_resize_batch, fetch_weights, vre_load_weights, VREVideo
+from vre.utils import image_resize_batch, fetch_weights, vre_load_weights, VREVideo, colorize_optical_flow
 from vre.logger import vre_logger as logger
 
 try:
@@ -65,8 +64,7 @@ class FlowRaft(Representation, LearnedRepresentationMixin):
 
     @overrides
     def make_images(self, frames: np.ndarray, repr_data: ReprOut) -> np.ndarray:
-        y = np.array([flow_vis.flow_to_color(_pred) for _pred in repr_data.output])
-        return y
+        return np.array([colorize_optical_flow(_pred) for _pred in repr_data.output])
 
     @overrides
     def size(self, repr_data: ReprOut) -> tuple[int, int]:

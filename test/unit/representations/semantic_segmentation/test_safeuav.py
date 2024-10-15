@@ -11,7 +11,7 @@ def test_safeuav():
 
     frames = np.array(video[0:1])
     y_safeuav = safeuav_repr(frames)
-    assert y_safeuav.shape == (1, train_height, train_width) # no guarantee that make() produces (vid_h, vid_w)
+    assert y_safeuav.output.shape == (1, train_height, train_width) # no guarantee that make() produces (vid_h, vid_w)
 
     y_safeuav_rgb = safeuav_repr.make_images(frames, y_safeuav)
     assert y_safeuav_rgb.shape == (1, train_height, train_width, 3)
