@@ -16,9 +16,9 @@ from vre.logger import vre_logger as logger
 from vre.utils import image_resize_batch, fetch_weights, image_read, image_write, vre_load_weights
 
 try:
-    from .mask2former_impl import MaskFormer as MaskFormerImpl, MetadataCatalog, Metadata, Visualizer, ColorMode
+    from .mask2former_impl import MaskFormer as MaskFormerImpl, Metadata, Visualizer, ColorMode
 except ImportError:
-    from mask2former_impl import MaskFormer as MaskFormerImpl, MetadataCatalog, Metadata, Visualizer, ColorMode
+    from mask2former_impl import MaskFormer as MaskFormerImpl, Metadata, Visualizer, ColorMode
 
 monkey_patch()
 
@@ -52,7 +52,7 @@ class Mask2Former(Representation, LearnedRepresentationMixin):
             weights_path = fetch_weights(__file__) / f"{self.model_id}.ckpt"
             assert isinstance(weights_path, Path), type(weights_path)
             ckpt_data = vre_load_weights(weights_path)
-        self.model, self.cfg, _ = self._build_model(ckpt_data)
+        self.model, self.cfg = self._build_model(ckpt_data)
         self.model = self.model.to(self.device)
 
     @tr.no_grad()
@@ -102,17 +102,14 @@ class Mask2Former(Representation, LearnedRepresentationMixin):
         else:
             return Metadata(**mapilary_metadata2)
 
-    def _build_model(self, ckpt_data: dict[str, Any]) -> tuple[nn.Module, CfgNode, Metadata]:
+    def _build_model(self, ckpt_data: dict[str, Any]) -> tuple[nn.Module, CfgNode]:
         cfg = CfgNode(json.loads(ckpt_data["cfg"]))
         params = MaskFormerImpl.from_config(cfg)
         params = {**params, "semantic_on": True, "panoptic_on": False, "instance_on": False}
         model = MaskFormerImpl(**params).eval()
         res = model.load_state_dict(ckpt_data["state_dict"], strict=False) # inference only: we remove criterion
         assert res.unexpected_keys in (["criterion.empty_weight"], []), res
-        model.to("cpu")
-        assert len(cfg.DATASETS.TEST) == 1, cfg.DATASETS.TEST
-        metadata = MetadataCatalog.get(cfg.DATASETS.TEST[0])
-        return model, cfg, metadata
+        return model, cfg
 
     def vre_free(self):
         if str(self.device).startswith("cuda"):
