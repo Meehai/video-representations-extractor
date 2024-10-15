@@ -9,14 +9,12 @@ def test_depth_normals_svd_dpt():
     normals_svd_repr = DepthNormalsSVD(name="depth_svd_normals_dpt", dependencies=[dpt_repr],
                                        sensor_fov=30, sensor_width=100, sensor_height=100, window_size=5,
                                        input_downsample_step=1, stride=1, max_distance=100, min_valid_count=0)
-    normals_svd_repr.video = video
-    dpt_repr.video = video
     dpt_repr.vre_setup(load_weights=False)
     frames = np.array(video[0:1])
-    y_deps = normals_svd_repr.vre_dep_data(slice(0, 1))
+    y_deps = normals_svd_repr.vre_dep_data(video, slice(0, 1), output_dir=None)
     y_normals = normals_svd_repr(frames, y_deps)
-    assert y_normals.output.shape == (1, y_deps["dpt"].output.shape[1], y_deps["dpt"].output.shape[2], 3), \
-        y_normals.output.shape
+    assert y_normals.output.shape == \
+        (1, y_deps["dpt"].output.shape[1], y_deps["dpt"].output.shape[2], 3), y_normals.output.shape
 
     y_normals_img = normals_svd_repr.make_images(frames, y_normals)
     assert y_normals_img.shape == (1, 384, 384, 3), y_normals_img.shape

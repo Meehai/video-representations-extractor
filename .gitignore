@@ -15,4 +15,5 @@ dist/
 example/
 logs*.txt
 weights/
+examples/workingdir
 

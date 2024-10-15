@@ -45,8 +45,8 @@ class VideoRepresentationsExtractor:
 
         # call vre_setup here so expensive representations get lazy deep instantiated (i.e. models loading)
         try:
-            representation.video = self.video
-            representation.output_dir = runtime_args.output_dir if runtime_args.load_from_disk_if_computed else None
+            # representation.video = self.video
+            # representation.output_dir = runtime_args.output_dir if runtime_args.load_from_disk_if_computed else None
             representation.vre_setup() if isinstance(representation, LearnedRepresentationMixin) else None # device
         except Exception:
             self._log_error(f"\n[{name} {batch_size=}] {traceback.format_exc()}\n")
@@ -66,7 +66,8 @@ class VideoRepresentationsExtractor:
             now = datetime.now()
             try:
                 tr.cuda.empty_cache() # might empty some unused memory, not 100% if needed.
-                y_repr = representation.vre_make(slice(l, r))
+                out_dir = runtime_args.output_dir if runtime_args.load_from_disk_if_computed else None
+                y_repr = representation.vre_make(video=self.video, ixs=slice(l, r), output_dir=out_dir)
                 if (o_s := runtime_args.output_sizes[representation.name]) == "native":
                     y_repr_rsz = y_repr
                 elif o_s == "video_shape":
@@ -109,6 +110,7 @@ class VideoRepresentationsExtractor:
         for name, vre_repr in self.representations.items():
             repr_res = self._do_one_representation(vre_repr, runtime_args)
             if repr_res[name][-1] == 1 << 31 and runtime_args.exception_mode == "stop_execution":
+                logger.remove_file_handler()
                 raise RuntimeError(f"Representation '{name}' threw. Check '{self._logs_file}' for information")
             run_stats.append(repr_res)
             vre_repr.vre_free() if isinstance(vre_repr, LearnedRepresentationMixin) else None # free device
