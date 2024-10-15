@@ -14,6 +14,9 @@ class ReprOut:
     output: np.ndarray
     extra: list[dict] | None = None
 
+    def __post_init__(self):
+        assert isinstance(self.output, np.ndarray), type(self.output)
+
 class Representation(ABC):
     """Generic Representation class for VRE"""
     def __init__(self, name: str, dependencies: list[Representation]):
@@ -70,13 +73,16 @@ class Representation(ABC):
                 return loaded_output
         frames, dep_data = np.array(video[ixs]), self.vre_dep_data(video, ixs, output_dir)
         res = self.make(frames, dep_data)
-        assert isinstance(res, ReprOut), f"[{self}] Expected make() to produce ReprOut, got {type(res)})"
-        assert not isinstance(res.output, ReprOut), f"[{self}] Recursive ReprOuts are not allowed"
+        try:
+            assert isinstance(res, ReprOut), f"[{self}] Expected make() to produce ReprOut, got {type(res)})"
+        except Exception as e:
+            if "ReprOut" not in type(res): # some wtf in notebooks...
+                raise e
         return res
 
     ## Private methods ##
     def _load_from_disk_if_possible(self, ixs: list[int], output_dir: Path) -> ReprOut | None:
-        assert isinstance(ixs, list) and all(isinstance(ix, int) for ix in ixs), (type(ixs), ixs)
+        assert isinstance(ixs, list) and all(isinstance(ix, int) for ix in ixs), (type(ixs), [type(ix) for ix in ixs])
         assert output_dir is not None and output_dir.exists(), output_dir
         npy_paths: list[Path] = [output_dir / self.name / f"npy/{ix}.npz" for ix in ixs]
         extra_paths: list[Path] = [output_dir / self.name / f"npy/{ix}_extra.npz" for ix in ixs]
@@ -84,9 +90,10 @@ class Representation(ABC):
             return None
         extras_exist = [x.exists() for x in extra_paths]
         assert (ee := sum(extras_exist)) in (0, (ep := len(extra_paths))), f"Found {ee}. Expected either 0 or {ep}"
-        extra = [np.load(x, allow_pickle=True)["arr_0"].item() for x in extra_paths] if ee == ep else None
-        logger.debug2(f"[{self}] Slice: [{ixs[0]}:{ixs[-1]}]. All data found on disk and loaded")
         data = np.stack([np.load(x)["arr_0"] for x in npy_paths])
+        extra = [np.load(x, allow_pickle=True)["arr_0"].item() for x in extra_paths] if ee == ep else None
+        logger.info(f"[{self}] Slice: [{ixs[0]}:{ixs[-1]}]. All data found on disk and loaded")
+        logger.debug2(f"[{self}] Slice: [{ixs[0]}:{ixs[-1]}]. All data found on disk and loaded")
         return ReprOut(output=data, extra=extra)
 
     ## Magic methods ##

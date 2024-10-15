@@ -3,10 +3,9 @@ from pathlib import Path
 import numpy as np
 import torch as tr
 import torch.nn.functional as F
-import flow_vis
 from overrides import overrides
 from vre.representations import Representation, ReprOut, LearnedRepresentationMixin
-from vre.utils import image_resize_batch, fetch_weights, VREVideo
+from vre.utils import image_resize_batch, fetch_weights, VREVideo, colorize_optical_flow
 
 try:
     from .rife_impl.RIFE_HDv2 import Model
@@ -46,8 +45,7 @@ class FlowRife(Representation, LearnedRepresentationMixin):
 
     @overrides
     def make_images(self, frames: np.ndarray, repr_data: ReprOut) -> np.ndarray:
-        y = np.array([flow_vis.flow_to_color(_pred) for _pred in repr_data.output])
-        return y
+        return np.array([colorize_optical_flow(_pred) for _pred in repr_data.output])
 
     @overrides
     def size(self, repr_data: ReprOut) -> tuple[int, int]:

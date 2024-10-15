@@ -5,7 +5,7 @@ import torch.nn.functional as F
 from overrides import overrides
 
 from vre.representations import Representation, ReprOut, LearnedRepresentationMixin
-from vre.utils import image_resize_batch, fetch_weights, colorize_depth_maps, vre_load_weights
+from vre.utils import image_resize_batch, fetch_weights, colorize_depth, vre_load_weights
 
 try:
     from .dpt_impl.dpt_depth import DPTDepthModel
@@ -65,7 +65,7 @@ class DepthDpt(Representation, LearnedRepresentationMixin):
 
     @overrides
     def make_images(self, frames: np.ndarray, repr_data: ReprOut) -> np.ndarray:
-        return (colorize_depth_maps(repr_data.output, min_depth=0, max_depth=1) * 255).astype(np.uint8)
+        return (colorize_depth(repr_data.output, min_depth=0, max_depth=1) * 255).astype(np.uint8)
 
     @overrides
     def size(self, repr_data: ReprOut) -> tuple[int, int]:

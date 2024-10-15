@@ -53,6 +53,9 @@ def build_representation_type(repr_type: str) -> Type[Representation]:
     elif repr_type == "normals/depth-svd":
         from .normals.depth_svd import DepthNormalsSVD
         obj_type = DepthNormalsSVD
+    elif repr_type == "extra/semantic-mapper":
+        from .extra.semantic_mapper import SemanticMapper
+        obj_type = SemanticMapper
     else:
         raise ValueError(f"Unknown type: '{repr_type}'")
     return obj_type

@@ -10,7 +10,7 @@ import torch as tr
 from overrides import overrides
 from tqdm.auto import tqdm
 from diffusers import AutoencoderKL, DDIMScheduler, LCMScheduler, UNet2DConditionModel
-from vre.utils import image_resize_batch, image_read, colorize_depth_maps, image_write, fetch_weights, vre_load_weights
+from vre.utils import image_resize_batch, image_read, colorize_depth, image_write, fetch_weights, vre_load_weights
 from vre.representations import Representation, ReprOut, LearnedRepresentationMixin
 
 try:
@@ -53,7 +53,7 @@ class Marigold(Representation, LearnedRepresentationMixin):
     @tr.no_grad
     def _make_one_frame(self, frame: np.ndarray):
         assert self.model is not None
-        tr_rgb = tr.from_numpy(frame).permute(2, 0, 1)[None]
+        tr_rgb = tr.from_numpy(frame).permute(2, 0, 1)[None].to(self.device)
         generator = None
         if self.seed is not None:
             generator = tr.Generator(self.device)
@@ -68,7 +68,7 @@ class Marigold(Representation, LearnedRepresentationMixin):
 
     @overrides
     def make_images(self, frames: np.ndarray, repr_data: ReprOut) -> np.ndarray:
-        depth_colored = colorize_depth_maps(repr_data.output, 0, 1)
+        depth_colored = colorize_depth(repr_data.output, 0, 1)
         return (depth_colored * 255).astype(np.uint8)
 
     @overrides
