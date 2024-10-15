@@ -76,7 +76,7 @@ class Representation(ABC):
         try:
             assert isinstance(res, ReprOut), f"[{self}] Expected make() to produce ReprOut, got {type(res)})"
         except Exception as e:
-            if "ReprOut" not in type(res): # some wtf in notebooks...
+            if "ReprOut" not in str(type(res)): # some wtf in notebooks...
                 raise e
         return res
 
