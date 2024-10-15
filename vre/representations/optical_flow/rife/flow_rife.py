@@ -1,11 +1,12 @@
 """FlowRife representation"""
+from pathlib import Path
 import numpy as np
 import torch as tr
 import torch.nn.functional as F
 import flow_vis
 from overrides import overrides
 from vre.representations import Representation, ReprOut, LearnedRepresentationMixin
-from vre.utils import image_resize_batch, fetch_weights
+from vre.utils import image_resize_batch, fetch_weights, VREVideo
 
 try:
     from .rife_impl.RIFE_HDv2 import Model
@@ -14,10 +15,11 @@ except ImportError:
 
 class FlowRife(Representation, LearnedRepresentationMixin):
     """FlowRife representation"""
-    def __init__(self, compute_backward_flow: bool, uhd: bool, **kwargs):
+    def __init__(self, compute_backward_flow: bool, uhd: bool, flow_delta_frames: int = 1, **kwargs):
         tr.manual_seed(42)
         self.model: Model = Model().eval().to("cpu")
         self.uhd = uhd
+        self.flow_delta_frames = flow_delta_frames
         assert compute_backward_flow is False, "Not supported"
         self.no_backward_flow = True if compute_backward_flow is None else not compute_backward_flow
         super().__init__(**kwargs)
@@ -27,11 +29,10 @@ class FlowRife(Representation, LearnedRepresentationMixin):
         self.model.load_model(fetch_weights(__file__))
         self.model = self.model.eval().to(self.device)
 
-    @overrides
-    def vre_dep_data(self, ix: slice) -> dict[str, ReprOut]:
-        right_frames = np.array(self.video[ix.start + 1: min(ix.stop + 1, len(self.video))])
-        if ix.stop + 1 > len(self.video):
-            right_frames = np.concatenate([right_frames, np.array([self.video[-1]])], axis=0)
+    def vre_dep_data(self, video: VREVideo, ixs: slice | list[int], output_dir: Path | None) -> dict[str, ReprOut]:
+        ixs: list[int] = list(range(ixs.start, ixs.stop)) if isinstance(ixs, slice) else ixs
+        right_ixs = [min(ix + self.flow_delta_frames, len(video)) for ix in ixs]
+        right_frames = np.array(video[right_ixs]) # godbless pims I hope it caches this properly
         return {"right_frames": ReprOut(output=right_frames)}
 
     @overrides

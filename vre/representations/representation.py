@@ -21,13 +21,11 @@ class Representation(ABC):
         assert isinstance(dependencies, (set, list))
         self.name = name
         self.dependencies = dependencies
-
+        # attributes updatable from outside (vre config)
         self.batch_size: int | None = None
         self.output_size: tuple[int, int] | str | None = None
-        self.video: VREVideo | None = None
-        self.output_dir: Path | None = None
 
-
+    ## Abstract methods ##
     @abstractmethod
     def make(self, frames: np.ndarray, dep_data: dict[str, ReprOut] | None = None) -> ReprOut:
         """
@@ -60,40 +58,38 @@ class Representation(ABC):
         """Returns the (h, w) tuple of the size of the current representation"""
 
     ## Public methods ##
-
-    def vre_dep_data(self, ix: slice) -> dict[str, ReprOut]:
+    def vre_dep_data(self, video: VREVideo, ixs: slice | list[int], output_dir: Path | None) -> dict[str, ReprOut]:
         """iteratively collects all the dependencies needed by this representation"""
-        assert self.video is not None, f"[{self}] self.video must be set before calling this"
-        return {dep.name: dep.vre_make(ix) for dep in self.dependencies}
+        return {dep.name: dep.vre_make(video=video, ixs=ixs, output_dir=output_dir) for dep in self.dependencies}
 
-    def vre_make(self, ix: slice) -> ReprOut:
+    def vre_make(self, video: VREVideo, ixs: slice | list[int], output_dir: Path | None) -> ReprOut:
         """wrapper on top of make() that is ran in VRE context."""
-        assert self.video is not None, f"[{self}] self.video must be set before calling this"
-        if self.output_dir is not None:
-            if (loaded_output := self._load_from_disk_if_possible(ix)) is not None:
+        ixs: list[int] = list(range(ixs.start, ixs.stop)) if isinstance(ixs, slice) else ixs
+        if output_dir is not None:
+            if (loaded_output := self._load_from_disk_if_possible(ixs, output_dir)) is not None:
                 return loaded_output
-        frames, dep_data = np.array(self.video[ix]), self.vre_dep_data(ix)
+        frames, dep_data = np.array(video[ixs]), self.vre_dep_data(video, ixs, output_dir)
         res = self.make(frames, dep_data)
         assert isinstance(res, ReprOut), f"[{self}] Expected make() to produce ReprOut, got {type(res)})"
         assert not isinstance(res.output, ReprOut), f"[{self}] Recursive ReprOuts are not allowed"
         return res
 
     ## Private methods ##
-    def _load_from_disk_if_possible(self, ix: slice) -> ReprOut | None:
-        npy_paths: list[Path] = [self.output_dir / self.name / f"npy/{i}.npz" for i in range(ix.start, ix.stop)]
-        extra_paths: list[Path] = [self.output_dir / self.name / f"npy/{i}_extra.npz"
-                                    for i in range(ix.start, ix.stop)]
+    def _load_from_disk_if_possible(self, ixs: list[int], output_dir: Path) -> ReprOut | None:
+        assert isinstance(ixs, list) and all(isinstance(ix, int) for ix in ixs), (type(ixs), ixs)
+        assert output_dir is not None and output_dir.exists(), output_dir
+        npy_paths: list[Path] = [output_dir / self.name / f"npy/{ix}.npz" for ix in ixs]
+        extra_paths: list[Path] = [output_dir / self.name / f"npy/{ix}_extra.npz" for ix in ixs]
         if any(not x.exists() for x in npy_paths): # partial batches are considered 'not existing' and overwritten
             return None
         extras_exist = [x.exists() for x in extra_paths]
         assert (ee := sum(extras_exist)) in (0, (ep := len(extra_paths))), f"Found {ee}. Expected either 0 or {ep}"
         extra = [np.load(x, allow_pickle=True)["arr_0"].item() for x in extra_paths] if ee == ep else None
-        logger.debug2(f"[{self}] Slice: [{ix.start}:{ix.stop - 1}]. All data found on disk and loaded")
+        logger.debug2(f"[{self}] Slice: [{ixs[0]}:{ixs[-1]}]. All data found on disk and loaded")
         data = np.stack([np.load(x)["arr_0"] for x in npy_paths])
         return ReprOut(output=data, extra=extra)
 
     ## Magic methods ##
-
     def __getitem__(self, *args) -> ReprOut:
         raise NotImplementedError("Use self.__call__(args). __getitem__ doesn't make sense because of dependencies")
 
