@@ -92,7 +92,6 @@ class Representation(ABC):
         assert (ee := sum(extras_exist)) in (0, (ep := len(extra_paths))), f"Found {ee}. Expected either 0 or {ep}"
         data = np.stack([np.load(x)["arr_0"] for x in npy_paths])
         extra = [np.load(x, allow_pickle=True)["arr_0"].item() for x in extra_paths] if ee == ep else None
-        logger.info(f"[{self}] Slice: [{ixs[0]}:{ixs[-1]}]. All data found on disk and loaded")
         logger.debug2(f"[{self}] Slice: [{ixs[0]}:{ixs[-1]}]. All data found on disk and loaded")
         return ReprOut(output=data, extra=extra)
 

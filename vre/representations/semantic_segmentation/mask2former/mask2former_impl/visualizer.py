@@ -5,7 +5,6 @@ import logging
 import math
 import numpy as np
 from enum import Enum, unique
-import cv2
 import matplotlib as mpl
 import matplotlib.colors as mplc
 import matplotlib.figure as mplfigure
