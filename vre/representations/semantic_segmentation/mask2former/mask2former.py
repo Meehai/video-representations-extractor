@@ -105,6 +105,7 @@ class Mask2Former(Representation, LearnedRepresentationMixin):
         if str(self.device).startswith("cuda"):
             self.model.to("cpu")
             tr.cuda.empty_cache()
+        self.model = None
 
 def get_args() -> Namespace:
     """cli args"""

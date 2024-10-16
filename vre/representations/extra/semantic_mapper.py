@@ -5,7 +5,7 @@ import numpy as np
 from overrides import overrides
 
 from ..representation import Representation, ReprOut
-from ...utils import colorize_semantic_segmentation
+from ...utils import colorize_semantic_segmentation, image_resize_batch
 from ...logger import vre_logger as logger
 
 class SemanticMapper(Representation):
@@ -30,6 +30,7 @@ class SemanticMapper(Representation):
 
     def _make_one(self, semantic_dep_data: np.ndarray, mapping: dict[str, list[str]],
                   original_classes: list[str]) -> np.ndarray:
+        assert semantic_dep_data.dtype in (np.uint8, np.uint16), semantic_dep_data.dtype
         mapping_ix = {list(mapping.keys()).index(k): [original_classes.index(_v)
                                                       for _v in v] for k, v in mapping.items()}
         flat_mapping = {}
@@ -53,11 +54,11 @@ class SemanticMapper(Representation):
 
     @overrides
     def resize(self, repr_data: ReprOut, new_size: tuple[int, int]) -> ReprOut:
-        raise NotImplementedError
+        return ReprOut(output=image_resize_batch(repr_data.output, *new_size, interpolation="nearest"))
 
     @overrides
     def size(self, repr_data: ReprOut) -> tuple[int, int]:
-        raise NotImplementedError
+        return repr_data.output.shape[1:3]
 
     @staticmethod
     def _default_merge_fn(data: list[np.ndarray]) -> np.ndarray:
