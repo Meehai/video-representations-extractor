@@ -3,6 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
+from natsort import natsorted
 import numpy as np
 
 from ..utils import parsed_str_type, VREVideo
@@ -71,7 +72,7 @@ class Representation(ABC):
         if output_dir is not None:
             if (loaded_output := self._load_from_disk_if_possible(ixs, output_dir)) is not None:
                 return loaded_output
-        frames, dep_data = np.array(video[ixs]), self.vre_dep_data(video, ixs, output_dir)
+        frames, dep_data = None if video is None else np.array(video[ixs]), self.vre_dep_data(video, ixs, output_dir)
         res = self.make(frames, dep_data)
         try:
             assert isinstance(res, ReprOut), f"[{self}] Expected make() to produce ReprOut, got {type(res)})"
@@ -81,12 +82,25 @@ class Representation(ABC):
         return res
 
     ## Private methods ##
+    def _get_all_npz_files(self, dir_name: Path) -> list[Path]:
+        if not dir_name.exists():
+            return []
+        if all(f.is_dir() for f in dir_name.iterdir()): # dataset is stored as repr/part_x/0.npz, ..., part_k/n.npz
+            all_files = []
+            for part in dir_name.iterdir():
+                all_files.extend(part.glob("*.npz"))
+        else: # dataset is stored as repr/0.npz, ..., repr/n.npz
+            all_files = dir_name.glob("*.npz")
+        return natsorted([x for x in all_files if not x.name.startswith("extra_")], key=lambda p: p.name)
+
     def _load_from_disk_if_possible(self, ixs: list[int], output_dir: Path) -> ReprOut | None:
         assert isinstance(ixs, list) and all(isinstance(ix, int) for ix in ixs), (type(ixs), [type(ix) for ix in ixs])
         assert output_dir is not None and output_dir.exists(), output_dir
-        npy_paths: list[Path] = [output_dir / self.name / f"npy/{ix}.npz" for ix in ixs]
-        extra_paths: list[Path] = [output_dir / self.name / f"npy/{ix}_extra.npz" for ix in ixs]
-        if any(not x.exists() for x in npy_paths): # partial batches are considered 'not existing' and overwritten
+        all_npy_paths: list[Path] = self._get_all_npz_files(output_dir / self.name)
+        npy_paths = [x for x in all_npy_paths if int(x.stem) in ixs]
+        extra_paths: list[Path] = [npy_path.parent / f"extra_{npy_path.name}" for npy_path in npy_paths]
+        # partial batches are considered 'not existing' and overwritten
+        if len(npy_paths) == 0 or any(not x.exists() for x in npy_paths):
             return None
         extras_exist = [x.exists() for x in extra_paths]
         assert (ee := sum(extras_exist)) in (0, (ep := len(extra_paths))), f"Found {ee}. Expected either 0 or {ep}"
