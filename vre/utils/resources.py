@@ -53,7 +53,7 @@ def fetch_resource(resource_name: str) -> Path:
             urllib.request.urlretrieve(url, filename=path, reporthook=t.update_to)
     return path
 
-def fetch_weights(repr_file: Path) -> Path:
+def fetch_weights(repr_file: str | Path) -> Path:
     """fetches weights for a representation. repr_file is expected to be Path(__file__) from the caller script"""
     repr_name = "/".join([x.name for x in Path(repr_file).parents[0:2][::-1]]) # i.e. [depth/marigold]/{marigold.py}
     files = _get_weights_files_for_representation(repr_name)

@@ -3,10 +3,8 @@ import json
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
 from datetime import datetime
-from typing import Any
 from overrides import overrides
 import torch as tr
-from torch import nn
 import numpy as np
 from lovely_tensors import monkey_patch
 from fvcore.common.config import CfgNode
@@ -16,9 +14,9 @@ from vre.logger import vre_logger as logger
 from vre.utils import image_resize_batch, fetch_weights, image_read, image_write, vre_load_weights
 
 try:
-    from .mask2former_impl import MaskFormer as MaskFormerImpl, MetadataCatalog, Metadata, Visualizer, ColorMode
+    from .mask2former_impl import MaskFormer as MaskFormerImpl, Metadata, Visualizer, ColorMode
 except ImportError:
-    from mask2former_impl import MaskFormer as MaskFormerImpl, MetadataCatalog, Metadata, Visualizer, ColorMode
+    from mask2former_impl import MaskFormer as MaskFormerImpl, Metadata, Visualizer, ColorMode
 
 monkey_patch()
 
@@ -36,24 +34,26 @@ class Mask2Former(Representation, LearnedRepresentationMixin):
     """Mask2Former representation implementation. Note: only semantic segmentation (not panoptic/instance) enabled."""
     def __init__(self, model_id: str, semantic_argmax_only: bool, **kwargs):
         super().__init__(**kwargs)
-        assert isinstance(model_id, str) and model_id in {"47429163_0", "49189528_1", "49189528_0", "dummy"}, model_id
+        assert isinstance(model_id, str) and model_id in {"47429163_0", "49189528_1", "49189528_0"}, model_id
+        self._m2f_resources = Path(__file__).parent / "mask2former_impl/resources"
+        self.metadata: Metadata = self._get_metadata(model_id)
         self.semantic_argmax_only = semantic_argmax_only
         self.model_id = model_id
         self.model: MaskFormerImpl | None = None
         self.cfg: CfgNode | None = None
-        self.metadata: Metadata | None = None
 
-    @overrides(check_signature=False) # TODO: use load_weights: bool pattern here too
-    def vre_setup(self, ckpt_data: dict | None = None): # pylint: disable=arguments-renamed
-        if self.model_id == "dummy":
-            assert ckpt_data is not None
-        else:
-            assert ckpt_data is None
-            weights_path = fetch_weights(__file__) / f"{self.model_id}.ckpt"
-            assert isinstance(weights_path, Path), type(weights_path)
-            ckpt_data = vre_load_weights(weights_path)
-        self.model, self.cfg, self.metadata = self._build_model(ckpt_data)
-        self.model = self.model.to(self.device)
+    def vre_setup(self, load_weights = True):
+        assert self.model is None, "vre_setup already called before"
+        weights_path = fetch_weights(__file__) / f"{self.model_id}.ckpt"
+        assert isinstance(weights_path, Path), type(weights_path)
+        ckpt_data = vre_load_weights(weights_path)
+        self.cfg = CfgNode(json.load(open(f"{self._m2f_resources}/{self.model_id}_cfg.json", "r")))
+        params = MaskFormerImpl.from_config(self.cfg)
+        self.model = MaskFormerImpl(**{**params, "semantic_on": True, "panoptic_on": False, "instance_on": False})
+        if load_weights:
+            res = self.model.load_state_dict(ckpt_data["state_dict"], strict=False) # inference only: remove criterion
+            assert res.unexpected_keys in (["criterion.empty_weight"], []), res
+        self.model = self.model.eval().to(self.device)
 
     @tr.no_grad()
     @overrides
@@ -89,17 +89,17 @@ class Mask2Former(Representation, LearnedRepresentationMixin):
         interpolation = "nearest" if self.semantic_argmax_only else "bilinear"
         return ReprOut(output=image_resize_batch(repr_data.output, *new_size, interpolation=interpolation))
 
-    def _build_model(self, ckpt_data: dict[str, Any]) -> tuple[nn.Module, CfgNode, Metadata]:
-        cfg = CfgNode(json.loads(ckpt_data["cfg"]))
-        params = MaskFormerImpl.from_config(cfg)
-        params = {**params, "semantic_on": True, "panoptic_on": False, "instance_on": False}
-        model = MaskFormerImpl(**params).eval()
-        res = model.load_state_dict(ckpt_data["state_dict"], strict=False) # inference only: we remove criterion
-        assert res.unexpected_keys in (["criterion.empty_weight"], []), res
-        model.to("cpu")
-        assert len(cfg.DATASETS.TEST) == 1, cfg.DATASETS.TEST
-        metadata = MetadataCatalog.get(cfg.DATASETS.TEST[0])
-        return model, cfg, metadata
+    def _get_metadata(self, model_id: str) -> Metadata:
+        mapillary_metadata = json.load(open(f"{self._m2f_resources}/mapillary_metadata.json", "r"))
+        coco_metadata = json.load(open(f"{self._m2f_resources}/coco_metadata.json", "r"))
+        mapillary_metadata2 = json.load(open(f"{self._m2f_resources}/mapillary_metadata2.json", "r"))
+        if model_id == "49189528_1":
+            return Metadata(**mapillary_metadata)
+        if model_id == "47429163_0":
+            return Metadata(**coco_metadata)
+        if model_id == "49189528_0":
+            return Metadata(**mapillary_metadata2)
+        raise ValueError(model_id)
 
     def vre_free(self):
         if str(self.device).startswith("cuda"):
@@ -112,35 +112,22 @@ def get_args() -> Namespace:
     parser.add_argument("model_id", choices=["49189528_1", "47429163_0", "49189528_0"])
     parser.add_argument("input_image", type=Path)
     parser.add_argument("output_path", type=Path)
-    parser.add_argument("--n_tries", type=int, default=1)
     return parser.parse_args()
 
 def main(args: Namespace):
     """main fn. Usage: python mask2former.py 49189528_1/47429163_0/49189528_0 demo1.jpg output1.jpg"""
     img = image_read(args.input_image)
 
-    m2f = Mask2Former(args.model_id_or_path, semantic_argmax_only=False, name="m2f", dependencies=[])
+    m2f = Mask2Former(args.model_id, semantic_argmax_only=False, name="m2f", dependencies=[])
     m2f.device = "cuda" if tr.cuda.is_available() else "cpu"
     m2f.vre_setup()
-    for _ in range(args.n_tries):
-        now = datetime.now()
-        pred = m2f.make(img[None])
-        logger.info(f"Pred took: {datetime.now() - now}")
-        semantic_result: np.ndarray = m2f.make_images(img[None], pred)[0]
-        image_write(semantic_result, args.output_path)
+    now = datetime.now()
+    pred = m2f.make(img[None])
+    logger.info(f"Pred took: {datetime.now() - now}")
+    semantic_result: np.ndarray = m2f.make_images(img[None], pred)[0]
+    image_write(semantic_result, args.output_path)
     logger.info(f"Written prediction to '{args.output_path}'")
-
-    # Sanity checks
-    rtol = 1e-2
-    if m2f.model_id == "47429163_0" and args.input_image.name == "demo1.jpg":
-        assert np.allclose(mean := semantic_result.mean(), 129.41, rtol=rtol), (mean, semantic_result.std())
-        assert np.allclose(std := semantic_result.std(), 53.33, rtol=rtol), std
-    elif m2f.model_id == "49189528_1" and args.input_image.name == "demo1.jpg":
-        assert np.allclose(mean := semantic_result.mean(), 125.23, rtol=rtol), (mean, semantic_result.std())
-        assert np.allclose(std := semantic_result.std(), 48.89, rtol=rtol), std
-    elif m2f.model_id == "49189528_0" and args.input_image.name == "demo1.jpg":
-        assert np.allclose(mean := semantic_result.mean(), 118.47, rtol=rtol), (mean, semantic_result.std())
-        assert np.allclose(std := semantic_result.std(), 52.08, rtol=rtol), std
+    return semantic_result # for integration tests
 
 if __name__ == "__main__":
     main(get_args())
