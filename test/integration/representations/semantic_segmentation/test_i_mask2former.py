@@ -8,7 +8,7 @@ import random
 def test_i_mask2former():
     variants = ["47429163_0", "49189528_1", "49189528_0"]
     args = SimpleNamespace(
-        model_id_or_path=random.choice(variants),
+        model_id=random.choice(variants),
         input_image=get_project_root() / "resources/demo1.jpg",
         output_path=Path(NamedTemporaryFile(suffix=".jpg").name),
         n_tries=1

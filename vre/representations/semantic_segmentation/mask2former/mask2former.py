@@ -97,9 +97,9 @@ class Mask2Former(Representation, LearnedRepresentationMixin):
 
         if model_id == "49189528_1":
             return Metadata(**mapillary_metadata)
-        elif model_id == "47429163_0":
+        if model_id == "47429163_0":
             return Metadata(**coco_metadata)
-        else:
+        if model_id == "49189528_0":
             return Metadata(**mapilary_metadata2)
 
     def _build_model(self, ckpt_data: dict[str, Any]) -> tuple[nn.Module, CfgNode]:
