@@ -3,10 +3,8 @@ import json
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
 from datetime import datetime
-from typing import Any
 from overrides import overrides
 import torch as tr
-from torch import nn
 import numpy as np
 from lovely_tensors import monkey_patch
 from fvcore.common.config import CfgNode
@@ -95,14 +93,13 @@ class Mask2Former(Representation, LearnedRepresentationMixin):
         mapillary_metadata = json.load(open(f"{self._m2f_resources}/mapillary_metadata.json", "r"))
         coco_metadata = json.load(open(f"{self._m2f_resources}/coco_metadata.json", "r"))
         mapillary_metadata2 = json.load(open(f"{self._m2f_resources}/mapillary_metadata2.json", "r"))
-        breakpoint()
-
         if model_id == "49189528_1":
             return Metadata(**mapillary_metadata)
         if model_id == "47429163_0":
             return Metadata(**coco_metadata)
         if model_id == "49189528_0":
             return Metadata(**mapillary_metadata2)
+        raise ValueError(model_id)
 
     def vre_free(self):
         if str(self.device).startswith("cuda"):
