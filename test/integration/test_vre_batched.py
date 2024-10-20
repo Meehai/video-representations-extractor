@@ -10,7 +10,7 @@ import torch as tr
 
 from vre import VRE
 from vre.representations import build_representations_from_cfg
-from vre.utils import get_project_root, fetch_resource
+from vre.utils import fetch_resource
 
 def sample_representations(all_representations_dict: dict[str, Any], n: int) -> dict:
     np.random.seed(41)
@@ -137,7 +137,7 @@ def test_vre_batched():
       train_width: 428
       num_classes: 8
       color_map: [[0, 255, 0], [0, 127, 0], [255, 255, 0], [255, 255, 255],
-                  [255, 0, 0] ,[0, 0, 255], [0, 255, 255], [127, 127, 63]]
+                  [255, 0, 0], [0, 0, 255], [0, 255, 255], [127, 127, 63]]
     device: {device}
 """)
 
@@ -161,7 +161,8 @@ def test_vre_batched():
     took1 = vre(tmp_dir, start_frame=start_frame, end_frame=end_frame, export_npy=True, export_png=True,
                 batch_size=1, output_dir_exists_mode="raise")
 
-    both = pd.concat([took1.mean().rename("unbatched"), took_bs.mean().rename(f"batch={batch_size}")], axis=1)
+    both = pd.concat([pd.DataFrame(took1["run_stats"]).mean().rename("unbatched"),
+                      pd.DataFrame(took_bs["run_stats"]).mean().rename(f"batch={batch_size}")], axis=1)
     both.loc["total"] = both.sum() * (end_frame - start_frame)
     print(both)
 

@@ -66,8 +66,6 @@ vre <path/to/video.mp4> --cfg_path <path/to/cfg> -o <path/to/export_dir>
 ```
 
 ### Relevant env variables
-- `VRE_LOGS_DIR` The path where the logs will be stored: run_stats.csv and all the logging/crash dumps. If not set, will
-be defaulted in the root of the project in a logs dir.
 - `VRE_WEIGHTS_DIR` The path where the weights are downloaded from the weights repository. If not set, will be defaulted
 in the root of the project in a resources dir.
 - `VRE_DEVICE` Some default cfgs will use this to set the device of representations. Usage is:

@@ -2,22 +2,20 @@ from tempfile import TemporaryDirectory
 from pathlib import Path
 import time
 import numpy as np
+import pytest
+import pims
 from vre import VRE, ReprOut
-from vre.utils import FakeVideo, image_resize_batch
+from vre.utils import FakeVideo, image_resize_batch, fetch_resource
 from vre.representations.rgb import RGB
 
-def test_vre_1():
+def test_vre_ctor():
     video = FakeVideo(np.random.randint(0, 255, size=(2, 128, 128, 3), dtype=np.uint8), frame_rate=30)
-    try:
+    with pytest.raises(AssertionError) as e:
         _ = VRE(video=video, representations={})
-    except AssertionError as e:
-        assert "At least one representation must be provided" in str(e)
-
-def test_vre_2():
-    video = FakeVideo(np.random.randint(0, 255, size=(2, 128, 128, 3), dtype=np.uint8), frame_rate=30)
+    assert "At least one representation must be provided" in str(e)
     vre = VRE(video=video, representations={"rgb": RGB("rgb")})
     res = vre(Path(TemporaryDirectory().name), export_npy=True, export_png=False)
-    assert len(res) == 2, res
+    assert len(res["run_stats"]["rgb"]) == 2, res
 
 def test_vre_ouput_dir_exist_mode():
     video = FakeVideo(np.random.randint(0, 255, size=(2, 128, 128, 3), dtype=np.uint8), frame_rate=30)
@@ -58,3 +56,21 @@ def test_vre_ouput_shape():
 
     _ = vre(tmp_dir := Path(TemporaryDirectory().name), export_npy=True, export_png=False, output_size=(100, 100))
     assert np.load(tmp_dir / "rgb/npy/0.npz")["arr_0"].shape == (100, 100, 3)
+
+def test_vre_simple_representations():
+    video = pims.Video(fetch_resource("test_video.mp4"))
+    representations = {"rgb": RGB(name="rgb")}
+    tmp_dir = Path(TemporaryDirectory().name)
+    vre = VRE(video, representations)
+    assert vre is not None
+    vre(tmp_dir, start_frame=1000, end_frame=1001, export_png=True, export_npy=True)
+    assert Path(f"{tmp_dir}/rgb/npy/1000.npz").exists()
+    assert Path(f"{tmp_dir}/rgb/png/1000.png").exists()
+
+def test_vre_metadata():
+    video = FakeVideo(np.random.randint(0, 255, size=(2, 128, 128, 3), dtype=np.uint8), frame_rate=30)
+    vre = VRE(video=video, representations={"rgb": RGB("rgb")})
+    temp_dir = Path(TemporaryDirectory().name)
+    res = vre.run(output_dir=temp_dir, export_npy=True, export_png=False)
+    assert res["run_stats"].keys() == {"rgb"}
+    assert res["frames"] == (0, 2)

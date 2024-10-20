@@ -30,7 +30,6 @@ COPY vre vre
 COPY bin bin
 ENV PYTHONPATH "${PYTHONPATH}:/app/vre"
 ENV VRE_WEIGHTS_DIR /app/resources/weights
-ENV VRE_LOGS_DIR /app/resources/logs
 ENTRYPOINT ["python", "bin/vre"]
 
 #### LOCAL DEVELOPMENT BELOW ####
