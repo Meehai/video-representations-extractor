@@ -49,6 +49,9 @@ class VRERuntimeArgs:
         if start_frame is None:
             start_frame = 0
             logger.warning("start frame not set, default to 0")
+        if end_frame is None:
+            logger.warning(f"end frame not set, default to the last frame of the video: {len(video)}")
+            end_frame = len(video)
 
         assert isinstance(start_frame, int) and start_frame <= end_frame, (start_frame, end_frame)
         self.video = video
