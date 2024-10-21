@@ -2,6 +2,7 @@
 import matplotlib
 import flow_vis
 import numpy as np
+from .colorized_sem_seg import ColorizerSemSeg
 
 def colorize_depth(depth_map: np.ndarray, min_depth: float, max_depth: float, cmap="Spectral") -> np.ndarray:
     """Colorize depth maps. Returns a [0:1] (H, W, 3) float image."""
@@ -17,11 +18,11 @@ def colorize_optical_flow(flow_map: np.ndarray) -> np.ndarray:
     assert len(flow_map.shape) == 3 and flow_map.shape[2] == 2, flow_map.shape
     return flow_vis.flow_to_color(flow_map)
 
-def colorize_semantic_segmentation(semantic_map: np.ndarray, color_map: list[tuple[int, int, int]]):
-    """TODO: use the M2F visualizer and add class list"""
-    assert semantic_map.dtype in (np.uint8, np.uint16), semantic_map.dtype
+def colorize_semantic_segmentation(semantic_map: np.ndarray, classes: list[str], color_map: list[tuple[int, int, int]],
+                                   original_rgb: np.ndarray | None):
+    """Colorize asemantic segmentation maps. Must be argmaxed (H, W). Can paint over the original RGB frame or not."""
+    assert np.issubdtype(semantic_map.dtype, np.integer), semantic_map.dtype
     assert (max_class := semantic_map.max()) <= len(color_map), (max_class, len(color_map))
-    new_images = np.zeros((*semantic_map.shape, 3), dtype=np.uint8)
-    for i in range(max_class + 1):
-        new_images[semantic_map == i] = color_map[i]
-    return new_images
+    assert len(semantic_map.shape) == 2, semantic_map.shape
+    rgb = original_rgb if original_rgb is not None else np.zeros((*semantic_map.shape, 3), dtype=np.uint8)
+    return ColorizerSemSeg(rgb, classes, color_map).draw_sem_seg(semantic_map).get_image()

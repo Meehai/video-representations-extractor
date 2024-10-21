@@ -41,6 +41,7 @@ class SafeUAV(Representation, LearnedRepresentationMixin):
         self.train_width = train_width
         self.semantic_argmax_only = semantic_argmax_only
         self.weights_file = weights_file
+        self.classes = list(range(num_classes))
         self.model: _SafeUavWrapper | None = None
 
     def vre_setup(self, load_weights: bool = True):
@@ -82,9 +83,13 @@ class SafeUAV(Representation, LearnedRepresentationMixin):
 
     @overrides
     def make_images(self, frames: np.ndarray, repr_data: ReprOut) -> np.ndarray:
-        # TODO: use visualizer from M2F.
-        repr_data = repr_data.output if self.semantic_argmax_only else repr_data.output.argmax(-1)
-        return colorize_semantic_segmentation(repr_data, self.color_map)
+        res = []
+        frames_rsz = image_resize_batch(frames, *repr_data.output.shape[1:3])
+        for img, pred in zip(frames_rsz, repr_data.output):
+            _pred = pred if self.semantic_argmax_only else pred.argmax(-1)
+            res.append(colorize_semantic_segmentation(_pred, self.classes, self.color_map, img))
+        res = np.stack(res)
+        return res
 
     @overrides
     def size(self, repr_data: ReprOut) -> tuple[int, int]:
