@@ -3,6 +3,7 @@ import json
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
 from datetime import datetime
+from types import SimpleNamespace
 from overrides import overrides
 import torch as tr
 import numpy as np
@@ -11,12 +12,13 @@ from fvcore.common.config import CfgNode
 
 from vre.representations import Representation, ReprOut, LearnedRepresentationMixin
 from vre.logger import vre_logger as logger
-from vre.utils import image_resize_batch, fetch_weights, image_read, image_write, vre_load_weights
+from vre.utils import (image_resize_batch, fetch_weights, image_read, image_write,
+                       vre_load_weights, colorize_semantic_segmentation)
 
 try:
-    from .mask2former_impl import MaskFormer as MaskFormerImpl, Metadata, Visualizer, ColorMode
+    from .mask2former_impl import MaskFormer as MaskFormerImpl
 except ImportError:
-    from mask2former_impl import MaskFormer as MaskFormerImpl, Metadata, Visualizer, ColorMode
+    from mask2former_impl import MaskFormer as MaskFormerImpl
 
 monkey_patch()
 
@@ -36,7 +38,7 @@ class Mask2Former(Representation, LearnedRepresentationMixin):
         super().__init__(**kwargs)
         assert isinstance(model_id, str) and model_id in {"47429163_0", "49189528_1", "49189528_0"}, model_id
         self._m2f_resources = Path(__file__).parent / "mask2former_impl/resources"
-        self.metadata: Metadata = self._get_metadata(model_id)
+        self.classes, self.color_map, self.thing_dataset_id_to_contiguous_id = self._get_metadata(model_id)
         self.semantic_argmax_only = semantic_argmax_only
         self.model_id = model_id
         self.model: MaskFormerImpl | None = None
@@ -49,6 +51,7 @@ class Mask2Former(Representation, LearnedRepresentationMixin):
         ckpt_data = vre_load_weights(weights_path)
         self.cfg = CfgNode(json.load(open(f"{self._m2f_resources}/{self.model_id}_cfg.json", "r")))
         params = MaskFormerImpl.from_config(self.cfg)
+        params["metadata"] = SimpleNamespace(thing_dataset_id_to_contiguous_id=self.thing_dataset_id_to_contiguous_id)
         self.model = MaskFormerImpl(**{**params, "semantic_on": True, "panoptic_on": False, "instance_on": False})
         if load_weights:
             res = self.model.load_state_dict(ckpt_data["state_dict"], strict=False) # inference only: remove criterion
@@ -74,9 +77,8 @@ class Mask2Former(Representation, LearnedRepresentationMixin):
         res = []
         frames_rsz = image_resize_batch(frames, *repr_data.output.shape[1:3])
         for img, pred in zip(frames_rsz, repr_data.output):
-            v = Visualizer(img, self.metadata, instance_mode=ColorMode.IMAGE_BW)
             _pred = pred if self.semantic_argmax_only else pred.argmax(-1)
-            res.append(v.draw_sem_seg(_pred).get_image())
+            res.append(colorize_semantic_segmentation(_pred, self.classes, self.color_map, img))
         res = np.stack(res)
         return res
 
@@ -89,17 +91,15 @@ class Mask2Former(Representation, LearnedRepresentationMixin):
         interpolation = "nearest" if self.semantic_argmax_only else "bilinear"
         return ReprOut(output=image_resize_batch(repr_data.output, *new_size, interpolation=interpolation))
 
-    def _get_metadata(self, model_id: str) -> Metadata:
-        mapillary_metadata = json.load(open(f"{self._m2f_resources}/mapillary_metadata.json", "r"))
-        coco_metadata = json.load(open(f"{self._m2f_resources}/coco_metadata.json", "r"))
-        mapillary_metadata2 = json.load(open(f"{self._m2f_resources}/mapillary_metadata2.json", "r"))
+    def _get_metadata(self, model_id: str) -> tuple[list[str], list[tuple[int, int, int]], dict[str, int]]:
+        metadata = None
         if model_id == "49189528_1":
-            return Metadata(**mapillary_metadata)
+            metadata = json.load(open(f"{self._m2f_resources}/mapillary_metadata.json", "r"))
         if model_id == "47429163_0":
-            return Metadata(**coco_metadata)
+            metadata = json.load(open(f"{self._m2f_resources}/coco_metadata.json", "r"))
         if model_id == "49189528_0":
-            return Metadata(**mapillary_metadata2)
-        raise ValueError(model_id)
+            metadata = json.load(open(f"{self._m2f_resources}/mapillary_metadata2.json", "r"))
+        return metadata["stuff_classes"], metadata["stuff_colors"], metadata.get("thing_dataset_id_to_contiguous_id")
 
     def vre_free(self):
         if str(self.device).startswith("cuda"):

@@ -8,8 +8,6 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
-
-from .det2_data import MetadataCatalog
 from .structures import Boxes, ImageList, Instances
 from .layers import ShapeSpec
 from .modeling.meta_arch.mask_former_head import MaskFormerHead
@@ -192,7 +190,6 @@ class MaskFormer(nn.Module):
             "num_queries": cfg.MODEL.MASK_FORMER.NUM_OBJECT_QUERIES,
             "object_mask_threshold": cfg.MODEL.MASK_FORMER.TEST.OBJECT_MASK_THRESHOLD,
             "overlap_threshold": cfg.MODEL.MASK_FORMER.TEST.OVERLAP_THRESHOLD,
-            "metadata": MetadataCatalog.get(cfg.DATASETS.TRAIN[0]),
             "size_divisibility": cfg.MODEL.MASK_FORMER.SIZE_DIVISIBILITY,
             "sem_seg_postprocess_before_inference": (
                 cfg.MODEL.MASK_FORMER.TEST.SEM_SEG_POSTPROCESSING_BEFORE_INFERENCE

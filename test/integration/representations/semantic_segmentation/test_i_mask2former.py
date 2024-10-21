@@ -5,11 +5,12 @@ import random
 import numpy as np
 from vre.representations.semantic_segmentation.mask2former.mask2former import main as m2f_main
 from vre.utils import get_project_root
+import pytest
 
-def test_i_mask2former():
-    variants = ["47429163_0", "49189528_1", "49189528_0"]
+@pytest.mark.parametrize("variant", ["47429163_0", "49189528_1", "49189528_0"])
+def test_i_mask2former(variant):
     args = SimpleNamespace(
-        model_id=random.choice(variants),
+        model_id=variant,
         input_image=get_project_root() / "resources/demo1.jpg",
         output_path=Path(NamedTemporaryFile(suffix=".jpg").name),
     )
