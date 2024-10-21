@@ -19,10 +19,11 @@ def colorize_optical_flow(flow_map: np.ndarray) -> np.ndarray:
     return flow_vis.flow_to_color(flow_map)
 
 def colorize_semantic_segmentation(semantic_map: np.ndarray, classes: list[str], color_map: list[tuple[int, int, int]],
-                                   original_rgb: np.ndarray | None):
+                                   original_rgb: np.ndarray | None, font_size_scale: float=1, alpha: float = 0.8):
     """Colorize asemantic segmentation maps. Must be argmaxed (H, W). Can paint over the original RGB frame or not."""
     assert np.issubdtype(semantic_map.dtype, np.integer), semantic_map.dtype
     assert (max_class := semantic_map.max()) <= len(color_map), (max_class, len(color_map))
     assert len(semantic_map.shape) == 2, semantic_map.shape
     rgb = original_rgb if original_rgb is not None else np.zeros((*semantic_map.shape, 3), dtype=np.uint8)
-    return ColorizerSemSeg(rgb, classes, color_map).draw_sem_seg(semantic_map).get_image()
+    alpha = alpha if original_rgb is not None else 1
+    return ColorizerSemSeg(rgb, classes, color_map, font_size_scale, alpha).draw_sem_seg(semantic_map).get_image()
