@@ -34,7 +34,7 @@ def like_an_image(seg, img, sampling_step=5):
 
 def rgb2hsv(img, epsilon=1e-10):
     r, g, b = img[:, 0], img[:, 1], img[:, 2]
-    max_rgb, argmax_rgb = img.max(1)
+    max_rgb, _ = img.max(1)
     min_rgb, argmin_rgb = img.min(1)
 
     max_min = max_rgb - min_rgb + epsilon

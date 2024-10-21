@@ -110,7 +110,8 @@ class _VisImage:
 
 
 class ColorizerSemSeg:
-    def __init__(self, img_rgb, classes: list[str], color_map: list[tuple[int, int, int]], font_size_scale=1.0):
+    def __init__(self, img_rgb, classes: list[str], color_map: list[tuple[int, int, int]], font_size_scale=1.0,
+                 alpha: float=0.8):
         """
         Args:
             img_rgb: a numpy array of shape (H, W, C), where H and W correspond to
@@ -126,12 +127,13 @@ class ColorizerSemSeg:
         self.color_map = color_map
         assert len(classes) == len(color_map), (len(classes), len(color_map))
         self.output = _VisImage(self.img)
+        self.alpha = alpha
 
         # too small texts are useless, therefore clamp to 9
         self._default_font_size = max(np.sqrt(self.output.height * self.output.width) // 90, 10) * font_size_scale
         self.keypoint_threshold = 0.05 # _KEYPOINT_THRESHOLD
 
-    def draw_sem_seg(self, sem_seg, area_threshold=None, alpha=0.8):
+    def draw_sem_seg(self, sem_seg, area_threshold=None):
         """
         Draw semantic segmentation predictions/labels.
 
@@ -153,7 +155,7 @@ class ColorizerSemSeg:
                 color=[x / 255 for x in self.color_map[label]],
                 edge_color=(1.0, 1.0, 240.0 / 255), # _OFF_WHITE
                 text=self.classes[label],
-                alpha=alpha,
+                alpha=self.alpha,
                 area_threshold=area_threshold,
             )
         return self.output

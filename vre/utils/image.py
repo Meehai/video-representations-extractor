@@ -26,54 +26,6 @@ def image_read(path: Path, library: str = "cv2") -> np.ndarray:
     """Read an image from a path. Return uint8 [0:255] ndarray"""
     return {"cv2": cv2_image_read, "PIL": pil_image_read}[library](path)
 
-def hsv2rgb(hsv: np.ndarray) -> np.ndarray:
-    """HSV to RGB color space conversion."""
-    arr = hsv.astype(np.float64) / 255 if hsv.dtype == np.uint8 else hsv
-
-    hi = np.floor(arr[..., 0] * 6)
-    f = arr[..., 0] * 6 - hi
-    p = arr[..., 2] * (1 - arr[..., 1])
-    q = arr[..., 2] * (1 - f * arr[..., 1])
-    t = arr[..., 2] * (1 - (1 - f) * arr[..., 1])
-    v = arr[..., 2]
-
-    out = np.choose(
-        np.stack([hi, hi, hi], axis=-1).astype(np.uint8) % 6,
-        np.stack([np.stack((v, t, p), axis=-1), np.stack((q, v, p), axis=-1), np.stack((p, v, t), axis=-1),
-                  np.stack((p, q, v), axis=-1), np.stack((t, p, v), axis=-1), np.stack((v, p, q), axis=-1)]),
-    )
-
-    return out
-
-def generate_diverse_colors(n: int, saturation: float, value: float) -> list[tuple[int, int, int]]:
-    """generates a list of n diverse colors using the hue from the HSV transform"""
-    assert 0 <= saturation <= 1, saturation
-    assert 0 <= value <= 1, value
-    colors = []
-    for i in range(n):
-        hue = i / n  # Vary the hue component
-        rgb = hsv2rgb(np.array([hue, saturation, value]))
-        # Convert to 8-bit RGB values (0-255)
-        rgb = tuple(int(255 * x) for x in rgb)
-        colors.append(rgb)
-    return colors
-
-def _pad_to_max(imgs: list[np.ndarray]) -> list[np.ndarray]:
-    """pad all images to the max shape of the list"""
-    max_h = max(img.shape[0] for img in imgs)
-    max_w = max(img.shape[1] for img in imgs)
-    assert all(img.shape[2] == imgs[0].shape[2] for img in imgs)
-
-    if all(img.shape == imgs[0].shape for img in imgs):
-        return imgs
-
-    logger.debug(f"Padding images to fit max size: {max_h}x{max_w}")
-    res = []
-    for img in imgs:
-        new_img = np.pad(img, ((0, max_h - img.shape[0]), (0, max_w - img.shape[1]), (0, 0)), constant_values=255)
-        res.append(new_img)
-    return res
-
 def collage_fn(images: list[np.ndarray], rows_cols: tuple[int, int] = None, pad_bottom: int = 0,
                pad_right: int = 0, titles: list[str] = None, pad_to_max: bool = False, **title_kwargs) -> np.ndarray:
     """
@@ -88,6 +40,22 @@ def collage_fn(images: list[np.ndarray], rows_cols: tuple[int, int] = None, pad_
 
     Return: A numpy array of stacked images according to (rows, cols) inputs.
     """
+    def _pad_to_max(imgs: list[np.ndarray]) -> list[np.ndarray]:
+        """pad all images to the max shape of the list"""
+        max_h = max(img.shape[0] for img in imgs)
+        max_w = max(img.shape[1] for img in imgs)
+        assert all(img.shape[2] == imgs[0].shape[2] for img in imgs)
+
+        if all(img.shape == imgs[0].shape for img in imgs):
+            return imgs
+
+        logger.debug(f"Padding images to fit max size: {max_h}x{max_w}")
+        res = []
+        for img in imgs:
+            new_img = np.pad(img, ((0, max_h - img.shape[0]), (0, max_w - img.shape[1]), (0, 0)), constant_values=255)
+            res.append(new_img)
+        return res
+
     assert len(images) > 1, "Must give at least two images to the collage"
     if rows_cols is None:
         rows_cols = get_closest_square(len(images))
@@ -139,4 +107,6 @@ def collage_fn(images: list[np.ndarray], rows_cols: tuple[int, int] = None, pad_
 def image_add_title(image: np.ndarray, text: str, font: str = None, font_color: str = "white", size_px: int = None,
                     background_color: str = "black", top_padding: int = None, library: str = "PIL") -> np.ndarray:
     """Calls image_add_text to add title on an updated image with padding on top for space and text centered"""
-    return {"PIL": pil_image_add_title}[library](image, text, font, font_color, size_px, background_color, top_padding)
+    return {"PIL": pil_image_add_title}[library](image=image, text=text, font=font, font_color=font_color,
+                                                 size_px=size_px, background_color=background_color,
+                                                 top_padding=top_padding)
