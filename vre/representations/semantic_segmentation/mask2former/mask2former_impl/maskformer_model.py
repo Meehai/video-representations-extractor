@@ -1,14 +1,14 @@
 # pylint: disable=all
-# Copyright (c) Facebook, Inc. and its affiliates.
 from typing import Tuple
 from contextlib import contextmanager
 from functools import wraps
+from math import floor
 
 import torch
 from torch import nn
 from torch.nn import functional as F
 
-from .structures import Boxes, ImageList, Instances
+from .structures import Boxes, Instances
 from .layers import ShapeSpec
 from .modeling.meta_arch.mask_former_head import MaskFormerHead
 from .modeling.backbone.swin import D2SwinTransformer
@@ -235,45 +235,44 @@ class MaskFormer(nn.Module):
                     segments_info (list[dict]): Describe each segment in `panoptic_seg`.
                         Each dict contains keys "id", "category_id", "isthing".
         """
-        images = [x["image"].to(self.device) for x in batched_inputs]
-        images = [(x - self.pixel_mean) / self.pixel_std for x in images]
-        images = ImageList.from_tensors(images, self.size_divisibility)
+        def _to_closest_stride(value: int, stride: int) -> int:
+            return floor((value + stride - 1) / stride) * stride
 
-        features = self.backbone(images.tensor)
+        images: list[torch.Tensor] = [x["image"].to(self.device) for x in batched_inputs]
+        assert all(img.shape == images[0].shape for img in images), f"All shapes must be equal: {images}"
+        images_stack_norm = (torch.stack(images) - self.pixel_mean) / self.pixel_std
+        _images = [(x - self.pixel_mean) / self.pixel_std for x in images]
+        h, w = images[0].shape[-2:]
+        max_h, max_w = _to_closest_stride(h, self.size_divisibility), _to_closest_stride(w, self.size_divisibility)
+        images_pad = F.pad(images_stack_norm, (0, max_w - w, 0, max_h - h))
+
+        features = self.backbone(images_pad)
         outputs = self.sem_seg_head(features)
         assert not self.training, "VRE Mask2Former only works in inference mode. Use model.eval()!!"
 
         mask_cls_results = outputs["pred_logits"]
         mask_pred_results = outputs["pred_masks"]
         # upsample masks
-        mask_pred_results = F.interpolate(
-            mask_pred_results,
-            size=(images.tensor.shape[-2], images.tensor.shape[-1]),
-            mode="bilinear",
-            align_corners=False,
-        )
+        mask_pred_results = F.interpolate(mask_pred_results, size=(max_h, max_w), mode="bilinear", align_corners=False)
 
         del outputs
 
         processed_results = []
-        for mask_cls_result, mask_pred_result, input_per_image, image_size in zip(
-            mask_cls_results, mask_pred_results, batched_inputs, images.image_sizes
+        for mask_cls_result, mask_pred_result, input_per_image in zip(
+            mask_cls_results, mask_pred_results, batched_inputs
         ):
-            height = input_per_image.get("height", image_size[0])
-            width = input_per_image.get("width", image_size[1])
+            out_h, out_w = input_per_image["height"], input_per_image["width"]
             processed_results.append({})
 
             if self.sem_seg_postprocess_before_inference:
-                mask_pred_result = retry_if_cuda_oom(sem_seg_postprocess)(
-                    mask_pred_result, image_size, height, width
-                )
+                mask_pred_result = retry_if_cuda_oom(sem_seg_postprocess)(mask_pred_result, (h, w), out_h, out_w)
                 mask_cls_result = mask_cls_result.to(mask_pred_result)
 
             # semantic segmentation inference
             if self.semantic_on:
                 r = retry_if_cuda_oom(self.semantic_inference)(mask_cls_result, mask_pred_result)
                 if not self.sem_seg_postprocess_before_inference:
-                    r = retry_if_cuda_oom(sem_seg_postprocess)(r, image_size, height, width)
+                    r = retry_if_cuda_oom(sem_seg_postprocess)(r, (h, w), out_h, out_w)
                 processed_results[-1]["sem_seg"] = r
 
             # panoptic segmentation inference
@@ -397,11 +396,10 @@ class MaskFormer(nn.Module):
         # mask (before sigmoid)
         result.pred_masks = (mask_pred > 0).float()
         result.pred_boxes = Boxes(torch.zeros(mask_pred.size(0), 4))
-        # Uncomment the following to get boxes from masks (this is slow)
-        # result.pred_boxes = BitMasks(mask_pred > 0).get_bounding_boxes()
 
         # calculate average mask prob
-        mask_scores_per_image = (mask_pred.sigmoid().flatten(1) * result.pred_masks.flatten(1)).sum(1) / (result.pred_masks.flatten(1).sum(1) + 1e-6)
+        mask_scores_per_image = (mask_pred.sigmoid().flatten(1) * result.pred_masks.flatten(1)).sum(1) \
+            / (result.pred_masks.flatten(1).sum(1) + 1e-6)
         result.scores = scores_per_image * mask_scores_per_image
         result.pred_classes = labels_per_image
         return result
