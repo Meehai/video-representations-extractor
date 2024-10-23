@@ -10,7 +10,7 @@ from .pil_utils import pil_image_resize, pil_image_add_title, pil_image_read, pi
 def image_resize(data: np.ndarray, height: int, width: int, interpolation: str = "bilinear",
                  library: str = "cv2", **kwargs) -> np.ndarray:
     """image resize. Allows 2 libraries: PIL and opencv (to alleviate potential pre-trained issues)"""
-    assert isinstance(height, int) and isinstance(width, int)
+    assert isinstance(height, int) and isinstance(width, int), (type(height), type(width))
     return {"cv2": cv2_image_resize, "PIL": pil_image_resize}[library](data, height, width, interpolation, **kwargs)
 
 def image_resize_batch(x_batch: np.ndarray | list[np.ndarray], *args, **kwargs) -> np.ndarray:
@@ -110,7 +110,6 @@ def image_add_title(image: np.ndarray, text: str, font: str = None, font_color: 
     return {"PIL": pil_image_add_title}[library](image=image, text=text, font=font, font_color=font_color,
                                                  size_px=size_px, background_color=background_color,
                                                  top_padding=top_padding)
-
 
 def image_add_border(image: np.ndarray, color: tuple[int, int, int] | int, thicc: int | None,
                      add_x: bool = False, inplace: bool = False) -> np.ndarray:
