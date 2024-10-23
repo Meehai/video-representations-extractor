@@ -10,7 +10,7 @@ from .pil_utils import pil_image_resize, pil_image_add_title, pil_image_read, pi
 def image_resize(data: np.ndarray, height: int | None, width: int | None, interpolation: str = "bilinear",
                  library: str = "cv2", **kwargs) -> np.ndarray:
     """image resize. Allows 2 libraries: PIL and opencv (to alleviate potential pre-trained issues)"""
-    assert ((width is None) or width == -1) + ((height is None) or height == -1) >= 1, "At least one must be set"
+    assert ((width is None) or width == -1) + ((height is None) or height == -1) <= 1, "At least one must be set"
     def _scale(a: int, b: int, c: int) -> int:
         return int(a / b * c)
     width = _scale(data.shape[0], height, data.shape[1]) if (width is None or width == -1) else width
