@@ -43,7 +43,7 @@ class HSVRepresentation(RGBRepresentation):
     @overrides
     def load_from_disk(self, path: Path) -> tr.Tensor:
         rgb = super().load_from_disk(path)
-        return tr.from_numpy(rgb2hsv(rgb)).float()
+        return tr.from_numpy(rgb2hsv(rgb.numpy())).float()
 
 class EdgesRepresentation(ColorRepresentation):
     def __init__(self, *args, **kwargs):
