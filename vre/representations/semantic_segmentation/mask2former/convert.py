@@ -2,20 +2,14 @@
 # pylint: disable=all
 import torch as tr
 from pathlib import Path
-import logging
 import sys
 import pickle
-import yaml
 import json
+from pathlib import Path
 from fvcore.common.config import CfgNode as _CfgNode
 from mask2former_impl import MaskFormer as MaskFormerImpl
-from mask2former_impl.file_io import PathManager
 
 class CN(_CfgNode):
-    @classmethod
-    def _open_cfg(cls, filename):
-        return PathManager.open(filename, "r")
-
     # Note that the default value of allow_unsafe is changed to True
     def merge_from_file(self, cfg_filename: str, allow_unsafe: bool = True) -> None:
         """
@@ -25,7 +19,7 @@ class CN(_CfgNode):
             cfg_filename: config filename
             allow_unsafe: allow unsafe yaml syntax
         """
-        assert PathManager.isfile(cfg_filename), f"Config file '{cfg_filename}' does not exist!"
+        assert Path(cfg_filename).is_file(), f"Config file '{cfg_filename}' does not exist!"
         loaded_cfg = self.load_yaml_with_base(cfg_filename, allow_unsafe=allow_unsafe)
         loaded_cfg = type(self)(loaded_cfg)
         self.merge_from_other_cfg(loaded_cfg)
