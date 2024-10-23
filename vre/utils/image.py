@@ -7,9 +7,14 @@ from .utils import get_closest_square
 from .cv2_utils import cv2_image_resize, cv2_image_write, cv2_image_read
 from .pil_utils import pil_image_resize, pil_image_add_title, pil_image_read, pil_image_write
 
-def image_resize(data: np.ndarray, height: int, width: int, interpolation: str = "bilinear",
+def image_resize(data: np.ndarray, height: int | None, width: int | None, interpolation: str = "bilinear",
                  library: str = "cv2", **kwargs) -> np.ndarray:
     """image resize. Allows 2 libraries: PIL and opencv (to alleviate potential pre-trained issues)"""
+    assert ((width is None) or width == -1) + ((height is None) or height == -1) >= 1, "At least one must be set"
+    def _scale(a: int, b: int, c: int) -> int:
+        return int(a / b * c)
+    width = _scale(data.shape[0], height, data.shape[1]) if (width is None or width == -1) else width
+    height = _scale(data.shape[1], width, data.shape[0]) if (height is None or height == -1) else height
     assert isinstance(height, int) and isinstance(width, int), (type(height), type(width))
     return {"cv2": cv2_image_resize, "PIL": pil_image_resize}[library](data, height, width, interpolation, **kwargs)
 
