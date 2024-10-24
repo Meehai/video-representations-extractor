@@ -1,7 +1,7 @@
 vre:
   start_frame: ${oc.env:VRE_START_IX}
   end_frame: ${oc.env:VRE_END_IX,null}
-  export_npy: True
+  export_npz: True
   export_png: True
 
 representations:

@@ -155,10 +155,10 @@ def test_vre_batched():
     batch_size = 2
 
     vre_bs = VRE(video, representations_bs)
-    took_bs = vre_bs(tmp_dir_bs, start_frame=start_frame, end_frame=end_frame, export_npy=True, export_png=True,
+    took_bs = vre_bs(tmp_dir_bs, start_frame=start_frame, end_frame=end_frame, export_npz=True, export_png=True,
                      batch_size=batch_size, output_dir_exists_mode="raise")
     vre = VRE(video, representations)
-    took1 = vre(tmp_dir, start_frame=start_frame, end_frame=end_frame, export_npy=True, export_png=True,
+    took1 = vre(tmp_dir, start_frame=start_frame, end_frame=end_frame, export_npz=True, export_png=True,
                 batch_size=1, output_dir_exists_mode="raise")
 
     both = pd.concat([pd.DataFrame(took1["run_stats"]).mean().rename("unbatched"),
@@ -168,8 +168,8 @@ def test_vre_batched():
 
     for representation in vre.representations.keys():
         for t in range(start_frame, end_frame):
-            a = np.load(tmp_dir / representation / "npy/" / f"{t}.npz")["arr_0"]
-            b = np.load(tmp_dir_bs / representation / "npy/" / f"{t}.npz")["arr_0"]
+            a = np.load(tmp_dir / representation / "npz/" / f"{t}.npz")["arr_0"]
+            b = np.load(tmp_dir_bs / representation / "npz/" / f"{t}.npz")["arr_0"]
             assert np.abs(a - b).mean() < 1e-2, (representation, t)
 
 if __name__ == "__main__":

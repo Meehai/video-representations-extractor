@@ -6,5 +6,5 @@ from .topological_sort import topological_sort
 from .image import (image_resize, image_resize_batch, image_write, image_read, image_add_title, collage_fn,
                     image_add_border)
 from .resources import fetch_weights, vre_load_weights, fetch_resource
-from .batches import make_batches, all_batch_exists
+from .batches import make_batches
 from .colorizer import colorize_depth, colorize_semantic_segmentation, colorize_optical_flow

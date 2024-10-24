@@ -84,13 +84,13 @@ class Representation(ABC):
     def _load_from_disk_if_possible(self, ixs: list[int], output_dir: Path) -> ReprOut | None:
         assert isinstance(ixs, list) and all(isinstance(ix, int) for ix in ixs), (type(ixs), [type(ix) for ix in ixs])
         assert output_dir is not None and output_dir.exists(), output_dir
-        npy_paths: list[Path] = [output_dir / self.name / f"npy/{ix}.npz" for ix in ixs]
-        extra_paths: list[Path] = [output_dir / self.name / f"npy/{ix}_extra.npz" for ix in ixs]
-        if any(not x.exists() for x in npy_paths): # partial batches are considered 'not existing' and overwritten
+        npz_paths: list[Path] = [output_dir / self.name / f"npz/{ix}.npz" for ix in ixs]
+        extra_paths: list[Path] = [output_dir / self.name / f"npz/{ix}_extra.npz" for ix in ixs]
+        if any(not x.exists() for x in npz_paths): # partial batches are considered 'not existing' and overwritten
             return None
         extras_exist = [x.exists() for x in extra_paths]
         assert (ee := sum(extras_exist)) in (0, (ep := len(extra_paths))), f"Found {ee}. Expected either 0 or {ep}"
-        data = np.stack([np.load(x)["arr_0"] for x in npy_paths])
+        data = np.stack([np.load(x)["arr_0"] for x in npz_paths])
         extra = [np.load(x, allow_pickle=True)["arr_0"].item() for x in extra_paths] if ee == ep else None
         logger.debug2(f"[{self}] Slice: [{ixs[0]}:{ixs[-1]}]. All data found on disk and loaded")
         return ReprOut(output=data, extra=extra)
