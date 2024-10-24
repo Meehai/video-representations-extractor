@@ -35,7 +35,7 @@ class VideoRepresentationsExtractor:
         """main loop of each representation."""
         name = representation.name
         batch_size, output_size = runtime_args.batch_sizes[name], runtime_args.output_sizes[name]
-        output_dir, export_png = self._data_storer.data_writer.output_dir, self._data_storer.data_writer.export_png
+        output_dir, export_image  = self._data_storer.data_writer.output_dir, self._data_storer.data_writer.export_image
 
         # call vre_setup here so expensive representations get lazy deep instantiated (i.e. models loading)
         try:
@@ -65,7 +65,9 @@ class VideoRepresentationsExtractor:
                     y_repr_rsz = representation.resize(y_repr, self.video.frame_shape[0:2])
                 else:
                     y_repr_rsz = representation.resize(y_repr, output_size)
-                imgs = representation.make_images(self.video[l: r], y_repr_rsz) if export_png else None
+                imgs = representation.make_images(self.video[l: r], y_repr_rsz) if export_image else None
+                if representation.output_dtype != "native": # TODO: test
+                    y_repr_rsz.output = y_repr_rsz.output.astype(representation.output_dtype)
                 self._data_storer(name, y_repr_rsz, imgs, l, r)
             except Exception:
                 self._log_error(f"\n[{name} {batch_size=} {l=} {r=}] {traceback.format_exc()}\n")
@@ -77,7 +79,8 @@ class VideoRepresentationsExtractor:
         return repr_stats
 
     def run(self, output_dir: Path, start_frame: int | None = None, end_frame: int | None = None, batch_size: int = 1,
-            export_npz: bool = True, export_png: bool = True, output_dir_exists_mode: str = "raise",
+            binary_format: str | None = None, image_format: str | None = None, compress: bool = True,
+            output_dir_exists_mode: str = "raise",
             exception_mode: str = "stop_execution", output_size: str | tuple = "video_shape",
             n_threads_data_storer: int = 0, load_from_disk_if_computed: bool = True) -> pd.DataFrame:
         """
@@ -90,8 +93,8 @@ class VideoRepresentationsExtractor:
         runtime_args = VRERuntimeArgs(self.video, self.representations, start_frame, end_frame, batch_size,
                                       exception_mode, output_size, load_from_disk_if_computed)
         data_writer = DataWriter(output_dir, [r.name for r in self.representations.values()],
-                                 output_dir_exists_mode=output_dir_exists_mode, export_npz=export_npz,
-                                 export_png=export_png)
+                                 output_dir_exists_mode=output_dir_exists_mode, binary_format=binary_format,
+                                 image_format=image_format, compress=compress)
         self._data_storer = DataStorer(data_writer, n_threads_data_storer)
         logger.info(f"{runtime_args}\n{self._data_storer}")
         self._metadata = {"run_stats": {}}

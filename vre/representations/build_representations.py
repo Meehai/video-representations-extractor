@@ -1,6 +1,8 @@
 """builder for all the representations in VRE. Can be used outside of VRE too, see examples/notebooks."""
 from typing import Type
 from omegaconf import DictConfig, OmegaConf
+import numpy as np
+
 from ..logger import vre_logger as logger
 from ..utils import topological_sort
 from .representation import Representation
@@ -84,6 +86,10 @@ def build_representation_from_cfg(repr_cfg: dict, name: str, built_so_far: dict[
         logger.info(f"Explicit batch size {repr_cfg['batch_size']} provided to {name}.")
         assert isinstance(repr_cfg["batch_size"], int), type(repr_cfg["batch_size"])
         obj.batch_size = repr_cfg["batch_size"]
+    if "output_dtype" in repr_cfg:
+        logger.info(f"Explicit output_dtype {repr_cfg['output_dtype']} provided to {name}.")
+        obj.batch_size = np.dtype(repr_cfg["output_dtype"])
+
     return obj
 
 def build_representations_from_cfg(representations_dict: dict | DictConfig) -> dict[str, Representation]:

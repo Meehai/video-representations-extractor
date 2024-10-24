@@ -14,25 +14,25 @@ def test_vre_ctor():
         _ = VRE(video=video, representations={})
     assert "At least one representation must be provided" in str(e)
     vre = VRE(video=video, representations={"rgb": RGB("rgb")})
-    res = vre(Path(TemporaryDirectory().name), export_npz=True, export_png=False)
+    res = vre(Path(TemporaryDirectory().name), binary_format="npz", image_format=None)
     assert len(res["run_stats"]["rgb"]) == 2, res
 
 def test_vre_ouput_dir_exist_mode():
     video = FakeVideo(np.random.randint(0, 255, size=(2, 128, 128, 3), dtype=np.uint8), frame_rate=30)
 
     vre = VRE(video=video, representations={"rgb": RGB("rgb")})
-    _ = vre(tmp_dir := Path(TemporaryDirectory().name), export_npz=True, export_png=False)
+    _ = vre(tmp_dir := Path(TemporaryDirectory().name), binary_format="npz", image_format=None)
     creation_time1 = (tmp_dir / "rgb/npz").stat().st_ctime
     try:
-        vre(Path(TemporaryDirectory().name), export_npz=True, export_png=False)
+        vre(Path(TemporaryDirectory().name), binary_format="npz", image_format=None)
     except AssertionError as e:
         assert "Set --output_dir_exists_mode to 'overwrite' or 'skip_computed'" in str(e)
-    _ = vre(tmp_dir, export_npz=True, export_png=False, output_dir_exists_mode="skip_computed")
+    _ = vre(tmp_dir, binary_format="npz", image_format=None, output_dir_exists_mode="skip_computed")
     creation_time2 = (tmp_dir / "rgb/npz").stat().st_ctime
     assert creation_time1 == creation_time2
 
     time.sleep(0.01)
-    _ = vre(tmp_dir, export_npz=True, export_png=False, output_dir_exists_mode="overwrite")
+    _ = vre(tmp_dir, binary_format="npz", image_format=None, output_dir_exists_mode="overwrite")
     creation_time3 = Path((tmp_dir / "rgb/npz").absolute()).stat().st_ctime
     assert creation_time1 < creation_time3
 
@@ -48,13 +48,13 @@ def test_vre_ouput_shape():
     video = FakeVideo(np.random.randint(0, 255, size=(2, 128, 128, 3), dtype=np.uint8), frame_rate=30)
     vre = VRE(video=video, representations={"rgb": RGBWithShape((64, 64), "rgb")})
 
-    _ = vre(tmp_dir := Path(TemporaryDirectory().name), export_npz=True, export_png=False, output_size="video_shape")
+    _ = vre(tmp_dir := Path(TemporaryDirectory().name), binary_format="npz", image_format=None, output_size="video_shape")
     assert np.load(tmp_dir / "rgb/npz/0.npz")["arr_0"].shape == (128, 128, 3)
 
-    _ = vre(tmp_dir := Path(TemporaryDirectory().name), export_npz=True, export_png=False, output_size="native")
+    _ = vre(tmp_dir := Path(TemporaryDirectory().name), binary_format="npz", image_format=None, output_size="native")
     assert np.load(tmp_dir / "rgb/npz/0.npz")["arr_0"].shape == (64, 64, 3)
 
-    _ = vre(tmp_dir := Path(TemporaryDirectory().name), export_npz=True, export_png=False, output_size=(100, 100))
+    _ = vre(tmp_dir := Path(TemporaryDirectory().name), binary_format="npz", image_format=None, output_size=(100, 100))
     assert np.load(tmp_dir / "rgb/npz/0.npz")["arr_0"].shape == (100, 100, 3)
 
 def test_vre_simple_representations():
@@ -63,15 +63,15 @@ def test_vre_simple_representations():
     tmp_dir = Path(TemporaryDirectory().name)
     vre = VRE(video, representations)
     assert vre is not None
-    vre(tmp_dir, start_frame=1000, end_frame=1001, export_png=True, export_npz=True)
+    vre(tmp_dir, start_frame=1000, end_frame=1001,  binary_format="npz", image_format="jpg")
     assert Path(f"{tmp_dir}/rgb/npz/1000.npz").exists()
-    assert Path(f"{tmp_dir}/rgb/png/1000.png").exists()
+    assert Path(f"{tmp_dir}/rgb/jpg/1000.jpg").exists()
 
 def test_vre_metadata():
     video = FakeVideo(np.random.randint(0, 255, size=(2, 128, 128, 3), dtype=np.uint8), frame_rate=30)
     vre = VRE(video=video, representations={"rgb": RGB("rgb")})
     temp_dir = Path(TemporaryDirectory().name)
-    res = vre.run(output_dir=temp_dir, export_npz=True, export_png=False)
+    res = vre.run(output_dir=temp_dir, binary_format="npz", image_format=None)
     assert res["run_stats"].keys() == {"rgb"}
     assert res["frames"] == (0, 2)
 
