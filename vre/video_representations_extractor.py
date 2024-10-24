@@ -10,8 +10,8 @@ import torch as tr
 
 from .representations import Representation, LearnedRepresentationMixin
 from .vre_runtime_args import VRERuntimeArgs
-from .data_storer import DataStorer
-from .utils import VREVideo, took, make_batches, all_batch_exists, now_fmt
+from .data_writer import DataStorer, DataWriter
+from .utils import VREVideo, took, make_batches, now_fmt
 from .logger import vre_logger as logger
 
 class VideoRepresentationsExtractor:
@@ -34,8 +34,8 @@ class VideoRepresentationsExtractor:
     def _do_one_representation(self, representation: Representation, runtime_args: VRERuntimeArgs) -> list[float]:
         """main loop of each representation."""
         name = representation.name
-        batch_size = runtime_args.batch_sizes[name]
-        npy_paths, png_paths = runtime_args.npy_paths[name], runtime_args.png_paths[name]
+        batch_size, output_size = runtime_args.batch_sizes[name], runtime_args.output_sizes[name]
+        output_dir, export_png = self._data_storer.data_writer.output_dir, self._data_storer.data_writer.export_png
 
         # call vre_setup here so expensive representations get lazy deep instantiated (i.e. models loading)
         try:
@@ -49,7 +49,7 @@ class VideoRepresentationsExtractor:
         repr_stats: list[float] = []
         pbar = tqdm(total=runtime_args.end_frame - runtime_args.start_frame, desc=f"[VRE] {name} bs={batch_size}")
         for l, r in zip(left, right): # main VRE loop
-            if all_batch_exists(npy_paths, png_paths, l, r, runtime_args.export_npy, runtime_args.export_png):
+            if self._data_storer.data_writer.all_batch_exists(representation.name, l, r):
                 pbar.update(r - l)
                 repr_stats.extend(took(datetime.now(), l, r))
                 continue
@@ -57,16 +57,16 @@ class VideoRepresentationsExtractor:
             now = datetime.now()
             try:
                 tr.cuda.empty_cache() # might empty some unused memory, not 100% if needed.
-                out_dir = runtime_args.output_dir if runtime_args.load_from_disk_if_computed else None
+                out_dir = output_dir if runtime_args.load_from_disk_if_computed else None
                 y_repr = representation.vre_make(video=self.video, ixs=slice(l, r), output_dir=out_dir)
-                if (o_s := runtime_args.output_sizes[representation.name]) == "native":
+                if output_size == "native":
                     y_repr_rsz = y_repr
-                elif o_s == "video_shape":
+                elif output_size == "video_shape":
                     y_repr_rsz = representation.resize(y_repr, self.video.frame_shape[0:2])
                 else:
-                    y_repr_rsz = representation.resize(y_repr, o_s)
-                imgs = representation.make_images(self.video[l: r], y_repr_rsz) if runtime_args.export_png else None
-                self._data_storer(name, y_repr_rsz, imgs, l, r, runtime_args, self.video.frame_shape[0:2])
+                    y_repr_rsz = representation.resize(y_repr, output_size)
+                imgs = representation.make_images(self.video[l: r], y_repr_rsz) if export_png else None
+                self._data_storer(name, y_repr_rsz, imgs, l, r)
             except Exception:
                 self._log_error(f"\n[{name} {batch_size=} {l=} {r=}] {traceback.format_exc()}\n")
                 repr_stats.extend([1 << 31] * (runtime_args.end_frame - l))
@@ -77,7 +77,7 @@ class VideoRepresentationsExtractor:
         return repr_stats
 
     def run(self, output_dir: Path, start_frame: int | None = None, end_frame: int | None = None, batch_size: int = 1,
-            export_npy: bool = True, export_png: bool = True, output_dir_exists_mode: str = "raise",
+            export_npz: bool = True, export_png: bool = True, output_dir_exists_mode: str = "raise",
             exception_mode: str = "stop_execution", output_size: str | tuple = "video_shape",
             n_threads_data_storer: int = 0, load_from_disk_if_computed: bool = True) -> pd.DataFrame:
         """
@@ -87,10 +87,13 @@ class VideoRepresentationsExtractor:
         - A dataframe with the run statistics for each representation
         """
         self._setup_logger(output_dir, now := now_fmt())
-        runtime_args = VRERuntimeArgs(self.video, self.representations, output_dir, start_frame, end_frame, batch_size,
-                                      export_npy, export_png, output_dir_exists_mode, exception_mode,
-                                      output_size, n_threads_data_storer, load_from_disk_if_computed)
-        self._data_storer = DataStorer(n_threads_data_storer)
+        runtime_args = VRERuntimeArgs(self.video, self.representations, start_frame, end_frame, batch_size,
+                                      exception_mode, output_size, load_from_disk_if_computed)
+        data_writer = DataWriter(output_dir, [r.name for r in self.representations.values()],
+                                 output_dir_exists_mode=output_dir_exists_mode, export_npz=export_npz,
+                                 export_png=export_png)
+        self._data_storer = DataStorer(data_writer, n_threads_data_storer)
+        logger.info(f"{runtime_args}\n{self._data_storer}")
         self._metadata = {"run_stats": {}}
         for name, vre_repr in self.representations.items():
             repr_res = self._do_one_representation(vre_repr, runtime_args)

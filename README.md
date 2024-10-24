@@ -133,12 +133,12 @@ For the above CFG file, 2 subdirectories will be created:
 ```
 /path/to/output_dir/
   name of representation/
-    npy/ # if export_npy is set
+    npz/ # if export_npz is set
       1.npz, ..., N.npz
     png/ # if export_png is set
       1.png, ..., N.png
   name of representation 2/
-    npy/
+    npz/
       1.npz, ..., N.npz
 ```
 
