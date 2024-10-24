@@ -8,7 +8,6 @@ from overrides import overrides
 import torch as tr
 import numpy as np
 from lovely_tensors import monkey_patch
-from fvcore.common.config import CfgNode
 
 from vre.representations import Representation, ReprOut, LearnedRepresentationMixin
 from vre.logger import vre_logger as logger
@@ -16,9 +15,9 @@ from vre.utils import (image_resize_batch, fetch_weights, image_read, image_writ
                        vre_load_weights, colorize_semantic_segmentation)
 
 try:
-    from .mask2former_impl import MaskFormer as MaskFormerImpl
+    from .mask2former_impl import MaskFormer as MaskFormerImpl, CfgNode
 except ImportError:
-    from mask2former_impl import MaskFormer as MaskFormerImpl
+    from mask2former_impl import MaskFormer as MaskFormerImpl, CfgNode
 
 monkey_patch()
 

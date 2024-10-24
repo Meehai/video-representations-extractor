@@ -6,8 +6,7 @@ import sys
 import pickle
 import json
 from pathlib import Path
-from fvcore.common.config import CfgNode as _CfgNode
-from mask2former_impl import MaskFormer as MaskFormerImpl
+from mask2former_impl import MaskFormer as MaskFormerImpl, CfgNode as _CfgNode
 
 class CN(_CfgNode):
     # Note that the default value of allow_unsafe is changed to True

@@ -3,10 +3,10 @@
 import logging
 from typing import Callable, Dict, Optional, Union
 
-import fvcore.nn.weight_init as weight_init
 from torch import nn
 from torch.nn import functional as F
 
+from ...weight_init import c2_xavier_fill
 from ...layers import ShapeSpec, Conv2d, get_norm
 from ..transformer_decoder.position_encoding import PositionEmbeddingSine
 from ..transformer_decoder.transformer import TransformerEncoder, TransformerEncoderLayer
@@ -83,8 +83,8 @@ class BasePixelDecoder(nn.Module):
                     norm=output_norm,
                     activation=F.relu,
                 )
-                weight_init.c2_xavier_fill(lateral_conv)
-                weight_init.c2_xavier_fill(output_conv)
+                c2_xavier_fill(lateral_conv)
+                c2_xavier_fill(output_conv)
                 self.add_module("adapter_{}".format(idx + 1), lateral_conv)
                 self.add_module("layer_{}".format(idx + 1), output_conv)
 
@@ -103,7 +103,7 @@ class BasePixelDecoder(nn.Module):
             stride=1,
             padding=1,
         )
-        weight_init.c2_xavier_fill(self.mask_features)
+        c2_xavier_fill(self.mask_features)
 
         self.maskformer_num_feature_levels = 3  # always use 3 scales
 
@@ -221,7 +221,7 @@ class TransformerEncoderPixelDecoder(BasePixelDecoder):
 
         in_channels = feature_channels[len(self.in_features) - 1]
         self.input_proj = Conv2d(in_channels, conv_dim, kernel_size=1)
-        weight_init.c2_xavier_fill(self.input_proj)
+        c2_xavier_fill(self.input_proj)
         self.transformer = TransformerEncoderOnly(
             d_model=conv_dim,
             dropout=transformer_dropout,

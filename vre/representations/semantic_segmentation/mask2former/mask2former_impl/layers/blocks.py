@@ -2,12 +2,16 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Facebook, Inc. and its affiliates.
 
-import fvcore.nn.weight_init as weight_init
 from torch import nn
 
 from .norm import FrozenBatchNorm2d, get_norm
 from .wrappers import Conv2d
+from ..weight_init import c2_msra_fill
 
+def c2_msra_fill(module: nn.Module) -> None:
+    nn.init.kaiming_normal_(module.weight, mode="fan_out", nonlinearity="relu")
+    if module.bias is not None:
+        nn.init.constant_(module.bias, 0)
 
 """
 CNN building blocks.
@@ -105,8 +109,8 @@ class DepthwiseSeparableConv2d(nn.Module):
         )
 
         # default initialization
-        weight_init.c2_msra_fill(self.depthwise)
-        weight_init.c2_msra_fill(self.pointwise)
+        c2_msra_fill(self.depthwise)
+        c2_msra_fill(self.pointwise)
 
     def forward(self, x):
         return self.pointwise(self.depthwise(x))

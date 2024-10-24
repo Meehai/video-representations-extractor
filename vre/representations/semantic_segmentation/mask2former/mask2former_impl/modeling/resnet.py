@@ -1,11 +1,11 @@
 # pylint: disable=all
 # Copyright (c) Facebook, Inc. and its affiliates.
 import numpy as np
-import fvcore.nn.weight_init as weight_init
 import torch
 import torch.nn.functional as F
 from torch import nn
 
+from ..weight_init import c2_msra_fill
 from ..layers import CNNBlockBase, Conv2d, DeformConv, ModulatedDeformConv, ShapeSpec, get_norm
 
 # Copyright (c) Facebook, Inc. and its affiliates.
@@ -128,7 +128,7 @@ class BasicBlock(CNNBlockBase):
 
         for layer in [self.conv1, self.conv2, self.shortcut]:
             if layer is not None:  # shortcut can be None
-                weight_init.c2_msra_fill(layer)
+                c2_msra_fill(layer)
 
     def forward(self, x):
         out = self.conv1(x)
@@ -225,7 +225,7 @@ class BottleneckBlock(CNNBlockBase):
 
         for layer in [self.conv1, self.conv2, self.conv3, self.shortcut]:
             if layer is not None:  # shortcut can be None
-                weight_init.c2_msra_fill(layer)
+                c2_msra_fill(layer)
 
         # Zero-initialize the last normalization in each residual branch,
         # so that at the beginning, the residual branch starts with zeros,
@@ -343,7 +343,7 @@ class DeformBottleneckBlock(CNNBlockBase):
 
         for layer in [self.conv1, self.conv2, self.conv3, self.shortcut]:
             if layer is not None:  # shortcut can be None
-                weight_init.c2_msra_fill(layer)
+                c2_msra_fill(layer)
 
         nn.init.constant_(self.conv2_offset.weight, 0)
         nn.init.constant_(self.conv2_offset.bias, 0)
@@ -398,7 +398,7 @@ class BasicStem(CNNBlockBase):
             bias=False,
             norm=get_norm(norm, out_channels),
         )
-        weight_init.c2_msra_fill(self.conv1)
+        c2_msra_fill(self.conv1)
 
     def forward(self, x):
         x = self.conv1(x)
