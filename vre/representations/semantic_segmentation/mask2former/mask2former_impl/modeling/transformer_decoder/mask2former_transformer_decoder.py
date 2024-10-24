@@ -2,14 +2,13 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
 # Modified by Bowen Cheng from: https://github.com/facebookresearch/detr/blob/master/models/detr.py
 import logging
-import fvcore.nn.weight_init as weight_init
 from typing import Optional
 import torch
 from torch import nn, Tensor
 from torch.nn import functional as F
 
 from .position_encoding import PositionEmbeddingSine
-
+from ...weight_init import c2_xavier_fill
 
 class SelfAttentionLayer(nn.Module):
 
@@ -25,7 +24,7 @@ class SelfAttentionLayer(nn.Module):
         self.normalize_before = normalize_before
 
         self._reset_parameters()
-    
+
     def _reset_parameters(self):
         for p in self.parameters():
             if p.dim() > 1:
@@ -319,7 +318,7 @@ class MultiScaleMaskedTransformerDecoder(nn.Module):
         for _ in range(self.num_feature_levels):
             if in_channels != hidden_dim or enforce_input_project:
                 self.input_proj.append(nn.Conv2d(in_channels, hidden_dim, kernel_size=1))
-                weight_init.c2_xavier_fill(self.input_proj[-1])
+                c2_xavier_fill(self.input_proj[-1])
             else:
                 self.input_proj.append(nn.Sequential())
 

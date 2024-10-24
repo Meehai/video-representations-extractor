@@ -1,11 +1,18 @@
 """Init file"""
-# pylint: disable=reimported
+# pylint: disable=reimported, wrong-import-position
 import warnings
 from lovely_tensors import monkey_patch
 from diffusers.utils.logging import disable_progress_bar
+import matplotlib
+matplotlib.use("TkAgg") # some scripts fail if this is not set here
 
 from .video_representations_extractor import VideoRepresentationsExtractor, VideoRepresentationsExtractor as VRE
 from .representations import Representation, ReprOut
+
+try:
+    import pdbp
+except ImportError:
+    pass
 
 monkey_patch()
 disable_progress_bar()

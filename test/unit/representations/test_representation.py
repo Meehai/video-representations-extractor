@@ -1,4 +1,3 @@
-from vre import ReprOut
 from vre.representations import FakeRepresentation
 from vre.utils import FakeVideo
 import numpy as np

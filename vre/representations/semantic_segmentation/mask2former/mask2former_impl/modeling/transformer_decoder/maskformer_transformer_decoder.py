@@ -1,11 +1,11 @@
 # pylint: disable=all
 # Copyright (c) Facebook, Inc. and its affiliates.
 # Modified by Bowen Cheng from: https://github.com/facebookresearch/detr/blob/master/models/detr.py
-import fvcore.nn.weight_init as weight_init
 import torch
 from torch import nn
 from torch.nn import functional as F
 
+from ...weight_init import c2_xavier_fill
 from .position_encoding import PositionEmbeddingSine
 from .transformer import Transformer
 from .mask2former_transformer_decoder import MultiScaleMaskedTransformerDecoder
@@ -84,7 +84,7 @@ class StandardTransformerDecoder(nn.Module):
 
         if in_channels != hidden_dim or enforce_input_project:
             self.input_proj = nn.Conv2d(in_channels, hidden_dim, kernel_size=1)
-            weight_init.c2_xavier_fill(self.input_proj)
+            c2_xavier_fill(self.input_proj)
         else:
             self.input_proj = nn.Sequential()
         self.aux_loss = deep_supervision

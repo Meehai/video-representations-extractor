@@ -3,13 +3,13 @@
 import numpy as np
 from typing import Callable, Dict, List, Optional, Union
 
-import fvcore.nn.weight_init as weight_init
 import torch
 from torch import nn
 from torch.nn import functional as F
 from torch.nn.init import normal_
 from torch.amp import autocast
 
+from ...weight_init import c2_xavier_fill
 from ...layers import ShapeSpec, Conv2d, get_norm
 from ..transformer_decoder.position_encoding import PositionEmbeddingSine
 from ..transformer_decoder.transformer import _get_clones, _get_activation_fn
@@ -245,8 +245,8 @@ class MSDeformAttnPixelDecoder(nn.Module):
             stride=1,
             padding=0,
         )
-        weight_init.c2_xavier_fill(self.mask_features)
-        
+        c2_xavier_fill(self.mask_features)
+
         self.maskformer_num_feature_levels = 3  # always use 3 scales
         self.common_stride = common_stride
 
@@ -275,8 +275,8 @@ class MSDeformAttnPixelDecoder(nn.Module):
                 norm=output_norm,
                 activation=F.relu,
             )
-            weight_init.c2_xavier_fill(lateral_conv)
-            weight_init.c2_xavier_fill(output_conv)
+            c2_xavier_fill(lateral_conv)
+            c2_xavier_fill(output_conv)
             self.add_module("adapter_{}".format(idx + 1), lateral_conv)
             self.add_module("layer_{}".format(idx + 1), output_conv)
 
