@@ -133,9 +133,9 @@ For the above CFG file, 2 subdirectories will be created:
 ```
 /path/to/output_dir/
   name of representation/
-    npz/ # if export_npz is set
+    npz/ # if binary_format=='npz'
       1.npz, ..., N.npz
-    png/ # if export_png is set
+    png/ # if image_format=='png'
       1.png, ..., N.png
   name of representation 2/
     npz/

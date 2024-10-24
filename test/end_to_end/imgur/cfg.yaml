@@ -1,8 +1,9 @@
 vre:
   start_frame: ${oc.env:VRE_START_IX}
   end_frame: ${oc.env:VRE_END_IX,null}
-  export_npz: True
-  export_png: True
+  binary_format: npz
+  image_format: png
+  compress: True
 
 representations:
   rgb:

@@ -21,6 +21,7 @@ class VRERuntimeArgs:
     - output_size The resulted output shape in the npz/png directories. Valid options: a tuple (h, w), or a string:
         - 'native' whatever each representation outputs out of the box)
         - 'video_shape' (default) resizing to the video shape
+    - output_dtype: The dtype on which each representation is stored. If 'native', don't do anything
     - load_from_disk_if_computed If true, then it will try to read from the disk if a representation is computed.
     """
     def __init__(self, video: VREVideo, representations: dict[str, "Representation"],

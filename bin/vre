@@ -2,14 +2,12 @@
 from argparse import ArgumentParser
 from typing import List
 from pathlib import Path
-from datetime import datetime
-import os
 from natsort import natsorted
 import numpy as np
 import pandas as pd
 import pims
 from vre import VRE
-from vre.utils import FakeVideo, image_read, get_project_root
+from vre.utils import FakeVideo, image_read
 from vre.representations import build_representations_from_cfg
 from vre.logger import vre_logger as logger
 from omegaconf import OmegaConf

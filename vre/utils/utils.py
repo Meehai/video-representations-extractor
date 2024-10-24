@@ -27,6 +27,7 @@ def took(prev: datetime.date, l: int, r: int) -> list[float]:
 
 def is_dir_empty(dir_path: Path, pattern: str = "*") -> bool:
     """returns true if directory is not empty, false if it is empty"""
+    assert pattern.startswith("*"), pattern
     return len(list(dir_path.glob(pattern))) == 0
 
 def get_closest_square(n: int) -> tuple[int, int]:

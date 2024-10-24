@@ -27,6 +27,7 @@ class Representation(ABC):
         # attributes updatable from outside (vre config)
         self.batch_size: int | None = None
         self.output_size: tuple[int, int] | str | None = None
+        self.output_dtype: str | np.dtype = "native"
 
     ## Abstract methods ##
     @abstractmethod
