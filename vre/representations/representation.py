@@ -25,9 +25,9 @@ class Representation(ABC):
         self.name = name
         self.dependencies = dependencies
         # attributes updatable from outside (vre config)
+        self._output_size: tuple[int, int] | str | None = None
         self.batch_size: int | None = None
-        self.output_size: tuple[int, int] | str | None = None
-        self.output_dtype: str | np.dtype = "native"
+        self.output_dtype: str | np.dtype | None = None
 
     ## Abstract methods ##
     @abstractmethod
@@ -62,6 +62,20 @@ class Representation(ABC):
         """Returns the (h, w) tuple of the size of the current representation"""
 
     ## Public methods ##
+    @property
+    def output_size(self) -> str | tuple[int, int] | None:
+        """Returns the output size as a tuple/string or None if it's not explicitly set"""
+        return self._output_size
+
+    @output_size.setter
+    def output_size(self, os: str | tuple[int, int]):
+        assert isinstance(os, (str, tuple, list)), os
+        if isinstance(os, (tuple, list)):
+            assert all(isinstance(x, int) and x > 0 for x in os), os
+        if isinstance(os, str):
+            assert os in ("native", "video_shape"), os
+        self._output_size = os
+
     def vre_dep_data(self, video: VREVideo, ixs: slice | list[int], output_dir: Path | None) -> dict[str, ReprOut]:
         """iteratively collects all the dependencies needed by this representation"""
         return {dep.name: dep.vre_make(video=video, ixs=ixs, output_dir=output_dir) for dep in self.dependencies}

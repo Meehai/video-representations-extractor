@@ -3,6 +3,7 @@ from typing import Any
 
 from .utils import parsed_str_type, VREVideo
 from .logger import vre_logger as logger
+from .representations import Representation
 
 RepresentationsSetup = dict[str, dict[str, Any]]
 
@@ -24,15 +25,11 @@ class VRERuntimeArgs:
     - output_dtype: The dtype on which each representation is stored. If 'native', don't do anything
     - load_from_disk_if_computed If true, then it will try to read from the disk if a representation is computed.
     """
-    def __init__(self, video: VREVideo, representations: dict[str, "Representation"],
+    def __init__(self, video: VREVideo, representations: dict[str, Representation],
                  start_frame: int | None, end_frame: int | None, batch_size: int,
                  exception_mode: str, output_size: str | tuple, load_from_disk_if_computed: bool):
         assert batch_size >= 1, f"batch size must be >= 1, got {batch_size}"
         assert exception_mode in ("stop_execution", "skip_representation"), exception_mode
-        if isinstance(output_size, str):
-            assert output_size in ("native", "video_shape"), output_size
-        else:
-            assert len(output_size) == 2 and all(isinstance(x, int) for x in output_size), output_size
         if start_frame is None:
             start_frame = 0
             logger.warning("start frame not set, default to 0")
@@ -41,19 +38,27 @@ class VRERuntimeArgs:
             end_frame = len(video)
 
         assert isinstance(start_frame, int) and start_frame <= end_frame, (start_frame, end_frame)
+        assert (end_frame - start_frame) <= len(video), f"{start_frame=}, {end_frame=}, {len(video)=}"
         self.video = video
         self.start_frame = start_frame
         self.end_frame = end_frame
-        self.batch_size = batch_size
+        self.batch_size = min(batch_size, end_frame - start_frame)
         self.exception_mode = exception_mode
-        self.output_size = tuple(output_size) if not isinstance(output_size, str) else output_size
         self.representations = representations
         self.load_from_disk_if_computed = load_from_disk_if_computed
 
-        self.batch_sizes = {k: batch_size if r.batch_size is None else r.batch_size
+        self.batch_sizes = {k: self.batch_size if r.batch_size is None else r.batch_size
                             for k, r in representations.items()}
-        self.output_sizes = {k: output_size if r.output_size is None else r.output_size
-                             for k, r in representations.items()}
+        self.output_sizes = {}
+        for k, r in representations.items():
+            os = r.output_size if r.output_size is not None else output_size
+            if os == "video_shape":
+                os = tuple(self.video.frame_shape[0:2])
+            if isinstance(os, str):
+                assert os == "native", os
+            else:
+                assert len(os) == 2 and all(isinstance(x, int) for x in os), os
+            self.output_sizes[k] = os
 
     def __repr__(self):
         return f"""[{parsed_str_type(self)}]
@@ -61,7 +66,7 @@ class VRERuntimeArgs:
 - Representations ({len(self.representations)}): {", ".join(x for x in self.representations.keys())}
 - Video shape: {self.video.shape} (FPS: {self.video.frame_rate:.2f})
 - Output frames ({self.end_frame - self.start_frame}): [{self.start_frame} : {self.end_frame - 1}]
-- Output shape: {self.output_size if self.output_size != "video_shape" else self.video.frame_shape[0:2]}
+- Output sizes: {self.output_sizes}
 - Batch size: {self.batch_size}
 - Exception mode: '{self.exception_mode}'
 - Load from disk if computed: {self.load_from_disk_if_computed}"""

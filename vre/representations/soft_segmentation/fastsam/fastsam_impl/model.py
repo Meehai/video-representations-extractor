@@ -14,7 +14,7 @@ from torch import nn
 import torch
 from pathlib import Path
 import sys
-sys.path.append(Path(__file__).parents[1].__str__()) # needed to load the weights because ultralytics must be in path...
+sys.path.insert(0, Path(__file__).parents[1].__str__()) # needed to load the weights because ultralytics must be in path
 
 from ultralytics.nn.tasks import SegmentationModel
 from ultralytics.nn.modules import Segment
