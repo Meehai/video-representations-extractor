@@ -6,6 +6,7 @@ import numpy as np
 from ..logger import vre_logger as logger
 from ..utils import topological_sort
 from .representation import Representation
+from .learned_representation_mixin import LearnedRepresentationMixin
 
 # pylint: disable=import-outside-toplevel, redefined-builtin, too-many-branches, too-many-statements, cyclic-import
 def build_representation_type(repr_type: str) -> Type[Representation]:
@@ -81,6 +82,7 @@ def build_representation_from_cfg(repr_cfg: dict, name: str, built_so_far: dict[
     assert "vre_parameters" not in repr_cfg, "Old config file, remove 'vre_parameters'"
     if "device" in repr_cfg:
         logger.info(f"Explicit device provided: {repr_cfg['device']}. This device will be used at vre.run()")
+        assert isinstance(obj, LearnedRepresentationMixin), type(obj)
         obj.device = repr_cfg["device"]
     if "batch_size" in repr_cfg:
         logger.info(f"Explicit batch size {repr_cfg['batch_size']} provided to {name}.")
@@ -88,7 +90,10 @@ def build_representation_from_cfg(repr_cfg: dict, name: str, built_so_far: dict[
         obj.batch_size = repr_cfg["batch_size"]
     if "output_dtype" in repr_cfg:
         logger.info(f"Explicit output_dtype {repr_cfg['output_dtype']} provided to {name}.")
-        obj.batch_size = np.dtype(repr_cfg["output_dtype"])
+        obj.output_dtype = np.dtype(repr_cfg["output_dtype"])
+    if "output_size" in repr_cfg:
+        logger.info(f"Explicit output_size {repr_cfg['output_size']} provided to {name}.")
+        obj.output_size = repr_cfg["output_size"]
 
     return obj
 

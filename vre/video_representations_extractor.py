@@ -66,7 +66,7 @@ class VideoRepresentationsExtractor:
                 else:
                     y_repr_rsz = representation.resize(y_repr, output_size)
                 imgs = representation.make_images(self.video[l: r], y_repr_rsz) if export_image else None
-                if representation.output_dtype != "native": # TODO: test
+                if representation.output_dtype is not None:
                     y_repr_rsz.output = y_repr_rsz.output.astype(representation.output_dtype)
                 self._data_storer(name, y_repr_rsz, imgs, l, r)
             except Exception:

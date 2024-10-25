@@ -66,6 +66,7 @@ representations:
       sensor_width: 3840
       sensor_height: 2160
       window_size: 11
+    output_dtype: float16
 
   fastsam(s):
     type: soft-segmentation/fastsam
