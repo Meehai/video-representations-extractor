@@ -73,7 +73,7 @@ def test_vre_metadata():
     temp_dir = Path(TemporaryDirectory().name)
     res = vre.run(output_dir=temp_dir, binary_format="npz", image_format=None)
     assert res["run_stats"].keys() == {"rgb"}
-    assert res["frames"] == (0, 2)
+    assert res["runtime_args"]["frames"] == (0, 2)
 
 if __name__ == "__main__":
     test_vre_simple_representations()

@@ -21,10 +21,6 @@ def parsed_str_type(item: Any) -> str:
     """Given an object with a type of the format: <class 'A.B.C.D'>, parse it and return 'A.B.C.D'"""
     return str(type(item)).rsplit(".", maxsplit=1)[-1][0:-2]
 
-def took(prev: datetime.date, l: int, r: int) -> list[float]:
-    """how much it took between [prev:now()] gien a [l:r] batch"""
-    return [(datetime.now() - prev).total_seconds() / (r - l)] * (r - l)
-
 def is_dir_empty(dir_path: Path, pattern: str = "*") -> bool:
     """returns true if directory is not empty, false if it is empty"""
     assert pattern.startswith("*"), pattern

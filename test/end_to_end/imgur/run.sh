@@ -15,10 +15,11 @@ chmod +x $CWD/imgur.sh
 test -f $CWD/cfg.yaml || ( echo "$CWD/cfg.yaml does not exist"; kill $$ )
 n_frames=$(ffprobe -v error -select_streams v:0 -count_packets -show_entries stream=nb_read_packets -of csv=p=0 $VID)
 X=$(shuf -i 1-"$n_frames" -n 1)
-rm -rf $CWD/test_imgur/
+# rm -rf $CWD/test_imgur/
 
 # run VRE
-vre $VID --cfg_path $CWD/cfg.yaml -o $CWD/test_imgur/ --start_frame $X --end_frame $((X+1)) --output_size 400 600
+vre $VID --cfg_path $CWD/cfg.yaml -o $CWD/test_imgur/ --start_frame $X --end_frame $((X+1)) --output_size 400 600 \
+    --output_dir_exists_mode skip_computed
 test "$?" -eq 0 || ( echo "VRE failed"; kill $$ )
 vre_collage $CWD/test_imgur/ --overwrite
 

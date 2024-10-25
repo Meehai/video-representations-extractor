@@ -28,7 +28,8 @@ class VRERuntimeArgs:
     """
     def __init__(self, video: VREVideo, representations: dict[str, Representation],
                  start_frame: int | None, end_frame: int | None, batch_size: int, exception_mode: str,
-                 output_size: str | tuple, load_from_disk_if_computed: bool, n_threads_data_storer: int):
+                 output_size: str | tuple, load_from_disk_if_computed: bool, n_threads_data_storer: int,
+                 store_metadata_every_n_iters: int = 10):
         assert batch_size >= 1, f"batch size must be >= 1, got {batch_size}"
         assert exception_mode in ("stop_execution", "skip_representation"), exception_mode
         if start_frame is None:
@@ -48,6 +49,7 @@ class VRERuntimeArgs:
         self.representations = representations
         self.load_from_disk_if_computed = load_from_disk_if_computed
         self.n_threads_data_storer = n_threads_data_storer
+        self.store_metadata_every_n_iters = store_metadata_every_n_iters
 
         self.batch_sizes = {k: self.batch_size if r.batch_size is None else r.batch_size
                             for k, r in representations.items()}
@@ -61,6 +63,17 @@ class VRERuntimeArgs:
             else:
                 assert len(os) == 2 and all(isinstance(x, int) for x in os), os
             self.output_sizes[k] = os
+
+    def to_dict(self) -> dict:
+        """A dict representation of this runtime args. Used in Metadata() to be stored on disk during the run."""
+        return {
+            "video_path": getattr(self.video, "file", ""), "video_shape": f"{self.video.shape}",
+            "video_fps": f"{self.video.frame_rate:.2f}",
+            "representations": [r.name for r in self.representations.values()],
+            "frames": (self.start_frame, self.end_frame), "batch_size": self.batch_sizes,
+            "exception_mode": self.exception_mode, "load_from_disk_if_computed": self.load_from_disk_if_computed,
+            "n_threads_data_storer": self.n_threads_data_storer,
+        }
 
     def __repr__(self):
         return f"""[{parsed_str_type(self)}]
