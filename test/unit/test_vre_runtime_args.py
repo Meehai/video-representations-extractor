@@ -11,10 +11,13 @@ def test_VRERuntimeArgs_ctor():
     with pytest.raises(AssertionError):
         _ = VRERuntimeArgs(video, representations, start_frame=0, end_frame=3, batch_size=5,
                            exception_mode="stop_execution", output_size="native", load_from_disk_if_computed=False)
+    with pytest.raises(AssertionError):
         _ = VRERuntimeArgs(video, representations, start_frame="lala", end_frame=3, batch_size=5,
                            exception_mode="stop_execution", output_size="native", load_from_disk_if_computed=False)
+    with pytest.raises(AssertionError):
         _ = VRERuntimeArgs(video, representations, start_frame="lala", end_frame=3, batch_size=5,
                            exception_mode="lala", output_size="native", load_from_disk_if_computed=False)
+    with pytest.raises(AssertionError):
         _ = VRERuntimeArgs(video, representations, start_frame="lala", end_frame=3, batch_size=5,
                            exception_mode="stop_execution", output_size="lala", load_from_disk_if_computed=False)
 

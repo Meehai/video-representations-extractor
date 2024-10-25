@@ -20,7 +20,7 @@ def test_build_representations_from_cfg():
     cfg = {**orig_cfg, "batch_size": 5, "device": "cuda", "output_dtype": "uint8"}
     with pytest.raises(AssertionError):
         _ = build_representation_from_cfg(cfg, name="rgb", built_so_far={})
-    
+
     cfg = {**orig_cfg, "batch_size": 5, "output_dtype": "lala"}
     with pytest.raises(TypeError):
         _ = build_representation_from_cfg(cfg, name="rgb", built_so_far={})
@@ -39,6 +39,9 @@ def test_build_representations_from_cfg():
 
     with pytest.raises(AssertionError):
         _ = build_representation_from_cfg({**orig_cfg, "output_size": "lala"}, name="rgb", built_so_far={})
+    with pytest.raises(AssertionError):
         _ = build_representation_from_cfg({**orig_cfg, "output_size": [100, 200, 300]}, name="rgb", built_so_far={})
+    with pytest.raises(AssertionError):
         _ = build_representation_from_cfg({**orig_cfg, "output_size": [100, 200.5]}, name="rgb", built_so_far={})
+    with pytest.raises(AssertionError):
         _ = build_representation_from_cfg({**orig_cfg, "output_size": [-15, 100]}, name="rgb", built_so_far={})
