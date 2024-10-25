@@ -1,11 +1,12 @@
 """Metadata module -- The metadata of a particular VRE run"""
 import json
+from pathlib import Path
+from vre_runtime_args import VRERuntimeArgs
 
 class Metadata:
     """
     Metadata of a run for multiple representations. Stored on disk during the run too.
-    TODO: this needs to be an sqlite handler that supports locking in the future so we can have multiple writers
-    for a single vre directory across different runs.
+    TODO: somehow support resume (might need to remove the 1<<31 times and match the npz with data here
     """
     def __init__(self, representations: list[str], runtime_args: VRERuntimeArgs, disk_location: Path):
         assert len(representations) > 0 and all(isinstance(x, str) for x in representations), representations
