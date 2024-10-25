@@ -10,9 +10,20 @@ import torch as tr
 
 from .representations import Representation, LearnedRepresentationMixin
 from .vre_runtime_args import VRERuntimeArgs
-from .data_writer import DataStorer, DataWriter
-from .utils import VREVideo, took, make_batches, now_fmt
+from .data_writer import DataWriter
+from .data_storer import DataStorer
+from .utils import VREVideo, took, now_fmt
 from .logger import vre_logger as logger
+
+def _make_batches(video: VREVideo, start_frame: int, end_frame: int, batch_size: int) -> list[int]:
+    """return 1D array [start_frame, start_frame+bs, start_frame+2*bs... end_frame]"""
+    if batch_size > end_frame - start_frame:
+        logger.warning(f"batch size {batch_size} is larger than #frames to process [{start_frame}:{end_frame}].")
+        batch_size = end_frame - start_frame
+    last_one = min(end_frame, len(video))
+    batches = list(range(start_frame, last_one, batch_size))
+    batches = [*batches, last_one] if batches[-1] != last_one else batches
+    return batches
 
 class VideoRepresentationsExtractor:
     """Video Representations Extractor class"""
@@ -44,7 +55,7 @@ class VideoRepresentationsExtractor:
             self._log_error(f"\n[{name} {batch_size=}] {traceback.format_exc()}\n")
             return [1 << 31] * (runtime_args.end_frame - runtime_args.start_frame)
 
-        batches = make_batches(self.video, runtime_args.start_frame, runtime_args.end_frame, batch_size)
+        batches = _make_batches(self.video, runtime_args.start_frame, runtime_args.end_frame, batch_size)
         left, right = batches[0:-1], batches[1:]
         repr_stats: list[float] = []
         pbar = tqdm(total=runtime_args.end_frame - runtime_args.start_frame, desc=f"[VRE] {name} bs={batch_size}")

@@ -1,8 +1,4 @@
-"""DataStorer module -- used to store npz/png files in a multi threaded way if needed"""
-from threading import Thread
-from multiprocessing import cpu_count
-from queue import Queue
-from time import time
+"""DataWriter module -- used to store binary (npz) or image (png) files given a representation output"""
 from typing import Callable
 import shutil
 from pathlib import Path
@@ -48,9 +44,9 @@ class DataWriter:
         """store the data in the right format"""
         assert name in self.representations, (name, self.representations)
         if self.export_image:
-            assert (shp := imgs.shape)[0] == r - l and shp[-1] == 3, f"Expected {r - l} images ({l=} {r=}), got {shp}"
             assert imgs is not None
-            assert imgs.dtype == np.uint8, imgs.dtype
+            assert (shp := imgs.shape)[0] == r - l and shp[-1] == 3, f"Expected {r - l} images ({l=} {r=}), got {shp}"
+            assert imgs.dtype in (np.uint8, np.uint16, np.uint32, np.uint64), imgs.dtype
 
         for i, t in enumerate(range(l, r)):
             if self.export_binary:
@@ -65,6 +61,7 @@ class DataWriter:
 
     def all_batch_exists(self, representation: str, l: int, r: int) -> bool:
         """true if all batch [l:r] exists on the disk"""
+        assert isinstance(l, int) and isinstance(r, int) and 0 <= l < r, (l, r, type(l), type(r))
         for ix in range(l, r):
             if self.export_binary and not self._path(representation, ix, self.binary_format).exists():
                 return False
@@ -112,56 +109,3 @@ class DataWriter:
 - Output dir: '{self.output_dir}' (exists mode: '{self.output_dir_exists_mode}')
 - Export binary: {self.export_binary} (binary format: {self.binary_format}, compress: {self.compress})
 - Export image: {self.export_image} (image format: {self.image_format})"""
-
-class DataStorer:
-    """
-    Equivalent of DataLoader on top of a Dataset -> DataStorer on top of a DataWriter
-    Parameters:
-    - data_writer The DataWriter object used by this DataStorer (akin to Dataset and DataLoader)
-    - n_threads_data_storer The number of workers used for the ThreadPool that stores data at each step. This is
-    needed because storing data takes a lot of time sometimes, even more than the computation itself.
-    """
-    def __init__(self, data_writer: DataWriter, n_threads: int):
-        assert n_threads >= 0, n_threads
-        self.data_writer = data_writer
-        self.n_threads = min(n_threads, cpu_count())
-        self.threads: list[Thread] = []
-        if n_threads >= 1:
-            self.queue: Queue = Queue(maxsize=1) # maxisze=1 because we use many shared memory threads.
-            for _ in range(n_threads):
-                self.threads.append(thr := Thread(target=self._worker_fn, daemon=True, args=(self.queue, )))
-                thr.start()
-        logger.debug(f"[DataStorer] Set up with {n_threads} threads.")
-
-    def _worker_fn(self, queue: Queue):
-        while True: # Since these threads are daemon, they die when main thread dies. We could use None or smth to break
-            self.data_writer(*queue.get())
-            queue.task_done()
-
-    def join_with_timeout(self, timeout: int):
-        """calls queue.join() but throws after timeout seconds if it doesn't end"""
-        if self.n_threads == 0:
-            return
-        logger.debug(f"Waiting for {self.queue.unfinished_tasks} leftover enqueued tasks")
-        self.queue.all_tasks_done.acquire()
-        try:
-            endtime = time() + timeout
-            while self.queue.unfinished_tasks:
-                remaining = endtime - time()
-                if remaining <= 0.0:
-                    raise RuntimeError("Queue has not finished the join() before timeout")
-                self.queue.all_tasks_done.wait(remaining)
-        finally:
-            self.queue.all_tasks_done.release()
-
-    def __call__(self, name: str, y_repr: ReprOut, imgs: np.ndarray | None, l: int, r: int):
-        assert isinstance(y_repr, ReprOut), f"{name=}, {type(y_repr)=}"
-        if self.n_threads == 0:
-            self.data_writer(name, y_repr, imgs, l, r)
-        else:
-            self.queue.put((name, y_repr, imgs, l, r), block=True, timeout=30)
-
-    def __repr__(self):
-        return f"""[DataStorer]
-- Num threads: {self.n_threads} (0 = using main thread)
-{self.data_writer}"""

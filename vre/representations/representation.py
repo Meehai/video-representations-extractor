@@ -71,7 +71,7 @@ class Representation(ABC):
     def output_size(self, os: str | tuple[int, int]):
         assert isinstance(os, (str, tuple, list)), os
         if isinstance(os, (tuple, list)):
-            assert all(isinstance(x, int) and x > 0 for x in os), os
+            assert len(os) == 2 and all(isinstance(x, int) and x > 0 for x in os), os
         if isinstance(os, str):
             assert os in ("native", "video_shape"), os
         self._output_size = os
