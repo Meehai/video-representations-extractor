@@ -30,7 +30,7 @@ class DataStorer:
         logger.debug(f"[DataStorer] Set up with {n_threads} threads.")
 
     def _worker_fn(self):
-        while True: # Since these threads are daemon, they die when main thread dies. We could use None or smth to break
+        while True: # This loop is ended via `self.join_with_timeout` or `__del__` or manually setting queue to None.
             if self.queue is None:
                 logger.debug("Queue is None. Closing.")
             try:
@@ -57,13 +57,13 @@ class DataStorer:
             self.queue.all_tasks_done.release()
         self.queue = None
 
-    def __call__(self, name: str, y_repr: ReprOut, imgs: np.ndarray | None, l: int, r: int):
-        assert isinstance(y_repr, ReprOut), f"{name=}, {type(y_repr)=}"
+    def __call__(self, y_repr: ReprOut, imgs: np.ndarray | None, l: int, r: int):
+        assert isinstance(y_repr, ReprOut), f"{self.data_writer.representation=}, {type(y_repr)=}"
         if self.n_threads == 0:
-            self.data_writer(name, y_repr, imgs, l, r)
+            self.data_writer(y_repr, imgs, l, r)
         else:
             assert self.queue is not None, "Queue was closed, create a new DataStorer object..."
-            self.queue.put((name, y_repr, imgs, l, r), block=True, timeout=30)
+            self.queue.put((y_repr, imgs, l, r), block=True, timeout=30)
 
     def __repr__(self):
         return f"""[DataStorer]

@@ -10,11 +10,10 @@ from .logger import vre_logger as logger
 
 class DataWriter:
     """
-    TODO: make this work for just 1 representation at a time.
-    Class used to store the representations on disk. It supports multi-threading so we don't block the compute one
+    Class used to store one representation on disk. Single thread only, for multi-threaded use DataStorer.
     Parameters:
-    - output_dir The directory used to output representations in this run.
-    - representations The list of representation names for this DataWriter
+    - output_dir The directory used to output representation(s) in this run. Multiple Writers can exist at the same time
+    - representation The representation that is outputted by this writer
     - binary_format If set, it will save the representation as a binary file (npy/npz) + extra (npz always)
     - image_format If set, will store the representation as an image format (png/jpg). No extra.
     - output_dir_exists_mode What to do if the output dir already exists. Can be one of:
@@ -22,14 +21,13 @@ class DataWriter:
         - 'skip_computed' Skip the computed frames and continue from the last computed frame
         - 'raise' (default) Raise an error if the output dir already exists
     """
-    def __init__(self, output_dir: Path, representations: list[str], output_dir_exists_mode: str,
+    def __init__(self, output_dir: Path, representation: str, output_dir_exists_mode: str,
                  binary_format: str | None, image_format: str | None, compress: bool = True):
         assert (binary_format is not None) + (image_format is not None) > 0, "At least one of format must be set"
         assert output_dir_exists_mode in ("overwrite", "skip_computed", "raise"), output_dir_exists_mode
-        assert all(isinstance(r, str) for r in representations), representations
         assert binary_format is None or binary_format in ("npz", "npy", "npz_compressed"), binary_format
         assert image_format is None or image_format in ("png", "jpg"), image_format
-        self.representations = representations
+        self.representation = representation
         self.output_dir = output_dir
         self.output_dir_exists_mode = output_dir_exists_mode
         self.export_binary = binary_format is not None
@@ -37,13 +35,11 @@ class DataWriter:
         self.binary_format = binary_format
         self.image_format = image_format
         self.compress = compress
-        for r in representations:
-            self._make_dirs_one_reprsentation(r)
+        self._make_dirs()
         self.binary_func = self._make_binary_func()
 
-    def write(self, name: str, y_repr: ReprOut, imgs: np.ndarray | None, l: int, r: int):
+    def write(self, y_repr: ReprOut, imgs: np.ndarray | None, l: int, r: int):
         """store the data in the right format"""
-        assert name in self.representations, (name, self.representations)
         if self.export_image:
             assert imgs is not None
             assert (shp := imgs.shape)[0] == r - l and shp[-1] == 3, f"Expected {r - l} images ({l=} {r=}), got {shp}"
@@ -51,32 +47,32 @@ class DataWriter:
 
         for i, t in enumerate(range(l, r)):
             if self.export_binary:
-                if not (bin_path := self._path(name, t, self.binary_format)).exists(): # npy/npz_path
+                if not (bin_path := self._path(t, self.binary_format)).exists(): # npy/npz_path
                     self.binary_func(y_repr.output[i], bin_path)
                     if (extra := y_repr.extra) is not None and len(y_repr.extra) > 0:
                         assert len(extra) == r - l, f"Extra must be a list of len ({len(extra)}) = batch_size ({r-l})"
                         np.savez(bin_path.parent / f"{t}_extra.npz", extra[i])
             if self.export_image:
-                if not (img_path := self._path(name, t, self.image_format)).exists():
+                if not (img_path := self._path(t, self.image_format)).exists():
                     image_write(imgs[i], img_path)
 
-    def all_batch_exists(self, representation: str, l: int, r: int) -> bool:
+    def all_batch_exists(self, l: int, r: int) -> bool:
         """true if all batch [l:r] exists on the disk"""
         assert isinstance(l, int) and isinstance(r, int) and 0 <= l < r, (l, r, type(l), type(r))
         for ix in range(l, r):
-            if self.export_binary and not self._path(representation, ix, self.binary_format).exists():
+            if self.export_binary and not self._path(ix, self.binary_format).exists():
                 return False
-            if self.export_image and not self._path(representation, ix, self.image_format).exists():
+            if self.export_image and not self._path(ix, self.image_format).exists():
                 return False
-        logger.debug2(f"Batch {representation}[{l}:{r}] exists on disk.")
+        logger.debug2(f"Batch {self.representation}[{l}:{r}] exists on disk.")
         return True
 
-    def _path(self, representation: str, t: int, suffix: str) -> Path:
-        return self.output_dir / representation / suffix / f"{t}.{suffix}"
+    def _path(self, t: int, suffix: str) -> Path:
+        return self.output_dir / self.representation / suffix / f"{t}.{suffix}"
 
-    def _make_dirs_one_reprsentation(self, representation: str):
+    def _make_dirs(self):
         def _make_and_check_one(output_dir: Path, format_type: str):
-            fmt_dir = output_dir / representation / format_type # npy/npz/png etc.
+            fmt_dir = output_dir / self.representation / format_type # npy/npz/png etc.
             if fmt_dir.exists() and not is_dir_empty(fmt_dir, f"*.{format_type}"):
                 if self.output_dir_exists_mode == "overwrite":
                     logger.debug(f"Output dir '{fmt_dir}' already exists, will overwrite it")
@@ -107,6 +103,7 @@ class DataWriter:
 
     def __repr__(self):
         return f"""[DataWriter]
+- Representation: '{self.representation}'
 - Output dir: '{self.output_dir}' (exists mode: '{self.output_dir_exists_mode}')
 - Export binary: {self.export_binary} (binary format: {self.binary_format}, compress: {self.compress})
 - Export image: {self.export_image} (image format: {self.image_format})"""
