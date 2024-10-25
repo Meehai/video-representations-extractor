@@ -1,7 +1,8 @@
 """Metadata module -- The metadata of a particular VRE run"""
 import json
 from pathlib import Path
-from vre_runtime_args import VRERuntimeArgs
+
+from .vre_runtime_args import VRERuntimeArgs
 
 class Metadata:
     """
