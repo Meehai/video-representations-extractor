@@ -2,7 +2,7 @@
 from __future__ import annotations
 from pathlib import Path
 from datetime import datetime
-import json
+from typing import Any
 import traceback
 from tqdm import tqdm
 import pandas as pd
@@ -12,7 +12,8 @@ from .representations import Representation, LearnedRepresentationMixin
 from .vre_runtime_args import VRERuntimeArgs
 from .data_writer import DataWriter
 from .data_storer import DataStorer
-from .utils import VREVideo, took, now_fmt
+from .metadata import Metadata
+from .utils import VREVideo, now_fmt
 from .logger import vre_logger as logger
 
 def _make_batches(video: VREVideo, start_frame: int, end_frame: int, batch_size: int) -> list[int]:
@@ -38,12 +39,13 @@ class VideoRepresentationsExtractor:
         assert all(lambda x: isinstance(x, Representation) for x in representations.values()), representations
         self.video = video
         self.representations: dict[str, Representation] = representations
+        self.repr_names = [r.name for r in representations.values()]
         self._logs_file: Path | None = None
-        self._metadata: dict | None = None
+        self._metadata: Metadata | None = None
 
     def _do_one_representation(self, representation: Representation, data_writer: DataWriter,
-                               runtime_args: VRERuntimeArgs) -> list[float]:
-        """main loop of each representation."""
+                               runtime_args: VRERuntimeArgs) -> bool:
+        """main loop of each representation. Returns true if had exception, false otherwise"""
         logger.info(f"Running:\n{representation}\n{data_writer}")
         name = representation.name
         batch_size, output_size = runtime_args.batch_sizes[name], runtime_args.output_sizes[name]
@@ -54,16 +56,18 @@ class VideoRepresentationsExtractor:
             representation.vre_setup() if isinstance(representation, LearnedRepresentationMixin) else None # device
         except Exception:
             self._log_error(f"\n[{name} {batch_size=}] {traceback.format_exc()}\n")
-            return [1 << 31] * (runtime_args.end_frame - runtime_args.start_frame)
+            self._metadata.add_time(name, 1 << 31, runtime_args.end_frame - runtime_args.start_frame)
+            return True
 
         batches = _make_batches(self.video, runtime_args.start_frame, runtime_args.end_frame, batch_size)
         left, right = batches[0:-1], batches[1:]
-        repr_stats: list[float] = []
         pbar = tqdm(total=runtime_args.end_frame - runtime_args.start_frame, desc=f"[VRE] {name} bs={batch_size}")
-        for l, r in zip(left, right): # main VRE loop
+        for i, (l, r) in enumerate(zip(left, right)): # main VRE loop
+            if i % runtime_args.store_metadata_every_n_iters == 0:
+                self._metadata.store_on_disk()
             if data_writer.all_batch_exists(l, r):
                 pbar.update(r - l)
-                repr_stats.extend(took(datetime.now(), l, r))
+                self._metadata.add_time(name, 0, r - l)
                 continue
 
             now = datetime.now()
@@ -83,19 +87,19 @@ class VideoRepresentationsExtractor:
                 data_storer(y_repr_rsz, imgs, l, r)
             except Exception:
                 self._log_error(f"\n[{name} {batch_size=} {l=} {r=}] {traceback.format_exc()}\n")
-                repr_stats.extend([1 << 31] * (runtime_args.end_frame - l))
-                break
-            # update the statistics and the progress bar
-            repr_stats.extend(took(now, l, r))
+                self._metadata.add_time(name, 1 << 31, runtime_args.end_frame - l)
+                data_storer.join_with_timeout(timeout=30)
+                return True
+            self._metadata.add_time(name, (datetime.now() - now).total_seconds(), r - l)
             pbar.update(r - l)
         data_storer.join_with_timeout(timeout=30)
-        return repr_stats
+        return False
 
     def run(self, output_dir: Path, start_frame: int | None = None, end_frame: int | None = None, batch_size: int = 1,
             binary_format: str | None = None, image_format: str | None = None, compress: bool = True,
             output_dir_exists_mode: str = "raise",
             exception_mode: str = "stop_execution", output_size: str | tuple = "video_shape",
-            n_threads_data_storer: int = 0, load_from_disk_if_computed: bool = True) -> pd.DataFrame:
+            n_threads_data_storer: int = 0, load_from_disk_if_computed: bool = True) -> dict[str, Any]:
         """
         The main loop of the VRE. This will run all the representations on the video and store results in the output_dir
         See VRERuntimeArgs for parameters definition.
@@ -106,17 +110,16 @@ class VideoRepresentationsExtractor:
         runtime_args = VRERuntimeArgs(self.video, self.representations, start_frame, end_frame, batch_size,
                                       exception_mode, output_size, load_from_disk_if_computed, n_threads_data_storer)
         logger.info(runtime_args)
-        self._metadata = {"run_stats": {}}
+        self._metadata = Metadata(self.repr_names, runtime_args, self._logs_file.parent / f"run_metadata-{now}.json")
         for name, vre_repr in self.representations.items():
             data_writer = DataWriter(output_dir, representation=name, output_dir_exists_mode=output_dir_exists_mode,
                                      binary_format=binary_format, image_format=image_format, compress=compress)
-            repr_res = self._do_one_representation(vre_repr, data_writer, runtime_args)
-            if repr_res[-1] == 1 << 31 and runtime_args.exception_mode == "stop_execution":
+            repr_had_exception = self._do_one_representation(vre_repr, data_writer, runtime_args)
+            if repr_had_exception and runtime_args.exception_mode == "stop_execution":
                 raise RuntimeError(f"Representation '{name}' threw. Check '{self._logs_file}' for information")
-            self._metadata["run_stats"][name] = repr_res
             vre_repr.vre_free() if isinstance(vre_repr, LearnedRepresentationMixin) else None # free device
-        self._store_metadata_and_end_run(runtime_args.start_frame, runtime_args.end_frame, now)
-        return self._metadata
+        self._end_run()
+        return self._metadata.metadata
 
     # Private methods
     def _setup_logger(self, output_dir: Path, now_str: str):
@@ -134,12 +137,10 @@ class VideoRepresentationsExtractor:
         open(self._logs_file, "a").write(f"{'=' * 80}\n{now_fmt()}\n{msg}\n{'=' * 80}")
         logger.debug(f"Error: {msg}")
 
-    def _store_metadata_and_end_run(self, start_frame: int, end_frame: int, now_str: str) -> pd.DataFrame:
+    def _end_run(self) -> pd.DataFrame:
         logger.remove_file_handler()
-        self._metadata["frames"] = (start_frame, end_frame)
-        metadata_file = self._logs_file.parent / f"run_metadata-{now_str}.json"
-        json.dump(self._metadata, open(metadata_file, "w"), indent=4)
-        logger.info(f"Stored vre run log file at '{metadata_file}")
+        self._metadata.store_on_disk()
+        logger.info(f"Stored vre run log file at '{self._metadata.disk_location}")
 
     # pylint: disable=too-many-branches, too-many-nested-blocks
     def __call__(self, *args, **kwargs) -> pd.DataFrame:

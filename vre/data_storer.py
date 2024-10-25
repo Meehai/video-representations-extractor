@@ -33,9 +33,10 @@ class DataStorer:
         while True: # This loop is ended via `self.join_with_timeout` or `__del__` or manually setting queue to None.
             if self.queue is None:
                 logger.debug("Queue is None. Closing.")
+                break
             try:
                 args = self.queue.get(timeout=1)
-            except Empty:
+            except (Empty, AttributeError): # AttributeError if it became 'None' during the if and the .get()
                 continue
             self.data_writer(*args)
             self.queue.task_done()
@@ -45,6 +46,7 @@ class DataStorer:
         if self.n_threads == 0:
             return
         logger.debug(f"Waiting for {self.queue.unfinished_tasks} leftover enqueued tasks")
+        assert self.queue is not None, "Queue was closed, create a new DataStorer object..."
         self.queue.all_tasks_done.acquire()
         try:
             endtime = time() + timeout
