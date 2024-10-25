@@ -1,9 +1,9 @@
 from tempfile import TemporaryDirectory
 from pathlib import Path
-from vre.data_writer import DataWriter
-from vre import ReprOut
 import numpy as np
 import pytest
+from vre.data_writer import DataWriter
+from vre import ReprOut
 
 def test_DataWriter_ctor_and_basic_writes():
     tmp_dir = Path(TemporaryDirectory().name)

@@ -10,6 +10,7 @@ from .logger import vre_logger as logger
 
 class DataWriter:
     """
+    TODO: make this work for just 1 representation at a time.
     Class used to store the representations on disk. It supports multi-threading so we don't block the compute one
     Parameters:
     - output_dir The directory used to output representations in this run.

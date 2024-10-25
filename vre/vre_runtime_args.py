@@ -24,10 +24,11 @@ class VRERuntimeArgs:
         - 'video_shape' (default) resizing to the video shape
     - output_dtype: The dtype on which each representation is stored. If 'native', don't do anything
     - load_from_disk_if_computed If true, then it will try to read from the disk if a representation is computed.
+    - n_threads_data_storer The number of threads used by the DataStorer
     """
     def __init__(self, video: VREVideo, representations: dict[str, Representation],
-                 start_frame: int | None, end_frame: int | None, batch_size: int,
-                 exception_mode: str, output_size: str | tuple, load_from_disk_if_computed: bool):
+                 start_frame: int | None, end_frame: int | None, batch_size: int, exception_mode: str,
+                 output_size: str | tuple, load_from_disk_if_computed: bool, n_threads_data_storer: int):
         assert batch_size >= 1, f"batch size must be >= 1, got {batch_size}"
         assert exception_mode in ("stop_execution", "skip_representation"), exception_mode
         if start_frame is None:
@@ -46,6 +47,7 @@ class VRERuntimeArgs:
         self.exception_mode = exception_mode
         self.representations = representations
         self.load_from_disk_if_computed = load_from_disk_if_computed
+        self.n_threads_data_storer = n_threads_data_storer
 
         self.batch_sizes = {k: self.batch_size if r.batch_size is None else r.batch_size
                             for k, r in representations.items()}
@@ -69,4 +71,6 @@ class VRERuntimeArgs:
 - Output sizes: {self.output_sizes}
 - Batch size: {self.batch_size}
 - Exception mode: '{self.exception_mode}'
-- Load from disk if computed: {self.load_from_disk_if_computed}"""
+- Load from disk if computed: {self.load_from_disk_if_computed}
+- #threads DataStorer: {self.n_threads_data_storer} (0 = only using main thread)
+"""

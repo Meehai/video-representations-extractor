@@ -10,25 +10,29 @@ def test_VRERuntimeArgs_ctor():
 
     with pytest.raises(AssertionError):
         _ = VRERuntimeArgs(video, representations, start_frame=0, end_frame=3, batch_size=5,
-                           exception_mode="stop_execution", output_size="native", load_from_disk_if_computed=False)
+                           exception_mode="stop_execution", output_size="native", load_from_disk_if_computed=False,
+                           n_threads_data_storer=0)
     with pytest.raises(AssertionError):
         _ = VRERuntimeArgs(video, representations, start_frame="lala", end_frame=3, batch_size=5,
-                           exception_mode="stop_execution", output_size="native", load_from_disk_if_computed=False)
+                           exception_mode="stop_execution", output_size="native", load_from_disk_if_computed=False,
+                           n_threads_data_storer=0)
     with pytest.raises(AssertionError):
         _ = VRERuntimeArgs(video, representations, start_frame="lala", end_frame=3, batch_size=5,
-                           exception_mode="lala", output_size="native", load_from_disk_if_computed=False)
+                           exception_mode="lala", output_size="native", load_from_disk_if_computed=False,
+                           n_threads_data_storer=0)
     with pytest.raises(AssertionError):
         _ = VRERuntimeArgs(video, representations, start_frame="lala", end_frame=3, batch_size=5,
-                           exception_mode="stop_execution", output_size="lala", load_from_disk_if_computed=False)
+                           exception_mode="stop_execution", output_size="lala", load_from_disk_if_computed=False,
+                           n_threads_data_storer=0)
 
     runtime_args = VRERuntimeArgs(video, representations, start_frame=0, end_frame=None, batch_size=5,
                                   exception_mode="stop_execution", output_size="native",
-                                  load_from_disk_if_computed=False)
+                                  load_from_disk_if_computed=False, n_threads_data_storer=0)
 
     assert runtime_args is not None
     assert runtime_args.batch_sizes["rgb"] == 2 # 2 < 5
 
     runtime_args = VRERuntimeArgs(video, representations, start_frame=0, end_frame=None, batch_size=5,
                                   exception_mode="stop_execution", output_size="video_shape",
-                                  load_from_disk_if_computed=False)
+                                  load_from_disk_if_computed=False, n_threads_data_storer=0)
     assert runtime_args.output_sizes["rgb"] == (128, 128)

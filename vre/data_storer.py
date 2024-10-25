@@ -1,7 +1,7 @@
 """DataStorer module -- Multi-threaded wrapper for DataWriter"""
 from threading import Thread
 from multiprocessing import cpu_count
-from queue import Queue
+from queue import Queue, Empty
 from time import time
 import numpy as np
 
@@ -25,14 +25,20 @@ class DataStorer:
         if n_threads >= 1:
             self.queue: Queue = Queue(maxsize=1) # maxisze=1 because we use many shared memory threads.
             for _ in range(n_threads):
-                self.threads.append(thr := Thread(target=self._worker_fn, daemon=True, args=(self.queue, )))
+                self.threads.append(thr := Thread(target=self._worker_fn, daemon=True))
                 thr.start()
         logger.debug(f"[DataStorer] Set up with {n_threads} threads.")
 
-    def _worker_fn(self, queue: Queue):
+    def _worker_fn(self):
         while True: # Since these threads are daemon, they die when main thread dies. We could use None or smth to break
-            self.data_writer(*queue.get())
-            queue.task_done()
+            if self.queue is None:
+                logger.debug("Queue is None. Closing.")
+            try:
+                args = self.queue.get(timeout=1)
+            except Empty:
+                continue
+            self.data_writer(*args)
+            self.queue.task_done()
 
     def join_with_timeout(self, timeout: int):
         """calls queue.join() but throws after timeout seconds if it doesn't end"""
@@ -49,15 +55,20 @@ class DataStorer:
                 self.queue.all_tasks_done.wait(remaining)
         finally:
             self.queue.all_tasks_done.release()
+        self.queue = None
 
     def __call__(self, name: str, y_repr: ReprOut, imgs: np.ndarray | None, l: int, r: int):
         assert isinstance(y_repr, ReprOut), f"{name=}, {type(y_repr)=}"
         if self.n_threads == 0:
             self.data_writer(name, y_repr, imgs, l, r)
         else:
+            assert self.queue is not None, "Queue was closed, create a new DataStorer object..."
             self.queue.put((name, y_repr, imgs, l, r), block=True, timeout=30)
 
     def __repr__(self):
         return f"""[DataStorer]
-- Num threads: {self.n_threads} (0 = using main thread)
+- Num threads: {self.n_threads} (0 = only using main thread)
 {self.data_writer}"""
+
+    def __del__(self):
+        self.queue = None
