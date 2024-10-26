@@ -6,6 +6,16 @@ from vre.data_writer import DataWriter
 from vre.data_storer import DataStorer
 from vre import ReprOut
 
+def all_batch_exists(writer: DataWriter, l: int, r: int) -> bool:
+    """true if all batch [l:r] exists on the disk"""
+    assert isinstance(l, int) and isinstance(r, int) and 0 <= l < r, (l, r, type(l), type(r))
+    for ix in range(l, r):
+        if writer.export_binary and not writer._path(ix, writer.binary_format).exists():
+            return False
+        if writer.export_image and not writer._path(ix, writer.image_format).exists():
+            return False
+    return True
+
 @pytest.mark.parametrize("n_threads", [0, 1, 4])
 def test_DataStorer(n_threads: int):
     tmp_dir = Path(TemporaryDirectory().name)
@@ -26,5 +36,5 @@ def test_DataStorer(n_threads: int):
     if n_threads > 0:
         with pytest.raises(AssertionError):
             storer(ReprOut(y[0:1]), imgs[0:1], l=0, r=1)
-    assert writer_rgb.all_batch_exists(l=0, r=10)
-    assert writer_hsv.all_batch_exists(l=0, r=10)
+    assert all_batch_exists(writer_rgb, l=0, r=10)
+    assert all_batch_exists(writer_hsv, l=0, r=10)

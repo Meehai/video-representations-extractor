@@ -20,10 +20,12 @@ class DexiNed(Representation, LearnedRepresentationMixin):
 
     @overrides
     def vre_setup(self, load_weights: bool = True):
+        assert self.setup_called is False
         self.model = Model().eval()
         if load_weights:
             self.model.load_state_dict(vre_load_weights(fetch_weights(__file__) / "dexined.pth"))
         self.model = self.model.to(self.device)
+        self.setup_called = True
 
     @overrides
     def make(self, frames: np.ndarray, dep_data: dict[str, ReprOut] | None = None) -> ReprOut:
@@ -48,9 +50,11 @@ class DexiNed(Representation, LearnedRepresentationMixin):
 
     @overrides
     def vre_free(self):
+        assert self.setup_called is True and self.model is not None, (self.setup_called, self.model is not None)
         if str(self.device).startswith("cuda"):
             self.model.to("cpu")
             tr.cuda.empty_cache()
+        self.model = None
 
     def _preprocess(self, images: np.ndarray, height: int, width: int) -> tr.Tensor:
         assert len(images.shape) == 4, images.shape

@@ -44,7 +44,7 @@ class Mask2Former(Representation, LearnedRepresentationMixin):
         self.cfg: CfgNode | None = None
 
     def vre_setup(self, load_weights = True):
-        assert self.model is None, "vre_setup already called before"
+        assert self.setup_called is False
         weights_path = fetch_weights(__file__) / f"{self.model_id}.ckpt"
         assert isinstance(weights_path, Path), type(weights_path)
         ckpt_data = vre_load_weights(weights_path)
@@ -56,6 +56,7 @@ class Mask2Former(Representation, LearnedRepresentationMixin):
             res = self.model.load_state_dict(ckpt_data["state_dict"], strict=False) # inference only: remove criterion
             assert res.unexpected_keys in (["criterion.empty_weight"], []), res
         self.model = self.model.eval().to(self.device)
+        self.setup_called = True
 
     @tr.no_grad()
     @overrides
@@ -101,6 +102,7 @@ class Mask2Former(Representation, LearnedRepresentationMixin):
         return metadata["stuff_classes"], metadata["stuff_colors"], metadata.get("thing_dataset_id_to_contiguous_id")
 
     def vre_free(self):
+        assert self.setup_called is True and self.model is not None, (self.setup_called, self.model is not None)
         if str(self.device).startswith("cuda"):
             self.model.to("cpu")
             tr.cuda.empty_cache()

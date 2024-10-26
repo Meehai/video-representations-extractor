@@ -11,6 +11,7 @@ class LearnedRepresentationMixin(ABC):
     """Learned Representastion Mixin for VRE implementation"""
     def __init__(self):
         self.device: VREDevice = "cpu"
+        self.setup_called = False
 
     # TODO: make this and get rid of the hardcoded stuff in utils.
     # @property

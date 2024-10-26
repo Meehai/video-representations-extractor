@@ -45,6 +45,7 @@ class SafeUAV(Representation, LearnedRepresentationMixin):
         self.model: _SafeUavWrapper | None = None
 
     def vre_setup(self, load_weights: bool = True):
+        assert self.setup_called is False
         self.model = _SafeUavWrapper(ch_in=3, ch_out=self.num_classes)
 
         if load_weights:
@@ -69,6 +70,7 @@ class SafeUAV(Representation, LearnedRepresentationMixin):
             data = _convert(vre_load_weights(weights_file_abs)["state_dict"])
             self.model.load_state_dict(data)
         self.model = self.model.eval().to(self.device)
+        self.setup_called = True
 
     @overrides
     def make(self, frames: np.ndarray, dep_data: dict[str, ReprOut] | None = None) -> ReprOut:
@@ -101,6 +103,8 @@ class SafeUAV(Representation, LearnedRepresentationMixin):
         return ReprOut(image_resize_batch(repr_data.output, *new_size, interpolation=interpolation))
 
     def vre_free(self):
+        assert self.setup_called is True and self.model is not None, (self.setup_called, self.model is not None)
         if str(self.device).startswith("cuda"):
             self.model.to("cpu")
             tr.cuda.empty_cache()
+        self.model = None

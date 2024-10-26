@@ -51,24 +51,12 @@ class VideoRepresentationsExtractor:
         batch_size, output_size = runtime_args.batch_sizes[name], runtime_args.output_sizes[name]
         data_storer = DataStorer(data_writer, runtime_args.n_threads_data_storer)
 
-        # call vre_setup here so expensive representations get lazy deep instantiated (i.e. models loading)
-        try:
-            representation.vre_setup() if isinstance(representation, LearnedRepresentationMixin) else None # device
-        except Exception:
-            self._log_error(f"\n[{name} {batch_size=}] {traceback.format_exc()}\n")
-            self._metadata.add_time(name, 1 << 31, runtime_args.end_frame - runtime_args.start_frame)
-            return True
-
         batches = _make_batches(self.video, runtime_args.start_frame, runtime_args.end_frame, batch_size)
         left, right = batches[0:-1], batches[1:]
         pbar = tqdm(total=runtime_args.end_frame - runtime_args.start_frame, desc=f"[VRE] {name} bs={batch_size}")
         for i, (l, r) in enumerate(zip(left, right)): # main VRE loop
             if i % runtime_args.store_metadata_every_n_iters == 0:
                 self._metadata.store_on_disk()
-            if data_writer.all_batch_exists(l, r):
-                pbar.update(r - l)
-                self._metadata.add_time(name, 0, r - l)
-                continue
 
             now = datetime.now()
             try:
@@ -97,9 +85,9 @@ class VideoRepresentationsExtractor:
 
     def run(self, output_dir: Path, start_frame: int | None = None, end_frame: int | None = None, batch_size: int = 1,
             binary_format: str | None = None, image_format: str | None = None, compress: bool = True,
-            output_dir_exists_mode: str = "raise",
-            exception_mode: str = "stop_execution", output_size: str | tuple = "video_shape",
-            n_threads_data_storer: int = 0, load_from_disk_if_computed: bool = True) -> dict[str, Any]:
+            output_dir_exists_mode: str = "raise", exception_mode: str = "stop_execution",
+            output_size: str | tuple = "video_shape", n_threads_data_storer: int = 0,
+            load_from_disk_if_computed: bool = True) -> dict[str, Any]:
         """
         The main loop of the VRE. This will run all the representations on the video and store results in the output_dir
         See VRERuntimeArgs for parameters definition.
@@ -117,7 +105,7 @@ class VideoRepresentationsExtractor:
             repr_had_exception = self._do_one_representation(vre_repr, data_writer, runtime_args)
             if repr_had_exception and runtime_args.exception_mode == "stop_execution":
                 raise RuntimeError(f"Representation '{name}' threw. Check '{self._logs_file}' for information")
-            vre_repr.vre_free() if isinstance(vre_repr, LearnedRepresentationMixin) else None # free device
+            vre_repr.vre_free() if isinstance(vre_repr, LearnedRepresentationMixin) and vre_repr.setup_called else None
         self._end_run()
         return self._metadata.metadata
 

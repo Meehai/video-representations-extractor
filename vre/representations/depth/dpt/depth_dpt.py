@@ -49,11 +49,13 @@ class DepthDpt(Representation, LearnedRepresentationMixin):
 
     @overrides
     def vre_setup(self, load_weights: bool = True):
+        assert self.setup_called is False
         self.model = DPTDepthModel(backbone="vitl16_384", non_negative=True).to("cpu")
         if load_weights:
             weights_file = fetch_weights(__file__) / "depth_dpt_midas.pth"
             self.model.load_state_dict(vre_load_weights(weights_file))
         self.model = self.model.eval().to(self.device)
+        self.setup_called = True
 
     @overrides
     def make(self, frames: np.ndarray, dep_data: dict[str, ReprOut] | None = None) -> ReprOut:
@@ -77,9 +79,11 @@ class DepthDpt(Representation, LearnedRepresentationMixin):
 
     @overrides
     def vre_free(self):
+        assert self.setup_called is True and self.model is not None, (self.setup_called, self.model is not None)
         if str(self.device).startswith("cuda"):
             self.model.to("cpu")
             tr.cuda.empty_cache()
+        self.model = None
 
     def _preprocess(self, x: np.ndarray) -> tr.Tensor:
         tr_frames = tr.from_numpy(x).to(self.device)
