@@ -63,6 +63,11 @@ class Representation(ABC):
 
     ## Public methods ##
     @property
+    def dep_names(self) -> list[str]:
+        """return the list of dependencies names"""
+        return [r.name for r in self.dependencies]
+
+    @property
     def output_size(self) -> str | tuple[int, int] | None:
         """Returns the output size as a tuple/string or None if it's not explicitly set"""
         return self._output_size
@@ -86,6 +91,9 @@ class Representation(ABC):
         if output_dir is not None:
             if (loaded_output := self._load_from_disk_if_possible(ixs, output_dir)) is not None:
                 return loaded_output
+        # TODO: make this nicer... we need to call vre_setup() if data is not on disk and is a LearnedRepresentation
+        if hasattr(self, "vre_setup") and getattr(self, "setup_called", True) is False:
+            self.vre_setup() # pylint: disable=no-member
         frames, dep_data = None if video is None else np.array(video[ixs]), self.vre_dep_data(video, ixs, output_dir)
         res = self.make(frames, dep_data)
         try:
@@ -118,4 +126,4 @@ class Representation(ABC):
         return self.make(*args, **kwargs)
 
     def __repr__(self):
-        return f"[Representation] {parsed_str_type(self)}({self.name})"
+        return f"{parsed_str_type(self)}({self.name}{f' {self.dep_names}' if len(self.dep_names) > 0 else ''})"

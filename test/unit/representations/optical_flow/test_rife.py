@@ -7,6 +7,7 @@ def test_rife_uhd_false():
     video = FakeVideo(np.random.randint(0, 255, size=(20, 64, 128, 3), dtype=np.uint8), frame_rate=30)
     uhd = bool(np.random.randint(0, 2))
     rife_repr = FlowRife(name="rife", dependencies=[], compute_backward_flow=False, uhd=uhd)
+    rife_repr.vre_setup(load_weights=False)
 
     frames = np.array(video[0:1])
     right_frames = np.array(video[1:2])

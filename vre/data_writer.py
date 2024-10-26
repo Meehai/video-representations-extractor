@@ -56,17 +56,6 @@ class DataWriter:
                 if not (img_path := self._path(t, self.image_format)).exists():
                     image_write(imgs[i], img_path)
 
-    def all_batch_exists(self, l: int, r: int) -> bool:
-        """true if all batch [l:r] exists on the disk"""
-        assert isinstance(l, int) and isinstance(r, int) and 0 <= l < r, (l, r, type(l), type(r))
-        for ix in range(l, r):
-            if self.export_binary and not self._path(ix, self.binary_format).exists():
-                return False
-            if self.export_image and not self._path(ix, self.image_format).exists():
-                return False
-        logger.debug2(f"Batch {self.representation}[{l}:{r}] exists on disk.")
-        return True
-
     def _path(self, t: int, suffix: str) -> Path:
         return self.output_dir / self.representation / suffix / f"{t}.{suffix}"
 

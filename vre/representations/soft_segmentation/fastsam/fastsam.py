@@ -30,6 +30,7 @@ class FastSam(Representation, LearnedRepresentationMixin):
 
     @overrides
     def vre_setup(self, load_weights: bool = True):
+        assert self.setup_called is False
         assert load_weights is False or (load_weights is True and self.variant != "testing"), "no weights for testing"
         weights_file = {
             "fastsam-s": lambda: fetch_weights(__file__) / "FastSAM-s.pt",
@@ -43,6 +44,7 @@ class FastSam(Representation, LearnedRepresentationMixin):
         _model = Model(str(weights_file))
         predictor.setup_model(model=_model.model, verbose=False)
         self.model = predictor.model.eval().to(self.device)
+        self.setup_called = True
 
     @overrides
     def make(self, frames: np.ndarray, dep_data: dict[str, ReprOut] | None = None) -> ReprOut:
@@ -138,9 +140,11 @@ class FastSam(Representation, LearnedRepresentationMixin):
         return tr_x.to(self.device)
 
     def vre_free(self):
+        assert self.setup_called is True and self.model is not None, (self.setup_called, self.model is not None)
         if str(self.device).startswith("cuda"):
             self.model.to("cpu")
             tr.cuda.empty_cache()
+        self.model = None
 
 def get_args() -> Namespace:
     """cli args"""

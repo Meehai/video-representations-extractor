@@ -33,6 +33,7 @@ class Marigold(Representation, LearnedRepresentationMixin):
 
     @overrides
     def vre_setup(self, load_weights: bool=True):
+        assert self.setup_called is False
         unet = UNet2DConditionModel(**self._get_unet_cfg())
         vae = AutoencoderKL(**self._get_vae_cfg())
         if load_weights:
@@ -48,6 +49,7 @@ class Marigold(Representation, LearnedRepresentationMixin):
         self.model = MarigoldPipeline(unet=unet, vae=vae, scheduler=scheduler,
                                       scale_invariant=True, shift_invariant=True)
         self.model = self.model.to(self.device)
+        self.setup_called = True
 
     @tr.no_grad
     def _make_one_frame(self, frame: np.ndarray):
@@ -80,9 +82,11 @@ class Marigold(Representation, LearnedRepresentationMixin):
 
     @overrides
     def vre_free(self):
+        assert self.setup_called is True and self.model is not None, (self.setup_called, self.model is not None)
         if str(self.device).startswith("cuda"):
             self.model.to("cpu")
             tr.cuda.empty_cache()
+        self.model = None
 
     def _get_ddim_cfg(self) -> dict:
         return {

@@ -32,6 +32,7 @@ class FlowRaft(Representation, LearnedRepresentationMixin):
 
     @overrides
     def vre_setup(self, load_weights: bool = True):
+        assert self.setup_called is False
         tr.manual_seed(self.seed) if self.seed is not None else None
         self.model = RAFT(self).to("cpu")
         if load_weights:
@@ -41,6 +42,7 @@ class FlowRaft(Representation, LearnedRepresentationMixin):
             raft_things_path = fetch_weights(__file__) / "raft-things.ckpt"
             self.model.load_state_dict(convert(vre_load_weights(raft_things_path)))
         self.model = self.model.eval().to(self.device)
+        self.setup_called = True
 
     @overrides
     def vre_dep_data(self, video: VREVideo, ixs: slice | list[int], output_dir: Path | None) -> dict[str, ReprOut]:
@@ -97,6 +99,8 @@ class FlowRaft(Representation, LearnedRepresentationMixin):
         return flow_unpad_norm
 
     def vre_free(self):
+        assert self.setup_called is True and self.model is not None, (self.setup_called, self.model is not None)
         if str(self.device).startswith("cuda"):
             self.model.to("cpu")
             tr.cuda.empty_cache()
+        self.model = None

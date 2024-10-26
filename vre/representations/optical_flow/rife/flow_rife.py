@@ -16,17 +16,21 @@ class FlowRife(Representation, LearnedRepresentationMixin):
     """FlowRife representation"""
     def __init__(self, compute_backward_flow: bool, uhd: bool, flow_delta_frames: int = 1, **kwargs):
         tr.manual_seed(42)
-        self.model: Model = Model().eval().to("cpu")
         self.uhd = uhd
         self.flow_delta_frames = flow_delta_frames
         assert compute_backward_flow is False, "Not supported"
         self.no_backward_flow = True if compute_backward_flow is None else not compute_backward_flow
+        self.model: Model | None = None
         super().__init__(**kwargs)
 
     @overrides
     def vre_setup(self, load_weights: bool = True):
-        self.model.load_model(fetch_weights(__file__))
-        self.model = self.model.eval().to(self.device)
+        assert self.setup_called is False
+        self.model: Model = Model().eval()
+        if load_weights:
+            self.model.load_model(fetch_weights(__file__))
+        self.model = self.model.to(self.device)
+        self.setup_called = True
 
     def vre_dep_data(self, video: VREVideo, ixs: slice | list[int], output_dir: Path | None) -> dict[str, ReprOut]:
         ixs: list[int] = list(range(ixs.start, ixs.stop)) if isinstance(ixs, slice) else ixs
@@ -79,6 +83,8 @@ class FlowRife(Representation, LearnedRepresentationMixin):
         return flow.astype(np.float16)
 
     def vre_free(self):
+        assert self.setup_called is True and self.model is not None, (self.setup_called, self.model is not None)
         if str(self.device).startswith("cuda"):
             self.model.to("cpu")
             tr.cuda.empty_cache()
+        self.model = None
