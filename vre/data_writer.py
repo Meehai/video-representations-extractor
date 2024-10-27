@@ -57,6 +57,16 @@ class DataWriter:
                 else:
                     image_write(imgs[i], img_path)
 
+    def to_dict(self):
+        """A dict representation of this DataWriter and information about its ComputeRepresentation object"""
+        return {
+            "output_dir_exists_mode": self.output_dir_exists_mode,
+            "batch_size": self.rep.batch_size, "export_binary": self.rep.export_binary,
+            "binary_format": self.rep.binary_format.value, "compress": self.rep.compress,
+            "export_image": self.rep.export_image, "image_format": self.rep.image_format.value,
+            "dtype": str(self.rep.output_dtype), "size": self.rep.output_size,
+        }
+
     def _make_dirs(self):
         def _make_and_check_one(output_dir: Path, format_type: str):
             fmt_dir = output_dir / self.rep.name / format_type # npy/npz/png etc.

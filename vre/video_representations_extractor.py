@@ -82,6 +82,7 @@ class VideoRepresentationsExtractor:
         logger.info(f"Running:\n{data_writer.rep}\n{data_storer}")
         representation = data_writer.rep
         name, batch_size, output_size = representation.name, representation.batch_size, representation.output_size
+        self._metadata.metadata["data_writers"][name] = data_writer.to_dict()
 
         batches = _make_batches(self.video, runtime_args.start_frame, runtime_args.end_frame, batch_size)
         left, right = batches[0:-1], batches[1:]
