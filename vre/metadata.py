@@ -11,7 +11,8 @@ class Metadata:
     """
     def __init__(self, representations: list[str], runtime_args: VRERuntimeArgs, disk_location: Path):
         assert len(representations) > 0 and all(isinstance(x, str) for x in representations), representations
-        self.metadata = {"runtime_args": runtime_args.to_dict(), "run_stats": {r: [] for r in representations}}
+        self.metadata = {"runtime_args": runtime_args.to_dict(),
+                         "data_writers": {}, "run_stats": {r: [] for r in representations}}
         self.representations = representations
         self.disk_location = disk_location
 
