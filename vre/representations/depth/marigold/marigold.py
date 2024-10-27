@@ -10,18 +10,16 @@ import torch as tr
 from overrides import overrides
 from tqdm.auto import tqdm
 from diffusers import AutoencoderKL, DDIMScheduler, LCMScheduler, UNet2DConditionModel
+
 from vre.utils import image_resize_batch, image_read, colorize_depth, image_write, fetch_weights, vre_load_weights
-from vre.representations import Representation, ReprOut, LearnedRepresentationMixin
+from vre.representations import Representation, ReprOut, LearnedRepresentationMixin, ComputeRepresentationMixin
+from vre.representations.depth.marigold.marigold_impl import MarigoldPipeline
 
-try:
-    from .marigold_impl import MarigoldPipeline
-except ImportError:
-    from marigold_impl import MarigoldPipeline
-
-class Marigold(Representation, LearnedRepresentationMixin):
+class Marigold(Representation, LearnedRepresentationMixin, ComputeRepresentationMixin):
     """Marigold VRE implementation"""
     def __init__(self, variant: str, denoising_steps: int, ensemble_size: int, processing_resolution: int,
                  seed: int | None = None, **kwargs):
+        Representation.__init__(self, **kwargs)
         super().__init__(**kwargs)
         assert variant in ("marigold-v1-0", "marigold-lcm-v1-0", "testing"), variant
         self.variant = variant
@@ -87,6 +85,7 @@ class Marigold(Representation, LearnedRepresentationMixin):
             self.model.to("cpu")
             tr.cuda.empty_cache()
         self.model = None
+        self.setup_called = False
 
     def _get_ddim_cfg(self) -> dict:
         return {

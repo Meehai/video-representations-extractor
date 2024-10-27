@@ -7,12 +7,13 @@ from tempfile import TemporaryDirectory
 from pathlib import Path
 import numpy as np
 from vre import VideoRepresentationsExtractor as VRE
-from vre.representations import Representation, LearnedRepresentationMixin, ReprOut
+from vre.representations import Representation, LearnedRepresentationMixin, ReprOut, ComputeRepresentationMixin
 from vre.utils import FakeVideo
 
-class MyRepresentation(Representation, LearnedRepresentationMixin):
-    def __init__(self, name, dependencies):
-        super().__init__(name, dependencies)
+class MyRepresentation(Representation, LearnedRepresentationMixin, ComputeRepresentationMixin):
+    def __init__(self, *args, **kwargs):
+        Representation.__init__(self, *args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.vre_setup_called = False
         self.vre_free_called = False
         self.make_called = False
@@ -30,8 +31,9 @@ class MyRepresentation(Representation, LearnedRepresentationMixin):
         self.vre_setup_called = True
     def vre_free(self):
         self.vre_free_called = True
+        self.setup_called = False
 
-class MyDependentRepresentation(Representation):
+class MyDependentRepresentation(Representation, ComputeRepresentationMixin):
     def make(self, frames, dep_data = None):
         return ReprOut(dep_data["r1"].output)
     def make_images(self, frames, repr_data):
@@ -49,10 +51,9 @@ def test_no_vre_setup_if_not_needed():
         np.savez(f"{tmp_dir}/r1/npz/{i}.npz", video[i])
     r1 = MyRepresentation("r1", [])
     r2 = MyDependentRepresentation("r2", [r1])
-    vre = VRE(video, {"r1": r1, "r2": r2})
-
-    vre.run(tmp_dir, start_frame=0, end_frame=None, binary_format="npz", image_format=None,
-            output_dir_exists_mode="skip_computed", load_from_disk_if_computed=True, output_size="native")
+    vre = VRE(video, {"r1": r1, "r2": r2}).set_compute_params(binary_format="npz", output_size="native")
+    vre.run(tmp_dir, start_frame=0, end_frame=None, output_dir_exists_mode="skip_computed",
+            load_from_disk_if_computed=True)
     assert r1.make_called is False, (r1.make_called, r1.vre_setup_called, r1.vre_free_called)
     # since all the data of r1 is already on the disk, there's no need to call vre_setup and vre_free at all
     assert r1.vre_setup_called is False, (r1.make_called, r1.vre_setup_called, r1.vre_free_called)

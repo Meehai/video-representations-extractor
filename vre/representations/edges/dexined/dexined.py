@@ -2,18 +2,16 @@
 import numpy as np
 import torch as tr
 from overrides import overrides
-from vre.representations import Representation, ReprOut, LearnedRepresentationMixin
+
 from vre.logger import vre_logger as logger
 from vre.utils import image_resize_batch, fetch_weights, vre_load_weights
+from vre.representations import Representation, ReprOut, LearnedRepresentationMixin, ComputeRepresentationMixin
+from vre.representations.edges.dexined.model_dexined import DexiNed as Model
 
-try:
-    from .model_dexined import DexiNed as Model
-except ImportError:
-    from model_dexined import DexiNed as Model
-
-class DexiNed(Representation, LearnedRepresentationMixin):
+class DexiNed(Representation, LearnedRepresentationMixin, ComputeRepresentationMixin):
     """Dexined representation."""
     def __init__(self, **kwargs):
+        Representation.__init__(self, **kwargs)
         super().__init__(**kwargs)
         self.model: Model | None = None
         self.inference_height, self.inference_width = 512, 512 # fixed for this model
@@ -55,6 +53,7 @@ class DexiNed(Representation, LearnedRepresentationMixin):
             self.model.to("cpu")
             tr.cuda.empty_cache()
         self.model = None
+        self.setup_called = False
 
     def _preprocess(self, images: np.ndarray, height: int, width: int) -> tr.Tensor:
         assert len(images.shape) == 4, images.shape

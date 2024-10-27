@@ -4,14 +4,11 @@ import numpy as np
 import torch as tr
 from torch import nn
 from torch.nn import functional as F
-from vre.representations import Representation, ReprOut, LearnedRepresentationMixin
+
 from vre.utils import image_resize_batch, fetch_weights, vre_load_weights, colorize_semantic_segmentation
 from vre.logger import vre_logger as logger
-
-try:
-    from .Map2Map import EncoderMap2Map, DecoderMap2Map
-except ImportError:
-    from Map2Map import EncoderMap2Map, DecoderMap2Map
+from vre.representations import Representation, ReprOut, LearnedRepresentationMixin, ComputeRepresentationMixin
+from vre.representations.semantic_segmentation.safeuav.Map2Map import EncoderMap2Map, DecoderMap2Map
 
 class _SafeUavWrapper(nn.Module):
     """Wrapper. TODO: Replace with nn.Sequential"""
@@ -28,11 +25,12 @@ class _SafeUavWrapper(nn.Module):
         return y_decoder
 
 # TODO: make semantic_argmax_only not optional
-class SafeUAV(Representation, LearnedRepresentationMixin):
+class SafeUAV(Representation, LearnedRepresentationMixin, ComputeRepresentationMixin):
     """SafeUAV semantic segmentation representation"""
     def __init__(self, num_classes: int, train_height: int, train_width: int,
                  color_map: list[tuple[int, int, int]], semantic_argmax_only: bool = True,
                  weights_file: str | None = None, **kwargs):
+        Representation.__init__(self, **kwargs)
         super().__init__(**kwargs)
         self.num_classes = num_classes
         assert len(color_map) == num_classes, f"{color_map} ({len(color_map)}) vs {num_classes}"
@@ -43,6 +41,7 @@ class SafeUAV(Representation, LearnedRepresentationMixin):
         self.weights_file = weights_file
         self.classes = list(range(num_classes))
         self.model: _SafeUavWrapper | None = None
+        self.output_dtype = "uint8" if semantic_argmax_only else "float16"
 
     def vre_setup(self, load_weights: bool = True):
         assert self.setup_called is False
@@ -51,6 +50,7 @@ class SafeUAV(Representation, LearnedRepresentationMixin):
         if load_weights:
             if self.weights_file is None:
                 logger.warning("No weights file provided, using random weights.")
+                self.model = self.model.eval().to(self.device)
                 return
 
             def _convert(data: dict[str, tr.Tensor]) -> dict[str, tr.Tensor]:
@@ -79,7 +79,7 @@ class SafeUAV(Representation, LearnedRepresentationMixin):
         frames_resized = F.interpolate(frames_norm, (self.train_height, self.train_width), mode="bilinear")
         with tr.no_grad():
             prediction = self.model.forward(frames_resized)
-        np_pred = prediction.permute(0, 2, 3, 1).cpu().numpy()
+        np_pred = prediction.permute(0, 2, 3, 1).cpu().numpy().astype(np.float32)
         y_out = np.argmax(np_pred, axis=-1).astype(np.uint8) if self.semantic_argmax_only else np_pred
         return ReprOut(output=y_out)
 
@@ -108,3 +108,4 @@ class SafeUAV(Representation, LearnedRepresentationMixin):
             self.model.to("cpu")
             tr.cuda.empty_cache()
         self.model = None
+        self.setup_called = False

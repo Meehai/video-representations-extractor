@@ -1,27 +1,22 @@
 """
 Helper mixin class that adds the weights/device relevant methods & properties for such representation
 A representation that inherits this also must have weights in the weights repository.
+Note: this could arguably extend ComputeRepresentation, but we want to keep the inheritance tree as flat as possible.
 """
 from abc import abstractmethod, ABC
 import torch as tr
 
+from ..logger import vre_logger as logger
+from ..base_mixin import BaseMixin
+
 VREDevice = str | tr.device # not only torch, but this is what we support atm
 
-class LearnedRepresentationMixin(ABC):
+class LearnedRepresentationMixin(BaseMixin, ABC):
     """Learned Representastion Mixin for VRE implementation"""
-    def __init__(self):
-        self.device: VREDevice = "cpu"
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._device: VREDevice | None = None
         self.setup_called = False
-
-    # TODO: make this and get rid of the hardcoded stuff in utils.
-    # @property
-    # @abstractmethod
-    # def weights_files(self) -> list[str]:
-    #     """
-    #     A list of files that must be present on the disk or downloaded from the weights repository. Only the stem is
-    #     needed and vre_setup() must handle their loading. The data is stored under {weights_dir}/{repr_type}/[names]
-    #     For example: 'depth/dpt' has 'depth_dpt_midas.pth' and is stored at 'weights_dir/depth/dpt/depth_dpt_midas.pth
-    #     """
 
     @abstractmethod
     def vre_setup(self, load_weights: bool = True):
@@ -33,3 +28,23 @@ class LearnedRepresentationMixin(ABC):
     @abstractmethod
     def vre_free(self):
         """Needed to deallocate stuff from cuda mostly. After this, you need to run vre_setup() again."""
+
+    @property
+    def device(self) -> VREDevice:
+        """Returns the device of the representation"""
+        if self._device is None:
+            logger.warning(f"[{self}] No image_format set, returning 'cpu'. Call set_learned_params")
+            return "cpu"
+        return self._device
+
+    @device.setter
+    def device(self, dev: VREDevice):
+        assert isinstance(dev, (str, tr.device)), dev
+        self._device = dev
+
+    def set_learned_params(self, **kwargs):
+        """set the learned parameters for the representation"""
+        attributes = ["device"]
+        for attr in attributes:
+            if attr in kwargs:
+                setattr(self, attr, kwargs[attr])

@@ -5,11 +5,14 @@ from overrides import overrides
 
 from vre.utils import image_resize_batch
 from .representation import Representation, ReprOut
+from .compute_representation_mixin import ComputeRepresentationMixin
 
-class FakeRepresentation(Representation):
-    """FakeRepresentation that is used in unit tests. It was also a placeholder for external data (sfm, edgesgb etc.)"""
-    def __init__(self, name: str, dependencies: list[str] | None = None):
-        super().__init__(name=name, dependencies=[] if dependencies is None else dependencies)
+class FakeRepresentation(Representation, ComputeRepresentationMixin):
+    """FakeRepresentation that is used in unit tests and some basic classes, like RGB."""
+    def __init__(self, *args, **kwargs):
+        Representation.__init__(self, *args, **kwargs)
+        super().__init__(*args, **kwargs)
+        assert len(self.dependencies) == 0, self.dependencies
 
     @overrides
     def make(self, frames: np.ndarray, dep_data: dict[str, ReprOut] | None = None) -> ReprOut:

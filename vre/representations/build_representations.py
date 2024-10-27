@@ -1,12 +1,12 @@
 """builder for all the representations in VRE. Can be used outside of VRE too, see examples/notebooks."""
 from typing import Type
 from omegaconf import DictConfig, OmegaConf
-import numpy as np
 
 from ..logger import vre_logger as logger
 from ..utils import topological_sort
 from .representation import Representation
 from .learned_representation_mixin import LearnedRepresentationMixin
+from .compute_representation_mixin import ComputeRepresentationMixin
 
 # pylint: disable=import-outside-toplevel, redefined-builtin, too-many-branches, too-many-statements, cyclic-import
 def build_representation_type(repr_type: str) -> Type[Representation]:
@@ -60,44 +60,52 @@ def build_representation_type(repr_type: str) -> Type[Representation]:
         raise ValueError(f"Unknown type: '{repr_type}'")
     return obj_type
 
-def build_representation_from_cfg(repr_cfg: dict, name: str, built_so_far: dict[str, Representation]) -> Representation:
-    """
-    Builds a representation given a dict config and a name.
-    Convention:
-    - name: VRE Name aka runtime name or how the directories are going to be called after vre call
-    - repr_cfg["type"] The type of the representation (i.e optical-flow/rife, semanatic-segmentation/mask2former,
-        depth/dpt etc.)
-    - parameters The parameters sent to each representation
-    - dependencies The dependencies names based for each representation (can be an empty list)
-    """
+def build_representation_from_cfg(repr_cfg: dict, name: str, built_so_far: dict[str, Representation],
+                                  compute_representations_defaults: dict | None = None,
+                                  learned_representations_defaults: dict | None = None) -> Representation:
+    """Builds a representation given a dict config and a name."""
     assert isinstance(repr_cfg, dict), f"Broken format (not a dict) for {name}. Type: {type(repr_cfg)}."
-    assert {"type", "parameters", "dependencies"}.issubset(repr_cfg), f"{name} wrong keys: {repr_cfg.keys()}"
+    assert set(repr_cfg).issubset({"type", "parameters", "dependencies", "compute_parameters", "learned_parameters"}), \
+        f"{name} wrong keys: {repr_cfg.keys()}"
+    assert {"type", "parameters", "dependencies"}.issubset(repr_cfg), f"{name} missing keys: {repr_cfg.keys()}"
     assert isinstance(repr_cfg["parameters"], dict), type(repr_cfg["parameters"])
     assert name.find("/") == -1, "No '/' allowed in the representation name. Got '{name}'"
+
     logger.info(f"Building '{repr_cfg['type']}' (vre name: {name})")
     obj_type = build_representation_type(repr_cfg["type"])
     dependencies = [built_so_far[dep] for dep in repr_cfg["dependencies"]]
     obj: Representation = obj_type(name=name, dependencies=dependencies, **repr_cfg["parameters"])
 
-    assert "vre_parameters" not in repr_cfg, "Old config file, remove 'vre_parameters'"
-    if "device" in repr_cfg:
-        logger.info(f"Explicit device provided: {repr_cfg['device']}. This device will be used at vre.run()")
-        assert isinstance(obj, LearnedRepresentationMixin), type(obj)
-        obj.device = repr_cfg["device"]
-    if "batch_size" in repr_cfg:
-        logger.info(f"Explicit batch size {repr_cfg['batch_size']} provided to {name}.")
-        assert isinstance(repr_cfg["batch_size"], int), type(repr_cfg["batch_size"])
-        obj.batch_size = repr_cfg["batch_size"]
-    if "output_dtype" in repr_cfg:
-        logger.info(f"Explicit output_dtype {repr_cfg['output_dtype']} provided to {name}.")
-        obj.output_dtype = np.dtype(repr_cfg["output_dtype"])
-    if "output_size" in repr_cfg:
-        logger.info(f"Explicit output_size {repr_cfg['output_size']} provided to {name}.")
-        obj.output_size = repr_cfg["output_size"]
+    if isinstance(obj, LearnedRepresentationMixin):
+        defaults = {} if learned_representations_defaults is None else learned_representations_defaults
+        defaults = OmegaConf.to_container(defaults, resolve=True) if isinstance(defaults, DictConfig) else defaults
+        if "learned_parameters" in repr_cfg:
+            repr_learned_parameters = {**defaults, **repr_cfg.get("learned_parameters", {})}
+            logger.debug(f"[{obj}] Setting node specific params: {repr_learned_parameters}")
+        else:
+            repr_learned_parameters = defaults
+            logger.debug(f"[{obj}] Setting default params: {repr_learned_parameters}")
+        obj.set_learned_params(**repr_learned_parameters)
+    else:
+        assert "learned_parameters" not in repr_cfg, f"Learned parameters not allowed for {name}"
 
+    if isinstance(obj, ComputeRepresentationMixin):
+        defaults = {} if compute_representations_defaults is None else compute_representations_defaults
+        defaults = OmegaConf.to_container(defaults, resolve=True) if isinstance(defaults, DictConfig) else defaults
+        if "compute_parameters" in repr_cfg:
+            repr_compute_params = {**defaults, **repr_cfg.get("compute_parameters", {})}
+            logger.debug(f"[{obj}] Setting node specific params: {repr_compute_params}")
+        else:
+            repr_compute_params = defaults
+            logger.debug(f"[{obj}] Setting default params: {repr_compute_params}")
+        obj.set_compute_params(**repr_compute_params)
+    else:
+        assert "compute_parameters" not in repr_cfg, f"Compute parameters not allowed for {name}"
     return obj
 
-def build_representations_from_cfg(representations_dict: dict | DictConfig) -> dict[str, Representation]:
+def build_representations_from_cfg(representations_dict: dict | DictConfig,
+                                   compute_representations_default: dict | None = None,
+                                   learned_representations_defaults: dict | None = None ) -> dict[str, Representation]:
     """builds a dict of representations given a dict config (yaml file)"""
     if isinstance(representations_dict, DictConfig):
         representations_dict: dict = OmegaConf.to_container(representations_dict, resolve=True)
@@ -111,6 +119,7 @@ def build_representations_from_cfg(representations_dict: dict | DictConfig) -> d
         dep_graph[repr_name] = repr_cfg_values["dependencies"]
     topo_sorted = {k: representations_dict[k] for k in topological_sort(dep_graph)}
     for name, repr_cfg in topo_sorted.items():
-        obj = build_representation_from_cfg(repr_cfg, name, tsr)
+        obj = build_representation_from_cfg(repr_cfg, name, tsr, compute_representations_default,
+                                            learned_representations_defaults)
         tsr[name] = obj
     return tsr
