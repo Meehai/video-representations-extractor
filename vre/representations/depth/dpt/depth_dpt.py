@@ -4,44 +4,15 @@ import torch as tr
 import torch.nn.functional as F
 from overrides import overrides
 
-from vre.representations import Representation, ReprOut, LearnedRepresentationMixin
 from vre.utils import image_resize_batch, fetch_weights, colorize_depth, vre_load_weights
+from vre.representations import Representation, ReprOut, LearnedRepresentationMixin, ComputeRepresentationMixin
+from vre.representations.depth.dpt.dpt_impl import DPTDepthModel, get_size
 
-try:
-    from .dpt_impl.dpt_depth import DPTDepthModel
-except ImportError:
-    from dpt_impl.dpt_depth import DPTDepthModel
-
-def _constrain_to_multiple_of(x, multiple_of: int, min_val=0, max_val=None) -> int:
-    y = (np.round(x / multiple_of) * multiple_of).astype(int)
-    if max_val is not None and y > max_val:
-        y = (np.floor(x / multiple_of) * multiple_of).astype(int)
-    if y < min_val:
-        y = (np.ceil(x / multiple_of) * multiple_of).astype(int)
-    return int(y)
-
-def _get_size(__height, __width, height, width, multiple_of) -> tuple[int, int]:
-    # determine new height and width
-    scale_height = __height / height
-    scale_width = __width / width
-    # keep aspect ratio
-    if abs(1 - scale_width) < abs(1 - scale_height):
-        # fit width
-        scale_height = scale_width
-    else:
-        # fit height
-        scale_width = scale_height
-    new_height = _constrain_to_multiple_of(scale_height * height, multiple_of)
-    new_width = _constrain_to_multiple_of(scale_width * width, multiple_of)
-
-    return new_height, new_width
-
-
-class DepthDpt(Representation, LearnedRepresentationMixin):
+class DepthDpt(Representation, LearnedRepresentationMixin, ComputeRepresentationMixin):
     """DPT Depth Estimation representation"""
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        # VRE setup stuff
+    def __init__(self, *args, **kwargs):
+        Representation.__init__(self, *args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.net_w, self.net_h = 384, 384
         self.multiple_of = 32
         tr.manual_seed(42)
@@ -84,12 +55,13 @@ class DepthDpt(Representation, LearnedRepresentationMixin):
             self.model.to("cpu")
             tr.cuda.empty_cache()
         self.model = None
+        self.setup_called = False
 
     def _preprocess(self, x: np.ndarray) -> tr.Tensor:
         tr_frames = tr.from_numpy(x).to(self.device)
         tr_frames_perm = tr_frames.permute(0, 3, 1, 2).float() / 255
         curr_h, curr_w = tr_frames.shape[1], tr_frames.shape[2]
-        h, w = _get_size(self.net_h, self.net_w, curr_h, curr_w, multiple_of=self.multiple_of)
+        h, w = get_size(self.net_h, self.net_w, curr_h, curr_w, multiple_of=self.multiple_of)
         tr_frames_resized = F.interpolate(tr_frames_perm, size=(h, w), mode="bicubic")
         tr_frames_norm = (tr_frames_resized - 0.5) / 0.5
         return tr_frames_norm

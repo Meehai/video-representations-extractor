@@ -13,7 +13,6 @@ from vre.representations import build_representations_from_cfg
 from vre.utils import fetch_resource
 
 def sample_representations(all_representations_dict: dict[str, Any], n: int) -> dict:
-    np.random.seed(41)
     def _get_deps(all_representations_dict: dict[str, Any], key: str) -> set[str]:
         res = set()
         left = [key]
@@ -79,7 +78,8 @@ def test_vre_batched():
     type: edges/dexined
     dependencies: []
     parameters: {{}}
-    device: {device}
+    learned_parameters:
+      device: {device}
 
   opticalflow_rife:
     type: optical-flow/rife
@@ -87,7 +87,8 @@ def test_vre_batched():
     parameters:
       uhd: False
       compute_backward_flow: False
-    device: {device}
+    learned_parameters:
+      device: {device}
 
   normals_svd(depth_dpt):
     type: normals/depth-svd
@@ -105,7 +106,8 @@ def test_vre_batched():
       variant: fastsam-s
       iou: 0.9
       conf: 0.4
-    device: {device}
+    learned_parameters:
+      device: {device}
 
   mask2former:
     type: semantic-segmentation/mask2former
@@ -113,7 +115,8 @@ def test_vre_batched():
     parameters:
       model_id: "49189528_1"
       semantic_argmax_only: False
-    device: {device}
+    learned_parameters:
+      device: {device}
 
   # opticalflow raft:
   #   type: optical-flow/raft
@@ -121,13 +124,15 @@ def test_vre_batched():
   #   parameters:
   #     inference_height: 720
   #     inference_width: 1280
-  #   device: {device}
+  #   learned_parameters:
+  #     device: {device}
 
   depth_dpt:
     type: depth/dpt
     dependencies: []
     parameters: {{}}
-    device: {device}
+    learned_parameters:
+      device: {device}
 
   semantic_safeuav_torch:
     type: semantic-segmentation/safeuav
@@ -138,28 +143,29 @@ def test_vre_batched():
       num_classes: 8
       color_map: [[0, 255, 0], [0, 127, 0], [255, 255, 0], [255, 255, 255],
                   [255, 0, 0], [0, 0, 255], [0, 255, 255], [127, 127, 63]]
-    device: {device}
+    learned_parameters:
+      device: {device}
 """)
 
-    # we'll just pick 2 random representations to test here
+    np.random.seed(0)
     representations_dict = sample_representations(all_representations_dict, n=2)
+    assert "semantic_safeuav_torch" in representations_dict, representations_dict.keys()
     representations = build_representations_from_cfg(representations_dict)
-    representations_bs = build_representations_from_cfg(representations_dict)
 
     tmp_dir = Path("here1" if __name__ == "__main__" else TemporaryDirectory().name)
     tmp_dir_bs = Path("here2" if __name__ == "__main__" else TemporaryDirectory().name)
     shutil.rmtree(tmp_dir, ignore_errors=True)
     shutil.rmtree(tmp_dir_bs, ignore_errors=True)
 
-    start_frame, end_frame = 1000, (1002 if __name__ == "__main__" else 1002)
-    batch_size = 2
+    start_frame = 1000 if __name__ == "__main__" else np.random.randint(0, len(video) - 2)
+    end_frame = start_frame + 2
+    batch_size = 2 # BS=2 is enough to test this. In examples/ we have a becnhmark that tries more values
 
-    vre_bs = VRE(video, representations_bs)
-    took_bs = vre_bs(tmp_dir_bs, start_frame=start_frame, end_frame=end_frame, binary_format="npz", image_format="png",
-                     batch_size=batch_size, output_dir_exists_mode="raise")
     vre = VRE(video, representations)
-    took1 = vre(tmp_dir, start_frame=start_frame, end_frame=end_frame, binary_format="npz", image_format="png",
-                batch_size=1, output_dir_exists_mode="raise")
+    vre.set_compute_params(binary_format="npz", image_format="png", batch_size=1, )
+    took1 = vre(tmp_dir_bs, start_frame=start_frame, end_frame=end_frame, output_dir_exists_mode="raise")
+    vre.set_compute_params(batch_size=batch_size)
+    took_bs = vre(tmp_dir, start_frame=start_frame, end_frame=end_frame, output_dir_exists_mode="raise")
 
     both = pd.concat([pd.DataFrame(took1["run_stats"]).mean().rename("unbatched"),
                       pd.DataFrame(took_bs["run_stats"]).mean().rename(f"batch={batch_size}")], axis=1)

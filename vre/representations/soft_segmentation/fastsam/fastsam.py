@@ -8,7 +8,7 @@ import torch as tr
 from torch import nn
 from torch.nn import functional as F
 
-from vre.representations import Representation, ReprOut, LearnedRepresentationMixin
+from vre.representations import Representation, ReprOut, LearnedRepresentationMixin, ComputeRepresentationMixin
 from vre.utils import image_resize_batch, fetch_weights, image_read, image_write
 from vre.logger import vre_logger as logger
 from vre.representations.soft_segmentation.fastsam.fastsam_impl import FastSAM as Model, FastSAMPredictor, FastSAMPrompt
@@ -17,9 +17,10 @@ from vre.representations.soft_segmentation.fastsam.fastsam_impl.utils import bbo
 from vre.representations.soft_segmentation.fastsam.fastsam_impl.ops import \
     scale_boxes, non_max_suppression, process_mask_native
 
-class FastSam(Representation, LearnedRepresentationMixin):
+class FastSam(Representation, LearnedRepresentationMixin, ComputeRepresentationMixin):
     """FastSAM representation."""
     def __init__(self, variant: str, iou: float, conf: float, **kwargs):
+        Representation.__init__(self, **kwargs)
         super().__init__(**kwargs)
         assert variant in ("fastsam-s", "fastsam-x", "testing"), variant
         self.variant = variant
@@ -145,6 +146,7 @@ class FastSam(Representation, LearnedRepresentationMixin):
             self.model.to("cpu")
             tr.cuda.empty_cache()
         self.model = None
+        self.setup_called = False
 
 def get_args() -> Namespace:
     """cli args"""

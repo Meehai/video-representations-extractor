@@ -1,15 +1,20 @@
-vre:
-  start_frame: ${oc.env:VRE_START_IX}
-  end_frame: ${oc.env:VRE_END_IX,null}
+default_compute_parameters:
   binary_format: npz
   image_format: png
   compress: True
+  output_size: [400, 600]
+  batch_size: 1
+
+default_learned_parameters:
+  device: ${oc.env:VRE_DEVICE,cpu}
 
 representations:
   rgb:
     type: default/rgb
     dependencies: []
     parameters: {}
+    compute_parameters:
+      batch_size: 5
 
   hsv:
     type: default/hsv
@@ -48,7 +53,6 @@ representations:
     type: edges/dexined
     dependencies: []
     parameters: {}
-    device: ${oc.env:VRE_DEVICE,cpu}
 
   opticalflow_rife:
     type: optical-flow/rife
@@ -56,7 +60,6 @@ representations:
     parameters:
       uhd: False
       compute_backward_flow: False
-    device: ${oc.env:VRE_DEVICE,cpu}
 
   normals_svd(depth_dpt):
     type: normals/depth-svd
@@ -66,7 +69,8 @@ representations:
       sensor_width: 3840
       sensor_height: 2160
       window_size: 11
-    output_dtype: float16
+    compute_parameters:
+      output_dtype: float16
 
   fastsam(s):
     type: soft-segmentation/fastsam
@@ -75,7 +79,6 @@ representations:
       variant: fastsam-s
       iou: 0.9
       conf: 0.4
-    device: ${oc.env:VRE_DEVICE,cpu}
 
   mask2former:
     type: semantic-segmentation/mask2former
@@ -83,13 +86,11 @@ representations:
     parameters:
       model_id: "49189528_1"
       semantic_argmax_only: True
-    device: ${oc.env:VRE_DEVICE,cpu}
 
   depth_dpt:
     type: depth/dpt
     dependencies: []
     parameters: {}
-    device: ${oc.env:VRE_DEVICE,cpu}
 
   # # SUCKY BECAUSE SUPERSLOW. Adds like 2-3 mins in CI. Rife is good enough.
   # opticalflow raft:
@@ -100,7 +101,6 @@ representations:
   #     inference_width: 1280
   #     iters: 5
   #     small: False
-  #   device: ${oc.env:VRE_DEVICE,cpu}
 
   # # SUCKY BECAUSE SUPERSLOW. But really good depth.
   # depth_marigold:
@@ -111,4 +111,3 @@ representations:
   #     denoising_steps: 1
   #     ensemble_size: 1
   #     processing_resolution: 768
-  #   device: ${oc.env:VRE_DEVICE,cpu}

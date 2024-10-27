@@ -1,14 +1,13 @@
 """HSV module"""
 import numpy as np
 from overrides import overrides
+
 from vre.utils import image_resize_batch
-from .representation import Representation, ReprOut
+from vre.representations import Representation, ReprOut, ComputeRepresentationMixin
 
 def rgb2hsv(rgb: np.ndarray) -> np.ndarray:
     """RGB to HSV color space conversion."""
-    input_is_one_pixel = rgb.ndim == 1
-    if input_is_one_pixel:
-        rgb = rgb[np.newaxis, ...]
+    assert rgb.ndim in (3, 4), f"Expected 3 or 4 dimensions, got {rgb.ndim}"
 
     arr = rgb.astype(np.float64) / 255 if rgb.dtype == np.uint8 else rgb
     out = np.empty_like(arr)
@@ -45,16 +44,18 @@ def rgb2hsv(rgb: np.ndarray) -> np.ndarray:
     out[..., 1] = out_s
     out[..., 2] = out_v
 
-    # # remove NaN
+    # remove NaN
     out[np.isnan(out)] = 0
-
-    if input_is_one_pixel:
-        out = np.squeeze(out, axis=0)
 
     return out
 
-class HSV(Representation):
+class HSV(Representation, ComputeRepresentationMixin):
     """HSV representation"""
+    def __init__(self, *args, **kwargs):
+        Representation.__init__(self, *args, **kwargs)
+        super().__init__(*args, **kwargs)
+        assert len(self.dependencies) == 0, self.dependencies
+
     @overrides
     def make(self, frames: np.ndarray, dep_data: dict[str, ReprOut] | None = None) -> ReprOut:
         return ReprOut(output=rgb2hsv(frames).astype(np.float32))

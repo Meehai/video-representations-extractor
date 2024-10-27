@@ -3,6 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
+from lovely_numpy import lo
 import numpy as np
 
 from ..utils import parsed_str_type, VREVideo
@@ -17,17 +18,17 @@ class ReprOut:
     def __post_init__(self):
         assert isinstance(self.output, np.ndarray), type(self.output)
 
+    def __repr__(self):
+        return f"[ReprOut](output={lo(self.output)}, extra={self.extra}"
+
 class Representation(ABC):
     """Generic Representation class for VRE"""
-    def __init__(self, name: str, dependencies: list[Representation]):
+    def __init__(self, name: str, dependencies: list[Representation] | None = None):
         super().__init__()
-        assert isinstance(dependencies, (set, list))
+        dependencies = [] if dependencies is None else dependencies
+        assert isinstance(dependencies, (set, list)), type(dependencies)
         self.name = name
         self.dependencies = dependencies
-        # attributes updatable from outside (vre config)
-        self._output_size: tuple[int, int] | str | None = None
-        self.batch_size: int | None = None
-        self.output_dtype: str | np.dtype | None = None
 
     ## Abstract methods ##
     @abstractmethod
@@ -66,20 +67,6 @@ class Representation(ABC):
     def dep_names(self) -> list[str]:
         """return the list of dependencies names"""
         return [r.name for r in self.dependencies]
-
-    @property
-    def output_size(self) -> str | tuple[int, int] | None:
-        """Returns the output size as a tuple/string or None if it's not explicitly set"""
-        return self._output_size
-
-    @output_size.setter
-    def output_size(self, os: str | tuple[int, int]):
-        assert isinstance(os, (str, tuple, list)), os
-        if isinstance(os, (tuple, list)):
-            assert len(os) == 2 and all(isinstance(x, int) and x > 0 for x in os), os
-        if isinstance(os, str):
-            assert os in ("native", "video_shape"), os
-        self._output_size = os
 
     def vre_dep_data(self, video: VREVideo, ixs: slice | list[int], output_dir: Path | None) -> dict[str, ReprOut]:
         """iteratively collects all the dependencies needed by this representation"""

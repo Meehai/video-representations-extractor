@@ -27,12 +27,12 @@ class DataStorer:
             for _ in range(n_threads):
                 self.threads.append(thr := Thread(target=self._worker_fn, daemon=True))
                 thr.start()
-        logger.debug(f"[DataStorer] Set up with {n_threads} threads.")
+        logger.debug(f"[DataStorer-{self.data_writer.rep.name}] Set up with {n_threads} threads.")
 
     def _worker_fn(self):
         while True: # This loop is ended via `self.join_with_timeout` or `__del__` or manually setting queue to None.
             if self.queue is None:
-                logger.debug("Queue is None. Closing.")
+                logger.debug(f"[DataStorer-{self.data_writer.rep.name}] Queue of is None. Closing.")
                 break
             try:
                 args = self.queue.get(timeout=1)
@@ -45,7 +45,8 @@ class DataStorer:
         """calls queue.join() but throws after timeout seconds if it doesn't end"""
         if self.n_threads == 0:
             return
-        logger.debug(f"Waiting for {self.queue.unfinished_tasks} leftover enqueued tasks")
+        logger.debug(f"[DataStorer-{self.data_writer.rep.name}] Waiting for {self.queue.unfinished_tasks} "
+                     "leftover enqueued tasks")
         assert self.queue is not None, "Queue was closed, create a new DataStorer object..."
         self.queue.all_tasks_done.acquire()
         try:

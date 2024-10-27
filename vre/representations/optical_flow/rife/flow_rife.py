@@ -4,24 +4,22 @@ import numpy as np
 import torch as tr
 import torch.nn.functional as F
 from overrides import overrides
-from vre.representations import Representation, ReprOut, LearnedRepresentationMixin
+
 from vre.utils import image_resize_batch, fetch_weights, VREVideo, colorize_optical_flow
+from vre.representations import Representation, ReprOut, LearnedRepresentationMixin, ComputeRepresentationMixin
+from vre.representations.optical_flow.rife.rife_impl import Model
 
-try:
-    from .rife_impl.RIFE_HDv2 import Model
-except ImportError:
-    from rife_impl.RIFE_HDv2 import Model
-
-class FlowRife(Representation, LearnedRepresentationMixin):
+class FlowRife(Representation, LearnedRepresentationMixin, ComputeRepresentationMixin):
     """FlowRife representation"""
     def __init__(self, compute_backward_flow: bool, uhd: bool, flow_delta_frames: int = 1, **kwargs):
+        Representation.__init__(self, **kwargs)
+        super().__init__(**kwargs)
         tr.manual_seed(42)
         self.uhd = uhd
         self.flow_delta_frames = flow_delta_frames
         assert compute_backward_flow is False, "Not supported"
         self.no_backward_flow = True if compute_backward_flow is None else not compute_backward_flow
         self.model: Model | None = None
-        super().__init__(**kwargs)
 
     @overrides
     def vre_setup(self, load_weights: bool = True):
@@ -80,7 +78,7 @@ class FlowRife(Representation, LearnedRepresentationMixin):
         half_ph, half_pw = padding[3] // 2, padding[1] // 2
         flow = flow[:, 0: returned_shape[0] - half_ph, 0: returned_shape[1] - half_pw]
         flow = flow / returned_shape # [-px : px] => [-1 : 1]
-        return flow.astype(np.float16)
+        return flow.astype(np.float32)
 
     def vre_free(self):
         assert self.setup_called is True and self.model is not None, (self.setup_called, self.model is not None)
@@ -88,3 +86,4 @@ class FlowRife(Representation, LearnedRepresentationMixin):
             self.model.to("cpu")
             tr.cuda.empty_cache()
         self.model = None
+        self.setup_called = False

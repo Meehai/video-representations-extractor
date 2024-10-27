@@ -2,15 +2,12 @@
 import torch as tr
 import numpy as np
 from overrides import overrides
-from vre.representations import Representation, ReprOut
+
 from vre.utils import image_resize_batch
+from vre.representations import Representation, ReprOut, ComputeRepresentationMixin
+from vre.representations.soft_segmentation.generalized_boundaries.gb_impl.softseg import soft_seg
 
-try:
-    from .gb_impl.softseg import soft_seg
-except ImportError:
-    from gb_impl.softseg import soft_seg
-
-class GeneralizedBoundaries(Representation):
+class GeneralizedBoundaries(Representation, ComputeRepresentationMixin):
     """
     Soft-seg implementation from https://link.springer.com/chapter/10.1007/978-3-642-33765-9_37
     Parameters:
@@ -19,6 +16,7 @@ class GeneralizedBoundaries(Representation):
     - max_channels: Max segmentation maps. Upper bounded at ~60.
     """
     def __init__(self, use_median_filtering: bool, adjust_to_rgb: bool, max_channels: int, **kwargs):
+        Representation.__init__(self, **kwargs)
         super().__init__(**kwargs)
         self.use_median_filtering = use_median_filtering
         self.adjust_to_rgb = adjust_to_rgb

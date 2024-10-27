@@ -4,19 +4,17 @@ from overrides import overrides
 import numpy as np
 import torch as tr
 from torch.nn import functional as F
-from vre.representations import Representation, ReprOut, LearnedRepresentationMixin
+
 from vre.utils import image_resize_batch, fetch_weights, vre_load_weights, VREVideo, colorize_optical_flow
 from vre.logger import vre_logger as logger
+from vre.representations import Representation, ReprOut, LearnedRepresentationMixin, ComputeRepresentationMixin
+from vre.representations.optical_flow.raft.raft_impl import RAFT, InputPadder
 
-try:
-    from .raft_impl import RAFT, InputPadder
-except ImportError:
-    from raft_impl import RAFT, InputPadder
-
-class FlowRaft(Representation, LearnedRepresentationMixin):
+class FlowRaft(Representation, LearnedRepresentationMixin, ComputeRepresentationMixin):
     """FlowRaft representation"""
     def __init__(self, inference_height: int, inference_width: int, iters: int, small: bool,
                  seed: int | None = None, flow_delta_frames: int = 1, **kwargs):
+        Representation.__init__(self, **kwargs)
         super().__init__(**kwargs)
         assert inference_height >= 128 and inference_width >= 128, f"This flow doesn't work with small " \
             f"videos. At least 128x128 is required, but got {inference_height}x{inference_width}"
@@ -95,8 +93,7 @@ class FlowRaft(Representation, LearnedRepresentationMixin):
         flow_unpad = padder.unpad(predictions).cpu().numpy()
         flow_perm = flow_unpad.transpose(0, 2, 3, 1)
         flow_unpad_norm = flow_perm / (self.inference_height, self.inference_width) # [-1 : 1]
-        flow_unpad_norm = flow_unpad_norm.astype(np.float16)
-        return flow_unpad_norm
+        return flow_unpad_norm.astype(np.float32)
 
     def vre_free(self):
         assert self.setup_called is True and self.model is not None, (self.setup_called, self.model is not None)
@@ -104,3 +101,4 @@ class FlowRaft(Representation, LearnedRepresentationMixin):
             self.model.to("cpu")
             tr.cuda.empty_cache()
         self.model = None
+        self.setup_called = False

@@ -4,10 +4,10 @@ import numpy as np
 
 from vre.representations.normals.depth_svd.depth_svd_impl import \
     fov_diag_to_intrinsic, get_sampling_grid, get_normalized_coords, depth_to_normals
-from vre.representations import Representation, ReprOut
+from vre.representations import Representation, ReprOut, ComputeRepresentationMixin
 from vre.utils import image_resize_batch
 
-class DepthNormalsSVD(Representation):
+class DepthNormalsSVD(Representation, ComputeRepresentationMixin):
     """
     General method for estimating normals from a depth map (+ intrinsics): a 2D window centered on each pixel is
     projected into 3D and then a plane is fitted on the 3D pointcloud using SVD.
@@ -15,6 +15,8 @@ class DepthNormalsSVD(Representation):
     def __init__(self, sensor_fov: int, sensor_width: int, sensor_height: int, window_size: int,
                  input_downsample_step: int = None, stride: int = None, max_distance: float = None,
                  min_valid_count: int = None, **kwargs):
+        Representation.__init__(self, **kwargs)
+        super().__init__(**kwargs)
         assert window_size % 2 == 1, f"Expected odd window size. Got: {window_size}"
         self.sensor_fov = sensor_fov
         self.sensor_width = sensor_width
@@ -24,8 +26,7 @@ class DepthNormalsSVD(Representation):
         self.input_downsample_step = input_downsample_step if input_downsample_step is not None else 1
         self.max_dist = max_distance if max_distance is not None else -1
         self.min_valid = min_valid_count if min_valid_count is not None else 0
-        super().__init__(**kwargs)
-        assert len(self.dependencies) == 1, "Expected one depth method!"
+        assert len(self.dependencies) == 1, f"Expected exactly one depth method, got: {self.dependencies}"
         self._grid_cache = {}
 
     @overrides

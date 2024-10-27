@@ -7,41 +7,26 @@ from types import SimpleNamespace
 from overrides import overrides
 import torch as tr
 import numpy as np
-from lovely_tensors import monkey_patch
 
-from vre.representations import Representation, ReprOut, LearnedRepresentationMixin
 from vre.logger import vre_logger as logger
 from vre.utils import (image_resize_batch, fetch_weights, image_read, image_write,
                        vre_load_weights, colorize_semantic_segmentation)
+from vre.representations import Representation, ReprOut, LearnedRepresentationMixin, ComputeRepresentationMixin
+from vre.representations.semantic_segmentation.mask2former.mask2former_impl import MaskFormer, CfgNode, get_output_shape
 
-try:
-    from .mask2former_impl import MaskFormer as MaskFormerImpl, CfgNode
-except ImportError:
-    from mask2former_impl import MaskFormer as MaskFormerImpl, CfgNode
-
-monkey_patch()
-
-def _get_output_shape(oldh: int, oldw: int, short_edge_length: int, max_size: int):
-    """Compute the output size given input size and target short edge length."""
-    scale = short_edge_length / min(oldh, oldw)
-    newh, neww = (short_edge_length, scale * oldw) if oldh < oldw else (scale * oldh, short_edge_length)
-    if max(newh, neww) > max_size:
-        scale = max_size * 1.0 / max(newh, neww)
-        newh, neww = newh * scale, neww * scale
-    neww, newh = int(neww + 0.5), int(newh + 0.5)
-    return newh, neww
-
-class Mask2Former(Representation, LearnedRepresentationMixin):
+class Mask2Former(Representation, LearnedRepresentationMixin, ComputeRepresentationMixin):
     """Mask2Former representation implementation. Note: only semantic segmentation (not panoptic/instance) enabled."""
     def __init__(self, model_id: str, semantic_argmax_only: bool, **kwargs):
+        Representation.__init__(self, **kwargs)
         super().__init__(**kwargs)
         assert isinstance(model_id, str) and model_id in {"47429163_0", "49189528_1", "49189528_0"}, model_id
         self._m2f_resources = Path(__file__).parent / "mask2former_impl/resources"
         self.classes, self.color_map, self.thing_dataset_id_to_contiguous_id = self._get_metadata(model_id)
         self.semantic_argmax_only = semantic_argmax_only
         self.model_id = model_id
-        self.model: MaskFormerImpl | None = None
+        self.model: MaskFormer | None = None
         self.cfg: CfgNode | None = None
+        self.output_dtype = "uint8" if semantic_argmax_only else "float16"
 
     def vre_setup(self, load_weights = True):
         assert self.setup_called is False
@@ -49,9 +34,9 @@ class Mask2Former(Representation, LearnedRepresentationMixin):
         assert isinstance(weights_path, Path), type(weights_path)
         ckpt_data = vre_load_weights(weights_path)
         self.cfg = CfgNode(json.load(open(f"{self._m2f_resources}/{self.model_id}_cfg.json", "r")))
-        params = MaskFormerImpl.from_config(self.cfg)
+        params = MaskFormer.from_config(self.cfg)
         params["metadata"] = SimpleNamespace(thing_dataset_id_to_contiguous_id=self.thing_dataset_id_to_contiguous_id)
-        self.model = MaskFormerImpl(**{**params, "semantic_on": True, "panoptic_on": False, "instance_on": False})
+        self.model = MaskFormer(**{**params, "semantic_on": True, "panoptic_on": False, "instance_on": False})
         if load_weights:
             res = self.model.load_state_dict(ckpt_data["state_dict"], strict=False) # inference only: remove criterion
             assert res.unexpected_keys in (["criterion.empty_weight"], []), res
@@ -62,13 +47,13 @@ class Mask2Former(Representation, LearnedRepresentationMixin):
     @overrides
     def make(self, frames: np.ndarray, dep_data: dict[str, ReprOut] | None = None) -> ReprOut:
         height, width = frames.shape[1:3]
-        _os = _get_output_shape(height, width, self.cfg.INPUT.MIN_SIZE_TEST, self.cfg.INPUT.MAX_SIZE_TEST)
+        _os = get_output_shape(height, width, self.cfg.INPUT.MIN_SIZE_TEST, self.cfg.INPUT.MAX_SIZE_TEST)
         imgs = image_resize_batch(frames, _os[0], _os[1], "bilinear", "PIL").transpose(0, 3, 1, 2).astype("float32")
         inputs = [{"image": tr.from_numpy(img), "height": height, "width": width} for img in imgs]
         predictions: list[tr.Tensor] = [x["sem_seg"] for x in self.model(inputs)]
         res = []
         for pred in predictions:
-            _pred = pred.argmax(0).byte() if self.semantic_argmax_only else pred.half().permute(1, 2, 0)
+            _pred = pred.argmax(dim=0) if self.semantic_argmax_only else pred.permute(1, 2, 0)
             res.append(_pred.to("cpu").numpy())
         return ReprOut(output=np.stack(res))
 
@@ -107,6 +92,7 @@ class Mask2Former(Representation, LearnedRepresentationMixin):
             self.model.to("cpu")
             tr.cuda.empty_cache()
         self.model = None
+        self.setup_called = False
 
 def get_args() -> Namespace:
     """cli args"""

@@ -2,11 +2,12 @@
 import numpy as np
 from overrides import overrides
 from matplotlib.cm import gray # pylint: disable=no-name-in-module
-from vre.representations import Representation, ReprOut
+
+from vre.representations import Representation, ReprOut, ComputeRepresentationMixin
 from vre.utils import image_resize_batch
 from vre.utils.cv2_utils import cv2_Canny
 
-class Canny(Representation):
+class Canny(Representation, ComputeRepresentationMixin):
     """Canny edge detector representation."""
     def __init__(self, threshold1: float, threshold2: float, aperture_size: int, l2_gradient: bool, **kwargs):
         super().__init__(**kwargs)

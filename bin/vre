@@ -19,39 +19,25 @@ def get_args():
     parser.add_argument("--output_path", "-o", required=True,
                         help="Path to the output directory where representations are stored")
     parser.add_argument("--cfg_path", required=True, help="Path to global YAML cfg file")
+    parser.add_argument("--representations", nargs="+", help="Subset of representations to run VRE for")
+    # run parameters
     parser.add_argument("--start_frame", type=int, default=0, help="The first frame. If not set, defaults to first.")
     parser.add_argument("--end_frame", type=int, help="End frame. If not set, defaults to length of video")
     parser.add_argument("--output_dir_exists_mode", choices=["overwrite", "skip_computed", "raise"])
-    parser.add_argument("--frame_rate", type=int, default=-1, help="For a dir of images. Required for optical flow")
-    parser.add_argument("--batch_size", type=int)
-    parser.add_argument("--output_size", nargs="+", default=["video_shape"])
-    parser.add_argument("--representations", nargs="+", help="Subset of representations to run VRE for")
     parser.add_argument("--n_threads_data_storer", type=int, default=0)
+    # other parameters
+    parser.add_argument("--frame_rate", type=int, default=-1, help="For a dir of images. Required for optical flow")
 
     args = parser.parse_args()
     args.video_path = Path(args.video_path).absolute()
     args.output_path = Path(args.output_path).absolute()
-    assert 0 < len(args.output_size) < 3, args.output_size
-    args.output_size = args.output_size[0] if len(args.output_size) == 1 else tuple(map(int, args.output_size))
-    args.cfg_path = Path(args.cfg_path).absolute() if args.cfg_path is not None else args.cfg_path
+    args.cfg_path = Path(args.cfg_path).absolute()
     return args
 
 def get_cfg():
     """cfg and cli args"""
     args = get_args()
     cfg = OmegaConf.load(open(args.cfg_path, "r"))
-
-    def _update_cfg_from_args(cfg, args, items: List[str]):
-        for item in items:
-            if getattr(args, item) is None:
-                continue
-            cfg[item] = getattr(args, item)
-            logger.warning(f"--{item} is set to '{cfg[item]}'. Will update the cfg value")
-
-        return cfg
-
-    cfg.vre = _update_cfg_from_args(cfg.vre, args, ["start_frame", "end_frame", "output_dir_exists_mode",
-                                                    "batch_size", "output_size", "n_threads_data_storer"])
     if args.representations is not None:
         assert (d := set(args.representations).difference(r := cfg.representations.keys())) == set(), f"{d} not in {r}"
         logger.info(f"Keeping only {args.representations} from the config")
@@ -67,9 +53,12 @@ def main():
         video = FakeVideo(np.array(raw_data, dtype=np.uint8), frame_rate=args.frame_rate)
     else:
         video = pims.Video(args.video_path)
-    representations = build_representations_from_cfg(cfg.representations)
+    representations = build_representations_from_cfg(cfg.representations, cfg.get("default_compute_parameters"),
+                                                     cfg.get("default_learned_parameters"))
     vre = VRE(video, representations)
-    vre_metadata = vre.run(args.output_path, **cfg.vre)
+    vre_metadata = vre.run(args.output_path, start_frame=args.start_frame, end_frame=args.end_frame,
+                           output_dir_exists_mode=args.output_dir_exists_mode,
+                           n_threads_data_storer=args.n_threads_data_storer)
     vre_run_stats = pd.DataFrame(vre_metadata["run_stats"], index=range(*vre_metadata["runtime_args"]["frames"]))
     print(vre_run_stats if len(vre_run_stats) > 1 else vre_run_stats.T)
 

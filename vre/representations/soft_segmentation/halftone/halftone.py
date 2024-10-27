@@ -9,10 +9,10 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageStat
 from overrides import overrides
 
-from vre.representations import Representation, ReprOut
+from vre.representations import Representation, ReprOut, ComputeRepresentationMixin
 from vre.utils import image_resize, image_resize_batch
 
-class Halftone(Representation):
+class Halftone(Representation, ComputeRepresentationMixin):
     """
     Halftone representation
     Parameters:
@@ -25,6 +25,7 @@ class Halftone(Representation):
 
     def __init__(self, sample: float, scale: float, percentage: float, angles: list[int],
                  antialias: bool, resolution: tuple[int, int], **kwargs):
+        Representation.__init__(self, **kwargs)
         super().__init__(**kwargs)
         assert len(resolution) == 2, resolution
         self.sample = sample
