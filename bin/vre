@@ -1,18 +1,20 @@
 #!/usr/bin/env python3
-from argparse import ArgumentParser
-from typing import List
+from argparse import ArgumentParser, Namespace
 from pathlib import Path
 from natsort import natsorted
 import numpy as np
 import pandas as pd
 import pims
+import sys
 from vre import VRE
 from vre.utils import FakeVideo, image_read
 from vre.representations import build_representations_from_cfg
 from vre.logger import vre_logger as logger
 from omegaconf import OmegaConf
 
-def get_args():
+import imp
+
+def get_args() -> Namespace:
     """cli args"""
     parser = ArgumentParser()
     parser.add_argument("video_path", help="Path to the scene video we are processing")
@@ -27,11 +29,15 @@ def get_args():
     parser.add_argument("--n_threads_data_storer", type=int, default=0)
     # other parameters
     parser.add_argument("--frame_rate", type=int, default=-1, help="For a dir of images. Required for optical flow")
+    parser.add_argument("--make_video_collage", action="store_true")
+    parser.add_argument("--collage_fps", type=int)
 
     args = parser.parse_args()
     args.video_path = Path(args.video_path).absolute()
     args.output_path = Path(args.output_path).absolute()
     args.cfg_path = Path(args.cfg_path).absolute()
+    if args.make_video_collage:
+        assert args.collage_fps is not None and isinstance(args.collage_fps, int) and args.collage_fps > 0
     return args
 
 def get_cfg():
@@ -61,6 +67,11 @@ def main():
                            n_threads_data_storer=args.n_threads_data_storer)
     vre_run_stats = pd.DataFrame(vre_metadata["run_stats"], index=range(*vre_metadata["runtime_args"]["frames"]))
     print(vre_run_stats if len(vre_run_stats) > 1 else vre_run_stats.T)
+
+    if args.make_video_collage:
+        vre_collage = imp.load_source("vre_collage", (Path(__file__).parent / "vre_collage").__str__())
+        vre_collage.main(Namespace(vre_export_dir=args.output_path, output_path=args.output_path/"collage",
+                                   video=True, fps=args.collage_fps, output_resolution=None))
 
 if __name__ == "__main__":
     main()

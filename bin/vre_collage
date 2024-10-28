@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """vre_collage tool"""
-from argparse import ArgumentParser
+from argparse import ArgumentParser, Namespace
 from pathlib import Path
 from natsort import natsorted
 from tqdm import tqdm
@@ -45,9 +45,8 @@ def resolve_files(vre_export_dir: Path) -> dict[str, list[Path]]:
     logger.info(f"Returning {n_files[found_dirs[0].parent.name]} images from {len(n_files)} representations.")
     return repr_files
 
-def main():
+def main(args: Namespace):
     """main fn"""
-    args = get_args()
     logger.info(f"VRE pngs dir: {args.vre_export_dir}")
     logger.info(f"Output dir: {args.output_path}")
     logger.info(f"Export video: {args.video} {args.output_path / 'collage.mp4' if args.video else ''}")
@@ -59,7 +58,6 @@ def main():
     args.output_path.mkdir(parents=True, exist_ok=True)
     for current_frame_paths in tqdm(values, desc="collage images"):
         # export the png with the same name as all the other png from which it is constructed
-        name = current_frame_paths[0].stem
         current_frames = [image_read(x) for x in current_frame_paths]
         h, w = current_frames[0].shape[0:2]
         # keep only first 25 chars of vre representation, otherwise the title is too long
@@ -69,12 +67,12 @@ def main():
         titled_frames = [image_add_title(img, title, size_px=w_out // 15, top_padding=w_out // 10)
                          for img, title in zip(rsz_frames, titles)]
         img = collage_fn(titled_frames, pad_right=w_out // 75)
-        image_write(img, args.output_path / f"{name}.png")
+        image_write(img, args.output_path / f"{current_frame_paths[0].stem}.png")
 
     if args.video:
-        files = natsorted([str(x) for x in args.output_path.iterdir() if x.suffix == ".png"], key=lambda p: p.name)
-        video = ImageSequenceClip(files, fps=args.fps)
+        files = natsorted([x for x in args.output_path.iterdir() if x.suffix == ".png"], key=lambda p: p.name)
+        video = ImageSequenceClip(list(map(str, files)), fps=args.fps)
         video.write_videofile(f"{args.output_path}/collage.mp4")
 
 if __name__ == "__main__":
-    main()
+    main(get_args())
