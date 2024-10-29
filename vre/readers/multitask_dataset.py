@@ -11,7 +11,7 @@ import numpy as np
 from torch.utils.data import Dataset
 from tqdm import trange
 
-from vre.stored_representation import StoredRepresentation
+from vre.stored_representation import StoredRepresentation, NormedRepresentation
 
 BuildDatasetTuple = Tuple[Dict[str, List[Path]], List[str]]
 MultiTaskItem = Tuple[Dict[str, tr.Tensor], str, List[str]] # [{task: data}, stem(name) | list[stem(name)], [tasks]]
@@ -328,7 +328,6 @@ class MultiTaskDataset(Dataset):
         return res
 
     # Python magic methods (pretty printing the reader object, reader[0], len(reader) etc.)
-
     def __getitem__(self, index: int | str | slice | list[int, str] | tuple[int, str]) -> MultiTaskItem:
         """Read the data all the desired nodes"""
         assert isinstance(index, (int, slice, list, tuple, str)), type(index)
@@ -345,11 +344,8 @@ class MultiTaskDataset(Dataset):
             task = [t for t in self.tasks if t.name == task_name][0]
             file_path = self.files_per_repr[task_name][index]
             res[task_name] = self.default_vals[task_name] if file_path is None else task.load_from_disk(file_path)
-            if not task.is_classification:
-                if self.normalization is not None and self.normalization[task_name] == "min_max":
-                    res[task_name] = task.normalize(res[task_name])
-                if self.normalization is not None and self.normalization[task_name] == "standardization":
-                    res[task_name] = task.standardize(res[task_name])
+            if isinstance(task, NormedRepresentation) and task.normalization is not None:
+                res[task_name] = task.normalize(res[task_name])
         return (res, self.file_names[index], self.task_names)
 
     def __len__(self) -> int:
