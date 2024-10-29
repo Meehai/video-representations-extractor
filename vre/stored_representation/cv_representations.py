@@ -53,7 +53,7 @@ class EdgesRepresentation(NpzRepresentation, NormedRepresentation):
 
     def plot_fn(self, x: tr.Tensor) -> np.ndarray:
         x = self.unnormalize(x.detach().cpu()) if self.normalization is not None else x.detach().cpu()
-        return (x * 255).byte().numpy()
+        return (x.repeat(1, 1, 3) * 255).byte().numpy()
 
 class DepthRepresentation(NpzRepresentation, NormedRepresentation):
     """DepthRepresentation. Implements depth task-specific stuff, like spectral map for plots."""
