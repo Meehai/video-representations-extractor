@@ -1,3 +1,4 @@
+"""Computer Vision stored representations"""
 from __future__ import annotations
 from pathlib import Path
 import numpy as np
@@ -9,54 +10,56 @@ from torch.nn import functional as F
 
 from ..representations.hsv import rgb2hsv
 from ..utils import colorize_semantic_segmentation
-from ..logger import vre_logger as logger
 from .stored_represntation import NpzRepresentation
 from .normed_representation import NormedRepresentation
 
 class ColorRepresentation(NpzRepresentation, NormedRepresentation):
+    """ColorRepresentation -- a wrapper over all 3-channeled colored representations"""
+    def __init__(self, name: str, dependencies: list[str] | None = None):
+        NpzRepresentation.__init__(self, name, n_channels=3, dependencies=dependencies)
+        NormedRepresentation.__init__(self)
+
     @overrides
     def plot_fn(self, x: tr.Tensor) -> np.ndarray:
-        """to be removed"""
-        logger.warning("DELETE THIS")
-        min, max, mean, std = self.stats # pylint: disable=all
-        assert isinstance(x, tr.Tensor), type(x)
-        assert len(x.shape) == 3, x.shape # guaranteed to be (H, W, C) at this point
-        x = x.nan_to_num(0).cpu().detach()
-        if x.shape[-1] != 3:
-            x = x[..., 0:1]
-        if x.shape[-1] == 1: # guaranteed to be (H, W, 3) after this if statement hopefully
-            x = x.repeat(1, 1, 3)
-        if x.dtype == tr.uint8 or self.is_classification:
-            return x.numpy()
-        if self.normalization is not None:
-            x = (x * std + mean) if self.normalization == "standardization" else x
-            x = x * (max - min) + min if self.normalization == "min_max" else x
-            x = (x * 255) if (max <= 1).any() else x
-        x = x.numpy().astype(np.uint8)
-        return x
+        x = self.unnormalize(x) if self.normalization is not None else x
+        return x.detach().byte().cpu().numpy()
 
-class RGBRepresentation(ColorRepresentation):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, n_channels=3, **kwargs)
+class RGBRepresentation(ColorRepresentation): pass # pylint: disable=missing-class-docstring, multiple-statements
 
-class HSVRepresentation(RGBRepresentation):
+class NormalsRepresentation(ColorRepresentation):
+    """NormalsRepresentation -- CV representation for world and camera normals"""
+    @overrides
+    def plot_fn(self, x: tr.Tensor) -> np.ndarray:
+        x = self.unnormalize(x) if self.normalization is not None else x
+        return (x * 255).detach().byte().cpu().numpy()
+
+class HSVRepresentation(ColorRepresentation):
+    """HSVRepresentation -- CV representation for HSV derived from RGB directly"""
     @overrides
     def load_from_disk(self, path: Path) -> tr.Tensor:
-        rgb = super().load_from_disk(path)
+        rgb = NpzRepresentation.load_from_disk(self, path)
         return tr.from_numpy(rgb2hsv(rgb.numpy())).float()
 
-class EdgesRepresentation(ColorRepresentation):
+    @overrides
+    def plot_fn(self, x: tr.Tensor) -> np.ndarray:
+        x = self.unnormalize(x) if self.normalization is not None else x
+        return (x * 255).detach().byte().cpu().numpy()
+
+class EdgesRepresentation(NpzRepresentation, NormedRepresentation):
+    """EdgesRepresentation -- CV representation for 1-channeled edges/boundaries"""
     def __init__(self, *args, **kwargs):
         super().__init__(*args, n_channels=1, **kwargs)
 
-class NormalsRepresentation(ColorRepresentation):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, n_channels=3, **kwargs)
+    def plot_fn(self, x: tr.Tensor) -> np.ndarray:
+        x = self.unnormalize(x).repeat(1, 1, 3)
+        return (x * 255).byte().detach().cpu().numpy()
 
 class DepthRepresentation(NpzRepresentation, NormedRepresentation):
     """DepthRepresentation. Implements depth task-specific stuff, like spectral map for plots."""
-    def __init__(self, name: str, min_depth: float, max_depth: float, *args, **kwargs):
-        super().__init__(name, n_channels=1, *args, **kwargs)
+    def __init__(self, name: str, min_depth: float, max_depth: float, **kwargs):
+        NpzRepresentation.__init__(self, name, n_channels=1, **kwargs)
+        NormedRepresentation.__init__(self)
+
         self.min_depth = min_depth
         self.max_depth = max_depth
 
@@ -86,7 +89,7 @@ class OpticalFlowRepresentation(NpzRepresentation, NormedRepresentation):
         x = ((x - _min) / (_max - _min)).nan_to_num(0, 0, 0).detach().cpu().numpy()
         return flow_vis.flow_to_color(x)
 
-class SemanticRepresentation(NpzRepresentation, NormedRepresentation): # TODO: no norm
+class SemanticRepresentation(NpzRepresentation):
     """SemanticRepresentation. Implements semantic task-specific stuff, like argmaxing if needed"""
     def __init__(self, *args, classes: int | list[str], color_map: list[tuple[int, int, int]], **kwargs):
         self.n_classes = len(list(range(classes)) if isinstance(classes, int) else classes)
@@ -102,7 +105,7 @@ class SemanticRepresentation(NpzRepresentation, NormedRepresentation): # TODO: n
             assert res.shape[-1] == self.n_classes, f"Expected {self.n_classes} (HxWxC), got {res.shape[-1]}"
             res = res.argmax(-1)
         assert len(res.shape) == 2, f"Only argmaxed data supported, got: {res.shape}"
-        res = F.one_hot(res.long(), num_classes=self.n_classes).float()
+        res = F.one_hot(res.long(), num_classes=self.n_classes).float() # pylint: disable=not-callable
         return res
 
     @overrides
