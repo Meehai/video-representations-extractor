@@ -48,7 +48,8 @@ class HSVRepresentation(ColorRepresentation):
 class EdgesRepresentation(NpzRepresentation, NormedRepresentation):
     """EdgesRepresentation -- CV representation for 1-channeled edges/boundaries"""
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, n_channels=1, **kwargs)
+        NpzRepresentation.__init__(self, *args, n_channels=1, **kwargs)
+        NormedRepresentation.__init__(self)
 
     def plot_fn(self, x: tr.Tensor) -> np.ndarray:
         x = self.unnormalize(x.detach().cpu()) if self.normalization is not None else x.detach().cpu()
