@@ -81,7 +81,8 @@ class DepthRepresentation(NpzRepresentation, NormedRepresentation):
 class OpticalFlowRepresentation(NpzRepresentation, NormedRepresentation):
     """OpticalFlowRepresentation. Implements flow task-specific stuff, like using flow_vis."""
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, n_channels=2, **kwargs)
+        NpzRepresentation.__init__(self, *args, n_channels=2, **kwargs)
+        NormedRepresentation.__init__(self)
 
     @overrides
     def plot_fn(self, x: tr.Tensor) -> np.ndarray:
