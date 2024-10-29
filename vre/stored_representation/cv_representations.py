@@ -21,8 +21,8 @@ class ColorRepresentation(NpzRepresentation, NormedRepresentation):
 
     @overrides
     def plot_fn(self, x: tr.Tensor) -> np.ndarray:
-        x = self.unnormalize(x) if self.normalization is not None else x
-        return x.detach().byte().cpu().numpy()
+        x = self.unnormalize(x.detach().cpu()) if self.normalization is not None else x.detach().cpu()
+        return x.byte().numpy()
 
 class RGBRepresentation(ColorRepresentation): pass # pylint: disable=missing-class-docstring, multiple-statements
 
@@ -30,8 +30,8 @@ class NormalsRepresentation(ColorRepresentation):
     """NormalsRepresentation -- CV representation for world and camera normals"""
     @overrides
     def plot_fn(self, x: tr.Tensor) -> np.ndarray:
-        x = self.unnormalize(x) if self.normalization is not None else x
-        return (x * 255).detach().byte().cpu().numpy()
+        x = self.unnormalize(x.detach().cpu()) if self.normalization is not None else x.detach().cpu()
+        return (x * 255).byte().numpy()
 
 class HSVRepresentation(ColorRepresentation):
     """HSVRepresentation -- CV representation for HSV derived from RGB directly"""
@@ -42,8 +42,8 @@ class HSVRepresentation(ColorRepresentation):
 
     @overrides
     def plot_fn(self, x: tr.Tensor) -> np.ndarray:
-        x = self.unnormalize(x) if self.normalization is not None else x
-        return (x * 255).detach().byte().cpu().numpy()
+        x = self.unnormalize(x.detach().cpu()) if self.normalization is not None else x.detach().cpu()
+        return (x * 255).byte().numpy()
 
 class EdgesRepresentation(NpzRepresentation, NormedRepresentation):
     """EdgesRepresentation -- CV representation for 1-channeled edges/boundaries"""
@@ -51,8 +51,8 @@ class EdgesRepresentation(NpzRepresentation, NormedRepresentation):
         super().__init__(*args, n_channels=1, **kwargs)
 
     def plot_fn(self, x: tr.Tensor) -> np.ndarray:
-        x = self.unnormalize(x).repeat(1, 1, 3)
-        return (x * 255).byte().detach().cpu().numpy()
+        x = self.unnormalize(x.detach().cpu()) if self.normalization is not None else x.detach().cpu()
+        return (x * 255).byte().numpy()
 
 class DepthRepresentation(NpzRepresentation, NormedRepresentation):
     """DepthRepresentation. Implements depth task-specific stuff, like spectral map for plots."""
