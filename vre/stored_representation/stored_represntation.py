@@ -5,6 +5,11 @@ from pathlib import Path
 import numpy as np
 import torch as tr
 from overrides import overrides
+from loggez import loggez_logger as logger
+
+from ..utils import FixedSizeOrderedDict
+
+_CACHE = FixedSizeOrderedDict(maxlen=1024)
 
 class StoredRepresentation(ABC):
     """StoredRepresentation. The counterpart to Representation which is ComputedRepresentation. TBD how to integrate"""
@@ -52,6 +57,10 @@ class NpzRepresentation(StoredRepresentation):
     @overrides
     def load_from_disk(self, path: Path) -> tr.Tensor:
         """Reads the npz data from the disk and transforms it properly"""
+        if (key := (self.name, path.name)) in _CACHE:
+            logger.debug2(f"HIT: '{key}'")
+            return _CACHE[key]
+        logger.debug2(f"MISS: '{key}'")
         data = np.load(path, allow_pickle=False)
         data = data if isinstance(data, np.ndarray) else data["arr_0"] # in case on npz, we need this as well
         data = data.astype(np.float32) if np.issubdtype(data.dtype, np.floating) else data # float16 is dangerous
@@ -59,6 +68,7 @@ class NpzRepresentation(StoredRepresentation):
         res = res.unsqueeze(-1) if len(res.shape) == 2 and self.n_channels == 1 else res # (H, W) in some dph/edges
         assert ((res.shape[-1] == self.n_channels and len(res.shape) == 3) or
                 (len(res.shape) == 2 and self.is_classification)), f"{self.name}: {res.shape} vs {self.n_channels}"
+        _CACHE[key] = res
         return res
 
     @overrides

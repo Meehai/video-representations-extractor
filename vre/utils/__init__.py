@@ -1,6 +1,6 @@
 """init file"""
 from .utils import (get_project_root, parsed_str_type, is_dir_empty, get_closest_square,
-                    now_fmt, is_git_lfs, semantic_mapper)
+                    now_fmt, is_git_lfs, semantic_mapper, FixedSizeOrderedDict)
 from .vre_video import FakeVideo, VREVideo
 from .topological_sort import topological_sort
 from .image import (image_resize, image_resize_batch, image_write, image_read,
