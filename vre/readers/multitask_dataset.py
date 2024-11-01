@@ -54,7 +54,7 @@ class MultiTaskDataset(Dataset):
                  normalization: str | None | dict[str],
                  handle_missing_data: str = "fill_none",
                  files_suffix: str = "npz",
-                 cache_task_stats: bool = (os.getenv("STATS_CACHE", "0") == "1"),
+                 cache_task_stats: bool = (os.getenv("STATS_CACHE", "1") == "1"),
                  batch_size_stats: int = int(os.getenv("STATS_BATCH_SIZE", "1")),
                  statistics: dict[str, TaskStatistics] | None = None,
     ):

@@ -2,6 +2,7 @@
 from typing import Any
 from pathlib import Path
 from datetime import datetime, timezone as tz
+from collections import OrderedDict
 from tqdm import tqdm
 import numpy as np
 
@@ -12,6 +13,18 @@ class DownloadProgressBar(tqdm):
         if tsize is not None:
             self.total = tsize
         self.update(b * bsize - self.n)
+
+class FixedSizeOrderedDict(OrderedDict):
+    """An OrderedDict with a fixed size. Useful for caching purposes."""
+    def __init__(self, *args, maxlen=0, **kwargs):
+        self._maxlen = maxlen
+        super().__init__(*args, **kwargs)
+
+    def __setitem__(self, key, value):
+        OrderedDict.__setitem__(self, key, value)
+        if self._maxlen > 0:
+            if len(self) > self._maxlen:
+                self.popitem(False)
 
 def get_project_root() -> Path:
     """gets the root of this project"""
