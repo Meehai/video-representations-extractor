@@ -5,17 +5,15 @@ import os
 from pathlib import Path
 from typing import Dict, List, Tuple, Iterable
 from natsort import natsorted
-from loggez import loggez_logger as logger
 import torch as tr
-import numpy as np
 from torch.utils.data import Dataset
-from tqdm import trange
 
-from vre.stored_representation import StoredRepresentation, NormedRepresentation
+from ..stored_representation import StoredRepresentation, NormedRepresentation
+from .statistics import compute_statistics, load_external_statistics, TaskStatistics
+from ..logger import vre_logger as logger
 
 BuildDatasetTuple = Tuple[Dict[str, List[Path]], List[str]]
 MultiTaskItem = Tuple[Dict[str, tr.Tensor], str, List[str]] # [{task: data}, stem(name) | list[stem(name)], [tasks]]
-TaskStatistics = Tuple[tr.Tensor, tr.Tensor, tr.Tensor, tr.Tensor] # (min, max, mean, std)
 
 class MultiTaskDataset(Dataset):
     """
@@ -38,6 +36,8 @@ class MultiTaskDataset(Dataset):
     using the environmental variable STATS_CACHE=1. Defaults to False.
     - batch_size_stats: Controls the batch size during statistics computation. Can be enabled by environmental variable
     STATS_BATCH_SIZE. Defaults to 1.
+    - statistics The dictionary of statistics which can be externally provided too, otherwise computes or loads them
+    from the datasert dir if normalization is set.
 
     Expected directory structure:
     path/
@@ -91,12 +91,12 @@ class MultiTaskDataset(Dataset):
         self._tasks: list[StoredRepresentation] | None = None
         self._default_vals: dict[str, tr.Tensor] | None = None
         if statistics is not None:
-            self._statistics = self._load_external_statistics(statistics)
+            self._statistics = load_external_statistics(self, statistics)
         else:
-            self._statistics = None if normalization is None else self._compute_statistics()
+            self._statistics = None if normalization is None else compute_statistics(self)
         if self._statistics is not None:
             for task_name, task in self.name_to_task.items():
-                if not task.is_classification:
+                if isinstance(task, NormedRepresentation):
                     task.set_normalization(self.normalization[task_name], self._statistics[task_name])
 
     # Public methods and properties
@@ -226,10 +226,13 @@ class MultiTaskDataset(Dataset):
         all_files: dict[str, dict[str, Path]] = {k: {_v.name: _v for _v in v} for k, v in all_npz_files.items()}
 
         relevant_tasks_for_files = set() # hsv requires only rgb, so we look at dependencies later on
+        if (diff := set(task_names).difference(all_files)) != set():
+            logger.warning(f"The following tasks do not have data on disk: {list(diff)}. Checking dependencies.")
         for task_name in task_names:
             relevant_tasks_for_files.update(task_types[task_name].dep_names)
         if (diff := relevant_tasks_for_files.difference(all_files)) != set():
             raise FileNotFoundError(f"Missing files for {diff}.\nFound on disk: {[*all_files]}")
+
         names_to_tasks: dict[str, list[str]] = {} # {name: [task]}
         for task_name in relevant_tasks_for_files: # just the relevant tasks
             for path_name in all_files[task_name].keys():
@@ -253,79 +256,6 @@ class MultiTaskDataset(Dataset):
                     paths = [all_files[dep][name] for dep in deps]
                     files_per_task[task].append(paths if len(deps) > 1 else paths[0])
         return files_per_task, all_names
-
-    def _compute_statistics(self) -> dict[str, TaskStatistics]:
-        cache_path = self.path / ".task_statistics.npz"
-        res: dict[str, TaskStatistics] = {}
-        if self.cache_task_stats and cache_path.exists():
-            res = np.load(cache_path, allow_pickle=True)["arr_0"].item()
-            logger.info(f"Loaded task statistics: { {k: tuple(v[0].shape) for k, v in res.items()} } from {cache_path}")
-        missing_tasks = [t for t in set(self.task_names).difference(res) if not self.name_to_task[t].is_classification]
-        if len(missing_tasks) == 0:
-            return res
-        logger.info(f"Computing global task statistics (dataset len {len(self)}) for {missing_tasks}")
-        res = {**res, **self._compute_channel_level_stats(missing_tasks)}
-        logger.info(f"Computed task statistics: { {k: tuple(v[0].shape) for k, v in res.items()} }")
-        np.savez(cache_path, res)
-        return res
-
-    def _compute_channel_level_stats(self, missing_tasks: list[str]) -> dict[str, TaskStatistics]:
-        # kinda based on: https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Welford's_online_algorithm
-        def update(counts: tr.Tensor, counts_delta: float,  mean: tr.Tensor, m2: tr.Tensor,
-                   new_value: tr.Tensor) -> tuple[tr.Tensor, tr.Tensor, tr.Tensor]:
-            new_count = counts + counts_delta
-            batch_mean = new_value.nanmean(0)
-            batch_var = ((new_value - batch_mean) ** 2).nansum(0)
-            delta = batch_mean - mean
-            new_count_no_zero = new_count + (new_count == 0) # add 1 (True) in case new_count is 0 to not divide by 0
-            new_mean = mean + delta * counts_delta / new_count_no_zero
-            new_m2 = m2 + batch_var + delta**2 * counts * counts_delta / new_count_no_zero
-            assert not new_mean.isnan().any() and not new_m2.isnan().any(), (mean, new_mean, counts, counts_delta)
-            return new_count, new_mean, new_m2
-
-        assert not any(mt := [self.name_to_task[t].is_classification for t in missing_tasks]), mt
-        assert len(missing_tasks) > 0, missing_tasks
-        ch = {k: v[-1] if len(v) == 3 else 1 for k, v in self.data_shape.items()}
-        counts = {task_name: tr.zeros(ch[task_name]).long() for task_name in missing_tasks}
-        mins = {task_name: tr.zeros(ch[task_name]).type(tr.float64) + 10**10 for task_name in missing_tasks}
-        maxs = {task_name: tr.zeros(ch[task_name]).type(tr.float64) - 10**10 for task_name in missing_tasks}
-        means_vec = {task_name: tr.zeros(ch[task_name]).type(tr.float64) for task_name in missing_tasks}
-        m2s_vec = {task_name: tr.zeros(ch[task_name]).type(tr.float64) for task_name in missing_tasks}
-
-        old_names, old_normalization = self.task_names, self.normalization
-        self.task_names, self.normalization = missing_tasks, None # for self[ix]
-        res = {}
-        bs = min(len(self), self.batch_size_stats)
-        n = (len(self) // bs) + (len(self) % bs != 0)
-
-        logger.debug(f"Global task statistics. Batch size: {bs}. N iterations: {n}.")
-        for ix in trange(n, disable=os.getenv("STATS_PBAR", "0") == "0", desc="Computing stats"):
-            item = self[ix * bs: min(len(self), (ix + 1) * bs)][0]
-            for task in missing_tasks:
-                item_flat_ch = item[task].reshape(-1, ch[task])
-                item_no_nan = item_flat_ch.nan_to_num(0).type(tr.float64)
-                mins[task] = tr.minimum(mins[task], item_no_nan.min(0)[0])
-                maxs[task] = tr.maximum(maxs[task], item_no_nan.max(0)[0])
-                counts_delta = (item_flat_ch == item_flat_ch).long().sum(0) # pylint: disable=comparison-with-itself
-                counts[task], means_vec[task], m2s_vec[task] = \
-                    update(counts[task], counts_delta, means_vec[task], m2s_vec[task], item_no_nan)
-
-        for task in missing_tasks:
-            res[task] = (mins[task], maxs[task], means_vec[task], (m2s_vec[task] / counts[task]).sqrt())
-            assert not any(x[0].isnan().any() for x in res[task]), (task, res[task])
-        self.task_names, self.normalization = old_names, old_normalization
-        return res
-
-    def _load_external_statistics(self, statistics: dict[str, TaskStatistics | list]) -> dict[str, TaskStatistics]:
-        tasks_no_classif = [t for t in set(self.task_names) if not self.name_to_task[t].is_classification]
-        assert (diff := set(tasks_no_classif).difference(statistics)) == set(), f"Missing tasks: {diff}"
-        res: dict[str, TaskStatistics] = {}
-        for k, v in statistics.items():
-            if k in self.task_names:
-                res[k] = tuple(tr.Tensor(x) for x in v)
-                assert all(_stat.shape == (nd := (self.name_to_task[k].n_channels, )) for _stat in res[k]), (res[k], nd)
-        logger.info(f"External statistics provided: { {k: tuple(v[0].shape) for k, v in res.items()} }")
-        return res
 
     # Python magic methods (pretty printing the reader object, reader[0], len(reader) etc.)
     def __getitem__(self, index: int | str | slice | list[int, str] | tuple[int, str]) -> MultiTaskItem:

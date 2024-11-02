@@ -1,6 +1,7 @@
 """cv2 utils. All the calls to opencv must be condensed here"""
 import numpy as np
 from PIL import Image, ImageDraw, ImageOps, ImageFont
+import requests
 
 from .utils import get_project_root
 from ..logger import vre_logger as logger
@@ -32,6 +33,9 @@ def pil_image_add_title(image: np.ndarray, text: str, font: str = None, font_col
             else:
                 assert False
         font_path = get_project_root() / "resources/OpenSans-Bold.ttf"
+        if not font_path.exists():
+            with open(font_path, "wb") as file:
+                file.write(requests.get("https://github.com/edx/edx-fonts/raw/refs/heads/master/open-sans/fonts/Bold/OpenSans-Bold.ttf").content) # pylint: disable=all
         logger.debug2(f"Getting default font from '{font_path}' for desired height = '{size_px}' px")
         size = default_font_heights[size_px]
         if size == 0:
