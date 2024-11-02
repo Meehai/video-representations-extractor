@@ -57,7 +57,7 @@ class NpzRepresentation(StoredRepresentation):
     @overrides
     def load_from_disk(self, path: Path) -> tr.Tensor:
         """Reads the npz data from the disk and transforms it properly"""
-        if (key := (self.name, path.name)) in _CACHE:
+        if (key := (self.name, str(getattr(self, "normalization", None)), path.name)) in _CACHE:
             logger.debug2(f"HIT: '{key}'")
             return _CACHE[key]
         logger.debug2(f"MISS: '{key}'")

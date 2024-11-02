@@ -39,6 +39,8 @@ class NormedRepresentation:
     def standardize(self, x: tr.Tensor) -> tr.Tensor:
         """standardizes a data point read with self.load_from_disk(path) using external min/max information"""
         assert self.stats is not None, "stats must be called before task.staandardize(x) via task.set_normalization()"
+        # if self.name == "depth_sfm_manual202204":
+        #     breakpoint()
         res = ((x.float() - self.mean) / self.std).nan_to_num(0, 0, 0)
         res[(res < -10) | (res > 10)] = 0
         return res.float()

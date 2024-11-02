@@ -4,6 +4,7 @@ from __future__ import annotations
 import os
 from pathlib import Path
 from typing import Dict, List, Tuple, Iterable
+from copy import deepcopy
 from natsort import natsorted
 import torch as tr
 from torch.utils.data import Dataset
@@ -71,7 +72,8 @@ class MultiTaskDataset(Dataset):
 
         assert all(isinstance(x, str) for x in task_names), tuple(zip(task_names, (type(x) for x in task_names)))
         assert (diff := set(self.files_per_repr).difference(task_names)) == set(), f"Not all tasks in files: {diff}"
-        self.task_types = {k: v for k, v in task_types.items() if k in task_names} # all task_types must be provided!
+        # deepcopy is needed so we don't overwrite the properties (i.e. norm) of the global task types.
+        self.task_types = {k: deepcopy(v) for k, v in task_types.items() if k in task_names}
         self.task_names = sorted(task_names)
         logger.info(f"Tasks used in this dataset: {self.task_names}")
 
@@ -90,16 +92,23 @@ class MultiTaskDataset(Dataset):
         self._data_shape: tuple[int, ...] | None = None
         self._tasks: list[StoredRepresentation] | None = None
         self._default_vals: dict[str, tr.Tensor] | None = None
+        self._statistics: dict[str, TaskStatistics] | None = None
         if statistics is not None:
             self._statistics = load_external_statistics(self, statistics)
-        else:
-            self._statistics = None if normalization is None else compute_statistics(self)
-        if self._statistics is not None:
-            for task_name, task in self.name_to_task.items():
-                if isinstance(task, NormedRepresentation):
-                    task.set_normalization(self.normalization[task_name], self._statistics[task_name])
 
     # Public methods and properties
+
+    @property
+    def statistics(self) -> dict[str, TaskStatistics] | None:
+        """returns the statistics of this dataset for all NormedRepresentation tasks, None otherwise"""
+        if self.normalization is None:
+            return None
+        if self._statistics is None:
+            self._statistics = compute_statistics(self)
+        for task_name, task in self.name_to_task.items():
+            if isinstance(task, NormedRepresentation) and task.normalization is None:
+                task.set_normalization(self.normalization[task_name], self._statistics[task_name])
+        return self._statistics
 
     @property
     def name_to_task(self) -> dict[str, StoredRepresentation]:
@@ -124,25 +133,25 @@ class MultiTaskDataset(Dataset):
     def mins(self) -> dict[str, tr.Tensor]:
         """returns a dict {task: mins[task]} for all the tasks if self.statistics exists"""
         assert self.normalization is not None, "No statistics for normalization is None"
-        return {k: v[0] for k, v in self._statistics.items() if k in self.task_names}
+        return {k: v[0] for k, v in self.statistics.items() if k in self.task_names}
 
     @property
     def maxs(self) -> dict[str, tr.Tensor]:
         """returns a dict {task: mins[task]} for all the tasks if self.statistics exists"""
         assert self.normalization is not None, "No statistics for normalization is None"
-        return {k: v[1] for k, v in self._statistics.items() if k in self.task_names}
+        return {k: v[1] for k, v in self.statistics.items() if k in self.task_names}
 
     @property
     def means(self) -> dict[str, tr.Tensor]:
         """returns a dict {task: mins[task]} for all the tasks if self.statistics exists"""
         assert self.normalization is not None, "No statistics for normalization is None"
-        return {k: v[2] for k, v in self._statistics.items() if k in self.task_names}
+        return {k: v[2] for k, v in self.statistics.items() if k in self.task_names}
 
     @property
     def stds(self) -> dict[str, tr.Tensor]:
         """returns a dict {task: mins[task]} for all the tasks if self.statistics exists"""
         assert self.normalization is not None, "No statistics for normalization is None"
-        return {k: v[3] for k, v in self._statistics.items() if k in self.task_names}
+        return {k: v[3] for k, v in self.statistics.items() if k in self.task_names}
 
     @property
     def tasks(self) -> list[StoredRepresentation]:
@@ -274,7 +283,7 @@ class MultiTaskDataset(Dataset):
             task = [t for t in self.tasks if t.name == task_name][0]
             file_path = self.files_per_repr[task_name][index]
             res[task_name] = self.default_vals[task_name] if file_path is None else task.load_from_disk(file_path)
-            if isinstance(task, NormedRepresentation) and task.normalization is not None:
+            if isinstance(task, NormedRepresentation) and self.statistics is not None:
                 res[task_name] = task.normalize(res[task_name])
         return (res, self.file_names[index], self.task_names)
 

@@ -1,7 +1,8 @@
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from vre.readers import MultiTaskDataset
-from vre.stored_representation import RGBRepresentation, DepthRepresentation, SemanticRepresentation
+from vre.stored_representation import (RGBRepresentation, DepthRepresentation, SemanticRepresentation,
+                                       NormedRepresentation)
 from torch.utils.data import DataLoader
 import numpy as np
 import torch as tr
@@ -56,7 +57,7 @@ def test_MultiTaskDataset_ctor_shapes_and_types(dataset_path: Path):
     assert x["semantic_segprop8"].unique().tolist() == [0, 1], x["semantic_segprop8"]
     assert x["semantic_segprop8"].dtype == tr.float32 # overwrite in dronescapes representation
 
-@pytest.mark.parametrize("normalization", ["min_max", "standardization"])
+@pytest.mark.parametrize("normalization", ["standardization", "min_max"])
 def test_MultiTaskDataset_normalization(dataset_path: Path, normalization: str):
     dataset = MultiTaskDataset(dataset_path, task_names=list(fake_dronescapes_task_types.keys()),
                                task_types=fake_dronescapes_task_types, normalization=normalization)
@@ -66,12 +67,12 @@ def test_MultiTaskDataset_normalization(dataset_path: Path, normalization: str):
         if normalization == "min_max":
             assert x[task].min() >= 0 and x[task].max() <= 1, x[task]
         else:
-            if task == "semantic_segprop8":
+            if not isinstance(dataset.name_to_task[task], NormedRepresentation):
                 continue
-            #  assert x[task].min() >= -3 and x[task].max() <= 3, x[task]
-            MAX_MEAN_DIFF, MAX_STD_DIFF = 0.2, 1 # TODO: fix this, it used to be really close to std=1. What happenedf?
-            assert (x[task].mean() - 0).abs() < MAX_MEAN_DIFF and (x[task].std() - 1).abs() < MAX_STD_DIFF, \
-                (x[task].mean(), x[task].std())
+            MAX_MEAN_DIFF, MAX_STD_DIFF, MIN_STD, MAX_STD = 0.2, 0.2, -5, 5 # TODO: why so big??
+            assert x[task].min() >= MIN_STD and x[task].max() <= MAX_STD, x[task]
+            assert x[task].mean().abs() < MAX_MEAN_DIFF and (x[task].std() - 1).abs() < MAX_STD_DIFF, \
+                (task, x[task].mean(), x[task].std())
 
 def test_MultiTaskDataset_getitem(dataset_path):
     reader = MultiTaskDataset(dataset_path, task_names=list(fake_dronescapes_task_types.keys()),
