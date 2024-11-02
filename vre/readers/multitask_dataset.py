@@ -234,10 +234,13 @@ class MultiTaskDataset(Dataset):
         all_npz_files = self._get_all_npz_files()
         all_files: dict[str, dict[str, Path]] = {k: {_v.name: _v for _v in v} for k, v in all_npz_files.items()}
 
-        relevant_tasks_for_files = set() # hsv requires only rgb, so we look at dependencies later on
         if (diff := set(task_names).difference(all_files)) != set():
             logger.warning(f"The following tasks do not have data on disk: {list(diff)}. Checking dependencies.")
+        relevant_tasks_for_files = set() # hsv requires only rgb, so we look at dependencies later on
         for task_name in task_names:
+            if task_name not in diff and task_types[task_name].dep_names != [task_name]:
+                logger.info(f"Upating the deps of '{task_name}' as all its data is on disk!")
+            task_types[task_name].dependencies = [task_types[task_name]]
             relevant_tasks_for_files.update(task_types[task_name].dep_names)
         if (diff := relevant_tasks_for_files.difference(all_files)) != set():
             raise FileNotFoundError(f"Missing files for {diff}.\nFound on disk: {[*all_files]}")
