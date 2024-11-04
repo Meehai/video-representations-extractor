@@ -216,7 +216,7 @@ class MultiTaskDataset(Dataset):
         """returns a dict of form: {"rgb": ["0.npz", "1.npz", ..., "N.npz"]}"""
         assert self.suffix == "npz", f"Only npz supported right now (though trivial to update): {self.suffix}"
         in_files = {}
-        all_repr_dirs: list[str] = [x.name for x in self.path.iterdir() if x.is_dir()]
+        all_repr_dirs: list[str] = [x.name for x in self.path.iterdir() if x.is_dir() and not x.name.startswith(".")]
         for repr_dir_name in all_repr_dirs:
             dir_name = self.path / repr_dir_name
             if all(f.is_dir() for f in dir_name.iterdir()): # dataset is stored as repr/part_x/0.npz, ..., part_k/n.npz
