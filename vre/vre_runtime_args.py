@@ -39,7 +39,6 @@ class VRERuntimeArgs:
         self.video = video
         self.start_frame = start_frame
         self.end_frame = end_frame
-        # self.batch_size = min(batch_size, end_frame - start_frame)
         self.exception_mode = exception_mode
         self.representations = representations
         self.load_from_disk_if_computed = load_from_disk_if_computed
