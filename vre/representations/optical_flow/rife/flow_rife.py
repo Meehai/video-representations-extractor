@@ -13,7 +13,8 @@ class FlowRife(Representation, LearnedRepresentationMixin, ComputeRepresentation
     """FlowRife representation"""
     def __init__(self, compute_backward_flow: bool, uhd: bool, flow_delta_frames: int = 1, **kwargs):
         Representation.__init__(self, **kwargs)
-        super().__init__(**kwargs)
+        LearnedRepresentationMixin.__init__(self)
+        ComputeRepresentationMixin.__init__(self)
         tr.manual_seed(42)
         self.uhd = uhd
         self.flow_delta_frames = flow_delta_frames

@@ -11,7 +11,7 @@ class FakeRepresentation(Representation, ComputeRepresentationMixin):
     """FakeRepresentation that is used in unit tests and some basic classes, like RGB."""
     def __init__(self, *args, **kwargs):
         Representation.__init__(self, *args, **kwargs)
-        ComputeRepresentationMixin.__init__(self, **kwargs)
+        ComputeRepresentationMixin.__init__(self)
         assert len(self.dependencies) == 0, self.dependencies
 
     @overrides

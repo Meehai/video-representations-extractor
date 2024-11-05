@@ -20,7 +20,8 @@ class Marigold(Representation, LearnedRepresentationMixin, ComputeRepresentation
     def __init__(self, variant: str, denoising_steps: int, ensemble_size: int, processing_resolution: int,
                  seed: int | None = None, **kwargs):
         Representation.__init__(self, **kwargs)
-        super().__init__(**kwargs)
+        LearnedRepresentationMixin.__init__(self)
+        ComputeRepresentationMixin.__init__(self)
         assert variant in ("marigold-v1-0", "marigold-lcm-v1-0", "testing"), variant
         self.variant = variant
         self.denoising_steps = denoising_steps
