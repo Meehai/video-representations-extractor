@@ -15,11 +15,13 @@ class TaskMapper(NpzRepresentation):
 
     def return_fn(self, load_data: tr.Tensor) -> tr.Tensor:
         """return_fn is the code that's ran between what's stored on the disk and what's actually sent to the model"""
-        raise NotImplementedError
+        raise NotImplementedError(self)
 
     def load_from_disk(self, path: Path | list[Path]) -> tr.Tensor:
         paths = [path] if isinstance(path, Path) else path
         if self.dependencies == [self]: # this means it's already pre-computed and deps were updated in the Reader.
-            return self.return_fn(super().load_from_disk(paths[0]))
+            res = super().load_from_disk(paths[0])
+            return self.return_fn(res)
         dep_data = [dep.load_from_disk(path) for dep, path in zip(self.dependencies, paths)]
-        return self.return_fn(self.merge_fn(dep_data))
+        res = self.merge_fn(dep_data)
+        return self.return_fn(res)

@@ -2,11 +2,12 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
 from pathlib import Path
+from copy import deepcopy
 import numpy as np
 import torch as tr
 from overrides import overrides
-from loggez import loggez_logger as logger
 
+from ..logger import vre_logger as logger
 from ..utils import FixedSizeOrderedDict
 
 _CACHE = FixedSizeOrderedDict(maxlen=1024)
@@ -59,7 +60,7 @@ class NpzRepresentation(StoredRepresentation):
         """Reads the npz data from the disk and transforms it properly"""
         if (key := (self.name, str(getattr(self, "normalization", None)), path.name)) in _CACHE:
             logger.debug2(f"HIT: '{key}'")
-            return _CACHE[key]
+            return deepcopy(_CACHE[key])
         logger.debug2(f"MISS: '{key}'")
         data = np.load(path, allow_pickle=False)
         data = data if isinstance(data, np.ndarray) else data["arr_0"] # in case on npz, we need this as well
@@ -68,7 +69,7 @@ class NpzRepresentation(StoredRepresentation):
         res = res.unsqueeze(-1) if len(res.shape) == 2 and self.n_channels == 1 else res # (H, W) in some dph/edges
         assert ((res.shape[-1] == self.n_channels and len(res.shape) == 3) or
                 (len(res.shape) == 2 and self.is_classification)), f"{self.name}: {res.shape} vs {self.n_channels}"
-        _CACHE[key] = res
+        _CACHE[key] = deepcopy(res)
         return res
 
     @overrides

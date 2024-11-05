@@ -16,7 +16,7 @@ class DownloadProgressBar(tqdm):
 
 class FixedSizeOrderedDict(OrderedDict):
     """An OrderedDict with a fixed size. Useful for caching purposes."""
-    def __init__(self, *args, maxlen=0, **kwargs):
+    def __init__(self, *args, maxlen: int = 0, **kwargs):
         self._maxlen = maxlen
         super().__init__(*args, **kwargs)
 
