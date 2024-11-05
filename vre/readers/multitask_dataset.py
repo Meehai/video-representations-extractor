@@ -79,7 +79,7 @@ class MultiTaskDataset(Dataset):
 
         if normalization is not None:
             if isinstance(normalization, str):
-                logger.info(f"Normalization provided as a string ({normalization}). Setting all tasks to this")
+                logger.debug(f"Normalization provided as a string ({normalization}). Setting all tasks to this")
                 normalization: dict[str, str] = {task: normalization for task in self.task_names}
             if "*" in normalization.keys(): # for the lazy, we can put {"*": "standardization", "depth": "min_max"}
                 value = normalization.pop("*")
@@ -190,7 +190,7 @@ class MultiTaskDataset(Dataset):
 
     def add_task(self, task: StoredRepresentation, overwrite: bool=False):
         """Safely adds a task to this reader. Most likely can be optimized"""
-        logger.debug(f"Adding a new task: '{task.name}'")
+        logger.info(f"Adding a new task: '{task.name}'")
         if task.name in self.task_names:
             if overwrite:
                 self.remove_task(task.name)
@@ -239,7 +239,7 @@ class MultiTaskDataset(Dataset):
         relevant_tasks_for_files = set() # hsv requires only rgb, so we look at dependencies later on
         for task_name in task_names:
             if task_name not in diff and task_types[task_name].dep_names != [task_name]:
-                logger.info(f"Upating the deps of '{task_name}' as all its data is on disk!")
+                logger.debug(f"Upating the deps of '{task_name}' as all its data is on disk!")
                 task_types[task_name].dependencies = [task_types[task_name]]
             relevant_tasks_for_files.update(task_types[task_name].dep_names)
         if (diff := relevant_tasks_for_files.difference(all_files)) != set():
@@ -256,7 +256,7 @@ class MultiTaskDataset(Dataset):
             names_to_tasks = {k: v for k, v in names_to_tasks.items() if len(v) == len(relevant_tasks_for_files)}
             logger.debug(f"Dropped {b4 - len(names_to_tasks)} files not in all tasks")
         all_names: list[str] = natsorted(names_to_tasks.keys())
-        logger.info(f"Total files: {len(names_to_tasks)} per task across {len(task_names)} tasks")
+        logger.debug(f"Total files: {len(names_to_tasks)} per task across {len(task_names)} tasks")
 
         files_per_task: dict[str, list[str | None] | list[list[str] | None]] = {task: [] for task in task_names}
         for name in all_names:
