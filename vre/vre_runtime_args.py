@@ -25,6 +25,7 @@ class VRERuntimeArgs:
                  start_frame: int | None, end_frame: int | None, exception_mode: str,
                  load_from_disk_if_computed: bool, n_threads_data_storer: int,
                  store_metadata_every_n_iters: int = 10):
+        assert all(isinstance(r, Representation) for r in representations.values()), representations
         assert exception_mode in ("stop_execution", "skip_representation"), exception_mode
         if start_frame is None:
             start_frame = 0

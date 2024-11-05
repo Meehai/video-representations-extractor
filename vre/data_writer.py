@@ -43,7 +43,7 @@ class DataWriter:
                 ext = self.rep.binary_format.value
                 bin_path = self.output_dir / self.rep.name / ext / f"{t}.{ext}"
                 if bin_path.exists():
-                    logger.warning(f"[{self.rep}] '{bin_path}' already exists. TO ANALYZE.")
+                    logger.debug2(f"[{self.rep}] '{bin_path}' already exists. Skipping.")
                 else:
                     self.binary_func(y_repr.output[i], bin_path)
                     if (extra := y_repr.extra) is not None and len(y_repr.extra) > 0:
@@ -53,7 +53,7 @@ class DataWriter:
                 ext = self.rep.image_format.value
                 img_path = self.output_dir / self.rep.name / ext / f"{t}.{ext}"
                 if img_path.exists():
-                    logger.warning(f"[{self.rep}] '{img_path}' already exists. TO ANALYZE.")
+                    logger.debug2(f"[{self.rep}] '{img_path}' already exists. Skipping.")
                 else:
                     image_write(imgs[i], img_path)
 

@@ -53,7 +53,7 @@ class HSV(Representation, ComputeRepresentationMixin):
     """HSV representation"""
     def __init__(self, *args, **kwargs):
         Representation.__init__(self, *args, **kwargs)
-        super().__init__(*args, **kwargs)
+        ComputeRepresentationMixin.__init__(self, **kwargs)
         assert len(self.dependencies) == 0, self.dependencies
 
     @overrides

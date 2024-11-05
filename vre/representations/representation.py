@@ -24,7 +24,6 @@ class ReprOut:
 class Representation(ABC):
     """Generic Representation class for VRE"""
     def __init__(self, name: str, dependencies: list[Representation] | None = None):
-        super().__init__()
         dependencies = [] if dependencies is None else dependencies
         assert isinstance(dependencies, (set, list)), type(dependencies)
         self.name = name
