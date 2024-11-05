@@ -31,7 +31,8 @@ class SafeUAV(Representation, LearnedRepresentationMixin, ComputeRepresentationM
                  color_map: list[tuple[int, int, int]], semantic_argmax_only: bool = True,
                  weights_file: str | None = None, **kwargs):
         Representation.__init__(self, **kwargs)
-        super().__init__(**kwargs)
+        LearnedRepresentationMixin.__init__(self)
+        ComputeRepresentationMixin.__init__(self)
         self.num_classes = num_classes
         assert len(color_map) == num_classes, f"{color_map} ({len(color_map)}) vs {num_classes}"
         self.color_map = color_map

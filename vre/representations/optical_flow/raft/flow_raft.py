@@ -15,7 +15,8 @@ class FlowRaft(Representation, LearnedRepresentationMixin, ComputeRepresentation
     def __init__(self, inference_height: int, inference_width: int, iters: int, small: bool,
                  seed: int | None = None, flow_delta_frames: int = 1, **kwargs):
         Representation.__init__(self, **kwargs)
-        super().__init__(**kwargs)
+        LearnedRepresentationMixin.__init__(self)
+        ComputeRepresentationMixin.__init__(self)
         assert inference_height >= 128 and inference_width >= 128, f"This flow doesn't work with small " \
             f"videos. At least 128x128 is required, but got {inference_height}x{inference_width}"
         self.mixed_precision = False

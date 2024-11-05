@@ -12,7 +12,8 @@ class DexiNed(Representation, LearnedRepresentationMixin, ComputeRepresentationM
     """Dexined representation."""
     def __init__(self, **kwargs):
         Representation.__init__(self, **kwargs)
-        super().__init__(**kwargs)
+        LearnedRepresentationMixin.__init__(self)
+        ComputeRepresentationMixin.__init__(self)
         self.model: Model | None = None
         self.inference_height, self.inference_width = 512, 512 # fixed for this model
 

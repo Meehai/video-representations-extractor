@@ -10,9 +10,10 @@ from vre.representations.depth.dpt.dpt_impl import DPTDepthModel, get_size
 
 class DepthDpt(Representation, LearnedRepresentationMixin, ComputeRepresentationMixin):
     """DPT Depth Estimation representation"""
-    def __init__(self, *args, **kwargs):
-        Representation.__init__(self, *args, **kwargs)
-        super().__init__(*args, **kwargs)
+    def __init__(self, **kwargs):
+        Representation.__init__(self, **kwargs)
+        LearnedRepresentationMixin.__init__(self)
+        ComputeRepresentationMixin.__init__(self)
         self.net_w, self.net_h = 384, 384
         self.multiple_of = 32
         tr.manual_seed(42)

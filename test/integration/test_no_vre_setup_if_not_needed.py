@@ -13,7 +13,8 @@ from vre.utils import FakeVideo
 class MyRepresentation(Representation, LearnedRepresentationMixin, ComputeRepresentationMixin):
     def __init__(self, *args, **kwargs):
         Representation.__init__(self, *args, **kwargs)
-        super().__init__(*args, **kwargs)
+        LearnedRepresentationMixin.__init__(self)
+        ComputeRepresentationMixin.__init__(self)
         self.vre_setup_called = False
         self.vre_free_called = False
         self.make_called = False
@@ -34,6 +35,9 @@ class MyRepresentation(Representation, LearnedRepresentationMixin, ComputeRepres
         self.setup_called = False
 
 class MyDependentRepresentation(Representation, ComputeRepresentationMixin):
+    def __init__(self, *args, **kwargs):
+        Representation.__init__(self, *args, **kwargs)
+        ComputeRepresentationMixin.__init__(self)
     def make(self, frames, dep_data = None):
         return ReprOut(dep_data["r1"].output)
     def make_images(self, frames, repr_data):

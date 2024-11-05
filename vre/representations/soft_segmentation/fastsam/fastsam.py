@@ -21,7 +21,8 @@ class FastSam(Representation, LearnedRepresentationMixin, ComputeRepresentationM
     """FastSAM representation."""
     def __init__(self, variant: str, iou: float, conf: float, **kwargs):
         Representation.__init__(self, **kwargs)
-        super().__init__(**kwargs)
+        LearnedRepresentationMixin.__init__(self)
+        ComputeRepresentationMixin.__init__(self)
         assert variant in ("fastsam-s", "fastsam-x", "testing"), variant
         self.variant = variant
         self.conf = conf

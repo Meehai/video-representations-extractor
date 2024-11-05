@@ -3,7 +3,6 @@ from enum import Enum
 import numpy as np
 
 from ..logger import vre_logger as logger
-from ..base_mixin import BaseMixin
 from .representation import ReprOut
 
 class BinaryFormat(Enum):
@@ -18,10 +17,9 @@ class ImageFormat(Enum):
     PNG = "png"
     JPG = "jpg"
 
-class ComputeRepresentationMixin(BaseMixin):
+class ComputeRepresentationMixin:
     """ComputeRepresentationMixin for representations that can be computed"""
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self):
         self._output_size: tuple[int, int] | str | None = None
         self._batch_size: int | None = None
         self._output_dtype: str | np.dtype | None = None

@@ -7,14 +7,12 @@ from abc import abstractmethod, ABC
 import torch as tr
 
 from ..logger import vre_logger as logger
-from ..base_mixin import BaseMixin
 
 VREDevice = str | tr.device # not only torch, but this is what we support atm
 
-class LearnedRepresentationMixin(BaseMixin, ABC):
+class LearnedRepresentationMixin(ABC):
     """Learned Representastion Mixin for VRE implementation"""
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self):
         self._device: VREDevice | None = None
         self.setup_called = False
 

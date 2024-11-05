@@ -16,7 +16,7 @@ class DepthNormalsSVD(Representation, ComputeRepresentationMixin):
                  input_downsample_step: int = None, stride: int = None, max_distance: float = None,
                  min_valid_count: int = None, **kwargs):
         Representation.__init__(self, **kwargs)
-        super().__init__(**kwargs)
+        ComputeRepresentationMixin.__init__(self)
         assert window_size % 2 == 1, f"Expected odd window size. Got: {window_size}"
         self.sensor_fov = sensor_fov
         self.sensor_width = sensor_width
