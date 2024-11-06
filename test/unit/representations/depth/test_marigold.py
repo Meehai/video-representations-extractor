@@ -7,7 +7,9 @@ def test_marigold():
     marigold_repr = Marigold("testing", denoising_steps=1, ensemble_size=1, processing_resolution=30,
                              name="marigold", dependencies=[])
     marigold_repr.vre_setup(load_weights=False)
-    marigold_repr.video = video
+    assert marigold_repr.name == "marigold"
+    assert marigold_repr.compress is True # default from ComputeRepresentationMixin
+    assert marigold_repr.device == "cpu" # default from LearnedRepresentationMixin
 
     frames = np.array(video[0:1])
     y_marigold = marigold_repr(frames)

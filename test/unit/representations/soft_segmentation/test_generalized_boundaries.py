@@ -6,6 +6,8 @@ def test_generalized_boundaries():
     video = FakeVideo(np.random.randint(0, 255, size=(20, 64, 128, 3), dtype=np.uint8), frame_rate=30)
     gb_repr = GeneralizedBoundaries(name="gb", dependencies=[], use_median_filtering=True,
                                     adjust_to_rgb=True, max_channels=3)
+    assert gb_repr.name == "gb"
+    assert gb_repr.compress is True # default
 
     frames = video[0:1]
     y_gb = gb_repr(frames)

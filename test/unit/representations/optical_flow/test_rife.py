@@ -8,6 +8,9 @@ def test_rife_uhd_false():
     uhd = bool(np.random.randint(0, 2))
     rife_repr = FlowRife(name="rife", dependencies=[], compute_backward_flow=False, uhd=uhd)
     rife_repr.vre_setup(load_weights=False)
+    assert rife_repr.name == "rife"
+    assert rife_repr.compress is True # default from ComputeRepresentationMixin
+    assert rife_repr.device == "cpu" # default from LearnedRepresentationMixin
 
     frames = np.array(video[0:1])
     right_frames = np.array(video[1:2])

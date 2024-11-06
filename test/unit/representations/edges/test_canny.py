@@ -5,6 +5,8 @@ from vre.utils import FakeVideo
 def test_canny_1():
     video = FakeVideo(np.random.randint(0, 255, size=(20, 64, 128, 3), dtype=np.uint8), frame_rate=30)
     canny_repr = Canny(name="canny", dependencies=[], threshold1=100, threshold2=200, aperture_size=3, l2_gradient=True)
+    assert canny_repr.name == "canny"
+    assert canny_repr.compress is True # default from ComputeRepresentationMixin
 
     frames = np.array(video[0:1])
     y_canny = canny_repr(frames)

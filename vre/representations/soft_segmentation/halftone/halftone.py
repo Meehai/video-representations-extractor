@@ -26,7 +26,7 @@ class Halftone(Representation, ComputeRepresentationMixin):
     def __init__(self, sample: float, scale: float, percentage: float, angles: list[int],
                  antialias: bool, resolution: tuple[int, int], **kwargs):
         Representation.__init__(self, **kwargs)
-        super().__init__(**kwargs)
+        ComputeRepresentationMixin.__init__(self)
         assert len(resolution) == 2, resolution
         self.sample = sample
         self.scale = scale

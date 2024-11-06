@@ -6,6 +6,9 @@ def test_dexined_1():
     video = FakeVideo(np.random.randint(0, 255, size=(20, 64, 128, 3), dtype=np.uint8), frame_rate=30)
     dexined_repr = DexiNed(name="dexined", dependencies=[])
     dexined_repr.vre_setup(load_weights=False)
+    assert dexined_repr.name == "dexined"
+    assert dexined_repr.compress is True # default from ComputeRepresentationMixin
+    assert dexined_repr.device == "cpu" # default from LearnedRepresentationMixin
 
     frames = np.array(video[0:1])
     y_dexined = dexined_repr(frames)

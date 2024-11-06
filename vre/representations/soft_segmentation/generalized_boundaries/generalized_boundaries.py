@@ -17,7 +17,7 @@ class GeneralizedBoundaries(Representation, ComputeRepresentationMixin):
     """
     def __init__(self, use_median_filtering: bool, adjust_to_rgb: bool, max_channels: int, **kwargs):
         Representation.__init__(self, **kwargs)
-        super().__init__(**kwargs)
+        ComputeRepresentationMixin.__init__(self)
         self.use_median_filtering = use_median_filtering
         self.adjust_to_rgb = adjust_to_rgb
         self.max_channels = max_channels
