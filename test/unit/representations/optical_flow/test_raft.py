@@ -10,6 +10,9 @@ def test_raft():
                          iters=iters, small=small)
     raft_repr.video = video
     raft_repr.vre_setup(load_weights=False)
+    assert raft_repr.name == "raft"
+    assert raft_repr.compress is True # default from ComputeRepresentationMixin
+    assert raft_repr.device == "cpu" # default from LearnedRepresentationMixin
 
     frames = np.array(video[0:1])
     right_frames = np.array(video[1:2])

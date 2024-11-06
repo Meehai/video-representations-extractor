@@ -10,7 +10,8 @@ from vre.utils.cv2_utils import cv2_Canny
 class Canny(Representation, ComputeRepresentationMixin):
     """Canny edge detector representation."""
     def __init__(self, threshold1: float, threshold2: float, aperture_size: int, l2_gradient: bool, **kwargs):
-        super().__init__(**kwargs)
+        Representation.__init__(self, **kwargs)
+        ComputeRepresentationMixin.__init__(self)
         self.threshold1 = threshold1
         self.threshold2 = threshold2
         self.aperture_size = aperture_size

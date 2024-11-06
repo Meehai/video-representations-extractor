@@ -5,6 +5,8 @@ from vre.utils import FakeVideo
 def test_hsv_make():
     video = FakeVideo(np.random.randint(0, 255, size=(20, 64, 128, 3), dtype=np.uint8), frame_rate=30)
     hsv_repr = HSV("hsv")
+    assert hsv_repr.name == "hsv"
+    assert hsv_repr.compress is True # default from ComputeRepresentationMixin
 
     frames = np.array(video[0:1])
     y_hsv = hsv_repr(frames)

@@ -6,6 +6,9 @@ def test_mask2former():
     video = FakeVideo(np.random.randint(0, 255, size=(20, 64, 128, 3), dtype=np.uint8), 30)
     m2f_repr = Mask2Former(model_id="49189528_1", semantic_argmax_only=True, name="m2f", dependencies=[])
     m2f_repr.vre_setup(load_weights=False)
+    assert m2f_repr.name == "m2f"
+    assert m2f_repr.compress is True # default from ComputeRepresentationMixin
+    assert m2f_repr.device == "cpu" # default from LearnedRepresentationMixin
 
     frames = np.array(video[0:1])
     y_m2f = m2f_repr(frames)

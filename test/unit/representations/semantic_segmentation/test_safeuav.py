@@ -8,6 +8,9 @@ def test_safeuav():
     safeuav_repr = SafeUAV(name="safeuav", dependencies=[], num_classes=3, train_height=train_height,
                            train_width=train_width, color_map=[[0, 255, 0], [0, 127, 0], [255, 255, 0]])
     safeuav_repr.vre_setup(load_weights=False)
+    assert safeuav_repr.name == "safeuav"
+    assert safeuav_repr.compress is True # default from ComputeRepresentationMixin
+    assert safeuav_repr.device == "cpu" # default from LearnedRepresentationMixin
 
     frames = np.array(video[0:1])
     y_safeuav = safeuav_repr(frames)
