@@ -4,7 +4,7 @@ from typing import Callable
 import numpy as np
 import torch as tr
 
-from .stored_represntation import NpzRepresentation
+from .npz_representation import NpzRepresentation
 
 class TaskMapper(NpzRepresentation):
     """TaskMapper implementation"""

@@ -10,7 +10,7 @@ from torch.nn import functional as F
 
 from ..representations.hsv import rgb2hsv
 from ..utils import colorize_semantic_segmentation
-from .stored_represntation import NpzRepresentation
+from .npz_representation import NpzRepresentation
 from .normed_representation import NormedRepresentation
 
 class ColorRepresentation(NpzRepresentation, NormedRepresentation):
