@@ -72,7 +72,7 @@ class MultiTaskDataset(Dataset):
 
         assert all(isinstance(x, str) for x in task_names), tuple(zip(task_names, (type(x) for x in task_names)))
         assert (diff := set(self.files_per_repr).difference(task_names)) == set(), f"Not all tasks in files: {diff}"
-        # deepcopy is needed so we don't overwrite the properties (i.e. norm) of the global task types.
+        # deepcopy is needed so we don't overwrite the properties (i.e. normalization) of the global task types.
         self.task_types = {k: deepcopy(v) for k, v in task_types.items() if k in task_names}
         self.task_names = sorted(task_names)
         logger.info(f"Tasks used in this dataset: {self.task_names}")
@@ -162,12 +162,7 @@ class MultiTaskDataset(Dataset):
         if self._tasks is None:
             self._tasks = []
             for task_name in self.task_names:
-                t = self.task_types[task_name]
-                try:
-                    t = t(task_name) # hack for not isinstance(self.task_types, StoredRepresentation) but callable
-                except Exception:
-                    pass
-                self._tasks.append(t)
+                self._tasks.append(self.task_types[task_name])
             assert all(t.name == t_n for t, t_n in zip(self._tasks, self.task_names)), (self.task_names, self._tasks)
         return self._tasks
 
