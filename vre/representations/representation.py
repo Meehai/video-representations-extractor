@@ -39,8 +39,6 @@ class Representation(ABC):
 
         The returned value is either a simple numpy array of the same shape as the video plus an optional tuple with
         extra stuff. This extra stuff is whatever that representation may want to store about the frames it was given.
-
-        This is also invoked for repr[t] and repr(t).
         """
 
     @abstractmethod
@@ -61,18 +59,27 @@ class Representation(ABC):
     def size(self, repr_data: ReprOut) -> tuple[int, int]:
         """Returns the (h, w) tuple of the size of the current representation"""
 
-    ## Public methods ##
+    ## Public methods & properties ##
     @property
     def dep_names(self) -> list[str]:
         """return the list of dependencies names"""
         return [r.name for r in self.dependencies]
 
+    def cast(self, repr_data: ReprOut, dtype: str) -> ReprOut:
+        """Cast the output of a self.make(frames) call into some other dtype"""
+        if (np.issubdtype(repr_data.output.dtype, np.integer) and np.issubdtype(dtype, np.floating) or
+            np.issubdtype(repr_data.output.dtype, np.floating) and np.issubdtype(dtype, np.integer)):
+            raise TypeError(f"Cannot convert {repr_data.output.dtype} to {dtype}")
+        return ReprOut(output=repr_data.output.astype(dtype), extra=repr_data.extra)
+
     def vre_dep_data(self, video: VREVideo, ixs: slice | list[int], output_dir: Path | None) -> dict[str, ReprOut]:
         """iteratively collects all the dependencies needed by this representation"""
+        # TODO: this probably should be somewhere else
         return {dep.name: dep.vre_make(video=video, ixs=ixs, output_dir=output_dir) for dep in self.dependencies}
 
     def vre_make(self, video: VREVideo, ixs: slice | list[int], output_dir: Path | None) -> ReprOut:
         """wrapper on top of make() that is ran in VRE context."""
+        # TODO: this probably should be somewhere else
         ixs: list[int] = list(range(ixs.start, ixs.stop)) if isinstance(ixs, slice) else ixs
         if output_dir is not None:
             if (loaded_output := self._load_from_disk_if_possible(ixs, output_dir)) is not None:

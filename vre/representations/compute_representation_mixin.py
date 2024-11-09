@@ -3,7 +3,6 @@ from enum import Enum
 import numpy as np
 
 from ..logger import vre_logger as logger
-from .representation import ReprOut
 
 class BinaryFormat(Enum):
     """types of binary outputs from a representation"""
@@ -69,13 +68,6 @@ class ComputeRepresentationMixin:
         assert isinstance(dtype, (str, np.dtype)), dtype
         self._output_dtype = np.dtype(dtype)
 
-    def cast(self, repr_data: ReprOut, dtype: str) -> ReprOut:
-        """Cast the output of a self.make(frames) call into some other dtype"""
-        if (np.issubdtype(self.output_dtype, np.integer) and np.issubdtype(dtype, np.floating) or
-            np.issubdtype(self.output_dtype, np.floating) and np.issubdtype(dtype, np.integer)):
-            raise TypeError(f"Cannot convert {self.output_dtype} to {dtype}")
-        return ReprOut(output=repr_data.output.astype(dtype), extra=repr_data.extra)
-
     @property
     def binary_format(self) -> BinaryFormat:
         """the binary format of the representation"""
@@ -129,6 +121,7 @@ class ComputeRepresentationMixin:
     def set_compute_params(self, **kwargs):
         """set the compute parameters for the representation"""
         attributes = ["output_size", "batch_size", "output_dtype", "binary_format", "image_format", "compress"]
+        assert set(kwargs).issubset(attributes), (list(kwargs), attributes)
         for attr in attributes:
             if attr in kwargs:
                 setattr(self, attr, kwargs[attr])
