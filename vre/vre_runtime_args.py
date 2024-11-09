@@ -18,13 +18,11 @@ class VRERuntimeArgs:
     - exception_mode What to do when encountering an exception. It always writes the exception to 'exception.txt'.
         - 'skip_representation' Will stop the run of the current representation and start the next one
         - 'stop_execution' (default) Will stop the execution of VRE
-    - load_from_disk_if_computed If true, then it will try to read from the disk if a representation is computed.
     - n_threads_data_storer The number of threads used by the DataStorer
     """
     def __init__(self, video: VREVideo, representations: dict[str, Representation],
                  start_frame: int | None, end_frame: int | None, exception_mode: str,
-                 load_from_disk_if_computed: bool, n_threads_data_storer: int,
-                 store_metadata_every_n_iters: int = 10):
+                 n_threads_data_storer: int, store_metadata_every_n_iters: int = 10):
         assert all(isinstance(r, Representation) for r in representations.values()), representations
         assert exception_mode in ("stop_execution", "skip_representation"), exception_mode
         if start_frame is None:
@@ -41,7 +39,6 @@ class VRERuntimeArgs:
         self.end_frame = end_frame
         self.exception_mode = exception_mode
         self.representations = representations
-        self.load_from_disk_if_computed = load_from_disk_if_computed
         self.n_threads_data_storer = n_threads_data_storer
         self.store_metadata_every_n_iters = store_metadata_every_n_iters
 
@@ -52,19 +49,16 @@ class VRERuntimeArgs:
             "video_fps": f"{self.video.frame_rate:.2f}",
             "representations": [r.name for r in self.representations.values()],
             "frames": (self.start_frame, self.end_frame),
-            "exception_mode": self.exception_mode, "load_from_disk_if_computed": self.load_from_disk_if_computed,
+            "exception_mode": self.exception_mode,
             "n_threads_data_storer": self.n_threads_data_storer,
         }
 
     def __repr__(self):
-# - Output sizes: {self.output_sizes}
-# - Batch size: {self.batch_size}
         return f"""[{parsed_str_type(self)}]
 - Video path: '{getattr(self.video, "file", "")}'
 - Representations ({len(self.representations)}): {", ".join(x for x in self.representations.keys())}
 - Video shape: {self.video.shape} (FPS: {self.video.frame_rate:.2f})
 - Output frames ({self.end_frame - self.start_frame}): [{self.start_frame} : {self.end_frame - 1}]
 - Exception mode: '{self.exception_mode}'
-- Load from disk if computed: {self.load_from_disk_if_computed}
 - #threads DataStorer: {self.n_threads_data_storer} (0 = only using main thread)
 """

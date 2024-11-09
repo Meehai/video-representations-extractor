@@ -7,8 +7,9 @@ import traceback
 from tqdm import tqdm
 import pandas as pd
 import torch as tr
+import numpy as np
 
-from .representations import Representation, LearnedRepresentationMixin, ComputeRepresentationMixin
+from .representations import Representation, ComputeRepresentationMixin, LearnedRepresentationMixin, ReprOut
 from .vre_runtime_args import VRERuntimeArgs
 from .data_writer import DataWriter
 from .data_storer import DataStorer
@@ -25,6 +26,21 @@ def _make_batches(video: VREVideo, start_frame: int, end_frame: int, batch_size:
     batches = list(range(start_frame, last_one, batch_size))
     batches = [*batches, last_one] if batches[-1] != last_one else batches
     return batches
+
+def _load_from_disk_if_possible(rep: Representation, ixs: list[int], output_dir: Path):
+    # TODO: move this to a npz specific class
+    assert isinstance(ixs, list) and all(isinstance(ix, int) for ix in ixs), (type(ixs), [type(ix) for ix in ixs])
+    assert output_dir is not None and output_dir.exists(), output_dir
+    npz_paths: list[Path] = [output_dir / rep.name / f"npz/{ix}.npz" for ix in ixs]
+    extra_paths: list[Path] = [output_dir / rep.name / f"npz/{ix}_extra.npz" for ix in ixs]
+    if any(not x.exists() for x in npz_paths): # partial batches are considered 'not existing' and overwritten
+        return
+    extras_exist = [x.exists() for x in extra_paths]
+    assert (ee := sum(extras_exist)) in (0, (ep := len(extra_paths))), f"Found {ee}. Expected either 0 or {ep}"
+    data = np.stack([np.load(x)["arr_0"] for x in npz_paths])
+    extra = [np.load(x, allow_pickle=True)["arr_0"].item() for x in extra_paths] if ee == ep else None
+    logger.debug2(f"[{rep}] Slice: [{ixs[0]}:{ixs[-1]}]. All data found on disk and loaded")
+    rep.data = ReprOut(output=data, extra=extra, key=ixs)
 
 class VideoRepresentationsExtractor:
     """Video Representations Extractor class"""
@@ -51,8 +67,7 @@ class VideoRepresentationsExtractor:
 
     def run(self, output_dir: Path, start_frame: int | None = None, end_frame: int | None = None,
             output_dir_exists_mode: str = "raise", exception_mode: str = "stop_execution",
-            n_threads_data_storer: int = 0,
-            load_from_disk_if_computed: bool = True) -> dict[str, Any]:
+            n_threads_data_storer: int = 0) -> dict[str, Any]:
         """
         The main loop of the VRE. This will run all the representations on the video and store results in the output_dir
         See VRERuntimeArgs for parameters definition.
@@ -61,7 +76,7 @@ class VideoRepresentationsExtractor:
         """
         self._setup_logger(output_dir, now := now_fmt())
         runtime_args = VRERuntimeArgs(self.video, self.representations, start_frame, end_frame,
-                                      exception_mode, load_from_disk_if_computed, n_threads_data_storer)
+                                      exception_mode, n_threads_data_storer)
         logger.info(runtime_args)
         self._metadata = Metadata(self.repr_names, runtime_args, self._logs_file.parent / f"run_metadata-{now}.json")
         for vre_repr in self._get_output_representations():
@@ -80,13 +95,12 @@ class VideoRepresentationsExtractor:
         """main loop of each representation. Returns true if had exception, false otherwise"""
         data_storer = DataStorer(data_writer, runtime_args.n_threads_data_storer)
         logger.info(f"Running:\n{data_writer.rep}\n{data_storer}")
-        representation = data_writer.rep
-        name, batch_size, output_size = representation.name, representation.batch_size, representation.output_size
-        self._metadata.metadata["data_writers"][name] = data_writer.to_dict()
+        rep: Representation | ComputeRepresentationMixin = data_writer.rep
+        self._metadata.metadata["data_writers"][rep.name] = data_writer.to_dict()
 
-        batches = _make_batches(self.video, runtime_args.start_frame, runtime_args.end_frame, batch_size)
+        batches = _make_batches(self.video, runtime_args.start_frame, runtime_args.end_frame, rep.batch_size)
         left, right = batches[0:-1], batches[1:]
-        pbar = tqdm(total=runtime_args.end_frame - runtime_args.start_frame, desc=f"[VRE] {name} bs={batch_size}")
+        pbar = tqdm(total=runtime_args.end_frame - runtime_args.start_frame, desc=f"[VRE] {rep.name} {rep.batch_size=}")
         for i, (l, r) in enumerate(zip(left, right)): # main VRE loop
             if i % runtime_args.store_metadata_every_n_iters == 0:
                 self._metadata.store_on_disk()
@@ -94,24 +108,32 @@ class VideoRepresentationsExtractor:
             now = datetime.now()
             try:
                 tr.cuda.empty_cache() # might empty some unused memory, not 100% if needed.
-                out_dir = data_writer.output_dir if runtime_args.load_from_disk_if_computed else None
-                y_repr = representation.vre_make(video=self.video, ixs=slice(l, r), output_dir=out_dir)
-                if output_size == "native":
-                    y_repr_rsz = y_repr
-                elif output_size == "video_shape":
-                    y_repr_rsz = representation.resize(y_repr, self.video.frame_shape[0:2])
-                else:
-                    y_repr_rsz = representation.resize(y_repr, output_size)
-                if y_repr_rsz.output.dtype != representation.output_dtype:
-                    y_repr_rsz = representation.cast(y_repr_rsz, representation.output_dtype)
-                imgs = representation.make_images(self.video[l: r], y_repr_rsz) if representation.export_image else None
-                data_storer(y_repr_rsz, imgs, l, r)
+                rep.data = None
+                _load_from_disk_if_possible(rep, list(range(l, r)), data_writer.output_dir)
+                if rep.data is None:
+                    rep.vre_setup() if isinstance(rep, LearnedRepresentationMixin) and not rep.setup_called else None
+                    # TODO: StoredRepresentation save me, please!
+                    for dep in rep.dependencies: # Note: hopefully toposorted...
+                        _load_from_disk_if_possible(dep, list(range(l, r)), data_writer.output_dir)
+                        if dep.data is None:
+                            if isinstance(dep, LearnedRepresentationMixin) and not dep.setup_called:
+                                dep.vre_setup()
+                            dep.compute(self.video, ixs=list(range(l, r)))
+                    rep.compute(self.video, ixs=list(range(l, r)))
+                if rep.output_size == "video_shape":
+                    rep.resize(self.video.frame_shape[0:2])
+                if isinstance(rep.output_size, tuple):
+                    rep.resize(rep.output_size)
+                if rep.data.output.dtype != rep.output_dtype:
+                    rep.cast(rep.output_dtype)
+                imgs = rep.make_images(self.video, list(range(l, r))) if rep.export_image else None
+                data_storer(rep.data, imgs, l, r)
             except Exception:
-                self._log_error(f"\n[{name} {batch_size=} {l=} {r=}] {traceback.format_exc()}\n")
-                self._metadata.add_time(name, 1 << 31, runtime_args.end_frame - l)
+                self._log_error(f"\n[{rep.name} {rep.batch_size=} {l=} {r=}] {traceback.format_exc()}\n")
+                self._metadata.add_time(rep.name, 1 << 31, runtime_args.end_frame - l)
                 data_storer.join_with_timeout(timeout=30)
                 return True
-            self._metadata.add_time(name, (datetime.now() - now).total_seconds(), r - l)
+            self._metadata.add_time(rep.name, (datetime.now() - now).total_seconds(), r - l)
             pbar.update(r - l)
         data_storer.join_with_timeout(timeout=30)
         return False

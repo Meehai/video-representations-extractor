@@ -3,7 +3,7 @@ import torch as tr
 import numpy as np
 from overrides import overrides
 
-from vre.utils import image_resize_batch
+from vre.utils import VREVideo
 from vre.representations import Representation, ReprOut, ComputeRepresentationMixin
 from vre.representations.soft_segmentation.generalized_boundaries.gb_impl.softseg import soft_seg
 
@@ -23,22 +23,16 @@ class GeneralizedBoundaries(Representation, ComputeRepresentationMixin):
         self.max_channels = max_channels
 
     @overrides
-    def make(self, frames: np.ndarray, dep_data: dict[str, ReprOut] | None = None) -> ReprOut:
-        x = tr.from_numpy(frames).type(tr.float) / 255
+    def compute(self, video: VREVideo, ixs: list[int] | slice):
+        assert self.data is None, f"[{self}] data must not be computed before calling this"
+        x = tr.from_numpy(np.array(video[ixs])).type(tr.float) / 255
         x = x.permute(0, 3, 1, 2)
         y = soft_seg(x, use_median_filtering=self.use_median_filtering, as_image=self.adjust_to_rgb,
                      max_channels=self.max_channels)
         y = y.permute(0, 2, 3, 1).cpu().numpy()
-        return ReprOut(output=y)
+        self.data = ReprOut(output=y, key=ixs)
 
     @overrides
-    def make_images(self, frames: np.ndarray, repr_data: ReprOut) -> np.ndarray:
-        return (repr_data.output * 255).astype(np.uint8)
-
-    @overrides
-    def size(self, repr_data: ReprOut) -> tuple[int, int]:
-        return repr_data.output.shape[1:3]
-
-    @overrides
-    def resize(self, repr_data: ReprOut, new_size: tuple[int, int]) -> ReprOut:
-        return ReprOut(output=image_resize_batch(repr_data.output, height=new_size[0], width=new_size[1]))
+    def make_images(self, video: VREVideo, ixs: list[int] | slice) -> np.ndarray:
+        assert self.data is not None, f"[{self}] data must be first computed using compute()"
+        return (self.data.output * 255).astype(np.uint8)

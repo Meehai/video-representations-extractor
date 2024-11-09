@@ -31,7 +31,7 @@ class LearnedRepresentationMixin(ABC):
     def device(self) -> VREDevice:
         """Returns the device of the representation"""
         if self._device is None:
-            logger.warning(f"[{self}] No image_format set, returning 'cpu'. Call set_learned_params")
+            logger.warning(f"[{self}] No device set, returning 'cpu'. Call set_learned_params")
             return "cpu"
         return self._device
 

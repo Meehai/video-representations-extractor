@@ -10,7 +10,7 @@ from PIL import Image, ImageDraw, ImageStat
 from overrides import overrides
 
 from vre.representations import Representation, ReprOut, ComputeRepresentationMixin
-from vre.utils import image_resize, image_resize_batch
+from vre.utils import image_resize, VREVideo
 
 class Halftone(Representation, ComputeRepresentationMixin):
     """
@@ -37,20 +37,14 @@ class Halftone(Representation, ComputeRepresentationMixin):
         self._check_arguments()
 
     @overrides
-    def make(self, frames: np.ndarray, dep_data: dict[str, ReprOut] | None = None) -> ReprOut:
-        return ReprOut(output=np.array([self._make_one_image(frame) for frame in frames]))
+    def compute(self, video: VREVideo, ixs: list[int] | slice):
+        assert self.data is None, f"[{self}] data must not be computed before calling this"
+        self.data = ReprOut(output=np.array([self._make_one_image(frame) for frame in video[ixs]]), key=ixs)
 
     @overrides
-    def make_images(self, frames: np.ndarray, repr_data: ReprOut) -> np.ndarray:
-        return (repr_data.output * 255).astype(np.uint8)
-
-    @overrides
-    def size(self, repr_data: ReprOut) -> tuple[int, int]:
-        return repr_data.output.shape[1:3]
-
-    @overrides
-    def resize(self, repr_data: ReprOut, new_size: tuple[int, int]) -> ReprOut:
-        return ReprOut(output=image_resize_batch(repr_data.output, height=new_size[0], width=new_size[1]))
+    def make_images(self, video: VREVideo, ixs: list[int] | slice) -> np.ndarray:
+        assert self.data is not None, f"[{self}] data must be first computed using compute()"
+        return (self.data.output * 255).astype(np.uint8)
 
     def _gcr(self, im, percentage):
         """

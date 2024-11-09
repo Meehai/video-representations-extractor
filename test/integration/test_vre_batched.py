@@ -143,6 +143,7 @@ def test_vre_batched():
       num_classes: 8
       color_map: [[0, 255, 0], [0, 127, 0], [255, 255, 0], [255, 255, 255],
                   [255, 0, 0], [0, 0, 255], [0, 255, 255], [127, 127, 63]]
+      semantic_argmax_only: True
     learned_parameters:
       device: {device}
 """)

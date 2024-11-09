@@ -19,9 +19,9 @@ class MyRepresentation(Representation, LearnedRepresentationMixin, ComputeRepres
         self.vre_free_called = False
         self.make_called = False
 
-    def make(self, frames, dep_data = None):
+    def compute(self, frames, ixs):
         self.make_called = True
-        return ReprOut(frames)
+        self.data = ReprOut(frames, key=ixs)
     def make_images(self, frames, repr_data):
         return repr_data.output
     def size(self, repr_data):
@@ -38,8 +38,8 @@ class MyDependentRepresentation(Representation, ComputeRepresentationMixin):
     def __init__(self, *args, **kwargs):
         Representation.__init__(self, *args, **kwargs)
         ComputeRepresentationMixin.__init__(self)
-    def make(self, frames, dep_data = None):
-        return ReprOut(dep_data["r1"].output)
+    def compute(self, frames, ixs):
+        self.data = ReprOut(self.dependencies[0].data.output, key=ixs)
     def make_images(self, frames, repr_data):
         return repr_data.output
     def size(self, repr_data):
@@ -57,8 +57,7 @@ def test_no_vre_setup_if_not_needed():
     r2 = MyDependentRepresentation("r2", [r1])
     vre = VRE(video, {"r1": r1, "r2": r2}).set_compute_params(binary_format="npz", output_size="native",
                                                               output_dtype="uint8")
-    vre.run(tmp_dir, start_frame=0, end_frame=None, output_dir_exists_mode="skip_computed",
-            load_from_disk_if_computed=True)
+    vre.run(tmp_dir, start_frame=0, end_frame=None, output_dir_exists_mode="skip_computed")
     assert r1.make_called is False, (r1.make_called, r1.vre_setup_called, r1.vre_free_called)
     # since all the data of r1 is already on the disk, there's no need to call vre_setup and vre_free at all
     assert r1.vre_setup_called is False, (r1.make_called, r1.vre_setup_called, r1.vre_free_called)

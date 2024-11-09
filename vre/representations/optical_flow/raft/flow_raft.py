@@ -1,11 +1,10 @@
 """FlowRaft representation"""
-from pathlib import Path
 from overrides import overrides
 import numpy as np
 import torch as tr
 from torch.nn import functional as F
 
-from vre.utils import image_resize_batch, fetch_weights, vre_load_weights, VREVideo, colorize_optical_flow
+from vre.utils import fetch_weights, vre_load_weights, VREVideo, colorize_optical_flow
 from vre.logger import vre_logger as logger
 from vre.representations import Representation, ReprOut, LearnedRepresentationMixin, ComputeRepresentationMixin
 from vre.representations.optical_flow.raft.raft_impl import RAFT, InputPadder
@@ -30,6 +29,23 @@ class FlowRaft(Representation, LearnedRepresentationMixin, ComputeRepresentation
         self.inference_height = inference_height
 
     @overrides
+    def compute(self, video: VREVideo, ixs: list[int] | slice):
+        assert self.data is None, f"[{self}] data must not be computed before calling this"
+        frames = np.array(video[ixs])
+        right_frames = self._get_delta_frames(video, ixs)
+        source, dest = self._preprocess(frames), self._preprocess(right_frames)
+        tr.manual_seed(self.seed) if self.seed is not None else None
+        with tr.no_grad():
+            _, predictions = self.model(source, dest, iters=self.iters, test_mode=True)
+        flow = self._postporcess(predictions)
+        self.data = ReprOut(output=flow, key=ixs)
+
+    @overrides
+    def make_images(self, video: VREVideo, ixs: list[int] | slice) -> np.ndarray:
+        assert self.data is not None, f"[{self}] data must be first computed using compute()"
+        return np.array([colorize_optical_flow(_pred) for _pred in self.data.output])
+
+    @overrides
     def vre_setup(self, load_weights: bool = True):
         assert self.setup_called is False
         tr.manual_seed(self.seed) if self.seed is not None else None
@@ -44,36 +60,13 @@ class FlowRaft(Representation, LearnedRepresentationMixin, ComputeRepresentation
         self.setup_called = True
 
     @overrides
-    def vre_dep_data(self, video: VREVideo, ixs: slice | list[int], output_dir: Path | None) -> dict[str, ReprOut]:
-        ixs: list[int] = list(range(ixs.start, ixs.stop)) if isinstance(ixs, slice) else ixs
-        right_ixs = [min(ix + self.flow_delta_frames, len(video)) for ix in ixs]
-        right_frames = np.array(video[right_ixs]) # godbless pims I hope it caches this properly
-        return {"right_frames": ReprOut(output=right_frames)}
-
-    @overrides
-    def make(self, frames: np.ndarray, dep_data: dict[str, ReprOut] | None = None) -> ReprOut:
-        right_frames = dep_data["right_frames"]
-        self._check_frames_resolution_requirements(frames)
-        self._check_frames_resolution_requirements(right_frames)
-
-        source, dest = self._preprocess(frames), self._preprocess(right_frames)
-        tr.manual_seed(self.seed) if self.seed is not None else None
-        with tr.no_grad():
-            _, predictions = self.model(source, dest, iters=self.iters, test_mode=True)
-        flow = self._postporcess(predictions)
-        return ReprOut(output=flow)
-
-    @overrides
-    def make_images(self, frames: np.ndarray, repr_data: ReprOut) -> np.ndarray:
-        return np.array([colorize_optical_flow(_pred) for _pred in repr_data.output])
-
-    @overrides
-    def size(self, repr_data: ReprOut) -> tuple[int, int]:
-        return repr_data.output.shape[1:3]
-
-    @overrides
-    def resize(self, repr_data: ReprOut, new_size: tuple[int, int]) -> ReprOut:
-        return ReprOut(output=image_resize_batch(repr_data.output, *new_size))
+    def vre_free(self):
+        assert self.setup_called is True and self.model is not None, (self.setup_called, self.model is not None)
+        if str(self.device).startswith("cuda"):
+            self.model.to("cpu")
+            tr.cuda.empty_cache()
+        self.model = None
+        self.setup_called = False
 
     def _check_frames_resolution_requirements(self, frames: np.ndarray):
         assert frames.shape[1] >= 128 and frames.shape[2] >= 128, \
@@ -82,6 +75,7 @@ class FlowRaft(Representation, LearnedRepresentationMixin, ComputeRepresentation
             f"{frames.shape} vs {self.inference_height}x{self.inference_width}"
 
     def _preprocess(self, frames: np.ndarray) -> tuple[tr.Tensor, tr.Tensor]:
+        self._check_frames_resolution_requirements(frames)
         tr_frames = tr.from_numpy(frames).to(self.device)
         tr_frames = tr_frames.permute(0, 3, 1, 2).float() # (B, C, H, W)
         frames_rsz = F.interpolate(tr_frames, (self.inference_height, self.inference_width), mode="bilinear")
@@ -96,10 +90,7 @@ class FlowRaft(Representation, LearnedRepresentationMixin, ComputeRepresentation
         flow_unpad_norm = flow_perm / (self.inference_height, self.inference_width) # [-1 : 1]
         return flow_unpad_norm.astype(np.float32)
 
-    def vre_free(self):
-        assert self.setup_called is True and self.model is not None, (self.setup_called, self.model is not None)
-        if str(self.device).startswith("cuda"):
-            self.model.to("cpu")
-            tr.cuda.empty_cache()
-        self.model = None
-        self.setup_called = False
+    def _get_delta_frames(self, video: VREVideo, ixs: list[int] | slice) -> np.ndarray:
+        ixs = list(range(ixs.start, ixs.stop)) if isinstance(ixs, slice) else ixs
+        ixs = [min(ix + 1, len(video) - 1) for ix in ixs]
+        return np.array(video[ixs])

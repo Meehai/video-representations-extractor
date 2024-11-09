@@ -5,11 +5,11 @@ from pathlib import Path
 import numpy as np
 
 from .utils import image_write, is_dir_empty
-from .representations import ReprOut, ComputeRepresentationMixin, Representation
+from .representations import ReprOut, Representation#, ComputeRepresentationMixin
 from .representations.compute_representation_mixin import BinaryFormat
 from .logger import vre_logger as logger
 
-ComputeReprIntersection = ComputeRepresentationMixin | Representation
+# ComputeReprIntersection = ComputeRepresentationMixin | Representation
 
 class DataWriter:
     """
@@ -22,9 +22,9 @@ class DataWriter:
         - 'skip_computed' Skip the computed frames and continue from the last computed frame
         - 'raise' (default) Raise an error if the output dir already exists
     """
-    def __init__(self, output_dir: Path, representation: ComputeReprIntersection, output_dir_exists_mode: str):
+    def __init__(self, output_dir: Path, representation: "ComputeReprIntersection", output_dir_exists_mode: str):
         assert output_dir_exists_mode in ("overwrite", "skip_computed", "raise"), output_dir_exists_mode
-        self.rep = representation
+        self.rep: Representation = representation
         assert self.rep.binary_format is not None or self.rep.image_format is not None, f"One must be set: {self.rep}"
         self.output_dir = output_dir
         self.output_dir_exists_mode = output_dir_exists_mode

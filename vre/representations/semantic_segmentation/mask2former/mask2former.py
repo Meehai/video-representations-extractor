@@ -10,7 +10,7 @@ import numpy as np
 
 from vre.logger import vre_logger as logger
 from vre.utils import (image_resize_batch, fetch_weights, image_read, image_write,
-                       vre_load_weights, colorize_semantic_segmentation)
+                       vre_load_weights, colorize_semantic_segmentation, VREVideo, FakeVideo)
 from vre.representations import Representation, ReprOut, LearnedRepresentationMixin, ComputeRepresentationMixin
 from vre.representations.semantic_segmentation.mask2former.mask2former_impl import MaskFormer, CfgNode, get_output_shape
 
@@ -29,6 +29,40 @@ class Mask2Former(Representation, LearnedRepresentationMixin, ComputeRepresentat
         self.cfg: CfgNode | None = None
         self.output_dtype = "uint8" if semantic_argmax_only else "float16"
 
+    @tr.no_grad()
+    @overrides
+    def compute(self, video: VREVideo, ixs: list[int] | slice):
+        assert self.data is None, f"[{self}] data must not be computed before calling this"
+        height, width = video.frame_shape[0:2]
+        _os = get_output_shape(height, width, self.cfg.INPUT.MIN_SIZE_TEST, self.cfg.INPUT.MAX_SIZE_TEST)
+        imgs = image_resize_batch(video[ixs], _os[0], _os[1], "bilinear", "PIL").transpose(0, 3, 1, 2).astype("float32")
+        inputs = [{"image": tr.from_numpy(img), "height": height, "width": width} for img in imgs]
+        predictions: list[tr.Tensor] = [x["sem_seg"] for x in self.model(inputs)]
+        res = []
+        for pred in predictions:
+            _pred = pred.argmax(dim=0) if self.semantic_argmax_only else pred.permute(1, 2, 0)
+            res.append(_pred.to("cpu").numpy())
+        self.data = ReprOut(output=np.stack(res), key=ixs)
+
+    @overrides
+    def make_images(self, video: VREVideo, ixs: list[int] | slice) -> np.ndarray:
+        assert self.data is not None, f"[{self}] data must be first computed using compute()"
+        res = []
+        frames_rsz = image_resize_batch(video[ixs], *self.data.output.shape[1:3])
+        for img, pred in zip(frames_rsz, self.data.output):
+            _pred = pred if self.semantic_argmax_only else pred.argmax(-1)
+            res.append(colorize_semantic_segmentation(_pred, self.classes, self.color_map, img))
+        res = np.stack(res)
+        return res
+
+    @overrides
+    def resize(self, new_size: tuple[int, int]):
+        assert self.data is not None, f"[{self}] data must be first computed using compute()"
+        interpolation = "nearest" if self.semantic_argmax_only else "bilinear"
+        self.data = ReprOut(output=image_resize_batch(self.data.output, *new_size, interpolation=interpolation),
+                            key=self.data.key, extra=self.data.extra)
+
+    @overrides
     def vre_setup(self, load_weights = True):
         assert self.setup_called is False
         weights_path = fetch_weights(__file__) / f"{self.model_id}.ckpt"
@@ -44,38 +78,14 @@ class Mask2Former(Representation, LearnedRepresentationMixin, ComputeRepresentat
         self.model = self.model.eval().to(self.device)
         self.setup_called = True
 
-    @tr.no_grad()
     @overrides
-    def make(self, frames: np.ndarray, dep_data: dict[str, ReprOut] | None = None) -> ReprOut:
-        height, width = frames.shape[1:3]
-        _os = get_output_shape(height, width, self.cfg.INPUT.MIN_SIZE_TEST, self.cfg.INPUT.MAX_SIZE_TEST)
-        imgs = image_resize_batch(frames, _os[0], _os[1], "bilinear", "PIL").transpose(0, 3, 1, 2).astype("float32")
-        inputs = [{"image": tr.from_numpy(img), "height": height, "width": width} for img in imgs]
-        predictions: list[tr.Tensor] = [x["sem_seg"] for x in self.model(inputs)]
-        res = []
-        for pred in predictions:
-            _pred = pred.argmax(dim=0) if self.semantic_argmax_only else pred.permute(1, 2, 0)
-            res.append(_pred.to("cpu").numpy())
-        return ReprOut(output=np.stack(res))
-
-    @overrides
-    def make_images(self, frames: np.ndarray, repr_data: ReprOut) -> np.ndarray:
-        res = []
-        frames_rsz = image_resize_batch(frames, *repr_data.output.shape[1:3])
-        for img, pred in zip(frames_rsz, repr_data.output):
-            _pred = pred if self.semantic_argmax_only else pred.argmax(-1)
-            res.append(colorize_semantic_segmentation(_pred, self.classes, self.color_map, img))
-        res = np.stack(res)
-        return res
-
-    @overrides
-    def size(self, repr_data: ReprOut) -> tuple[int, int]:
-        return repr_data.output.shape[1:3]
-
-    @overrides
-    def resize(self, repr_data: ReprOut, new_size: tuple[int, int]) -> ReprOut:
-        interpolation = "nearest" if self.semantic_argmax_only else "bilinear"
-        return ReprOut(output=image_resize_batch(repr_data.output, *new_size, interpolation=interpolation))
+    def vre_free(self):
+        assert self.setup_called is True and self.model is not None, (self.setup_called, self.model is not None)
+        if str(self.device).startswith("cuda"):
+            self.model.to("cpu")
+            tr.cuda.empty_cache()
+        self.model = None
+        self.setup_called = False
 
     def _get_metadata(self, model_id: str) -> tuple[list[str], list[tuple[int, int, int]], dict[str, int]]:
         metadata = None
@@ -86,14 +96,6 @@ class Mask2Former(Representation, LearnedRepresentationMixin, ComputeRepresentat
         if model_id == "49189528_0":
             metadata = json.load(open(f"{self._m2f_resources}/mapillary_metadata2.json", "r"))
         return metadata["stuff_classes"], metadata["stuff_colors"], metadata.get("thing_dataset_id_to_contiguous_id")
-
-    def vre_free(self):
-        assert self.setup_called is True and self.model is not None, (self.setup_called, self.model is not None)
-        if str(self.device).startswith("cuda"):
-            self.model.to("cpu")
-            tr.cuda.empty_cache()
-        self.model = None
-        self.setup_called = False
 
 def get_args() -> Namespace:
     """cli args"""
@@ -111,9 +113,9 @@ def main(args: Namespace):
     m2f.device = "cuda" if tr.cuda.is_available() else "cpu"
     m2f.vre_setup()
     now = datetime.now()
-    pred = m2f.make(img[None])
+    m2f.compute(FakeVideo(img[None], 1), [0])
     logger.info(f"Pred took: {datetime.now() - now}")
-    semantic_result: np.ndarray = m2f.make_images(img[None], pred)[0]
+    semantic_result: np.ndarray = m2f.make_images(img[None], [0])[0]
     image_write(semantic_result, args.output_path)
     logger.info(f"Written prediction to '{args.output_path}'")
     return semantic_result # for integration tests
