@@ -21,7 +21,7 @@ class ReprOut:
         assert len(self.output) == len(self.key), (len(self.output), len(self.key))
 
     def __repr__(self):
-        return f"[ReprOut](output={lo(self.output)}, extra={self.extra}"
+        return f"[ReprOut](output={lo(self.output)}, key={self.key}, extra={self.extra})"
 
 class Representation(ABC):
     """Generic Representation class for VRE"""
@@ -52,7 +52,8 @@ class Representation(ABC):
     def resize(self, new_size: tuple[int, int]):
         """resizes the data. size is provided in (h, w)"""
         assert self.data is not None, f"[{self}] data must be first computed using compute()"
-        self.data = ReprOut(output=image_resize_batch(self.data.output, *new_size),
+        interpolation = "nearest" if np.issubdtype(d := self.data.output.dtype, np.integer) or d == bool else "bilinear"
+        self.data = ReprOut(output=image_resize_batch(self.data.output, *new_size, interpolation=interpolation),
                             key=self.data.key, extra=self.data.extra)
 
     def cast(self, dtype: str):

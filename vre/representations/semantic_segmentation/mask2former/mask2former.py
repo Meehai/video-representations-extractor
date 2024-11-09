@@ -56,13 +56,6 @@ class Mask2Former(Representation, LearnedRepresentationMixin, ComputeRepresentat
         return res
 
     @overrides
-    def resize(self, new_size: tuple[int, int]):
-        assert self.data is not None, f"[{self}] data must be first computed using compute()"
-        interpolation = "nearest" if self.semantic_argmax_only else "bilinear"
-        self.data = ReprOut(output=image_resize_batch(self.data.output, *new_size, interpolation=interpolation),
-                            key=self.data.key, extra=self.data.extra)
-
-    @overrides
     def vre_setup(self, load_weights = True):
         assert self.setup_called is False
         weights_path = fetch_weights(__file__) / f"{self.model_id}.ckpt"

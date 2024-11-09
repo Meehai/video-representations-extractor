@@ -66,13 +66,6 @@ class SafeUAV(Representation, LearnedRepresentationMixin, ComputeRepresentationM
         return res
 
     @overrides
-    def resize(self, new_size: tuple[int, int]) -> ReprOut:
-        assert self.data is not None, f"[{self}] data must be first computed using resize()"
-        interpolation = "nearest" if self.semantic_argmax_only else "bilinear"
-        self.data = ReprOut(image_resize_batch(self.data.output, *new_size, interpolation=interpolation),
-                            key=self.data.key, extra=self.data.extra)
-
-    @overrides
     def vre_setup(self, load_weights: bool = True):
         assert self.setup_called is False
         self.model = _SafeUavWrapper(ch_in=3, ch_out=self.num_classes)
