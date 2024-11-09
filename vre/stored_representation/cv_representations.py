@@ -20,6 +20,10 @@ class ColorRepresentation(NpzRepresentation, NormedRepresentation):
         NormedRepresentation.__init__(self)
 
     @overrides
+    def return_fn(self, load_data: tr.Tensor) -> tr.Tensor:
+        return load_data
+
+    @overrides
     def plot_fn(self, x: tr.Tensor) -> np.ndarray:
         x = self.unnormalize(x.detach().cpu()) if self.normalization is not None else x.detach().cpu()
         return x.byte().numpy()
@@ -51,6 +55,10 @@ class EdgesRepresentation(NpzRepresentation, NormedRepresentation):
         NpzRepresentation.__init__(self, *args, n_channels=1, **kwargs)
         NormedRepresentation.__init__(self)
 
+    @overrides
+    def return_fn(self, load_data: tr.Tensor) -> tr.Tensor:
+        return load_data
+
     def plot_fn(self, x: tr.Tensor) -> np.ndarray:
         x = self.unnormalize(x.detach().cpu()) if self.normalization is not None else x.detach().cpu()
         return (x.repeat(1, 1, 3) * 255).byte().numpy()
@@ -65,11 +73,8 @@ class DepthRepresentation(NpzRepresentation, NormedRepresentation):
         self.max_depth = max_depth
 
     @overrides
-    def load_from_disk(self, path: Path) -> tr.Tensor:
-        """Reads the npz data from the disk and transforms it properly"""
-        res = super().load_from_disk(path)
-        res_clip = res.clip(self.min_depth, self.max_depth)
-        return res_clip
+    def return_fn(self, load_data: tr.Tensor) -> tr.Tensor:
+        return load_data.clip(self.min_depth, self.max_depth)
 
     @overrides
     def plot_fn(self, x: tr.Tensor) -> np.ndarray:
@@ -86,6 +91,10 @@ class OpticalFlowRepresentation(NpzRepresentation, NormedRepresentation):
         NormedRepresentation.__init__(self)
 
     @overrides
+    def return_fn(self, load_data: tr.Tensor) -> tr.Tensor:
+        return load_data
+
+    @overrides
     def plot_fn(self, x: tr.Tensor) -> np.ndarray:
         _min, _max = x.min(0)[0].min(0)[0], x.max(0)[0].max(0)[0]
         x = ((x - _min) / (_max - _min)).nan_to_num(0, 0, 0).detach().cpu().numpy()
@@ -100,15 +109,18 @@ class SemanticRepresentation(NpzRepresentation):
         self.color_map = color_map
         assert len(color_map) == self.n_classes and self.n_classes > 1, (color_map, self.n_classes)
 
+    def return_fn(self, load_data: tr.Tensor) -> tr.Tensor:
+        """return_fn is the code that's ran between what's stored on the disk and what's actually sent to the model"""
+        return F.one_hot(load_data.long(), num_classes=self.n_classes).float() # pylint: disable=not-callable
+
     @overrides
     def load_from_disk(self, path: Path) -> tr.Tensor:
-        res = super().load_from_disk(path)
+        res = super().load_from_disk(path).argmax(-1) # TODO: we need to argmax() because npzrepr.load calls return_fn
         if len(res.shape) == 3:
             assert res.shape[-1] == self.n_classes, f"Expected {self.n_classes} (HxWxC), got {res.shape[-1]}"
             res = res.argmax(-1)
         assert len(res.shape) == 2, f"Only argmaxed data supported, got: {res.shape}"
-        res = F.one_hot(res.long(), num_classes=self.n_classes).float() # pylint: disable=not-callable
-        return res
+        return self.return_fn(res)
 
     @overrides
     def plot_fn(self, x: tr.Tensor) -> np.ndarray:

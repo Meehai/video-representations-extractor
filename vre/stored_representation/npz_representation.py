@@ -32,7 +32,7 @@ class NpzRepresentation(StoredRepresentation):
         assert ((res.shape[-1] == self.n_channels and len(res.shape) == 3) or
                 (len(res.shape) == 2 and self.is_classification)), f"{self.name}: {res.shape} vs {self.n_channels}"
         _CACHE[key] = deepcopy(res)
-        return res
+        return self.return_fn(res)
 
     @overrides
     def save_to_disk(self, data: tr.Tensor, path: Path):

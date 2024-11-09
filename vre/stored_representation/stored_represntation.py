@@ -5,6 +5,8 @@ from pathlib import Path
 import numpy as np
 import torch as tr
 
+from vre.representations import ReprOut
+
 class StoredRepresentation(ABC):
     """StoredRepresentation. The counterpart to Representation which is ComputedRepresentation. TBD how to integrate"""
     def __init__(self, name: str, n_channels: int, dependencies: list[StoredRepresentation] | None = None):
@@ -14,6 +16,11 @@ class StoredRepresentation(ABC):
         assert all(isinstance(dep, StoredRepresentation) for dep in deps), f"{self}: {dict(zip(deps, map(type, deps)))}"
         self.dependencies: list[StoredRepresentation] = dependencies
         self.classes: list[str] | None = None
+        self.data: ReprOut | None = None # TODO: dummy
+
+    @abstractmethod
+    def return_fn(self, load_data: tr.Tensor) -> tr.Tensor:
+        """return_fn is the code that's ran between what's stored on the disk and what's actually sent to the model"""
 
     @abstractmethod
     def load_from_disk(self, path: Path) -> tr.Tensor:
