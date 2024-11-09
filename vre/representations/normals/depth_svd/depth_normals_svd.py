@@ -2,10 +2,10 @@
 from overrides import overrides
 import numpy as np
 
+from vre.utils import VREVideo
+from vre.representations import Representation, ReprOut, ComputeRepresentationMixin
 from vre.representations.normals.depth_svd.depth_svd_impl import \
     fov_diag_to_intrinsic, get_sampling_grid, get_normalized_coords, depth_to_normals
-from vre.representations import Representation, ReprOut, ComputeRepresentationMixin
-from vre.utils import image_resize_batch
 
 class DepthNormalsSVD(Representation, ComputeRepresentationMixin):
     """
@@ -30,23 +30,18 @@ class DepthNormalsSVD(Representation, ComputeRepresentationMixin):
         self._grid_cache = {}
 
     @overrides
-    def make(self, frames: np.ndarray, dep_data: dict[str, ReprOut] | None = None) -> ReprOut:
-        depths = dep_data[self.dependencies[0].name].output
+    def compute(self, video: VREVideo, ixs: list[int] | slice):
+        assert self.data is None, f"[{self}] data must not be computed before calling this"
+        assert (A := self.dependencies[0].data) is not None and self.dependencies[0].data.key == ixs, (A.key, ixs)
+        depths = self.dependencies[0].data.output
         assert len(depths.shape) == 3, f"Expected (T, H, W) got: {depths.shape}"
         res = np.array([self._make_one_normal(depth) for depth in depths])
-        return ReprOut(output=res)
+        self.data = ReprOut(output=res, key=ixs)
 
     @overrides
-    def make_images(self, frames: np.ndarray, repr_data: ReprOut) -> np.ndarray:
-        return (repr_data.output * 255).astype(np.uint8)
-
-    @overrides
-    def size(self, repr_data: ReprOut) -> tuple[int, int]:
-        return repr_data.output.shape[1:3]
-
-    @overrides
-    def resize(self, repr_data: ReprOut, new_size: tuple[int, int]) -> ReprOut:
-        return ReprOut(output=image_resize_batch(repr_data.output, *new_size))
+    def make_images(self, video: VREVideo, ixs: list[int] | slice) -> np.ndarray:
+        assert self.data is not None, f"[{self}] data must be first computed using compute()"
+        return (self.data.output * 255).astype(np.uint8)
 
     def _make_one_normal(self, depth: np.ndarray) -> np.ndarray:
         # TODO: batch vectorize this if possible

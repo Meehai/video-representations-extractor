@@ -2,8 +2,9 @@
 import numpy as np
 from overrides import overrides
 
-from vre.utils import image_resize_batch
+from vre.utils import VREVideo
 from vre.representations import Representation, ReprOut, ComputeRepresentationMixin
+from vre.representations.rgb import RGB
 
 def rgb2hsv(rgb: np.ndarray) -> np.ndarray:
     """RGB to HSV color space conversion."""
@@ -54,20 +55,14 @@ class HSV(Representation, ComputeRepresentationMixin):
     def __init__(self, *args, **kwargs):
         Representation.__init__(self, *args, **kwargs)
         ComputeRepresentationMixin.__init__(self)
-        assert len(self.dependencies) == 0, self.dependencies
+        assert len(self.dependencies) == 1 and isinstance(self.dependencies[0], RGB), self.dependencies
 
     @overrides
-    def make(self, frames: np.ndarray, dep_data: dict[str, ReprOut] | None = None) -> ReprOut:
-        return ReprOut(output=rgb2hsv(frames).astype(np.float32))
+    def compute(self, video: VREVideo, ixs: list[int] | slice):
+        assert self.data is None, "data must not be computed before calling this"
+        rgb = self.dependencies[0].data.output
+        self.data = ReprOut(output=rgb2hsv(rgb).astype(np.float32), key=ixs)
 
     @overrides
-    def make_images(self, frames: np.ndarray, repr_data: ReprOut) -> np.ndarray:
-        return (repr_data.output * 255).astype(np.uint8)
-
-    @overrides
-    def size(self, repr_data: ReprOut) -> tuple[int, int]:
-        return repr_data.output.shape[1:3]
-
-    @overrides
-    def resize(self, repr_data: ReprOut, new_size: tuple[int, int]) -> ReprOut:
-        return ReprOut(output=image_resize_batch(repr_data.output, height=new_size[0], width=new_size[1]))
+    def make_images(self, video: VREVideo, ixs: list[int] | slice) -> np.ndarray:
+        return (self.data.output * 255).astype(np.uint8)

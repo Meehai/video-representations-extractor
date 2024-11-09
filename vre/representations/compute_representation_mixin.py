@@ -1,7 +1,9 @@
 """ComputeRepresentationMixin module"""
+from abc import ABC, abstractmethod
 from enum import Enum
 import numpy as np
 
+from ..utils import VREVideo
 from ..logger import vre_logger as logger
 
 class BinaryFormat(Enum):
@@ -16,7 +18,7 @@ class ImageFormat(Enum):
     PNG = "png"
     JPG = "jpg"
 
-class ComputeRepresentationMixin:
+class ComputeRepresentationMixin(ABC):
     """ComputeRepresentationMixin for representations that can be computed"""
     def __init__(self):
         self._output_size: tuple[int, int] | str | None = None
@@ -25,6 +27,10 @@ class ComputeRepresentationMixin:
         self._binary_format: BinaryFormat | None = None
         self._image_format: ImageFormat | None = None
         self._compress: bool | None = None
+
+    @abstractmethod
+    def compute(self, video: VREVideo, ixs: list[int] | slice):
+        """given input data (batch of images/frewes), compute the output data of this representation"""
 
     @property
     def output_size(self) -> str | tuple[int, int]:
@@ -106,6 +112,7 @@ class ComputeRepresentationMixin:
         """whether to export image or not"""
         return self.image_format != ImageFormat.NOT_SET
 
+    # TODO: This should be in a I/O representation class
     @property
     def compress(self) -> bool:
         """whether to compress the output or not"""

@@ -1,31 +1,32 @@
 import numpy as np
 from vre.representations.hsv import HSV
+from vre.representations.rgb import RGB
 from vre.utils import FakeVideo
 
-def test_hsv_make():
+def test_hsv_compute():
     video = FakeVideo(np.random.randint(0, 255, size=(20, 64, 128, 3), dtype=np.uint8), frame_rate=30)
-    hsv_repr = HSV("hsv")
+    hsv_repr = HSV("hsv", dependencies=[RGB("rgb")])
     assert hsv_repr.name == "hsv"
     assert hsv_repr.compress is True # default from ComputeRepresentationMixin
 
-    frames = np.array(video[0:1])
-    y_hsv = hsv_repr(frames)
-    assert y_hsv.output.shape == (1, 64, 128, 3), y_hsv.output.shape
+    hsv_repr.dependencies[0].compute(video, [0]) # TODO: can this be automated?
+    hsv_repr.compute(video, [0])
+    assert hsv_repr.data.output.shape == (1, 64, 128, 3), hsv_repr.data.output.shape
 
-    y_hsv_images = hsv_repr.make_images(frames, y_hsv)
+    y_hsv_images = hsv_repr.make_images(video, ixs=[0])
     assert y_hsv_images.shape == (1, 64, 128, 3), y_hsv_images.shape
     assert y_hsv_images.dtype == np.uint8, y_hsv_images.dtype
 
 def test_hsv_resize():
     video = FakeVideo(np.random.randint(0, 255, size=(20, 64, 128, 3), dtype=np.uint8), frame_rate=30)
-    hsv_repr = HSV("hsv")
+    hsv_repr = HSV("hsv", dependencies=[RGB("rgb")])
 
-    frames = np.array(video[0:1])
-    y_hsv = hsv_repr(frames)
-    assert hsv_repr.size(y_hsv) == (64, 128)
+    hsv_repr.dependencies[0].compute(video, [0]) # TODO: can this be automated?
+    hsv_repr.compute(video, ixs=[0])
+    assert hsv_repr.size == (1, 64, 128, 3), hsv_repr.size
 
-    y_hsv_resized = hsv_repr.resize(y_hsv, (32, 64))
-    assert hsv_repr.size(y_hsv_resized) == (32, 64)
+    hsv_repr.resize((32, 64))
+    assert hsv_repr.size == (1, 32, 64, 3), hsv_repr.size
 
-    y_hsv_images_resized = hsv_repr.make_images(frames, y_hsv_resized)
+    y_hsv_images_resized = hsv_repr.make_images(video, ixs=[0])
     assert y_hsv_images_resized.shape == (1, 32, 64, 3) and y_hsv_images_resized.dtype == np.uint8

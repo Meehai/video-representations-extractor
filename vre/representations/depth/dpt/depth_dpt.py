@@ -4,7 +4,7 @@ import torch as tr
 import torch.nn.functional as F
 from overrides import overrides
 
-from vre.utils import image_resize_batch, fetch_weights, colorize_depth, vre_load_weights
+from vre.utils import VREVideo, fetch_weights, colorize_depth, vre_load_weights
 from vre.representations import Representation, ReprOut, LearnedRepresentationMixin, ComputeRepresentationMixin
 from vre.representations.depth.dpt.dpt_impl import DPTDepthModel, get_size
 
@@ -20,6 +20,20 @@ class DepthDpt(Representation, LearnedRepresentationMixin, ComputeRepresentation
         self.model: DPTDepthModel | None = None
 
     @overrides
+    def compute(self, video: VREVideo, ixs: list[int] | slice):
+        assert self.data is None, f"[{self}] data must not be computed before calling this"
+        tr_frames = self._preprocess(np.array(video[ixs]))
+        with tr.no_grad():
+            predictions = self.model(tr_frames)
+        res = self._postprocess(predictions)
+        self.data = ReprOut(output=res, key=ixs)
+
+    @overrides
+    def make_images(self, video: VREVideo, ixs: list[int] | slice) -> np.ndarray:
+        assert self.data is not None, f"[{self}] data must be first computed using compute()"
+        return (colorize_depth(self.data.output, min_depth=0, max_depth=1) * 255).astype(np.uint8)
+
+    @overrides
     def vre_setup(self, load_weights: bool = True):
         assert self.setup_called is False
         self.model = DPTDepthModel(backbone="vitl16_384", non_negative=True).to("cpu")
@@ -28,26 +42,6 @@ class DepthDpt(Representation, LearnedRepresentationMixin, ComputeRepresentation
             self.model.load_state_dict(vre_load_weights(weights_file))
         self.model = self.model.eval().to(self.device)
         self.setup_called = True
-
-    @overrides
-    def make(self, frames: np.ndarray, dep_data: dict[str, ReprOut] | None = None) -> ReprOut:
-        tr_frames = self._preprocess(frames)
-        with tr.no_grad():
-            predictions = self.model(tr_frames)
-        res = self._postprocess(predictions)
-        return ReprOut(output=res)
-
-    @overrides
-    def make_images(self, frames: np.ndarray, repr_data: ReprOut) -> np.ndarray:
-        return (colorize_depth(repr_data.output, min_depth=0, max_depth=1) * 255).astype(np.uint8)
-
-    @overrides
-    def size(self, repr_data: ReprOut) -> tuple[int, int]:
-        return repr_data.output.shape[1:3]
-
-    @overrides
-    def resize(self, repr_data: ReprOut, new_size: tuple[int, int]) -> ReprOut:
-        return ReprOut(output=image_resize_batch(repr_data.output, *new_size))
 
     @overrides
     def vre_free(self):

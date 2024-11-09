@@ -4,7 +4,7 @@ import torch as tr
 from overrides import overrides
 
 from vre.logger import vre_logger as logger
-from vre.utils import image_resize_batch, fetch_weights, vre_load_weights
+from vre.utils import image_resize_batch, fetch_weights, vre_load_weights, VREVideo
 from vre.representations import Representation, ReprOut, LearnedRepresentationMixin, ComputeRepresentationMixin
 from vre.representations.edges.dexined.model_dexined import DexiNed as Model
 
@@ -18,6 +18,21 @@ class DexiNed(Representation, LearnedRepresentationMixin, ComputeRepresentationM
         self.inference_height, self.inference_width = 512, 512 # fixed for this model
 
     @overrides
+    def compute(self, video: VREVideo, ixs: list[int] | slice):
+        assert self.data is None, f"[{self}] data must not be computed before calling this"
+        tr_frames = self._preprocess(np.array(video[ixs]), self.inference_height, self.inference_width)
+        with tr.no_grad():
+            y = self.model.forward(tr_frames)
+        outs = self._postprocess(y)
+        self.data = ReprOut(output=outs, key=ixs)
+
+    @overrides
+    def make_images(self, video: VREVideo, ixs: list[int] | slice) -> np.ndarray:
+        assert self.data is not None, f"[{self}] data must be first computed using compute()"
+        x = np.repeat(np.expand_dims(self.data.output, axis=-1), 3, axis=-1)
+        return (x * 255).astype(np.uint8)
+
+    @overrides
     def vre_setup(self, load_weights: bool = True):
         assert self.setup_called is False
         self.model = Model().eval()
@@ -25,27 +40,6 @@ class DexiNed(Representation, LearnedRepresentationMixin, ComputeRepresentationM
             self.model.load_state_dict(vre_load_weights(fetch_weights(__file__) / "dexined.pth"))
         self.model = self.model.to(self.device)
         self.setup_called = True
-
-    @overrides
-    def make(self, frames: np.ndarray, dep_data: dict[str, ReprOut] | None = None) -> ReprOut:
-        tr_frames = self._preprocess(frames, self.inference_height, self.inference_width)
-        with tr.no_grad():
-            y = self.model.forward(tr_frames)
-        outs = self._postprocess(y)
-        return ReprOut(output=outs)
-
-    @overrides
-    def make_images(self, frames: np.ndarray, repr_data: ReprOut) -> np.ndarray:
-        x = np.repeat(np.expand_dims(repr_data.output, axis=-1), 3, axis=-1)
-        return (x * 255).astype(np.uint8)
-
-    @overrides
-    def size(self, repr_data: ReprOut) -> tuple[int, int]:
-        return repr_data.output.shape[1:3]
-
-    @overrides
-    def resize(self, repr_data: ReprOut, new_size: tuple[int, int]) -> ReprOut:
-        return ReprOut(output=image_resize_batch(repr_data.output, *new_size))
 
     @overrides
     def vre_free(self):

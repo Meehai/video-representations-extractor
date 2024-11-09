@@ -10,17 +10,17 @@ def test_VRERuntimeArgs_ctor():
 
     with pytest.raises(AssertionError):
         _ = VRERuntimeArgs(video, representations, start_frame=0, end_frame=3, exception_mode="stop_execution",
-                           load_from_disk_if_computed=False, n_threads_data_storer=0)
+                           n_threads_data_storer=0)
     with pytest.raises(AssertionError):
         _ = VRERuntimeArgs(video, representations, start_frame="lala", end_frame=3, exception_mode="stop_execution",
-                           load_from_disk_if_computed=False, n_threads_data_storer=0)
+                           n_threads_data_storer=0)
     with pytest.raises(AssertionError):
         _ = VRERuntimeArgs(video, representations, start_frame="lala", end_frame=3, exception_mode="lala",
-                           load_from_disk_if_computed=False, n_threads_data_storer=0)
+                           n_threads_data_storer=0)
 
     runtime_args = VRERuntimeArgs(video, representations, start_frame=0, end_frame=None, n_threads_data_storer=0,
-                                  exception_mode="stop_execution", load_from_disk_if_computed=False)
+                                  exception_mode="stop_execution")
 
     assert runtime_args is not None
     assert runtime_args.to_dict().keys() == {"video_path", "video_fps", "video_shape", "representations", "frames",
-                                             "exception_mode", "load_from_disk_if_computed", "n_threads_data_storer"}
+                                             "exception_mode", "n_threads_data_storer"}

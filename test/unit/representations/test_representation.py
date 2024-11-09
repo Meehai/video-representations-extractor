@@ -13,7 +13,7 @@ def test_representation_ctor():
     repr = SimpleRepresentation("simple_representation")
     assert repr.name == "simple_representation"
 
-def test_representation_make(video):
+def test_representation_compute(video):
     repr = SimpleRepresentation("simple_representation")
-    repr.video = video
-    assert np.allclose(repr.make(video[0:5]).output, video[0:5])
+    repr.compute(video, [0, 1, 2, 3, 4])
+    assert np.allclose(repr.data.output, video[0:5])

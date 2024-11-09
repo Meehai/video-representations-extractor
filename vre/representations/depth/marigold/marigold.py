@@ -11,7 +11,8 @@ from overrides import overrides
 from tqdm.auto import tqdm
 from diffusers import AutoencoderKL, DDIMScheduler, LCMScheduler, UNet2DConditionModel
 
-from vre.utils import image_resize_batch, image_read, colorize_depth, image_write, fetch_weights, vre_load_weights
+from vre.utils import (image_resize_batch, image_read, colorize_depth, image_write,
+                       fetch_weights, vre_load_weights, VREVideo)
 from vre.representations import Representation, ReprOut, LearnedRepresentationMixin, ComputeRepresentationMixin
 from vre.representations.depth.marigold.marigold_impl import MarigoldPipeline
 
@@ -50,6 +51,30 @@ class Marigold(Representation, LearnedRepresentationMixin, ComputeRepresentation
         self.model = self.model.to(self.device)
         self.setup_called = True
 
+    @overrides
+    def compute(self, video: VREVideo, ixs: list[int] | slice):
+        assert self.data is None, f"[{self}] data must not be computed before calling this"
+        self.data = ReprOut(output=np.stack([self._make_one_frame(frame) for frame in video[ixs]]), key=ixs)
+
+    @overrides
+    def make_images(self, video: VREVideo, ixs: list[int] | slice) -> np.ndarray:
+        assert self.data is not None, f"[{self}] data must be first computed using compute()"
+        return (colorize_depth(self.data.output, 0, 1) * 255).astype(np.uint8)
+
+    @overrides
+    def resize(self, new_size: tuple[int, int]) -> ReprOut:
+        self.data = ReprOut(output=image_resize_batch(self.data.output, *new_size, "bilinear").clip(0, 1),
+                            extra=self.data.extra, key=self.data.key)
+
+    @overrides
+    def vre_free(self):
+        assert self.setup_called is True and self.model is not None, (self.setup_called, self.model is not None)
+        if str(self.device).startswith("cuda"):
+            self.model.to("cpu")
+            tr.cuda.empty_cache()
+        self.model = None
+        self.setup_called = False
+
     @tr.no_grad
     def _make_one_frame(self, frame: np.ndarray):
         assert self.model is not None
@@ -60,33 +85,6 @@ class Marigold(Representation, LearnedRepresentationMixin, ComputeRepresentation
             generator.manual_seed(self.seed)
         return self.model(tr_rgb, denoising_steps=self.denoising_steps, ensemble_size=self.ensemble_size,
                           processing_res=self.processing_resolution, generator=generator)[0]
-
-    @overrides
-    def make(self, frames: np.ndarray, dep_data: dict[str, ReprOut] | None = None) -> ReprOut:
-        res = np.stack([self._make_one_frame(frame) for frame in frames])
-        return ReprOut(output=res)
-
-    @overrides
-    def make_images(self, frames: np.ndarray, repr_data: ReprOut) -> np.ndarray:
-        depth_colored = colorize_depth(repr_data.output, 0, 1)
-        return (depth_colored * 255).astype(np.uint8)
-
-    @overrides
-    def resize(self, repr_data: ReprOut, new_size: tuple[int, int]) -> ReprOut:
-        return ReprOut(output=image_resize_batch(repr_data.output, *new_size, "bilinear").clip(0, 1))
-
-    @overrides
-    def size(self, repr_data: ReprOut) -> tuple[int, int]:
-        return repr_data.output.shape[1:3]
-
-    @overrides
-    def vre_free(self):
-        assert self.setup_called is True and self.model is not None, (self.setup_called, self.model is not None)
-        if str(self.device).startswith("cuda"):
-            self.model.to("cpu")
-            tr.cuda.empty_cache()
-        self.model = None
-        self.setup_called = False
 
     def _get_ddim_cfg(self) -> dict:
         return {
@@ -180,7 +178,8 @@ def main():
     for rgb_path in (pbar := tqdm(image_paths, leave=True)):
         pbar.set_description(f"Estimating depth: {rgb_path.name}")
         rgb = image_read(rgb_path, "PIL")
-        depth = marigold(rgb[None])
+        marigold.compute(rgb[None], [0])
+        depth = marigold.data
         if marigold.variant == "marigold-lcm-v1-0" and rgb_path.name in expected.keys() \
                 and marigold.seed is not None and marigold.seed == 42 and str(device) in expected[rgb_path.name]:
             try:
@@ -190,8 +189,8 @@ def main():
             except AssertionError as e:
                 print(e)
 
-        depth_rsz = marigold.resize(depth, rgb.shape[0:2])
-        depth_img = marigold.make_images(None, depth_rsz)[0]
+        marigold.resize(rgb.shape[0:2])
+        depth_img = marigold.make_images(rgb[None], [0])[0]
         image_write(depth_img, output_dir / "png" / f"{rgb_path.stem}_pred.png")
 
 if __name__ == "__main__":

@@ -5,7 +5,7 @@ import torch as tr
 from torch import nn
 from torch.nn import functional as F
 
-from vre.utils import image_resize_batch, fetch_weights, vre_load_weights, colorize_semantic_segmentation
+from vre.utils import image_resize_batch, fetch_weights, vre_load_weights, colorize_semantic_segmentation, VREVideo
 from vre.logger import vre_logger as logger
 from vre.representations import Representation, ReprOut, LearnedRepresentationMixin, ComputeRepresentationMixin
 from vre.representations.semantic_segmentation.safeuav.Map2Map import EncoderMap2Map, DecoderMap2Map
@@ -24,12 +24,10 @@ class _SafeUavWrapper(nn.Module):
         y_decoder = self.decoder(y_encoder)
         return y_decoder
 
-# TODO: make semantic_argmax_only not optional
 class SafeUAV(Representation, LearnedRepresentationMixin, ComputeRepresentationMixin):
     """SafeUAV semantic segmentation representation"""
-    def __init__(self, num_classes: int, train_height: int, train_width: int,
-                 color_map: list[tuple[int, int, int]], semantic_argmax_only: bool = True,
-                 weights_file: str | None = None, **kwargs):
+    def __init__(self, num_classes: int, train_height: int, train_width: int, color_map: list[tuple[int, int, int]],
+                 semantic_argmax_only: bool, weights_file: str | None = None, **kwargs):
         Representation.__init__(self, **kwargs)
         LearnedRepresentationMixin.__init__(self)
         ComputeRepresentationMixin.__init__(self)
@@ -44,6 +42,37 @@ class SafeUAV(Representation, LearnedRepresentationMixin, ComputeRepresentationM
         self.model: _SafeUavWrapper | None = None
         self.output_dtype = "uint8" if semantic_argmax_only else "float16"
 
+    @overrides
+    def compute(self, video: VREVideo, ixs: list[int] | slice):
+        assert self.data is None, f"[{self}] data must not be computed before calling this"
+        tr_frames = tr.from_numpy(np.array(video[ixs])).to(self.device)
+        frames_norm = tr_frames.permute(0, 3, 1, 2) / 255
+        frames_resized = F.interpolate(frames_norm, (self.train_height, self.train_width), mode="bilinear")
+        with tr.no_grad():
+            prediction = self.model.forward(frames_resized)
+        np_pred = prediction.permute(0, 2, 3, 1).cpu().numpy().astype(np.float32)
+        y_out = np.argmax(np_pred, axis=-1).astype(np.uint8) if self.semantic_argmax_only else np_pred
+        self.data = ReprOut(output=y_out, key=ixs)
+
+    @overrides
+    def make_images(self, video: VREVideo, ixs: list[int] | slice) -> np.ndarray:
+        assert self.data is not None, f"[{self}] data must be first computed using compute()"
+        res = []
+        frames_rsz = image_resize_batch(video[ixs], *self.data.output.shape[1:3])
+        for img, pred in zip(frames_rsz, self.data.output):
+            _pred: np.ndarray = pred if self.semantic_argmax_only else pred.argmax(-1)
+            res.append(colorize_semantic_segmentation(_pred, self.classes, self.color_map, img))
+        res = np.stack(res)
+        return res
+
+    @overrides
+    def resize(self, new_size: tuple[int, int]) -> ReprOut:
+        assert self.data is not None, f"[{self}] data must be first computed using resize()"
+        interpolation = "nearest" if self.semantic_argmax_only else "bilinear"
+        self.data = ReprOut(image_resize_batch(self.data.output, *new_size, interpolation=interpolation),
+                            key=self.data.key, extra=self.data.extra)
+
+    @overrides
     def vre_setup(self, load_weights: bool = True):
         assert self.setup_called is False
         self.model = _SafeUavWrapper(ch_in=3, ch_out=self.num_classes)
@@ -74,35 +103,6 @@ class SafeUAV(Representation, LearnedRepresentationMixin, ComputeRepresentationM
         self.setup_called = True
 
     @overrides
-    def make(self, frames: np.ndarray, dep_data: dict[str, ReprOut] | None = None) -> ReprOut:
-        tr_frames = tr.from_numpy(frames).to(self.device)
-        frames_norm = tr_frames.permute(0, 3, 1, 2) / 255
-        frames_resized = F.interpolate(frames_norm, (self.train_height, self.train_width), mode="bilinear")
-        with tr.no_grad():
-            prediction = self.model.forward(frames_resized)
-        np_pred = prediction.permute(0, 2, 3, 1).cpu().numpy().astype(np.float32)
-        y_out = np.argmax(np_pred, axis=-1).astype(np.uint8) if self.semantic_argmax_only else np_pred
-        return ReprOut(output=y_out)
-
-    @overrides
-    def make_images(self, frames: np.ndarray, repr_data: ReprOut) -> np.ndarray:
-        res = []
-        frames_rsz = image_resize_batch(frames, *repr_data.output.shape[1:3])
-        for img, pred in zip(frames_rsz, repr_data.output):
-            _pred = pred if self.semantic_argmax_only else pred.argmax(-1)
-            res.append(colorize_semantic_segmentation(_pred, self.classes, self.color_map, img))
-        res = np.stack(res)
-        return res
-
-    @overrides
-    def size(self, repr_data: ReprOut) -> tuple[int, int]:
-        return repr_data.output.shape[1:3]
-
-    @overrides
-    def resize(self, repr_data: ReprOut, new_size: tuple[int, int]) -> ReprOut:
-        interpolation = "nearest" if self.semantic_argmax_only else "bilinear"
-        return ReprOut(image_resize_batch(repr_data.output, *new_size, interpolation=interpolation))
-
     def vre_free(self):
         assert self.setup_called is True and self.model is not None, (self.setup_called, self.model is not None)
         if str(self.device).startswith("cuda"):

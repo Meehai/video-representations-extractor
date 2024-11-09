@@ -13,17 +13,14 @@ def test_depth_normals_svd_dpt():
     assert normals_svd_repr.name == "depth_svd_normals_dpt"
     assert normals_svd_repr.compress is True # default from ComputeRepresentationMixin
 
-    frames = np.array(video[0:1])
-    y_deps = normals_svd_repr.vre_dep_data(video, slice(0, 1), output_dir=None)
-    y_normals = normals_svd_repr(frames, y_deps)
-    assert y_normals.output.shape == \
-        (1, y_deps["dpt"].output.shape[1], y_deps["dpt"].output.shape[2], 3), y_normals.output.shape
+    dpt_repr.compute(video, ixs=[0])
+    normals_svd_repr.compute(video, ixs=[0])
+    assert normals_svd_repr.data.output.shape == (*dpt_repr.data.output.shape, 3)
 
-    y_normals_img = normals_svd_repr.make_images(frames, y_normals)
+    y_normals_img = normals_svd_repr.make_images(video, ixs=[0])
     assert y_normals_img.shape == (1, 384, 384, 3), y_normals_img.shape
 
-    assert normals_svd_repr.size(y_normals) == (384, 384)
-    y_normals_resized = normals_svd_repr.resize(y_normals, (64, 128)) # we can resize it though
-    assert normals_svd_repr.size(y_normals_resized) == (64, 128)
-    assert normals_svd_repr.make_images(frames, y_normals_resized).shape == (1, 64, 128, 3)
-
+    assert normals_svd_repr.size == (1, 384, 384, 3)
+    y_normals_resized = normals_svd_repr.resize((64, 128)) # we can resize it though
+    assert normals_svd_repr.size == (1, 64, 128, 3)
+    assert normals_svd_repr.make_images(video, ixs=[0]).shape == (1, 64, 128, 3)

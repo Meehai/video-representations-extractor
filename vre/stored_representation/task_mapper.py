@@ -4,12 +4,16 @@ from typing import Callable
 import numpy as np
 import torch as tr
 
-from .npz_representation import NpzRepresentation
+from vre.utils import VREVideo
+from vre.representations import Representation, ComputeRepresentationMixin
+from vre.stored_representation.npz_representation import NpzRepresentation
 
-class TaskMapper(NpzRepresentation):
+class TaskMapper(Representation, NpzRepresentation, ComputeRepresentationMixin):
     """TaskMapper implementation"""
-    def __init__(self, *args, merge_fn: Callable[[list[np.ndarray]], tr.Tensor], **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, name: str, merge_fn: Callable[[list[np.ndarray]], tr.Tensor], **kwargs):
+        NpzRepresentation.__init__(self, name=name, **kwargs)
+        Representation.__init__(self, name=name, dependencies=kwargs["dependencies"])
+        ComputeRepresentationMixin.__init__(self)
         assert len(self.dependencies) > 0 and self.dep_names[0] != self.name, "Need at least one dependency"
         self.merge_fn = merge_fn
 
@@ -25,3 +29,16 @@ class TaskMapper(NpzRepresentation):
         dep_data = [dep.load_from_disk(path) for dep, path in zip(self.dependencies, paths)]
         res = self.merge_fn(dep_data)
         return self.return_fn(res)
+
+    def make_images(self, video: VREVideo, ixs: list[int] | slice) -> np.ndarray:
+        raise NotImplementedError
+
+    @property
+    def size(self):
+        raise NotImplementedError
+
+    def resize(self, new_size):
+        raise NotImplementedError
+
+    def compute(self, video, ixs):
+        raise NotImplementedError

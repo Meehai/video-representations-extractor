@@ -5,20 +5,35 @@ import numpy as np
 import pytest
 import pims
 from vre import VRE, ReprOut
-from vre.utils import FakeVideo, image_resize_batch, fetch_resource
+from vre.utils import FakeVideo, image_resize_batch, fetch_resource, VREVideo
 from vre.representations.rgb import RGB
+from vre.representations.hsv import HSV
 from vre.representations.depth.dpt import DepthDpt
 from vre.representations.normals.depth_svd import DepthNormalsSVD
 
-def test_vre_ctor():
-    video = FakeVideo(np.random.randint(0, 255, size=(2, 128, 128, 3), dtype=np.uint8), frame_rate=30)
+@pytest.fixture
+def video() -> FakeVideo:
+    return FakeVideo(np.random.randint(0, 255, size=(2, 128, 128, 3), dtype=np.uint8), frame_rate=30)
+
+def test_vre_ctor(video: FakeVideo):
     with pytest.raises(AssertionError) as e:
         _ = VRE(video=video, representations={})
     assert "At least one representation must be provided" in str(e)
     vre = VRE(video=video, representations={"rgb": RGB("rgb")})
+    assert vre is not None and len(vre.representations) == 1, vre
+
+def test_vre_run(video: FakeVideo):
+    vre = VRE(video=video, representations={"rgb": RGB("rgb")})
     vre.set_compute_params(binary_format="npz", image_format="not-set")
     res = vre.run(Path(TemporaryDirectory().name))
     assert len(res["run_stats"]["rgb"]) == 2, res
+
+def test_vre_run_with_dep(video: FakeVideo):
+    vre = VRE(video=video, representations={"rgb": (rgb := RGB("rgb")), "hsv": HSV("hsv", dependencies=[rgb])})
+    vre.set_compute_params(binary_format="npz", image_format="not-set")
+    res = vre.run(X := Path(TemporaryDirectory().name))
+    assert len(res["run_stats"]["rgb"]) == 2, res
+    res = vre.run(X, output_dir_exists_mode="skip_computed")
 
 def test_vre_output_dir_exists_mode():
     video = FakeVideo(np.random.randint(0, 255, size=(2, 128, 128, 3), dtype=np.uint8), frame_rate=30)
@@ -45,8 +60,10 @@ def test_vre_output_shape():
             super().__init__(*args, **kwargs)
             self.shape = shape
 
-        def make(self, frames: np.ndarray, dep_data: dict) -> ReprOut:
-            return ReprOut(output=image_resize_batch(super().make(frames).output, *self.shape))
+        def compute(self, video: VREVideo, ixs: list[int] | slice):
+            assert self.data is None, f"[{self}] data must not be computed before calling this"
+            super().compute(video, ixs)
+            self.data = ReprOut(output=image_resize_batch(self.data.output, *self.shape), key=ixs)
 
     video = FakeVideo(np.random.randint(0, 255, size=(2, 128, 128, 3), dtype=np.uint8), frame_rate=30)
     representations = {"rgb": RGBWithShape((64, 64), "rgb")}
@@ -83,8 +100,7 @@ def test_vre_metadata():
 
 def test_vre_dep_data_not_saved():
     video = pims.Video(fetch_resource("test_video.mp4"))
-    dpt = DepthDpt(name="dpt", dependencies=[])
-    reprs = {"dpt": dpt,
+    reprs = {"dpt": (dpt := DepthDpt(name="dpt", dependencies=[])),
              "normals_svd(depth_dpt)": DepthNormalsSVD(name="normals_svd(depth_dpt)", sensor_fov=75, sensor_width=1080,
                                                        sensor_height=720, window_size=11, dependencies=[dpt])}
     reprs["normals_svd(depth_dpt)"].binary_format = "npz"
