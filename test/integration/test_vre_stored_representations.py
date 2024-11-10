@@ -25,7 +25,7 @@ class Buildings(TaskMapper, NpIORepresentation):
         self.classes = ["buildings", "others"]
 
     def from_disk_fmt(self, disk_data: np.ndarray) -> np.ndarray:
-        return np.eye(2)[disk_data].astype(np.float32)
+        return np.eye(2)[disk_data.astype(int)].astype(np.float32)
 
     def to_disk_fmt(self, memory_data: np.ndarray) -> np.ndarray:
         return memory_data.argmax(-1).astype(bool)
@@ -36,11 +36,8 @@ class Buildings(TaskMapper, NpIORepresentation):
         return sum(dep_data_converted) > 0 # mode='all_agree' in the original code
 
     def make_images(self) -> np.ndarray:
-        res = []
-        for i in range(len(self.data.output)):
-            res.append(colorize_semantic_segmentation(self.data.output[i].astype(int), self.classes,
-                                                      color_map=[[255, 255, 255], [0, 0, 0]],
-                                                      original_rgb=None, font_size_scale=3))
+        res = [colorize_semantic_segmentation(item.astype(int), self.classes, color_map=[[255, 255, 255], [0, 0, 0]],
+                                              original_rgb=None, font_size_scale=2) for item in self.data.output]
         return np.array(res)
 
 def _generate_random_data(n: int) -> Path:
@@ -72,6 +69,10 @@ def test_vre_stored_representation():
     res = vre.run(output_dir=Path(tmp_dir), start_frame=0, end_frame=None, output_dir_exists_mode="skip_computed")
     vre_run_stats = pd.DataFrame(res["run_stats"], index=range(*res["runtime_args"]["frames"]))
     print(vre_run_stats)
+
+    # assert that it works the 2nd time too!
+    res = vre.run(output_dir=Path(tmp_dir), start_frame=0, end_frame=None, output_dir_exists_mode="skip_computed")
+
 
 if __name__ == "__main__":
     test_vre_stored_representation()
