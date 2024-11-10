@@ -15,10 +15,10 @@ def build_representation_type(repr_type: str) -> Type[Representation]:
     assert len(repr_type.split("/")) == 2, f"No extra '/' allowed in the type. Got: '{repr_type}'. Correct: depth/dpt"
 
     if repr_type == "default/rgb":
-        from .rgb import RGB
+        from .color.rgb import RGB
         obj_type = RGB
     elif repr_type == "default/hsv":
-        from .hsv import HSV
+        from .color.hsv import HSV
         obj_type = HSV
     elif repr_type == "soft-segmentation/python-halftone":
         from .soft_segmentation.halftone import Halftone

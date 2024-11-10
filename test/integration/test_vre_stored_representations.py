@@ -1,16 +1,14 @@
 import sys
 import shutil
 from pathlib import Path
-# from semantic_mapper import get_new_dronescapes_tasks
-
+from natsort import natsorted
 import numpy as np
-from vre.representations.rgb import RGB
-from vre.representations.hsv import HSV
+import pandas as pd
+from vre.representations.color import RGB, HSV
 from vre import VRE
 from vre.utils import FakeVideo
-from natsort import natsorted
 
-if __name__ == "__main__":
+def test_vre_stored_representation():
     video_path = Path("data/rgb/npz")
     shutil.rmtree("data/hsv", ignore_errors=True)
     shutil.rmtree("data/buildings", ignore_errors=True)
@@ -29,3 +27,7 @@ if __name__ == "__main__":
     print(vre)
 
     res = vre.run(output_dir=Path("data/"), start_frame=0, end_frame=None, output_dir_exists_mode="skip_computed")
+    
+
+if __name__ == "__main__":
+    test_vre_stored_representation()

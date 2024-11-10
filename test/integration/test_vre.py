@@ -6,8 +6,7 @@ import pytest
 import pims
 from vre import VRE, ReprOut
 from vre.utils import FakeVideo, image_resize_batch, fetch_resource, VREVideo
-from vre.representations.rgb import RGB
-from vre.representations.hsv import HSV
+from vre.representations.color import RGB, HSV
 from vre.representations.depth.dpt import DepthDpt
 from vre.representations.normals.depth_svd import DepthNormalsSVD
 

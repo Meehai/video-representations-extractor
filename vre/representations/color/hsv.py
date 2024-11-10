@@ -4,7 +4,7 @@ from overrides import overrides
 
 from vre.utils import VREVideo
 from vre.representations import Representation, ReprOut, ComputeRepresentationMixin
-from vre.representations.rgb import RGB
+from vre.representations.color import RGB
 
 def rgb2hsv(rgb: np.ndarray) -> np.ndarray:
     """RGB to HSV color space conversion."""

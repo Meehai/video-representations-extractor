@@ -1,5 +1,5 @@
 import numpy as np
-from vre.representations.rgb import RGB
+from vre.representations.color import RGB
 from vre.utils import FakeVideo
 
 def test_rgb_1():

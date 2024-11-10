@@ -1,6 +1,5 @@
 import numpy as np
-from vre.representations.hsv import HSV
-from vre.representations.rgb import RGB
+from vre.representations.color import RGB, HSV
 from vre.utils import FakeVideo
 
 def test_hsv_compute():
