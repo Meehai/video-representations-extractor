@@ -10,7 +10,7 @@ from vre import VRE
 from vre.utils import FakeVideo, image_read
 from vre.representations import build_representations_from_cfg
 from vre.logger import vre_logger as logger
-from omegaconf import OmegaConf
+from omegaconf import OmegaConf, DictConfig
 
 import imp
 
@@ -40,18 +40,14 @@ def get_args() -> Namespace:
         assert args.collage_fps is not None and isinstance(args.collage_fps, int) and args.collage_fps > 0
     return args
 
-def get_cfg():
-    """cfg and cli args"""
-    args = get_args()
+def main(args: Namespace):
+    """Za main function"""
     cfg = OmegaConf.load(open(args.cfg_path, "r"))
     if args.representations is not None:
         assert (d := set(args.representations).difference(r := cfg.representations.keys())) == set(), f"{d} not in {r}"
         logger.info(f"Keeping only {args.representations} from the config")
         cfg.representations = {k: v for k, v in cfg.representations.items() if k in args.representations}
-    return args, cfg
 
-def main():
-    args, cfg = get_cfg()
     if args.video_path.is_dir():
         raw_data = [image_read(f) for f in natsorted(args.video_path.glob("*.png"), key=lambda p: p.name)]
         assert all(x.shape == raw_data[0].shape for x in raw_data), f"Images shape differ in '{args.video_path}'"
@@ -59,14 +55,14 @@ def main():
         video = FakeVideo(np.array(raw_data, dtype=np.uint8), frame_rate=args.frame_rate)
     else:
         video = pims.Video(args.video_path)
+
     representations = build_representations_from_cfg(cfg.representations, cfg.get("default_compute_parameters"),
                                                      cfg.get("default_learned_parameters"))
     vre = VRE(video, representations)
     vre_metadata = vre.run(args.output_path, start_frame=args.start_frame, end_frame=args.end_frame,
                            output_dir_exists_mode=args.output_dir_exists_mode,
                            n_threads_data_storer=args.n_threads_data_storer)
-    run_stats = {k: v for k, v in vre_metadata["run_stats"].items() if len(v) > 0}
-    vre_run_stats = pd.DataFrame(run_stats, index=range(*vre_metadata["runtime_args"]["frames"]))
+    vre_run_stats = pd.DataFrame(vre_metadata["run_stats"], index=range(*vre_metadata["runtime_args"]["frames"]))
     print(vre_run_stats if len(vre_run_stats) > 1 else vre_run_stats.T)
 
     if args.make_video_collage:
@@ -75,4 +71,4 @@ def main():
                                    video=True, fps=args.collage_fps, output_resolution=None))
 
 if __name__ == "__main__":
-    main()
+    main(get_args())

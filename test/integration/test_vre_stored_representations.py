@@ -27,7 +27,6 @@ def test_vre_stored_representation():
     print(vre)
 
     res = vre.run(output_dir=Path("data/"), start_frame=0, end_frame=None, output_dir_exists_mode="skip_computed")
-    
 
 if __name__ == "__main__":
     test_vre_stored_representation()

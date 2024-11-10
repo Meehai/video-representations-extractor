@@ -141,11 +141,7 @@ class VideoRepresentationsExtractor:
     def _setup_logger(self, output_dir: Path, now_str: str):
         (logs_dir := output_dir / ".logs").mkdir(exist_ok=True, parents=True)
         self._logs_file = logs_dir / f"logs-{now_str}.txt"
-        try:
-            logger.add_file_handler(self._logs_file)
-        except AssertionError: # TODO: FIX
-            logger.remove_file_handler()
-            logger.add_file_handler(self._logs_file)
+        logger.add_file_handler(self._logs_file)
 
     def _log_error(self, msg: str):
         assert self._logs_file is not None, "_log_error can be called only after run() when self._log_file is set"

@@ -3,7 +3,7 @@ from pathlib import Path
 from setuptools import setup, find_packages
 
 NAME = "video-representations-extractor"
-VERSION = "1.4.1"
+VERSION = "1.4.2"
 DESCRIPTION = "Video Representations Extractor (VRE) for computing algorithmic or neural representations of each frame."
 URL = "https://gitlab.com/video-representations-extractor/video-representations-extractor"
 
@@ -21,7 +21,7 @@ REQUIRED = [
     "overrides==7.7.0",
     "pandas>=2.1.3,<3.0.0",
     "matplotlib==3.9.2",
-    "loggez==0.4.1",
+    "loggez==0.4.2",
     "omegaconf==2.3.0",
     "lovely_tensors==0.1.17",
     "opencv-python==4.7.0.68",

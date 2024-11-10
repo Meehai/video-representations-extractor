@@ -8,8 +8,8 @@ from overrides import overrides
 from matplotlib.cm import Spectral # pylint: disable=no-name-in-module
 from torch.nn import functional as F
 
-from ..representations.hsv import rgb2hsv
-from ..utils import colorize_semantic_segmentation
+from vre.representations.color.hsv import rgb2hsv
+from vre.utils import colorize_semantic_segmentation
 from .npz_representation import NpzRepresentation
 from .normed_representation import NormedRepresentation
 
