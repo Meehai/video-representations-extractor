@@ -3,8 +3,8 @@ import numpy as np
 from overrides import overrides
 
 from vre.utils import VREVideo
-from vre.representations import Representation, ReprOut, ComputeRepresentationMixin
-from vre.representations.color import RGB
+from .rgb import RGB
+from ...representations import Representation, ReprOut, ComputeRepresentationMixin
 
 def rgb2hsv(rgb: np.ndarray) -> np.ndarray:
     """RGB to HSV color space conversion."""
