@@ -71,7 +71,8 @@ class DepthRepresentation(Representation, NpIORepresentation, NormedRepresentati
 
     @overrides
     def make_images(self) -> np.ndarray:
-        x = self.data.output.squeeze().clip(0, 1)
+        x = self.data.output.clip(0, 1)
+        x = x[..., 0] if x.shape[-1] == 1 else x
         _min, _max = np.percentile(x, [1, 95])
         x = np.nan_to_num((x - _min) / (_max - _min), False, 0, 0, 0).clip(0, 1)
         y: np.ndarray = Spectral(x)[..., 0:3] * 255
@@ -89,7 +90,7 @@ class OpticalFlowRepresentation(Representation, NpIORepresentation, NormedRepres
     def make_images(self) -> np.ndarray:
         _min, _max = self.data.output.min(0).min(0), self.data.output.max(0).max(0)
         y = np.nan_to_num(((self.data.output - _min) / (_max - _min)), False, 0, 0, 0).astype(np.float32)
-        return flow_vis.flow_to_color(y)
+        return np.array([flow_vis.flow_to_color(_y) for _y in y])
 
 class SemanticRepresentation(Representation, NpIORepresentation):
     """SemanticRepresentation. Implements semantic task-specific stuff, like argmaxing if needed"""
@@ -109,5 +110,6 @@ class SemanticRepresentation(Representation, NpIORepresentation):
 
     @overrides
     def make_images(self) -> np.ndarray:
-        return colorize_semantic_segmentation(self.data.output.argmax(-1), self.classes, self.color_map,
-                                              font_size_scale=2, original_rgb=None)
+        res = [colorize_semantic_segmentation(item.argmax(-1).astype(int), self.classes, self.color_map,
+                                              original_rgb=None, font_size_scale=2) for item in self.data.output]
+        return np.array(res)
