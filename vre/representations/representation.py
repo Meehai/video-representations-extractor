@@ -56,6 +56,12 @@ class Representation(ABC):
         """if we have self.classes. Used in MultiTaskReader."""
         return hasattr(self, "classes") and self.classes is not None # pylint: disable=no-member
 
+    def plot_fn(self, x: np.ndarray | "tr.Tensor") -> np.ndarray:
+        """hack"""
+        x = x.cpu().numpy() if hasattr(x, "numpy") else x
+        self.data = ReprOut(None, x[None], [0])
+        return self.make_images()[0]
+
     def resize(self, new_size: tuple[int, int]):
         """resizes the data. size is provided in (h, w)"""
         assert self.data is not None, f"[{self}] data must be first computed using compute()"

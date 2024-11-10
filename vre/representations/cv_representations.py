@@ -17,6 +17,7 @@ class ColorRepresentation(Representation, NpIORepresentation, NormedRepresentati
         Representation.__init__(self, name=name, dependencies=dependencies)
         NpIORepresentation.__init__(self)
         NormedRepresentationMixin.__init__(self)
+        self.n_channels = 3
 
     @overrides
     def make_images(self) -> np.ndarray:
