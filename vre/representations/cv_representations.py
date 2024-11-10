@@ -8,16 +8,16 @@ from overrides import overrides
 from matplotlib.cm import Spectral # pylint: disable=no-name-in-module
 from torch.nn import functional as F
 
-from vre.representations.color.hsv import rgb2hsv
 from vre.utils import colorize_semantic_segmentation
 from .npz_representation import NpzRepresentation
-from .normed_representation import NormedRepresentation
+from .normed_representation_mixin import NormedRepresentationMixin
+from .color.hsv import rgb2hsv
 
-class ColorRepresentation(NpzRepresentation, NormedRepresentation):
+class ColorRepresentation(NpzRepresentation, NormedRepresentationMixin):
     """ColorRepresentation -- a wrapper over all 3-channeled colored representations"""
     def __init__(self, name: str, dependencies: list[str] | None = None):
         NpzRepresentation.__init__(self, name, n_channels=3, dependencies=dependencies)
-        NormedRepresentation.__init__(self)
+        NormedRepresentationMixin.__init__(self)
 
     @overrides
     def return_fn(self, load_data: tr.Tensor) -> tr.Tensor:
@@ -49,11 +49,11 @@ class HSVRepresentation(ColorRepresentation):
         x = self.unnormalize(x.detach().cpu()) if self.normalization is not None else x.detach().cpu()
         return (x * 255).byte().numpy()
 
-class EdgesRepresentation(NpzRepresentation, NormedRepresentation):
+class EdgesRepresentation(NpzRepresentation, NormedRepresentationMixin):
     """EdgesRepresentation -- CV representation for 1-channeled edges/boundaries"""
     def __init__(self, *args, **kwargs):
         NpzRepresentation.__init__(self, *args, n_channels=1, **kwargs)
-        NormedRepresentation.__init__(self)
+        NormedRepresentationMixin.__init__(self)
 
     @overrides
     def return_fn(self, load_data: tr.Tensor) -> tr.Tensor:
@@ -63,11 +63,11 @@ class EdgesRepresentation(NpzRepresentation, NormedRepresentation):
         x = self.unnormalize(x.detach().cpu()) if self.normalization is not None else x.detach().cpu()
         return (x.repeat(1, 1, 3) * 255).byte().numpy()
 
-class DepthRepresentation(NpzRepresentation, NormedRepresentation):
+class DepthRepresentation(NpzRepresentation, NormedRepresentationMixin):
     """DepthRepresentation. Implements depth task-specific stuff, like spectral map for plots."""
     def __init__(self, name: str, min_depth: float, max_depth: float, **kwargs):
         NpzRepresentation.__init__(self, name, n_channels=1, **kwargs)
-        NormedRepresentation.__init__(self)
+        NormedRepresentationMixin.__init__(self)
 
         self.min_depth = min_depth
         self.max_depth = max_depth
@@ -84,11 +84,11 @@ class DepthRepresentation(NpzRepresentation, NormedRepresentation):
         y: np.ndarray = Spectral(x)[..., 0:3] * 255
         return y.astype(np.uint8)
 
-class OpticalFlowRepresentation(NpzRepresentation, NormedRepresentation):
+class OpticalFlowRepresentation(NpzRepresentation, NormedRepresentationMixin):
     """OpticalFlowRepresentation. Implements flow task-specific stuff, like using flow_vis."""
     def __init__(self, *args, **kwargs):
         NpzRepresentation.__init__(self, *args, n_channels=2, **kwargs)
-        NormedRepresentation.__init__(self)
+        NormedRepresentationMixin.__init__(self)
 
     @overrides
     def return_fn(self, load_data: tr.Tensor) -> tr.Tensor:

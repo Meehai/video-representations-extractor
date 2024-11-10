@@ -9,9 +9,10 @@ from natsort import natsorted
 import torch as tr
 from torch.utils.data import Dataset
 
-from ..stored_representation import StoredRepresentation, NormedRepresentation
+from vre.representations import StoredRepresentation, NormedRepresentationMixin
+from vre.logger import vre_logger as logger
+
 from .statistics import compute_statistics, load_external_statistics, TaskStatistics
-from ..logger import vre_logger as logger
 
 BuildDatasetTuple = Tuple[Dict[str, List[Path]], List[str]]
 MultiTaskItem = Tuple[Dict[str, tr.Tensor], str, List[str]] # [{task: data}, stem(name) | list[stem(name)], [tasks]]
@@ -106,7 +107,7 @@ class MultiTaskDataset(Dataset):
         if self._statistics is None:
             self._statistics = compute_statistics(self)
         for task_name, task in self.name_to_task.items():
-            if isinstance(task, NormedRepresentation) and task.normalization is None:
+            if isinstance(task, NormedRepresentationMixin) and task.normalization is None:
                 task.set_normalization(self.normalization[task_name], self._statistics[task_name])
         return self._statistics
 
@@ -281,7 +282,7 @@ class MultiTaskDataset(Dataset):
             task = [t for t in self.tasks if t.name == task_name][0]
             file_path = self.files_per_repr[task_name][index]
             res[task_name] = self.default_vals[task_name] if file_path is None else task.load_from_disk(file_path)
-            if isinstance(task, NormedRepresentation) and self.statistics is not None:
+            if isinstance(task, NormedRepresentationMixin) and self.statistics is not None:
                 res[task_name] = task.normalize(res[task_name])
         return (res, self.file_names[index], self.task_names)
 

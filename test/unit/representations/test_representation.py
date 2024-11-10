@@ -1,7 +1,10 @@
-from vre.representations import FakeRepresentation
-from vre.utils import FakeVideo
+import sys
+from vre.utils import FakeVideo, get_project_root
 import numpy as np
 import pytest
+
+sys.path.append(str(get_project_root() / "test"))
+from fake_representation import FakeRepresentation
 
 class SimpleRepresentation(FakeRepresentation): pass
 

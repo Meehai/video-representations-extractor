@@ -4,8 +4,9 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 import numpy as np
 import torch as tr
+from vre.utils import parsed_str_type
 
-from vre.representations import ReprOut
+from .representation import ReprOut
 
 class StoredRepresentation(ABC):
     """StoredRepresentation. The counterpart to Representation which is ComputedRepresentation. TBD how to integrate"""
@@ -48,4 +49,5 @@ class StoredRepresentation(ABC):
         return str(self)
 
     def __str__(self):
-        return f"{str(type(self)).split('.')[-1][0:-2]}({self.name}[{self.n_channels}])"
+        return (f"{parsed_str_type(self)}({self.name}[{self.n_channels}]"
+                f"{f' {self.dep_names}' if len(self.dep_names) > 0 else ''})")

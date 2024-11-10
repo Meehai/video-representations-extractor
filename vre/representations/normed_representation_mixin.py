@@ -1,7 +1,7 @@
 """NormedRepresentation module"""
 import torch as tr
 
-class NormedRepresentation:
+class NormedRepresentationMixin:
     """NormedRepresentation implementation"""
     def __init__(self):
         self.normalization: str | None = None

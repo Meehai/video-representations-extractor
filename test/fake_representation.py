@@ -1,11 +1,10 @@
-"""FakeRepresentation module"""
+"""FakeRepresentation module for tests"""
 from __future__ import annotations
 import numpy as np
 from overrides import overrides
 
 from vre.utils import VREVideo
-from .representation import Representation, ReprOut
-from .compute_representation_mixin import ComputeRepresentationMixin
+from vre.representations import Representation, ReprOut, ComputeRepresentationMixin
 
 class FakeRepresentation(Representation, ComputeRepresentationMixin):
     """FakeRepresentation that is used in unit tests and some basic classes, like RGB."""
