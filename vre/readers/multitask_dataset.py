@@ -3,19 +3,20 @@
 from __future__ import annotations
 import os
 from pathlib import Path
-from typing import Dict, List, Tuple, Iterable
+from typing import Dict, List, Tuple, Iterable, Union
 from copy import deepcopy
 from natsort import natsorted
 import torch as tr
 from torch.utils.data import Dataset
 
-from vre.representations import StoredRepresentation, NormedRepresentationMixin
+from vre.representations import Representation, NormedRepresentationMixin, IORepresentationMixin
 from vre.logger import vre_logger as logger
 
 from .statistics import compute_statistics, load_external_statistics, TaskStatistics
 
 BuildDatasetTuple = Tuple[Dict[str, List[Path]], List[str]]
 MultiTaskItem = Tuple[Dict[str, tr.Tensor], str, List[str]] # [{task: data}, stem(name) | list[stem(name)], [tasks]]
+Repr = Union[Representation | IORepresentationMixin]
 
 class MultiTaskDataset(Dataset):
     """
@@ -91,7 +92,7 @@ class MultiTaskDataset(Dataset):
         self.normalization: dict[str, str] | None = normalization
 
         self._data_shape: tuple[int, ...] | None = None
-        self._tasks: list[StoredRepresentation] | None = None
+        self._tasks: list[Repr] | None = None
         self._default_vals: dict[str, tr.Tensor] | None = None
         self._statistics: dict[str, TaskStatistics] | None = None
         if statistics is not None:
@@ -112,7 +113,7 @@ class MultiTaskDataset(Dataset):
         return self._statistics
 
     @property
-    def name_to_task(self) -> dict[str, StoredRepresentation]:
+    def name_to_task(self) -> dict[str, Repr]:
         """A dict that maps the name of the task to the task"""
         return {task.name: task for task in self.tasks}
 
@@ -127,8 +128,10 @@ class MultiTaskDataset(Dataset):
     def data_shape(self) -> dict[str, tuple[int, ...]]:
         """Returns a {task: shape_tuple} for all representations. At least one npz file must exist for each."""
         first_npz = {task: [_v for _v in files if _v is not None][0] for task, files in self.files_per_repr.items()}
-        data_shape = {task: self.name_to_task[task].load_from_disk(first_npz[task]).shape for task in self.task_names}
-        return {task: tuple(shape) for task, shape in data_shape.items()}
+        data_shape = {}
+        for task_name, task in self.name_to_task.items():
+            data_shape[task_name] = task.from_disk_fmt(task.load_from_disk(first_npz[task_name])).shape
+        return data_shape
 
     @property
     def mins(self) -> dict[str, tr.Tensor]:
@@ -155,7 +158,7 @@ class MultiTaskDataset(Dataset):
         return {k: v[3] for k, v in self.statistics.items() if k in self.task_names}
 
     @property
-    def tasks(self) -> list[StoredRepresentation]:
+    def tasks(self) -> list[Repr]:
         """
         Returns a list of instantiated tasks in the same order as self.task_names. Overwrite this to add
         new tasks and semantics (i.e. plot_fn or doing some preprocessing after loading from disk in some tasks.
@@ -184,7 +187,7 @@ class MultiTaskDataset(Dataset):
                     raise e
         return res, items_name, self.task_names
 
-    def add_task(self, task: StoredRepresentation, overwrite: bool=False):
+    def add_task(self, task: Repr, overwrite: bool=False):
         """Safely adds a task to this reader. Most likely can be optimized"""
         logger.info(f"Adding a new task: '{task.name}'")
         if task.name in self.task_names:
@@ -225,7 +228,7 @@ class MultiTaskDataset(Dataset):
         assert not any(len(x) == 0 for x in in_files.values()), f"{ [k for k, v in in_files.items() if len(v) == 0] }"
         return in_files
 
-    def _build_dataset(self, task_types: dict[str, StoredRepresentation], task_names: list[str]) -> BuildDatasetTuple:
+    def _build_dataset(self, task_types: dict[str, Repr], task_names: list[str]) -> BuildDatasetTuple:
         logger.debug(f"Building dataset from: '{self.path}'")
         all_npz_files = self._get_all_npz_files()
         all_files: dict[str, dict[str, Path]] = {k: {_v.name: _v for _v in v} for k, v in all_npz_files.items()}
@@ -281,9 +284,13 @@ class MultiTaskDataset(Dataset):
         for task_name in self.task_names:
             task = [t for t in self.tasks if t.name == task_name][0]
             file_path = self.files_per_repr[task_name][index]
-            res[task_name] = self.default_vals[task_name] if file_path is None else task.load_from_disk(file_path)
-            if isinstance(task, NormedRepresentationMixin) and self.statistics is not None:
-                res[task_name] = task.normalize(res[task_name])
+            if file_path is None:
+                res[task_name] = self.default_vals[task_name]
+            else:
+                np_memory_data = task.from_disk_fmt(task.load_from_disk(file_path))
+                if isinstance(task, NormedRepresentationMixin) and self.statistics is not None:
+                    np_memory_data = task.normalize(np_memory_data)
+                res[task_name] = tr.from_numpy(np_memory_data)
         return (res, self.file_names[index], self.task_names)
 
     def __len__(self) -> int:

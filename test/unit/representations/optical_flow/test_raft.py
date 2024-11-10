@@ -16,11 +16,11 @@ def test_raft(iters: int, small: bool):
     raft_repr.compute(video, [0])
     assert raft_repr.data.output.shape == (1, 128, 128, 2), (raft_repr.data.output.shape, iters)
 
-    y_raft_images = raft_repr.make_images(video, [0])
+    y_raft_images = raft_repr.make_images()
     assert y_raft_images.shape == (1, 128, 128, 3), y_raft_images.shape
     assert y_raft_images.dtype == np.uint8, y_raft_images.dtype
 
     assert raft_repr.size == (1, raft_repr.inference_height, raft_repr.inference_width, 2)
     raft_repr.resize((64, 128)) # we can resize it though
     assert raft_repr.size == (1, 64, 128, 2)
-    assert raft_repr.make_images(video, [0]).shape == (1, 64, 128, 3)
+    assert raft_repr.make_images().shape == (1, 64, 128, 3)

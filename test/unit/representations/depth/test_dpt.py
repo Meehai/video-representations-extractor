@@ -13,14 +13,14 @@ def test_dpt():
     dpt_repr.compute(video, ixs=[0])
     assert dpt_repr.data.output.shape == (1, 192, 384), dpt_repr.data.output.shape
 
-    y_dpt_images = dpt_repr.make_images(video, ixs=[0])
+    y_dpt_images = dpt_repr.make_images()
     assert y_dpt_images.shape == (1, 192, 384, 3), y_dpt_images.shape
     assert y_dpt_images.dtype == np.uint8, y_dpt_images.dtype
 
     assert dpt_repr.size == (1, 192, 384)
     dpt_repr.resize((64, 128)) # we can resize it though
     assert dpt_repr.size == (1, 64, 128)
-    assert dpt_repr.make_images(video, ixs=[0]).shape == (1, 64, 128, 3)
+    assert dpt_repr.make_images().shape == (1, 64, 128, 3)
 
 if __name__ == "__main__":
     test_dpt()

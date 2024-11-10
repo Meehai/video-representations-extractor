@@ -25,7 +25,7 @@ def _dataset_path() -> Path:
     min_depth, max_depth = 0, 300
     data = {
         "rgb": np.random.randint(0, 255, size=(N, H, W, 3)).astype(np.uint8),
-        "semantic_segprop8": np.eye(n_classes)[np.random.randint(0, n_classes, size=(N, H, W))].astype(np.uint8),
+        "semantic_segprop8": np.random.randint(0, n_classes, size=(N, H, W)).astype(np.uint16),
         "depth_sfm_manual202204": np.random.random(size=(N, H, W, 1)).astype(np.float32) \
             * (max_depth - min_depth) + min_depth,
     }
@@ -48,14 +48,17 @@ def test_MultiTaskDataset_ctor_shapes_and_types(dataset_path: Path):
     expected_shapes = {"rgb": (H, W, 3), "semantic_segprop8": (H, W, 8), "depth_sfm_manual202204": (H, W, 1)}
     assert (A := dataset.data_shape) == (B := expected_shapes), f"\n- {A} vs\n- {B}"
     x, _, __ = dataset[0]
-    assert all([x[k].shape == expected_shapes[k] for k in dataset.task_names]), (x, expected_shapes)
+
     assert x["rgb"].min() == 0 and x["rgb"].max() >= 240 and x["rgb"].max() <= 255, x["rgb"]
     assert x["rgb"].dtype == tr.uint8, x["rgb"]
-    assert x["depth_sfm_manual202204"].min() <= 10 and x["depth_sfm_manual202204"].max() >= 290 and \
-        x["depth_sfm_manual202204"].max(), x["depth_sfm_manual202204"]
+    assert x["rgb"].shape == (H, W, 3)
+    assert x["depth_sfm_manual202204"].min() <= 10 and x["depth_sfm_manual202204"].max() >= 290, \
+        x["depth_sfm_manual202204"]
     assert x["depth_sfm_manual202204"].dtype == tr.float32, x["depth_sfm_manual202204"]
+    assert x["depth_sfm_manual202204"].shape == (H, W, 1)
     assert x["semantic_segprop8"].unique().tolist() == [0, 1], x["semantic_segprop8"]
     assert x["semantic_segprop8"].dtype == tr.float32 # overwrite in dronescapes representation
+    assert x["semantic_segprop8"].shape == (H, W, 8)
 
 @pytest.mark.parametrize("normalization", ["standardization", "min_max"])
 def test_MultiTaskDataset_normalization(dataset_path: Path, normalization: str):

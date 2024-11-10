@@ -5,15 +5,17 @@ import torch.nn.functional as F
 from overrides import overrides
 
 from vre.utils import VREVideo, fetch_weights, colorize_depth, vre_load_weights
-from vre.representations import Representation, ReprOut, LearnedRepresentationMixin, ComputeRepresentationMixin
+from vre.representations import (
+    Representation, ReprOut, LearnedRepresentationMixin, ComputeRepresentationMixin, NpIORepresentation)
 from vre.representations.depth.dpt.dpt_impl import DPTDepthModel, get_size
 
-class DepthDpt(Representation, LearnedRepresentationMixin, ComputeRepresentationMixin):
+class DepthDpt(Representation, LearnedRepresentationMixin, ComputeRepresentationMixin, NpIORepresentation):
     """DPT Depth Estimation representation"""
     def __init__(self, **kwargs):
         Representation.__init__(self, **kwargs)
         LearnedRepresentationMixin.__init__(self)
         ComputeRepresentationMixin.__init__(self)
+        NpIORepresentation.__init__(self)
         self.net_w, self.net_h = 384, 384
         self.multiple_of = 32
         tr.manual_seed(42)
@@ -26,10 +28,10 @@ class DepthDpt(Representation, LearnedRepresentationMixin, ComputeRepresentation
         with tr.no_grad():
             predictions = self.model(tr_frames)
         res = self._postprocess(predictions)
-        self.data = ReprOut(output=res, key=ixs)
+        self.data = ReprOut(frames=np.array(video[ixs]), output=res, key=ixs)
 
     @overrides
-    def make_images(self, video: VREVideo, ixs: list[int] | slice) -> np.ndarray:
+    def make_images(self) -> np.ndarray:
         assert self.data is not None, f"[{self}] data must be first computed using compute()"
         return (colorize_depth(self.data.output, min_depth=0, max_depth=1) * 255).astype(np.uint8)
 

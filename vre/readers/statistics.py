@@ -8,14 +8,14 @@ import numpy as np
 from tqdm import trange
 
 from vre.logger import vre_logger as logger
-from vre.representations import NormedRepresentationMixin, StoredRepresentation
+from vre.representations import NormedRepresentationMixin, Representation
 
 TaskStatistics = Tuple[tr.Tensor, tr.Tensor, tr.Tensor, tr.Tensor] # (min, max, mean, std)
 
 def load_external_statistics(reader: "MultiTaskDataset",
                              statistics: dict[str, TaskStatistics | list]) -> dict[str, TaskStatistics]:
     """loads statistics from an external source provided to the constructor"""
-    name_to_task: dict[str, StoredRepresentation] = reader.name_to_task
+    name_to_task: dict[str, Representation] = reader.name_to_task
     tasks_no_classif = [t for t in set(reader.task_names) if isinstance(name_to_task[t], NormedRepresentationMixin)]
     assert (diff := set(tasks_no_classif).difference(statistics)) == set(), f"Missing tasks: {diff}"
     res: dict[str, TaskStatistics] = {}
@@ -28,7 +28,7 @@ def load_external_statistics(reader: "MultiTaskDataset",
 
 def compute_statistics(reader: "MultiTaskDataset") -> dict[str, TaskStatistics]:
     """computes statistics for all tasks that are not classification"""
-    name_to_task: dict[str, StoredRepresentation] = reader.name_to_task
+    name_to_task: dict[str, Representation] = reader.name_to_task
     cache_path: Path = reader.path / ".task_statistics.npz"
     res: dict[str, TaskStatistics] = {}
     if reader.cache_task_stats and cache_path.exists():
@@ -58,7 +58,7 @@ def _compute_channel_level_stats(reader: "MultiTaskDataset", missing_tasks: list
         assert not new_mean.isnan().any() and not new_m2.isnan().any(), (mean, new_mean, counts, counts_delta)
         return new_count, new_mean, new_m2
 
-    name_to_task: dict[str, StoredRepresentation] = reader.name_to_task
+    name_to_task: dict[str, Representation] = reader.name_to_task
     assert all(mt := [isinstance(name_to_task[t], NormedRepresentationMixin) for t in missing_tasks]), mt
     assert len(missing_tasks) > 0, missing_tasks
     ch = {k: v[-1] if len(v) == 3 else 1 for k, v in reader.data_shape.items()}

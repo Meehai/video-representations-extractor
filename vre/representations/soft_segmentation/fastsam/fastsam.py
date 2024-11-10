@@ -9,21 +9,23 @@ import torch as tr
 from torch import nn
 from torch.nn import functional as F
 
-from vre.representations import Representation, ReprOut, LearnedRepresentationMixin, ComputeRepresentationMixin
+from vre.representations import (Representation, ReprOut, LearnedRepresentationMixin,
+                                 ComputeRepresentationMixin, NpIORepresentation)
 from vre.utils import image_resize_batch, fetch_weights, image_read, image_write, VREVideo, FakeVideo
 from vre.logger import vre_logger as logger
 from vre.representations.soft_segmentation.fastsam.fastsam_impl import FastSAM as Model, FastSAMPredictor, FastSAMPrompt
 from vre.representations.soft_segmentation.fastsam.fastsam_impl.results import Results
 from vre.representations.soft_segmentation.fastsam.fastsam_impl.utils import bbox_iou
-from vre.representations.soft_segmentation.fastsam.fastsam_impl.ops import \
-    scale_boxes, non_max_suppression, process_mask_native
+from vre.representations.soft_segmentation.fastsam.fastsam_impl.ops import (
+    scale_boxes, non_max_suppression, process_mask_native)
 
-class FastSam(Representation, LearnedRepresentationMixin, ComputeRepresentationMixin):
+class FastSam(Representation, LearnedRepresentationMixin, ComputeRepresentationMixin, NpIORepresentation):
     """FastSAM representation."""
     def __init__(self, variant: str, iou: float, conf: float, **kwargs):
         Representation.__init__(self, **kwargs)
         LearnedRepresentationMixin.__init__(self)
         ComputeRepresentationMixin.__init__(self)
+        NpIORepresentation.__init__(self)
         assert variant in ("fastsam-s", "fastsam-x", "testing"), variant
         self.variant = variant
         self.conf = conf
@@ -34,7 +36,7 @@ class FastSam(Representation, LearnedRepresentationMixin, ComputeRepresentationM
     @overrides
     def compute(self, video: VREVideo, ixs: list[int] | slice):
         assert self.data is None, f"[{self}] data must not be computed before calling this"
-        tr_x = self._preproces(np.array(video[ixs]))
+        tr_x = self._preproces(frames := np.array(video[ixs]))
         tr_y: tr.FloatTensor = self.model.forward(tr_x)
         mb, _, i_h, i_w = tr_x.shape[0:4]
         boxes = self._postprocess(preds=tr_y, inference_height=i_h, inference_width=i_w, conf=self.conf, iou=self.iou)
@@ -42,13 +44,13 @@ class FastSam(Representation, LearnedRepresentationMixin, ComputeRepresentationM
         assert len(tr_y[1]) == 3, len(tr_y[1])
         # Note: this is called 'proto' in the original implementation. Only this part of predictions is used for plots.
         res = tr_y[1][-1].to("cpu").numpy()
-        self.data = ReprOut(output=res, extra=extra, key=ixs)
+        self.data = ReprOut(frames=frames, output=res, extra=extra, key=ixs)
 
     @overrides(check_signature=False)
-    def make_images(self, video: VREVideo, ixs: list[int] | slice) -> np.ndarray:
+    def make_images(self) -> np.ndarray:
         y_fastsam, extra = self.data.output, self.data.extra # len(y_fastsam) == len(extra) == len(ixs)
         assert all(e["inference_size"] == extra[0]["inference_size"] for e in extra), extra
-        frames_rsz = image_resize_batch(video[ixs], *self.size)
+        frames_rsz = image_resize_batch(self.data.frames, *self.size)
         frame_h, frame_w = frames_rsz.shape[1:3]
 
         tr_y = tr.from_numpy(y_fastsam).to(self.device)
@@ -83,7 +85,7 @@ class FastSam(Representation, LearnedRepresentationMixin, ComputeRepresentationM
         new_extra = [{"boxes": self._scale_box(tr.from_numpy(e["boxes"]), *old_size, *new_size).numpy(),
                       "inference_size": new_size} for e in extra]
         new_y_fastsam = F.interpolate(tr.from_numpy(y_fastsam), (new_size[0] // 4, new_size[1] // 4)).numpy()
-        self.data = ReprOut(output=new_y_fastsam, extra=new_extra, key=self.data.key)
+        self.data = ReprOut(frames=self.data.frames, output=new_y_fastsam, extra=new_extra, key=self.data.key)
 
     @overrides
     def vre_setup(self, load_weights: bool = True):
@@ -173,7 +175,7 @@ def main(args: Namespace):
     now = datetime.now()
     fastsam.compute(FakeVideo(img[None], 1), [0])
     logger.info(f"Pred took: {datetime.now() - now}")
-    semantic_result = fastsam.make_images(img[None], [0])[0]
+    semantic_result = fastsam.make_images()[0]
     image_write(semantic_result, args.output_path)
     logger.info(f"Written result to '{args.output_path}'")
 
@@ -181,7 +183,7 @@ def main(args: Namespace):
     pred = deepcopy(fastsam.data)
     fastsam.resize(img.shape[0:2])
     pred_rsz = fastsam.data
-    semantic_result_rsz = fastsam.make_images(img[None], [0])[0]
+    semantic_result_rsz = fastsam.make_images()[0]
     image_write(semantic_result_rsz, output_path_rsz)
     logger.info(f"Written resized result to '{output_path_rsz}'")
 

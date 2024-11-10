@@ -14,11 +14,11 @@ def test_VRERuntimeArgs_ctor():
     with pytest.raises(AssertionError):
         _ = VRERuntimeArgs(video, representations, start_frame=0, end_frame=3, exception_mode="stop_execution",
                            n_threads_data_storer=0)
-    with pytest.raises(AssertionError):
+    with pytest.raises(TypeError):
         _ = VRERuntimeArgs(video, representations, start_frame="lala", end_frame=3, exception_mode="stop_execution",
                            n_threads_data_storer=0)
     with pytest.raises(AssertionError):
-        _ = VRERuntimeArgs(video, representations, start_frame="lala", end_frame=3, exception_mode="lala",
+        _ = VRERuntimeArgs(video, representations, start_frame=0, end_frame=3, exception_mode="lala",
                            n_threads_data_storer=0)
 
     runtime_args = VRERuntimeArgs(video, representations, start_frame=0, end_frame=None, n_threads_data_storer=0,

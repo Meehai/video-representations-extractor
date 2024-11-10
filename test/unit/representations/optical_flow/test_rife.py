@@ -16,11 +16,11 @@ def test_rife_uhd_false(uhd):
     rife_repr.compute(video, [0])
     assert rife_repr.data.output.shape == (1, *out_shape, 2), rife_repr.data.output.shape
 
-    y_rife_images = rife_repr.make_images(video, [0])
+    y_rife_images = rife_repr.make_images()
     assert y_rife_images.shape == (1, *out_shape, 3), y_rife_images.shape
     assert y_rife_images.dtype == np.uint8, y_rife_images.dtype
 
     assert rife_repr.size == (1, *out_shape, 2)
     rife_repr.resize((64, 128)) # we can resize it though
     assert rife_repr.size == (1, 64, 128, 2)
-    assert rife_repr.make_images(video, [0]).shape == (1, 64, 128, 3)
+    assert rife_repr.make_images().shape == (1, 64, 128, 3)

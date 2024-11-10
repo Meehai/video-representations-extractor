@@ -3,15 +3,16 @@ import numpy as np
 from overrides import overrides
 from matplotlib.cm import gray # pylint: disable=no-name-in-module
 
-from vre.representations import Representation, ReprOut, ComputeRepresentationMixin
+from vre.representations import Representation, ReprOut, ComputeRepresentationMixin, NpIORepresentation
 from vre.utils import VREVideo
 from vre.utils.cv2_utils import cv2_Canny
 
-class Canny(Representation, ComputeRepresentationMixin):
+class Canny(Representation, ComputeRepresentationMixin, NpIORepresentation):
     """Canny edge detector representation."""
     def __init__(self, threshold1: float, threshold2: float, aperture_size: int, l2_gradient: bool, **kwargs):
         Representation.__init__(self, **kwargs)
         ComputeRepresentationMixin.__init__(self)
+        NpIORepresentation.__init__(self)
         self.threshold1 = threshold1
         self.threshold2 = threshold2
         self.aperture_size = aperture_size
@@ -20,10 +21,11 @@ class Canny(Representation, ComputeRepresentationMixin):
     @overrides
     def compute(self, video: VREVideo, ixs: list[int] | slice):
         assert self.data is None, f"[{self}] data must not be computed before calling this"
-        self.data = ReprOut(output=np.array([self._make_one(frame) for frame in video[ixs]]), key=ixs)
+        self.data = ReprOut(frames=np.array(video[ixs]),
+                            output=np.array([self._make_one(frame) for frame in video[ixs]]), key=ixs)
 
     @overrides
-    def make_images(self, video: VREVideo, ixs: list[int] | slice) -> np.ndarray:
+    def make_images(self) -> np.ndarray:
         assert self.data is not None, f"[{self}] data must be first computed using compute()"
         return (255 * gray(self.data.output)[..., 0:3]).astype(np.uint8)
 

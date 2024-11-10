@@ -7,7 +7,8 @@ from torch.nn import functional as F
 
 from vre.utils import image_resize_batch, fetch_weights, vre_load_weights, colorize_semantic_segmentation, VREVideo
 from vre.logger import vre_logger as logger
-from vre.representations import Representation, ReprOut, LearnedRepresentationMixin, ComputeRepresentationMixin
+from vre.representations import (
+    Representation, ReprOut, LearnedRepresentationMixin, ComputeRepresentationMixin, NpIORepresentation)
 from vre.representations.semantic_segmentation.safeuav.Map2Map import EncoderMap2Map, DecoderMap2Map
 
 class _SafeUavWrapper(nn.Module):
@@ -24,13 +25,14 @@ class _SafeUavWrapper(nn.Module):
         y_decoder = self.decoder(y_encoder)
         return y_decoder
 
-class SafeUAV(Representation, LearnedRepresentationMixin, ComputeRepresentationMixin):
+class SafeUAV(Representation, LearnedRepresentationMixin, ComputeRepresentationMixin, NpIORepresentation):
     """SafeUAV semantic segmentation representation"""
     def __init__(self, num_classes: int, train_height: int, train_width: int, color_map: list[tuple[int, int, int]],
                  semantic_argmax_only: bool, weights_file: str | None = None, **kwargs):
         Representation.__init__(self, **kwargs)
         LearnedRepresentationMixin.__init__(self)
         ComputeRepresentationMixin.__init__(self)
+        NpIORepresentation.__init__(self)
         self.num_classes = num_classes
         assert len(color_map) == num_classes, f"{color_map} ({len(color_map)}) vs {num_classes}"
         self.color_map = color_map
@@ -52,13 +54,13 @@ class SafeUAV(Representation, LearnedRepresentationMixin, ComputeRepresentationM
             prediction = self.model.forward(frames_resized)
         np_pred = prediction.permute(0, 2, 3, 1).cpu().numpy().astype(np.float32)
         y_out = np.argmax(np_pred, axis=-1).astype(np.uint8) if self.semantic_argmax_only else np_pred
-        self.data = ReprOut(output=y_out, key=ixs)
+        self.data = ReprOut(frames=np.array(video[ixs]), output=y_out, key=ixs)
 
     @overrides
-    def make_images(self, video: VREVideo, ixs: list[int] | slice) -> np.ndarray:
+    def make_images(self) -> np.ndarray:
         assert self.data is not None, f"[{self}] data must be first computed using compute()"
         res = []
-        frames_rsz = image_resize_batch(video[ixs], *self.data.output.shape[1:3])
+        frames_rsz = image_resize_batch(self.data.frames, *self.data.output.shape[1:3])
         for img, pred in zip(frames_rsz, self.data.output):
             _pred: np.ndarray = pred if self.semantic_argmax_only else pred.argmax(-1)
             res.append(colorize_semantic_segmentation(_pred, self.classes, self.color_map, img))

@@ -17,7 +17,8 @@ class Metadata:
         assert batch_size > 0, batch_size
         if representation not in self.metadata["run_stats"]:
             self.metadata["run_stats"][representation] = []
-        self.metadata["run_stats"][representation].extend([duration / batch_size] * batch_size)
+        data = [duration / batch_size] * batch_size if duration != 1 << 31 else [1 << 31] * batch_size
+        self.metadata["run_stats"][representation].extend(data)
 
     def store_on_disk(self):
         """stores (overwrites if needed) the metadata on disk"""

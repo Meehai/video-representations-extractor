@@ -9,10 +9,10 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageStat
 from overrides import overrides
 
-from vre.representations import Representation, ReprOut, ComputeRepresentationMixin
+from vre.representations import Representation, ReprOut, ComputeRepresentationMixin, NpIORepresentation
 from vre.utils import image_resize, VREVideo
 
-class Halftone(Representation, ComputeRepresentationMixin):
+class Halftone(Representation, ComputeRepresentationMixin, NpIORepresentation):
     """
     Halftone representation
     Parameters:
@@ -27,6 +27,7 @@ class Halftone(Representation, ComputeRepresentationMixin):
                  antialias: bool, resolution: tuple[int, int], **kwargs):
         Representation.__init__(self, **kwargs)
         ComputeRepresentationMixin.__init__(self)
+        NpIORepresentation.__init__(self)
         assert len(resolution) == 2, resolution
         self.sample = sample
         self.scale = scale
@@ -39,10 +40,11 @@ class Halftone(Representation, ComputeRepresentationMixin):
     @overrides
     def compute(self, video: VREVideo, ixs: list[int] | slice):
         assert self.data is None, f"[{self}] data must not be computed before calling this"
-        self.data = ReprOut(output=np.array([self._make_one_image(frame) for frame in video[ixs]]), key=ixs)
+        self.data = ReprOut(frames=np.array(video[ixs]),
+                            output=np.array([self._make_one_image(frame) for frame in video[ixs]]), key=ixs)
 
     @overrides
-    def make_images(self, video: VREVideo, ixs: list[int] | slice) -> np.ndarray:
+    def make_images(self) -> np.ndarray:
         assert self.data is not None, f"[{self}] data must be first computed using compute()"
         return (self.data.output * 255).astype(np.uint8)
 

@@ -14,14 +14,14 @@ def test_marigold():
     marigold_repr.compute(video, ixs=[0])
     assert marigold_repr.data.output.shape == (1, 8, 24), marigold_repr.data.output.shape
 
-    y_dpt_images = marigold_repr.make_images(video, ixs=[0])
+    y_dpt_images = marigold_repr.make_images()
     assert y_dpt_images.shape == (1, 8, 24, 3), y_dpt_images.shape
     assert y_dpt_images.dtype == np.uint8, y_dpt_images.dtype
 
     assert marigold_repr.size == (1, 8, 24)
     marigold_repr.resize((64, 128)) # we can resize it though
     assert marigold_repr.size == (1, 64, 128)
-    assert marigold_repr.make_images(video, ixs=[0]).shape == (1, 64, 128, 3)
+    assert marigold_repr.make_images().shape == (1, 64, 128, 3)
 
 if __name__ == "__main__":
     test_marigold()

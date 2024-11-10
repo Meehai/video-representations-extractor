@@ -7,6 +7,7 @@ from ..utils import topological_sort
 from .representation import Representation
 from .learned_representation_mixin import LearnedRepresentationMixin
 from .compute_representation_mixin import ComputeRepresentationMixin
+from .io_representation_mixin import IORepresentationMixin
 
 # pylint: disable=import-outside-toplevel, redefined-builtin, too-many-branches, too-many-statements, cyclic-import
 def build_representation_type(repr_type: str) -> Type[Representation]:
@@ -62,7 +63,8 @@ def build_representation_type(repr_type: str) -> Type[Representation]:
 
 def build_representation_from_cfg(repr_cfg: dict, name: str, built_so_far: dict[str, Representation],
                                   compute_representations_defaults: dict | None = None,
-                                  learned_representations_defaults: dict | None = None) -> Representation:
+                                  learned_representations_defaults: dict | None = None,
+                                  io_representations_defaults: dict | None = None) -> Representation:
     """Builds a representation given a dict config and a name."""
     assert isinstance(repr_cfg, dict), f"Broken format (not a dict) for {name}. Type: {type(repr_cfg)}."
     assert set(repr_cfg).issubset({"type", "parameters", "dependencies", "compute_parameters", "learned_parameters"}), \
@@ -101,11 +103,25 @@ def build_representation_from_cfg(repr_cfg: dict, name: str, built_so_far: dict[
         obj.set_compute_params(**repr_compute_params)
     else:
         assert "compute_parameters" not in repr_cfg, f"Compute parameters not allowed for {name}"
+
+    if isinstance(obj, IORepresentationMixin):
+        defaults = {} if io_representations_defaults is None else io_representations_defaults
+        defaults = OmegaConf.to_container(defaults, resolve=True) if isinstance(defaults, DictConfig) else defaults
+        if "io_parameters" in repr_cfg:
+            repr_io_params = {**defaults, **repr_cfg.get("io_parameters", {})}
+            logger.debug(f"[{obj}] Setting node specific params: {repr_io_params}")
+        else:
+            repr_io_params = defaults
+            logger.debug(f"[{obj}] Setting default params: {repr_io_params}")
+        obj.set_io_params(**repr_io_params)
+    else:
+        assert "io_parameters" not in repr_cfg, f"I/O parameters not allowed for {name}"
     return obj
 
 def build_representations_from_cfg(representations_dict: dict | DictConfig,
-                                   compute_representations_default: dict | None = None,
-                                   learned_representations_defaults: dict | None = None ) -> dict[str, Representation]:
+                                   compute_representations_defaults: dict | None = None,
+                                   learned_representations_defaults: dict | None = None,
+                                   io_representations_defaults: dict | None = None) -> dict[str, Representation]:
     """builds a dict of representations given a dict config (yaml file)"""
     if isinstance(representations_dict, DictConfig):
         representations_dict: dict = OmegaConf.to_container(representations_dict, resolve=True)
@@ -119,7 +135,7 @@ def build_representations_from_cfg(representations_dict: dict | DictConfig,
         dep_graph[repr_name] = repr_cfg_values["dependencies"]
     topo_sorted = {k: representations_dict[k] for k in topological_sort(dep_graph)}
     for name, repr_cfg in topo_sorted.items():
-        obj = build_representation_from_cfg(repr_cfg, name, tsr, compute_representations_default,
-                                            learned_representations_defaults)
+        obj = build_representation_from_cfg(repr_cfg, name, tsr, compute_representations_defaults,
+                                            learned_representations_defaults, io_representations_defaults)
         tsr[name] = obj
     return tsr

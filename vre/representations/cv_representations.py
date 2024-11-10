@@ -1,129 +1,113 @@
 """Computer Vision stored representations"""
 from __future__ import annotations
-from pathlib import Path
 import numpy as np
-import torch as tr
 import flow_vis
 from overrides import overrides
 from matplotlib.cm import Spectral # pylint: disable=no-name-in-module
-from torch.nn import functional as F
 
 from vre.utils import colorize_semantic_segmentation
-from .npz_representation import NpzRepresentation
+from .np_io_representation import NpIORepresentation, DiskData, MemoryData
 from .normed_representation_mixin import NormedRepresentationMixin
+from .representation import Representation
 from .color.hsv import rgb2hsv
 
-class ColorRepresentation(NpzRepresentation, NormedRepresentationMixin):
+class ColorRepresentation(Representation, NpIORepresentation, NormedRepresentationMixin):
     """ColorRepresentation -- a wrapper over all 3-channeled colored representations"""
-    def __init__(self, name: str, dependencies: list[str] | None = None):
-        NpzRepresentation.__init__(self, name, n_channels=3, dependencies=dependencies)
+    def __init__(self, name: str, dependencies: list[Representation] | None = None):
+        Representation.__init__(self, name=name, dependencies=dependencies)
+        NpIORepresentation.__init__(self)
         NormedRepresentationMixin.__init__(self)
 
     @overrides
-    def return_fn(self, load_data: tr.Tensor) -> tr.Tensor:
-        return load_data
-
-    @overrides
-    def plot_fn(self, x: tr.Tensor) -> np.ndarray:
-        x = self.unnormalize(x.detach().cpu()) if self.normalization is not None else x.detach().cpu()
-        return x.byte().numpy()
+    def make_images(self) -> np.ndarray:
+        y = self.unnormalize(self.data.output) if self.normalization is not None else self.data.output
+        return y.astype(np.uint8)
 
 class RGBRepresentation(ColorRepresentation): pass # pylint: disable=missing-class-docstring, multiple-statements
 
 class NormalsRepresentation(ColorRepresentation):
     """NormalsRepresentation -- CV representation for world and camera normals"""
     @overrides
-    def plot_fn(self, x: tr.Tensor) -> np.ndarray:
-        x = self.unnormalize(x.detach().cpu()) if self.normalization is not None else x.detach().cpu()
-        return (x * 255).byte().numpy()
+    def make_images(self) -> np.ndarray:
+        y = self.unnormalize(self.data.output) if self.normalization is not None else self.data.output
+        return (y * 255).astype(np.uint8)
 
 class HSVRepresentation(ColorRepresentation):
     """HSVRepresentation -- CV representation for HSV derived from RGB directly"""
     @overrides
-    def load_from_disk(self, path: Path) -> tr.Tensor:
-        rgb = NpzRepresentation.load_from_disk(self, path)
-        return tr.from_numpy(rgb2hsv(rgb.numpy())).float()
+    def from_disk_fmt(self, disk_data: DiskData) -> MemoryData:
+        return rgb2hsv(disk_data)
 
     @overrides
-    def plot_fn(self, x: tr.Tensor) -> np.ndarray:
-        x = self.unnormalize(x.detach().cpu()) if self.normalization is not None else x.detach().cpu()
-        return (x * 255).byte().numpy()
+    def make_images(self) -> np.ndarray:
+        y = self.unnormalize(self.data.output) if self.normalization is not None else self.data.output
+        return (y * 255).astype(np.uint8)
 
-class EdgesRepresentation(NpzRepresentation, NormedRepresentationMixin):
+class EdgesRepresentation(Representation, NpIORepresentation, NormedRepresentationMixin):
     """EdgesRepresentation -- CV representation for 1-channeled edges/boundaries"""
     def __init__(self, *args, **kwargs):
-        NpzRepresentation.__init__(self, *args, n_channels=1, **kwargs)
+        Representation.__init__(self, *args, **kwargs)
+        NpIORepresentation.__init__(self)
         NormedRepresentationMixin.__init__(self)
+        self.n_channels = 1 # TODO
 
-    @overrides
-    def return_fn(self, load_data: tr.Tensor) -> tr.Tensor:
-        return load_data
+    def make_images(self) -> np.ndarray:
+        y = self.unnormalize(self.data.output) if self.normalization is not None else self.data.output
+        return (np.repeat(y, 3, axis=-1) * 255).astype(np.uint8)
 
-    def plot_fn(self, x: tr.Tensor) -> np.ndarray:
-        x = self.unnormalize(x.detach().cpu()) if self.normalization is not None else x.detach().cpu()
-        return (x.repeat(1, 1, 3) * 255).byte().numpy()
-
-class DepthRepresentation(NpzRepresentation, NormedRepresentationMixin):
+class DepthRepresentation(Representation, NpIORepresentation, NormedRepresentationMixin):
     """DepthRepresentation. Implements depth task-specific stuff, like spectral map for plots."""
     def __init__(self, name: str, min_depth: float, max_depth: float, **kwargs):
-        NpzRepresentation.__init__(self, name, n_channels=1, **kwargs)
+        Representation.__init__(self, name=name, **kwargs)
+        NpIORepresentation.__init__(self)
         NormedRepresentationMixin.__init__(self)
-
+        self.n_channels = 1 # TODO
         self.min_depth = min_depth
         self.max_depth = max_depth
 
     @overrides
-    def return_fn(self, load_data: tr.Tensor) -> tr.Tensor:
-        return load_data.clip(self.min_depth, self.max_depth)
+    def from_disk_fmt(self, disk_data: DiskData) -> MemoryData:
+        return disk_data.clip(self.min_depth, self.max_depth)
 
     @overrides
-    def plot_fn(self, x: tr.Tensor) -> np.ndarray:
-        x = x.detach().clip(0, 1).squeeze().cpu().numpy()
+    def make_images(self) -> np.ndarray:
+        x = self.data.output.squeeze().clip(0, 1)
         _min, _max = np.percentile(x, [1, 95])
         x = np.nan_to_num((x - _min) / (_max - _min), False, 0, 0, 0).clip(0, 1)
         y: np.ndarray = Spectral(x)[..., 0:3] * 255
         return y.astype(np.uint8)
 
-class OpticalFlowRepresentation(NpzRepresentation, NormedRepresentationMixin):
+class OpticalFlowRepresentation(Representation, NpIORepresentation, NormedRepresentationMixin):
     """OpticalFlowRepresentation. Implements flow task-specific stuff, like using flow_vis."""
     def __init__(self, *args, **kwargs):
-        NpzRepresentation.__init__(self, *args, n_channels=2, **kwargs)
+        Representation.__init__(self, *args, **kwargs)
+        NpIORepresentation.__init__(self)
         NormedRepresentationMixin.__init__(self)
+        self.n_channels = 2 # TODO
 
     @overrides
-    def return_fn(self, load_data: tr.Tensor) -> tr.Tensor:
-        return load_data
+    def make_images(self) -> np.ndarray:
+        _min, _max = self.data.output.min(0).min(0), self.data.output.max(0).max(0)
+        y = np.nan_to_num(((self.data.output - _min) / (_max - _min)), False, 0, 0, 0).astype(np.float32)
+        return flow_vis.flow_to_color(y)
 
-    @overrides
-    def plot_fn(self, x: tr.Tensor) -> np.ndarray:
-        _min, _max = x.min(0)[0].min(0)[0], x.max(0)[0].max(0)[0]
-        x = ((x - _min) / (_max - _min)).nan_to_num(0, 0, 0).detach().cpu().numpy()
-        return flow_vis.flow_to_color(x)
-
-class SemanticRepresentation(NpzRepresentation):
+class SemanticRepresentation(Representation, NpIORepresentation):
     """SemanticRepresentation. Implements semantic task-specific stuff, like argmaxing if needed"""
     def __init__(self, *args, classes: int | list[str], color_map: list[tuple[int, int, int]], **kwargs):
         self.n_classes = len(list(range(classes)) if isinstance(classes, int) else classes)
-        super().__init__(*args, **kwargs, n_channels=self.n_classes)
+        Representation.__init__(self, *args, **kwargs)
+        NpIORepresentation.__init__(self)
         self.classes = list(range(classes)) if isinstance(classes, int) else classes
         self.color_map = color_map
+        self.n_channels = self.n_classes # TODO
         assert len(color_map) == self.n_classes and self.n_classes > 1, (color_map, self.n_classes)
 
-    def return_fn(self, load_data: tr.Tensor) -> tr.Tensor:
-        """return_fn is the code that's ran between what's stored on the disk and what's actually sent to the model"""
-        return F.one_hot(load_data.long(), num_classes=self.n_classes).float() # pylint: disable=not-callable
+    @overrides
+    def from_disk_fmt(self, disk_data: DiskData) -> MemoryData:
+        assert disk_data.dtype in (np.uint8, np.uint16), disk_data.dtype
+        return np.eye(self.n_classes)[disk_data].astype(np.float32)
 
     @overrides
-    def load_from_disk(self, path: Path) -> tr.Tensor:
-        res = super().load_from_disk(path).argmax(-1) # TODO: we need to argmax() because npzrepr.load calls return_fn
-        if len(res.shape) == 3:
-            assert res.shape[-1] == self.n_classes, f"Expected {self.n_classes} (HxWxC), got {res.shape[-1]}"
-            res = res.argmax(-1)
-        assert len(res.shape) == 2, f"Only argmaxed data supported, got: {res.shape}"
-        return self.return_fn(res)
-
-    @overrides
-    def plot_fn(self, x: tr.Tensor) -> np.ndarray:
-        x_argmax = x.squeeze().nan_to_num(0).detach().argmax(-1).cpu().numpy()
-        return colorize_semantic_segmentation(x_argmax, self.classes, self.color_map,
+    def make_images(self) -> np.ndarray:
+        return colorize_semantic_segmentation(self.data.output.argmax(-1), self.classes, self.color_map,
                                               font_size_scale=2, original_rgb=None)
