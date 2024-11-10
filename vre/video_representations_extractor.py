@@ -100,6 +100,7 @@ class VideoRepresentationsExtractor:
         assert isinstance(rep, ComputeRepresentationMixin), rep
         rep.vre_setup() if isinstance(rep, LearnedRepresentationMixin) and not rep.setup_called else None
         for dep in rep.dependencies: # Note: hopefully toposorted...
+            dep.data = None # TODO: make unit test with this (lingering .data from previous computation)
             load_from_disk_if_possible(dep, self.video, list(range(l, r)), output_dir)
             if dep.data is None:
                 assert isinstance(dep, ComputeRepresentationMixin), dep

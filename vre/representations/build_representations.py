@@ -67,8 +67,8 @@ def build_representation_from_cfg(repr_cfg: dict, name: str, built_so_far: dict[
                                   io_representations_defaults: dict | None = None) -> Representation:
     """Builds a representation given a dict config and a name."""
     assert isinstance(repr_cfg, dict), f"Broken format (not a dict) for {name}. Type: {type(repr_cfg)}."
-    assert set(repr_cfg).issubset({"type", "parameters", "dependencies", "compute_parameters", "learned_parameters"}), \
-        f"{name} wrong keys: {repr_cfg.keys()}"
+    valid_keys = {"type", "parameters", "dependencies", "compute_parameters", "learned_parameters", "io_parameters"}
+    assert set(repr_cfg).issubset(valid_keys), f"{name} wrong keys: {repr_cfg.keys()}"
     assert {"type", "parameters", "dependencies"}.issubset(repr_cfg), f"{name} missing keys: {repr_cfg.keys()}"
     assert isinstance(repr_cfg["parameters"], dict), type(repr_cfg["parameters"])
     assert name.find("/") == -1, "No '/' allowed in the representation name. Got '{name}'"
