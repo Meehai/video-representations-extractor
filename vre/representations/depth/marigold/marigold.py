@@ -13,16 +13,18 @@ from diffusers import AutoencoderKL, DDIMScheduler, LCMScheduler, UNet2DConditio
 
 from vre.utils import (image_resize_batch, image_read, colorize_depth, image_write,
                        fetch_weights, vre_load_weights, VREVideo)
-from vre.representations import Representation, ReprOut, LearnedRepresentationMixin, ComputeRepresentationMixin
+from vre.representations import (
+    Representation, ReprOut, LearnedRepresentationMixin, ComputeRepresentationMixin, NpIORepresentation)
 from vre.representations.depth.marigold.marigold_impl import MarigoldPipeline
 
-class Marigold(Representation, LearnedRepresentationMixin, ComputeRepresentationMixin):
+class Marigold(Representation, LearnedRepresentationMixin, ComputeRepresentationMixin, NpIORepresentation):
     """Marigold VRE implementation"""
     def __init__(self, variant: str, denoising_steps: int, ensemble_size: int, processing_resolution: int,
                  seed: int | None = None, **kwargs):
         Representation.__init__(self, **kwargs)
         LearnedRepresentationMixin.__init__(self)
         ComputeRepresentationMixin.__init__(self)
+        NpIORepresentation.__init__(self)
         assert variant in ("marigold-v1-0", "marigold-lcm-v1-0", "testing"), variant
         self.variant = variant
         self.denoising_steps = denoising_steps
@@ -54,17 +56,18 @@ class Marigold(Representation, LearnedRepresentationMixin, ComputeRepresentation
     @overrides
     def compute(self, video: VREVideo, ixs: list[int] | slice):
         assert self.data is None, f"[{self}] data must not be computed before calling this"
-        self.data = ReprOut(output=np.stack([self._make_one_frame(frame) for frame in video[ixs]]), key=ixs)
+        self.data = ReprOut(frames=np.array(video[ixs]),
+                            output=np.stack([self._make_one_frame(frame) for frame in video[ixs]]), key=ixs)
 
     @overrides
-    def make_images(self, video: VREVideo, ixs: list[int] | slice) -> np.ndarray:
+    def make_images(self) -> np.ndarray:
         assert self.data is not None, f"[{self}] data must be first computed using compute()"
         return (colorize_depth(self.data.output, 0, 1) * 255).astype(np.uint8)
 
     @overrides
     def resize(self, new_size: tuple[int, int]) -> ReprOut:
-        self.data = ReprOut(output=image_resize_batch(self.data.output, *new_size, "bilinear").clip(0, 1),
-                            extra=self.data.extra, key=self.data.key)
+        self.data = ReprOut(frames=self.data.frames, extra=self.data.extra, key=self.data.key,
+                            output=image_resize_batch(self.data.output, *new_size, "bilinear").clip(0, 1))
 
     @overrides
     def vre_free(self):
@@ -190,7 +193,7 @@ def main():
                 print(e)
 
         marigold.resize(rgb.shape[0:2])
-        depth_img = marigold.make_images(rgb[None], [0])[0]
+        depth_img = marigold.make_images()[0]
         image_write(depth_img, output_dir / "png" / f"{rgb_path.stem}_pred.png")
 
 if __name__ == "__main__":

@@ -8,13 +8,14 @@ import pandas as pd
 from torch.nn import functional as F
 from vre import VRE
 from vre.utils import FakeVideo, colorize_semantic_segmentation, semantic_mapper
-from vre.representations import Representation, TaskMapper
+from vre.representations import Representation, TaskMapper, NpIORepresentation
 from vre.representations.color import RGB, HSV
 from vre.representations.cv_representations import SemanticRepresentation
 
-class Buildings(TaskMapper):
+class Buildings(TaskMapper, NpIORepresentation):
     def __init__(self, name: str, dependencies: list[Representation]):
         super().__init__(name=name, dependencies=dependencies, n_channels=2)
+        NpIORepresentation.__init__(self)
         self.dtype = "bool"
         self.mapping = [
             {"buildings": [0, 1, 2, 3], "others": [4, 5, 6, 7]},
@@ -23,20 +24,24 @@ class Buildings(TaskMapper):
         self.original_classes = [[0, 1, 2, 3, 4, 5, 6, 7], [0, 1, 2, 3, 4, 5, 6, 7]]
         self.classes = ["buildings", "others"]
 
-    def return_fn(self, x: tr.Tensor) -> tr.Tensor:
-        return F.one_hot(x.long(), num_classes=2).float()
+    def from_disk_fmt(self, disk_data: np.ndarray) -> np.ndarray:
+        return np.eye(2)[disk_data].astype(np.float32)
 
-    def merge_fn(self, dep_data: list[np.ndarray]) -> tr.Tensor:
-        dep_data_argmaxed = [x.argmax(-1).numpy() for x in dep_data]
-        dep_data_converted = [semantic_mapper(x, mapping, oc)
-                              for x, mapping, oc in zip(dep_data_argmaxed, self.mapping, self.original_classes)]
-        combined = tr.from_numpy(sum(dep_data_converted) > 0) # mode='all_agree' in the original code
-        return combined
+    def to_disk_fmt(self, memory_data: np.ndarray) -> np.ndarray:
+        return memory_data.argmax(-1).astype(bool)
 
-    def plot_fn(self, x: tr.Tensor) -> np.ndarray:
-        x_argmax = x.squeeze().nan_to_num(0).detach().argmax(-1).cpu().numpy()
-        return colorize_semantic_segmentation(x_argmax, self.classes, [[255, 255, 255], [0, 0, 0]],
-                                              original_rgb=None, font_size_scale=3)
+    def merge_fn(self, dep_data: list[np.ndarray]) -> np.ndarray:
+        dep_data_converted = [semantic_mapper(x.argmax(-1), mapping, oc)
+                              for x, mapping, oc in zip(dep_data, self.mapping, self.original_classes)]
+        return sum(dep_data_converted) > 0 # mode='all_agree' in the original code
+
+    def make_images(self) -> np.ndarray:
+        res = []
+        for i in range(len(self.data.output)):
+            res.append(colorize_semantic_segmentation(self.data.output[i].astype(int), self.classes,
+                                                      color_map=[[255, 255, 255], [0, 0, 0]],
+                                                      original_rgb=None, font_size_scale=3))
+        return np.array(res)
 
 def _generate_random_data(n: int) -> Path:
     tmp_dir = Path(__file__).parent / "data" if __name__ == "__main__" else Path(TemporaryDirectory().name)
@@ -61,8 +66,7 @@ def test_vre_stored_representation():
     sema1 = SemanticRepresentation("sema1", classes=8, color_map=[[i, i, i] for i in range(8)])
     sema2 = SemanticRepresentation("sema2", classes=8, color_map=[[i, i, i] for i in range(8)])
     representations = {"rgb": rgb, "buildings": Buildings("buildings", [sema1, sema2]), "hsv": HSV("hsv", [rgb])}
-    vre = VRE(video, representations)
-    vre.set_compute_params(binary_format="npz", image_format="png")
+    vre = VRE(video, representations).set_io_parameters(binary_format="npz", image_format="png")
     print(vre)
 
     res = vre.run(output_dir=Path(tmp_dir), start_frame=0, end_frame=None, output_dir_exists_mode="skip_computed")

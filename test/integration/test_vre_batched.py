@@ -163,7 +163,7 @@ def test_vre_batched():
     batch_size = 2 # BS=2 is enough to test this. In examples/ we have a becnhmark that tries more values
 
     vre = VRE(video, representations)
-    vre.set_compute_params(binary_format="npz", image_format="png", batch_size=1, )
+    vre.set_compute_params(batch_size=1).set_io_parameters(binary_format="npz", image_format="png")
     took1 = vre(tmp_dir_bs, start_frame=start_frame, end_frame=end_frame, output_dir_exists_mode="raise")
     vre.set_compute_params(batch_size=batch_size)
     took_bs = vre(tmp_dir, start_frame=start_frame, end_frame=end_frame, output_dir_exists_mode="raise")

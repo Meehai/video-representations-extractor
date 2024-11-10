@@ -11,15 +11,17 @@ import numpy as np
 from vre.logger import vre_logger as logger
 from vre.utils import (image_resize_batch, fetch_weights, image_read, image_write,
                        vre_load_weights, colorize_semantic_segmentation, VREVideo, FakeVideo)
-from vre.representations import Representation, ReprOut, LearnedRepresentationMixin, ComputeRepresentationMixin
+from vre.representations import (
+    Representation, ReprOut, LearnedRepresentationMixin, ComputeRepresentationMixin, NpIORepresentation)
 from vre.representations.semantic_segmentation.mask2former.mask2former_impl import MaskFormer, CfgNode, get_output_shape
 
-class Mask2Former(Representation, LearnedRepresentationMixin, ComputeRepresentationMixin):
+class Mask2Former(Representation, LearnedRepresentationMixin, ComputeRepresentationMixin, NpIORepresentation):
     """Mask2Former representation implementation. Note: only semantic segmentation (not panoptic/instance) enabled."""
     def __init__(self, model_id: str, semantic_argmax_only: bool, **kwargs):
         Representation.__init__(self, **kwargs)
         LearnedRepresentationMixin.__init__(self)
         ComputeRepresentationMixin.__init__(self)
+        NpIORepresentation.__init__(self)
         assert isinstance(model_id, str) and model_id in {"47429163_0", "49189528_1", "49189528_0"}, model_id
         self._m2f_resources = Path(__file__).parent / "mask2former_impl/resources"
         self.classes, self.color_map, self.thing_dataset_id_to_contiguous_id = self._get_metadata(model_id)
@@ -42,13 +44,13 @@ class Mask2Former(Representation, LearnedRepresentationMixin, ComputeRepresentat
         for pred in predictions:
             _pred = pred.argmax(dim=0) if self.semantic_argmax_only else pred.permute(1, 2, 0)
             res.append(_pred.to("cpu").numpy())
-        self.data = ReprOut(output=np.stack(res), key=ixs)
+        self.data = ReprOut(frames=np.array(video[ixs]), output=np.stack(res), key=ixs)
 
     @overrides
-    def make_images(self, video: VREVideo, ixs: list[int] | slice) -> np.ndarray:
+    def make_images(self) -> np.ndarray:
         assert self.data is not None, f"[{self}] data must be first computed using compute()"
         res = []
-        frames_rsz = image_resize_batch(video[ixs], *self.data.output.shape[1:3])
+        frames_rsz = image_resize_batch(self.data.frames, *self.data.output.shape[1:3])
         for img, pred in zip(frames_rsz, self.data.output):
             _pred = pred if self.semantic_argmax_only else pred.argmax(-1)
             res.append(colorize_semantic_segmentation(_pred, self.classes, self.color_map, img))
@@ -108,7 +110,7 @@ def main(args: Namespace):
     now = datetime.now()
     m2f.compute(FakeVideo(img[None], 1), [0])
     logger.info(f"Pred took: {datetime.now() - now}")
-    semantic_result: np.ndarray = m2f.make_images(img[None], [0])[0]
+    semantic_result: np.ndarray = m2f.make_images()[0]
     image_write(semantic_result, args.output_path)
     logger.info(f"Written prediction to '{args.output_path}'")
     return semantic_result # for integration tests

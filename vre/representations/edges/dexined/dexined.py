@@ -5,15 +5,17 @@ from overrides import overrides
 
 from vre.logger import vre_logger as logger
 from vre.utils import image_resize_batch, fetch_weights, vre_load_weights, VREVideo
-from vre.representations import Representation, ReprOut, LearnedRepresentationMixin, ComputeRepresentationMixin
+from vre.representations import (
+    Representation, ReprOut, LearnedRepresentationMixin, ComputeRepresentationMixin, NpIORepresentation)
 from vre.representations.edges.dexined.model_dexined import DexiNed as Model
 
-class DexiNed(Representation, LearnedRepresentationMixin, ComputeRepresentationMixin):
+class DexiNed(Representation, LearnedRepresentationMixin, ComputeRepresentationMixin, NpIORepresentation):
     """Dexined representation."""
     def __init__(self, **kwargs):
         Representation.__init__(self, **kwargs)
         LearnedRepresentationMixin.__init__(self)
         ComputeRepresentationMixin.__init__(self)
+        NpIORepresentation.__init__(self)
         self.model: Model | None = None
         self.inference_height, self.inference_width = 512, 512 # fixed for this model
 
@@ -24,10 +26,10 @@ class DexiNed(Representation, LearnedRepresentationMixin, ComputeRepresentationM
         with tr.no_grad():
             y = self.model.forward(tr_frames)
         outs = self._postprocess(y)
-        self.data = ReprOut(output=outs, key=ixs)
+        self.data = ReprOut(frames=np.array(video[ixs]), output=outs, key=ixs)
 
     @overrides
-    def make_images(self, video: VREVideo, ixs: list[int] | slice) -> np.ndarray:
+    def make_images(self) -> np.ndarray:
         assert self.data is not None, f"[{self}] data must be first computed using compute()"
         x = np.repeat(np.expand_dims(self.data.output, axis=-1), 3, axis=-1)
         return (x * 255).astype(np.uint8)

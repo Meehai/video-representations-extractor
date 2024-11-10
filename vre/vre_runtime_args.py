@@ -32,8 +32,7 @@ class VRERuntimeArgs:
             logger.warning(f"end frame not set, default to the last frame of the video: {len(video)}")
             end_frame = len(video)
 
-        assert isinstance(start_frame, int) and start_frame <= end_frame, (start_frame, end_frame)
-        assert (end_frame - start_frame) <= len(video), f"{start_frame=}, {end_frame=}, {len(video)=}"
+        assert 0 <= start_frame <= end_frame <= len(video), f"{start_frame=}, {end_frame=}, {len(video)=}"
         self.video = video
         self.start_frame = start_frame
         self.end_frame = end_frame
@@ -41,6 +40,11 @@ class VRERuntimeArgs:
         self.representations = representations
         self.n_threads_data_storer = n_threads_data_storer
         self.store_metadata_every_n_iters = store_metadata_every_n_iters
+
+    @property
+    def n_frames(self) -> int:
+        """returns the number of frames to be computed by vre"""
+        return self.end_frame - self.start_frame
 
     def to_dict(self) -> dict:
         """A dict representation of this runtime args. Used in Metadata() to be stored on disk during the run."""
@@ -58,7 +62,7 @@ class VRERuntimeArgs:
 - Video path: '{getattr(self.video, "file", "")}'
 - Representations ({len(self.representations)}): {", ".join(x for x in self.representations.keys())}
 - Video shape: {self.video.shape} (FPS: {self.video.frame_rate:.2f})
-- Output frames ({self.end_frame - self.start_frame}): [{self.start_frame} : {self.end_frame - 1}]
+- Output frames ({self.n_frames}): [{self.start_frame} : {self.end_frame - 1}]
 - Exception mode: '{self.exception_mode}'
 - #threads DataStorer: {self.n_threads_data_storer} (0 = only using main thread)
 """

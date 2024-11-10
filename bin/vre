@@ -56,8 +56,12 @@ def main(args: Namespace):
     else:
         video = pims.Video(args.video_path)
 
-    representations = build_representations_from_cfg(cfg.representations, cfg.get("default_compute_parameters"),
-                                                     cfg.get("default_learned_parameters"))
+    representations = build_representations_from_cfg(
+        representations_dict=cfg.representations,
+        compute_representations_defaults=cfg.get("default_compute_parameters"),
+        learned_representations_defaults=cfg.get("default_learned_parameters"),
+        io_representations_defaults=cfg.get("default_io_parameters")
+    )
     vre = VRE(video, representations)
     vre_metadata = vre.run(args.output_path, start_frame=args.start_frame, end_frame=args.end_frame,
                            output_dir_exists_mode=args.output_dir_exists_mode,

@@ -16,14 +16,14 @@ def test_safeuav():
     safeuav_repr.compute(video, [0])
     assert safeuav_repr.data.output.shape == (1, train_height, train_width)
 
-    y_safeuav_rgb = safeuav_repr.make_images(video, ixs=[0])
+    y_safeuav_rgb = safeuav_repr.make_images()
     assert y_safeuav_rgb.shape == (1, train_height, train_width, 3)
     assert y_safeuav_rgb.dtype == np.uint8, y_safeuav_rgb.dtype
 
     assert safeuav_repr.size == (1, train_height, train_width)
     safeuav_repr.resize((64, 128)) # we can resize it though
     assert safeuav_repr.size == (1, 64, 128)
-    assert safeuav_repr.make_images(video, ixs=[0]).shape == (1, 64, 128, 3)
+    assert safeuav_repr.make_images().shape == (1, 64, 128, 3)
 
 if __name__ == "__main__":
     test_safeuav()

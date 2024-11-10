@@ -27,11 +27,11 @@ def all_batch_exists(writer: DataWriter, l: int, r: int) -> bool:
 def test_DataWriter_ctor_and_basic_writes():
     tmp_dir = Path(TemporaryDirectory().name)
     rgb = FakeRepresentation("rgb", [])
-    rgb.set_compute_params(binary_format="npz", image_format="png")
+    rgb.set_io_params(binary_format="npz", image_format="png")
     writer = DataWriter(tmp_dir, rgb, output_dir_exists_mode="skip_computed")
 
-    y_repr = ReprOut(np.random.randn(3, 240, 240), key=[0, 1, 2])
     imgs = np.random.randint(0, 255, size=(3, 240, 240, 3)).astype(np.uint8)
+    y_repr = ReprOut(imgs, np.random.randn(3, 240, 240), key=[0, 1, 2])
     with pytest.raises(AssertionError):
         writer.write(y_repr, None, l=0, r=3)
     with pytest.raises(AssertionError):
@@ -45,10 +45,10 @@ def test_DataWriter_ctor_and_basic_writes():
 def test_DataWriter_all_batches_exist():
     tmp_dir = Path(TemporaryDirectory().name)
     rgb = FakeRepresentation("rgb", [])
-    rgb.set_compute_params(binary_format="npz")
+    rgb.set_io_params(binary_format="npz")
     writer = DataWriter(tmp_dir, rgb, output_dir_exists_mode="skip_computed")
 
-    y_repr = ReprOut(np.random.randn(3, 240, 240), key=[0, 1, 2])
+    y_repr = ReprOut(None, np.random.randn(3, 240, 240), key=[0, 1, 2])
     for l in range(0, 2):
         for r in range(l+1, 3):
             assert all_batch_exists(writer, l=l, r=r) is False, (l, r)
@@ -70,8 +70,8 @@ def test_DataWriter_all_batches_exist():
 def test_DataStorer(n_threads: int):
     tmp_dir = Path(TemporaryDirectory().name)
     rgb, hsv = FakeRepresentation("rgb", []), FakeRepresentation("hsv", [])
-    rgb.set_compute_params(binary_format="npz", image_format="png")
-    hsv.set_compute_params(binary_format="npz", image_format="jpg")
+    rgb.set_io_params(binary_format="npz", image_format="png")
+    hsv.set_io_params(binary_format="npz", image_format="jpg")
     writer_rgb = DataWriter(tmp_dir, rgb, output_dir_exists_mode="skip_computed")
     writer_hsv = DataWriter(tmp_dir, hsv, output_dir_exists_mode="skip_computed")
     storers = [DataStorer(writer_rgb, n_threads=n_threads), DataStorer(writer_hsv, n_threads=n_threads)]
@@ -82,10 +82,10 @@ def test_DataStorer(n_threads: int):
     batches = [[0, 3], [3, 6], [6, 10]]
     for storer in storers:
         for l, r in batches:
-            storer(ReprOut(y[l:r], key=slice(l, r)), imgs[l:r], l=l, r=r)
+            storer(ReprOut(imgs[l:r], y[l:r], key=slice(l, r)), imgs[l:r], l=l, r=r)
     [storer.join_with_timeout(2) for storer in storers]
     if n_threads > 0:
         with pytest.raises(AssertionError):
-            storer(ReprOut(y[0:1], key=[0]), imgs[0:1], l=0, r=1)
+            storer(ReprOut(imgs[0:1], y[0:1], key=[0]), imgs[0:1], l=0, r=1)
     assert all_batch_exists(writer_rgb, l=0, r=10)
     assert all_batch_exists(writer_hsv, l=0, r=10)

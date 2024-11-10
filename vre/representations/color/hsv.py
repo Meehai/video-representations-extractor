@@ -4,7 +4,7 @@ from overrides import overrides
 
 from vre.utils import VREVideo
 from .rgb import RGB
-from ...representations import Representation, ReprOut, ComputeRepresentationMixin
+from ...representations import Representation, ReprOut, ComputeRepresentationMixin, NpIORepresentation
 
 def rgb2hsv(rgb: np.ndarray) -> np.ndarray:
     """RGB to HSV color space conversion."""
@@ -50,19 +50,20 @@ def rgb2hsv(rgb: np.ndarray) -> np.ndarray:
 
     return out
 
-class HSV(Representation, ComputeRepresentationMixin):
+class HSV(Representation, ComputeRepresentationMixin, NpIORepresentation):
     """HSV representation"""
     def __init__(self, *args, **kwargs):
         Representation.__init__(self, *args, **kwargs)
         ComputeRepresentationMixin.__init__(self)
+        NpIORepresentation.__init__(self)
         assert len(self.dependencies) == 1 and isinstance(self.dependencies[0], RGB), self.dependencies
 
     @overrides
     def compute(self, video: VREVideo, ixs: list[int] | slice):
         assert self.data is None, "data must not be computed before calling this"
         rgb = self.dependencies[0].data.output
-        self.data = ReprOut(output=rgb2hsv(rgb).astype(np.float32), key=ixs)
+        self.data = ReprOut(frames=np.array(video[ixs]), output=rgb2hsv(rgb).astype(np.float32), key=ixs)
 
     @overrides
-    def make_images(self, video: VREVideo, ixs: list[int] | slice) -> np.ndarray:
+    def make_images(self) -> np.ndarray:
         return (self.data.output * 255).astype(np.uint8)
