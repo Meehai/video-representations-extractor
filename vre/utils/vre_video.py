@@ -19,4 +19,7 @@ class FakeVideo(Slicerator):
         """returns the shape of the data"""
         return self.data.shape
 
+    def __repr__(self):
+        return f"[FakeVideo] Len: {len(self.data)}. Frame shape: {self.data.shape[1:]}. Frame rate: {self.frame_rate}."
+
 VREVideo = Union[pims.FramesSequence, FakeVideo]

@@ -1,11 +1,15 @@
+import sys
 from tempfile import TemporaryDirectory
 from pathlib import Path
 import numpy as np
 import pytest
 from vre import ReprOut
-from vre.representations import FakeRepresentation
+from vre.utils import get_project_root
 from vre.data_writer import DataWriter
 from vre.data_storer import DataStorer
+
+sys.path.append(str(get_project_root() / "test"))
+from fake_representation import FakeRepresentation
 
 def all_batch_exists(writer: DataWriter, l: int, r: int) -> bool:
     """true if all batch [l:r] exists on the disk"""

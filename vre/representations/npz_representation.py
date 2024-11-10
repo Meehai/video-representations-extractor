@@ -5,10 +5,10 @@ from pathlib import Path
 from overrides import overrides
 import numpy as np
 import torch as tr
+from vre.utils import FixedSizeOrderedDict
+from vre.logger import vre_logger as logger
 
 from .stored_represntation import StoredRepresentation
-from ..logger import vre_logger as logger
-from ..utils import FixedSizeOrderedDict
 
 _CACHE = FixedSizeOrderedDict(maxlen=1024)
 

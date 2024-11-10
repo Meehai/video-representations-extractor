@@ -167,7 +167,9 @@ class VideoRepresentationsExtractor:
         return self.run(*args, **kwargs)
 
     def __str__(self) -> str:
-        return f"VRE ({len(self.representations)} representations). Video: '{self.video.file}' ({self.video.shape})"
+        return f"""\n[VRE]
+- Video: {self.video}
+- Representations ({len(self.representations)}): [{", ".join([str(v) for v in self.representations.values()])}]"""
 
     def __repr__(self) -> str:
         return str(self)

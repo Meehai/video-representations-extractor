@@ -7,8 +7,8 @@ import torch as tr
 import numpy as np
 from tqdm import trange
 
-from ..logger import vre_logger as logger
-from ..stored_representation import NormedRepresentation, StoredRepresentation
+from vre.logger import vre_logger as logger
+from vre.representations import NormedRepresentationMixin, StoredRepresentation
 
 TaskStatistics = Tuple[tr.Tensor, tr.Tensor, tr.Tensor, tr.Tensor] # (min, max, mean, std)
 
@@ -16,7 +16,7 @@ def load_external_statistics(reader: "MultiTaskDataset",
                              statistics: dict[str, TaskStatistics | list]) -> dict[str, TaskStatistics]:
     """loads statistics from an external source provided to the constructor"""
     name_to_task: dict[str, StoredRepresentation] = reader.name_to_task
-    tasks_no_classif = [t for t in set(reader.task_names) if isinstance(name_to_task[t], NormedRepresentation)]
+    tasks_no_classif = [t for t in set(reader.task_names) if isinstance(name_to_task[t], NormedRepresentationMixin)]
     assert (diff := set(tasks_no_classif).difference(statistics)) == set(), f"Missing tasks: {diff}"
     res: dict[str, TaskStatistics] = {}
     for k, v in statistics.items():
@@ -35,7 +35,7 @@ def compute_statistics(reader: "MultiTaskDataset") -> dict[str, TaskStatistics]:
         res = np.load(cache_path, allow_pickle=True)["arr_0"].item()
         logger.info(f"Loaded task statistics: { {k: tuple(v[0].shape) for k, v in res.items()} } from {cache_path}")
     missing_tasks = [t for t in set(reader.task_names).difference(res)
-                     if isinstance(name_to_task[t], NormedRepresentation)]
+                     if isinstance(name_to_task[t], NormedRepresentationMixin)]
     if len(missing_tasks) == 0:
         return res
     logger.info(f"Computing global task statistics (dataset len {len(reader)}) for {missing_tasks}")
@@ -59,7 +59,7 @@ def _compute_channel_level_stats(reader: "MultiTaskDataset", missing_tasks: list
         return new_count, new_mean, new_m2
 
     name_to_task: dict[str, StoredRepresentation] = reader.name_to_task
-    assert all(mt := [isinstance(name_to_task[t], NormedRepresentation) for t in missing_tasks]), mt
+    assert all(mt := [isinstance(name_to_task[t], NormedRepresentationMixin) for t in missing_tasks]), mt
     assert len(missing_tasks) > 0, missing_tasks
     ch = {k: v[-1] if len(v) == 3 else 1 for k, v in reader.data_shape.items()}
     counts = {task_name: tr.zeros(ch[task_name]).long() for task_name in missing_tasks}

@@ -1,8 +1,8 @@
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from vre.readers import MultiTaskDataset
-from vre.stored_representation import (RGBRepresentation, DepthRepresentation, SemanticRepresentation,
-                                       NormedRepresentation)
+from vre.representations.cv_representations import RGBRepresentation, DepthRepresentation, SemanticRepresentation
+from vre.representations import NormedRepresentationMixin
 from torch.utils.data import DataLoader
 import numpy as np
 import torch as tr
@@ -67,7 +67,7 @@ def test_MultiTaskDataset_normalization(dataset_path: Path, normalization: str):
         if normalization == "min_max":
             assert x[task].min() >= 0 and x[task].max() <= 1, x[task]
         else:
-            if not isinstance(dataset.name_to_task[task], NormedRepresentation):
+            if not isinstance(dataset.name_to_task[task], NormedRepresentationMixin):
                 continue
             MAX_MEAN_DIFF, MAX_STD_DIFF, MIN_STD, MAX_STD = 0.2, 0.2, -5, 5 # TODO: why so big??
             assert x[task].min() >= MIN_STD and x[task].max() <= MAX_STD, x[task]

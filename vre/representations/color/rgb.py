@@ -1,4 +1,4 @@
-"""RGB representation. Simply inherit FakeRepresentation that does all this needs (i.e. copy pasta the frames)"""
+"""RGB representation."""
 from __future__ import annotations
 import numpy as np
 from overrides import overrides
@@ -7,7 +7,7 @@ from vre.utils import VREVideo
 from vre.representations import Representation, ReprOut, ComputeRepresentationMixin
 
 class RGB(Representation, ComputeRepresentationMixin):
-    """FakeRepresentation that is used in unit tests and some basic classes, like RGB."""
+    """Basic RGB representation."""
     def __init__(self, *args, **kwargs):
         Representation.__init__(self, *args, **kwargs)
         ComputeRepresentationMixin.__init__(self)

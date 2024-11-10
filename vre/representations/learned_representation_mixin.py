@@ -6,7 +6,7 @@ Note: this could arguably extend ComputeRepresentation, but we want to keep the 
 from abc import abstractmethod, ABC
 import torch as tr
 
-from ..logger import vre_logger as logger
+from vre.logger import vre_logger as logger
 
 VREDevice = str | tr.device # not only torch, but this is what we support atm
 
