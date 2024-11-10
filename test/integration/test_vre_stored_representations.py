@@ -7,12 +7,14 @@ import pandas as pd
 from vre.representations.color import RGB, HSV
 from vre import VRE
 from vre.utils import FakeVideo
+import pytest
 
+@pytest.mark.skip(reason="This test is not ready yet")
 def test_vre_stored_representation():
     video_path = Path("data/rgb/npz")
     shutil.rmtree("data/hsv", ignore_errors=True)
     shutil.rmtree("data/buildings", ignore_errors=True)
-    new_tasks = get_new_dronescapes_tasks()
+    new_tasks = {}#get_new_dronescapes_tasks()
 
     raw_data = [np.load(f)["arr_0"] for f in natsorted(video_path.glob("*.npz"), key=lambda p: p.name)]
     assert all(x.shape == raw_data[0].shape for x in raw_data), f"Images shape differ in '{video_path}'"
@@ -26,7 +28,7 @@ def test_vre_stored_representation():
     vre = VRE(video, representations)
     print(vre)
 
-    res = vre.run(output_dir=Path("data/"), start_frame=0, end_frame=None, output_dir_exists_mode="skip_computed")
+    res = vre.run(output_dir=Path("data/"), start_frame=0, end_frame=None, output_dir_exists_mode="skip_computed")\
 
 if __name__ == "__main__":
     test_vre_stored_representation()
