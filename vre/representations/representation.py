@@ -73,8 +73,5 @@ class Representation(ABC):
                             extra=self.data.extra, key=self.data.key)
 
     ## Magic methods ##
-    def __getitem__(self, *args) -> ReprOut:
-        raise NotImplementedError("Use self.__call__(args). __getitem__ doesn't make sense because of dependencies")
-
     def __repr__(self):
         return f"{parsed_str_type(self)}({self.name}{f' {self.dep_names}' if len(self.dep_names) > 0 else ''})"
