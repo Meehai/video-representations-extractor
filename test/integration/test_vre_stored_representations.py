@@ -67,7 +67,6 @@ def test_vre_stored_representation():
     print(vre)
 
     res = vre.run(output_dir=Path(tmp_dir), frames=list(range(0, len(video))), output_dir_exists_mode="skip_computed")
-    breakpoint()
     vre_run_stats = pd.DataFrame(res["run_stats"], index=res["runtime_args"]["frames"])
     print(vre_run_stats)
 
