@@ -83,10 +83,10 @@ def build_representation_from_cfg(repr_cfg: dict, name: str, built_so_far: dict[
         defaults = OmegaConf.to_container(defaults, resolve=True) if isinstance(defaults, DictConfig) else defaults
         if "learned_parameters" in repr_cfg:
             repr_learned_parameters = {**defaults, **repr_cfg.get("learned_parameters", {})}
-            logger.debug(f"[{obj}] Setting node specific params: {repr_learned_parameters}")
+            logger.debug(f"[{obj}] Setting node specific 'Learned' params: {repr_learned_parameters}")
         else:
             repr_learned_parameters = defaults
-            logger.debug(f"[{obj}] Setting default params: {repr_learned_parameters}")
+            logger.debug(f"[{obj}] Setting default 'Learned' params: {repr_learned_parameters}")
         obj.set_learned_params(**repr_learned_parameters)
     else:
         assert "learned_parameters" not in repr_cfg, f"Learned parameters not allowed for {name}"
@@ -96,10 +96,10 @@ def build_representation_from_cfg(repr_cfg: dict, name: str, built_so_far: dict[
         defaults = OmegaConf.to_container(defaults, resolve=True) if isinstance(defaults, DictConfig) else defaults
         if "compute_parameters" in repr_cfg:
             repr_compute_params = {**defaults, **repr_cfg.get("compute_parameters", {})}
-            logger.debug(f"[{obj}] Setting node specific params: {repr_compute_params}")
+            logger.debug(f"[{obj}] Setting node specific 'Compute' params: {repr_compute_params}")
         else:
             repr_compute_params = defaults
-            logger.debug(f"[{obj}] Setting default params: {repr_compute_params}")
+            logger.debug(f"[{obj}] Setting default 'Compute' params: {repr_compute_params}")
         obj.set_compute_params(**repr_compute_params)
     else:
         assert "compute_parameters" not in repr_cfg, f"Compute parameters not allowed for {name}"
@@ -109,33 +109,31 @@ def build_representation_from_cfg(repr_cfg: dict, name: str, built_so_far: dict[
         defaults = OmegaConf.to_container(defaults, resolve=True) if isinstance(defaults, DictConfig) else defaults
         if "io_parameters" in repr_cfg:
             repr_io_params = {**defaults, **repr_cfg.get("io_parameters", {})}
-            logger.debug(f"[{obj}] Setting node specific params: {repr_io_params}")
+            logger.debug(f"[{obj}] Setting node specific 'I/O' params: {repr_io_params}")
         else:
             repr_io_params = defaults
-            logger.debug(f"[{obj}] Setting default params: {repr_io_params}")
+            logger.debug(f"[{obj}] Setting default 'I/O' params: {repr_io_params}")
         obj.set_io_params(**repr_io_params)
     else:
         assert "io_parameters" not in repr_cfg, f"I/O parameters not allowed for {name}"
     return obj
 
-def build_representations_from_cfg(representations_dict: dict | DictConfig,
-                                   compute_representations_defaults: dict | None = None,
-                                   learned_representations_defaults: dict | None = None,
-                                   io_representations_defaults: dict | None = None) -> dict[str, Representation]:
+def build_representations_from_cfg(cfg: DictConfig | dict) -> dict[str, Representation]:
     """builds a dict of representations given a dict config (yaml file)"""
-    if isinstance(representations_dict, DictConfig):
-        representations_dict: dict = OmegaConf.to_container(representations_dict, resolve=True)
-    assert isinstance(representations_dict, dict), type(representations_dict)
-    assert len(representations_dict) > 0 and isinstance(representations_dict, dict), representations_dict
+    cfg: dict = OmegaConf.to_container(cfg, resolve=True) if isinstance(cfg, DictConfig) else cfg
+
+    assert len(repr_cfg := cfg["representations"]) > 0 and isinstance(repr_cfg, dict), repr_cfg
+
     tsr: dict[str, Representation] = {}
     logger.debug("Doing topological sort...")
     dep_graph = {}
-    for repr_name, repr_cfg_values in representations_dict.items():
+    for repr_name, repr_cfg_values in repr_cfg.items():
         assert isinstance(repr_cfg_values, dict), f"{repr_name} not a dict cfg: {type(repr_cfg_values)}"
         dep_graph[repr_name] = repr_cfg_values["dependencies"]
-    topo_sorted = {k: representations_dict[k] for k in topological_sort(dep_graph)}
+    topo_sorted = {k: repr_cfg[k] for k in topological_sort(dep_graph)}
+
     for name, repr_cfg in topo_sorted.items():
-        obj = build_representation_from_cfg(repr_cfg, name, tsr, compute_representations_defaults,
-                                            learned_representations_defaults, io_representations_defaults)
+        obj = build_representation_from_cfg(repr_cfg, name, tsr, cfg.get("default_compute_parameters"),
+                                            cfg.get("default_learned_parameters"), cfg.get("default_io_parameters"))
         tsr[name] = obj
     return tsr

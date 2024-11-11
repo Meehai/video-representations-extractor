@@ -130,11 +130,10 @@ class MultiTaskDataset(Dataset):
         first_npz = {task: [_v for _v in files if _v is not None][0] for task, files in self.files_per_repr.items()}
         data_shape = {}
         for task_name, task in self.name_to_task.items():
-            if task.dependencies[0] == task:
-                data_shape[task_name] = task.from_disk_fmt(task.load_from_disk(first_npz[task_name])).shape
-            else:
-                assert isinstance(task, TaskMapper), task
+            if isinstance(task, TaskMapper) and task.dependencies[0] != task:
                 data_shape[task_name] = task.compute_from_dependencies_paths(first_npz[task_name]).shape
+            else:
+                data_shape[task_name] = task.from_disk_fmt(task.load_from_disk(first_npz[task_name])).shape
         return data_shape
 
     @property
@@ -291,11 +290,11 @@ class MultiTaskDataset(Dataset):
             if file_path is None:
                 res[task_name] = self.default_vals[task_name]
             else:
-                if task.dependencies[0] == task:
-                    np_memory_data = task.from_disk_fmt(task.load_from_disk(file_path))
-                else:
-                    assert isinstance(task, TaskMapper), task
+                if isinstance(task, TaskMapper) and task.dependencies[0] != task:
                     np_memory_data = task.compute_from_dependencies_paths(file_path)
+                else: # can also be TaskMapper here too, but with deps[0] == task (pre-computed)
+                    np_memory_data = task.from_disk_fmt(task.load_from_disk(file_path))
+
                 if isinstance(task, NormedRepresentationMixin) and self.statistics is not None:
                     np_memory_data = task.normalize(np_memory_data)
                 res[task_name] = tr.from_numpy(np_memory_data)

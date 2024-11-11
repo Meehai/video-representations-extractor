@@ -10,19 +10,19 @@ from ..utils import parsed_str_type, image_resize_batch
 @dataclass
 class ReprOut:
     """The output of representation.compute()"""
-    frames: np.ndarray
+    frames: np.ndarray | None
     output: np.ndarray
     key: list[int]
     extra: list[dict] | None = None
 
     def __post_init__(self):
         assert isinstance(self.output, np.ndarray), type(self.output)
-        if isinstance(self.key, slice):
-            self.key = list(range(self.key.start, self.key.stop))
         assert len(self.output) == len(self.key), (len(self.output), len(self.key))
+        assert self.frames is None or len(self.frames) == len(self.output), (len(self.frames), len(self.output))
 
     def __repr__(self):
-        return f"[ReprOut](output={lo(self.output)}, key={self.key}, extra={self.extra})"
+        return (f"[ReprOut](frames={self.frames or lo(self.frames)}, output={lo(self.output)}, "
+                f"key={self.key}, extra={self.extra})")
 
 class Representation(ABC):
     """Generic Representation class for VRE"""

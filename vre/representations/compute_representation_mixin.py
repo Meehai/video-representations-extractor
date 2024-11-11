@@ -13,7 +13,7 @@ class ComputeRepresentationMixin(ABC):
         self._output_dtype: str | np.dtype | None = None
 
     @abstractmethod
-    def compute(self, video: VREVideo, ixs: list[int] | slice):
+    def compute(self, video: VREVideo, ixs: list[int]):
         """given input data (batch of images/frewes), compute the output data of this representation"""
 
     @property

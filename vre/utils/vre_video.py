@@ -6,7 +6,7 @@ import pims
 
 class FakeVideo(Slicerator):
     """FakeVideo -- class used to test representations with a given numpy array"""
-    def __init__(self, data: np.ndarray, frame_rate: int):
+    def __init__(self, data: np.ndarray, frame_rate: float):
         assert len(data) > 0, "No data provided"
         super().__init__(data, range(len(data)), len(data))
         self.data = data

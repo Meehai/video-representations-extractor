@@ -20,7 +20,7 @@ class DexiNed(Representation, LearnedRepresentationMixin, ComputeRepresentationM
         self.inference_height, self.inference_width = 512, 512 # fixed for this model
 
     @overrides
-    def compute(self, video: VREVideo, ixs: list[int] | slice):
+    def compute(self, video: VREVideo, ixs: list[int]):
         assert self.data is None, f"[{self}] data must not be computed before calling this"
         tr_frames = self._preprocess(np.array(video[ixs]), self.inference_height, self.inference_width)
         with tr.no_grad():

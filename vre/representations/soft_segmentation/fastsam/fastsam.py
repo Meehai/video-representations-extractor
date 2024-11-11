@@ -34,7 +34,7 @@ class FastSam(Representation, LearnedRepresentationMixin, ComputeRepresentationM
         self.model: nn.Module | None = None
 
     @overrides
-    def compute(self, video: VREVideo, ixs: list[int] | slice):
+    def compute(self, video: VREVideo, ixs: list[int]):
         assert self.data is None, f"[{self}] data must not be computed before calling this"
         tr_x = self._preproces(frames := np.array(video[ixs]))
         tr_y: tr.FloatTensor = self.model.forward(tr_x)

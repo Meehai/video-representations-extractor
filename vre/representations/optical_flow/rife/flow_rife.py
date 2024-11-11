@@ -24,7 +24,7 @@ class FlowRife(Representation, LearnedRepresentationMixin, ComputeRepresentation
         self.model: Model | None = None
 
     @overrides
-    def compute(self, video: VREVideo, ixs: list[int] | slice):
+    def compute(self, video: VREVideo, ixs: list[int]):
         assert self.data is None, f"[{self}] data must not be computed before calling this"
         frames = np.array(video[ixs])
         right_frames = self._get_delta_frames(video, ixs)
@@ -80,7 +80,7 @@ class FlowRife(Representation, LearnedRepresentationMixin, ComputeRepresentation
         flow = flow / returned_shape # [-px : px] => [-1 : 1]
         return flow.astype(np.float32)
 
-    def _get_delta_frames(self, video: VREVideo, ixs: list[int] | slice) -> np.ndarray:
+    def _get_delta_frames(self, video: VREVideo, ixs: list[int]) -> np.ndarray:
         ixs = list(range(ixs.start, ixs.stop)) if isinstance(ixs, slice) else ixs
         ixs = [min(ix + 1, len(video) - 1) for ix in ixs]
         return np.array(video[ixs])

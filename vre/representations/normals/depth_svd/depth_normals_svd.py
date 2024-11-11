@@ -31,7 +31,7 @@ class DepthNormalsSVD(Representation, ComputeRepresentationMixin, NpIORepresenta
         self._grid_cache = {}
 
     @overrides
-    def compute(self, video: VREVideo, ixs: list[int] | slice):
+    def compute(self, video: VREVideo, ixs: list[int]):
         assert self.data is None, f"[{self}] data must not be computed before calling this"
         assert (A := self.dependencies[0].data) is not None and self.dependencies[0].data.key == ixs, (A.key, ixs)
         depths = self.dependencies[0].data.output
