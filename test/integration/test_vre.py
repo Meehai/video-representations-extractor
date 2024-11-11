@@ -86,7 +86,7 @@ def test_vre_simple_representations():
     representations = {"rgb": RGB(name="rgb")}
     tmp_dir = Path(TemporaryDirectory().name)
     vre = VRE(video, representations).set_io_parameters(binary_format="npz", image_format="jpg")
-    vre(tmp_dir, start_frame=1000, end_frame=1001)
+    vre(tmp_dir, frames=[1000])
     assert Path(f"{tmp_dir}/rgb/npz/1000.npz").exists()
     assert Path(f"{tmp_dir}/rgb/jpg/1000.jpg").exists()
 
@@ -96,7 +96,7 @@ def test_vre_metadata():
     vre.set_io_parameters(binary_format="npz", image_format="not-set")
     res = vre.run(output_dir=Path(TemporaryDirectory().name))
     assert res["run_stats"].keys() == {"rgb"}
-    assert res["runtime_args"]["frames"] == (0, 2)
+    assert res["runtime_args"]["frames"] == [0, 1]
 
 def test_vre_dep_data_not_saved():
     video = pims.Video(fetch_resource("test_video.mp4"))
@@ -106,7 +106,7 @@ def test_vre_dep_data_not_saved():
                                                                 dependencies=[dpt]))}
     svd.binary_format = "npz"
     tmp_dir = Path(TemporaryDirectory().name)
-    VRE(video, reprs).run(tmp_dir, start_frame=1000, end_frame=1001)
+    VRE(video, reprs).run(tmp_dir, frames=[1000])
     assert not (tmp_dir / "dpt").exists()
 
 if __name__ == "__main__":

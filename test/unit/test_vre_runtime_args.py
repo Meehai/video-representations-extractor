@@ -12,16 +12,19 @@ def test_VRERuntimeArgs_ctor():
     representations = {"rgb": FakeRepresentation("rgb")}
 
     with pytest.raises(AssertionError):
-        _ = VRERuntimeArgs(video, representations, start_frame=0, end_frame=3, exception_mode="stop_execution",
+        _ = VRERuntimeArgs(video, representations, frames=[0, 1, 2], exception_mode="stop_execution",
                            n_threads_data_storer=0)
     with pytest.raises(TypeError):
-        _ = VRERuntimeArgs(video, representations, start_frame="lala", end_frame=3, exception_mode="stop_execution",
+        _ = VRERuntimeArgs(video, representations, frames=["lala", 1, 2], exception_mode="stop_execution",
                            n_threads_data_storer=0)
     with pytest.raises(AssertionError):
-        _ = VRERuntimeArgs(video, representations, start_frame=0, end_frame=3, exception_mode="lala",
+        _ = VRERuntimeArgs(video, representations, frames=[0, 1, 2], exception_mode="lala",
+                           n_threads_data_storer=0)
+    with pytest.raises(AssertionError):
+        _ = VRERuntimeArgs(video, representations, frames=[0.5, 1], exception_mode="lala",
                            n_threads_data_storer=0)
 
-    runtime_args = VRERuntimeArgs(video, representations, start_frame=0, end_frame=None, n_threads_data_storer=0,
+    runtime_args = VRERuntimeArgs(video, representations, frames=[0, 1], n_threads_data_storer=0,
                                   exception_mode="stop_execution")
 
     assert runtime_args is not None
