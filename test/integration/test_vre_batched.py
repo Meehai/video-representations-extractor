@@ -1,7 +1,6 @@
 import shutil
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Any
 import yaml
 import pims
 import pandas as pd
@@ -11,31 +10,13 @@ import torch as tr
 from vre import VRE
 from vre.representations import build_representations_from_cfg
 from vre.utils import fetch_resource
-
-def sample_representations(all_representations_dict: dict[str, Any], n: int) -> dict:
-    def _get_deps(all_representations_dict: dict[str, Any], key: str) -> set[str]:
-        res = set()
-        left = [key]
-        while len(left) > 0:
-            curr = left.pop()
-            res.add(curr)
-            left.extend(all_representations_dict[curr]["dependencies"])
-        return res
-
-    chosen_ones = np.random.choice(list(all_representations_dict.keys()), size=2, replace=False).tolist()
-    res_dict = {}
-    for chosen_one in chosen_ones:
-        res_dict[chosen_one] = all_representations_dict[chosen_one]
-        for dep in _get_deps(all_representations_dict, chosen_one):
-            res_dict[dep] = all_representations_dict[dep]
-        if len(res_dict) >= n:
-            break
-    return res_dict
+from vre.logger import vre_logger as logger
 
 def test_vre_batched():
     video = pims.Video(fetch_resource("test_video.mp4"))
     device = "cuda" if tr.cuda.is_available() else "cpu"
     all_representations_dict = yaml.safe_load(f"""
+representations:
   rgb:
     type: default/rgb
     dependencies: []
@@ -43,7 +24,7 @@ def test_vre_batched():
 
   hsv:
     type: default/hsv
-    dependencies: []
+    dependencies: [rgb]
     parameters: {{}}
 
   halftone:
@@ -148,10 +129,10 @@ def test_vre_batched():
       device: {device}
 """)
 
-    np.random.seed(0)
-    representations_dict = sample_representations(all_representations_dict, n=2)
-    assert "semantic_safeuav_torch" in representations_dict, representations_dict.keys()
-    representations = build_representations_from_cfg(representations_dict)
+    all_representations = build_representations_from_cfg(all_representations_dict)
+    chosen = np.random.choice(list(all_representations.keys()), size=2, replace=False)
+    representations = {k: v for k, v in all_representations.items() if k in chosen}
+    logger.info(f"Kept representations: {representations}")
 
     tmp_dir = Path("here1" if __name__ == "__main__" else TemporaryDirectory().name)
     tmp_dir_bs = Path("here2" if __name__ == "__main__" else TemporaryDirectory().name)
@@ -163,7 +144,7 @@ def test_vre_batched():
     batch_size = 2 # BS=2 is enough to test this. In examples/ we have a becnhmark that tries more values
 
     vre = VRE(video, representations)
-    vre.set_compute_params(batch_size=1).set_io_parameters(binary_format="npz", image_format="png")
+    vre.set_compute_params(batch_size=1).set_io_parameters(binary_format="npz", image_format="png", compress=True)
     took1 = vre(tmp_dir_bs, start_frame=start_frame, end_frame=end_frame, output_dir_exists_mode="raise")
     vre.set_compute_params(batch_size=batch_size)
     took_bs = vre(tmp_dir, start_frame=start_frame, end_frame=end_frame, output_dir_exists_mode="raise")

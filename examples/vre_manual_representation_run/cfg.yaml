@@ -1,0 +1,24 @@
+default_learned_parameters:
+  device: ${oc.env:VRE_DEVICE,cpu}
+
+representations:
+  normals_svd(depth_marigold):
+    type: normals/depth-svd
+    dependencies: [depth_marigold]
+    parameters:
+      sensor_fov: 75
+      sensor_width: 3840
+      sensor_height: 2160
+      window_size: 11
+  depth_marigold:
+    type: depth/marigold
+    dependencies: []
+    parameters:
+      variant: marigold-lcm-v1-0
+      denoising_steps: 4
+      ensemble_size: 1
+      processing_resolution: 768
+  depth_dpt:
+    type: depth/dpt
+    dependencies: []
+    parameters: {}

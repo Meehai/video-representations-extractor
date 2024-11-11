@@ -59,7 +59,7 @@ class HSV(Representation, ComputeRepresentationMixin, NpIORepresentation):
         assert len(self.dependencies) == 1 and isinstance(self.dependencies[0], RGB), self.dependencies
 
     @overrides
-    def compute(self, video: VREVideo, ixs: list[int] | slice):
+    def compute(self, video: VREVideo, ixs: list[int]):
         assert self.data is None, "data must not be computed before calling this"
         rgb = self.dependencies[0].data.output
         self.data = ReprOut(frames=np.array(video[ixs]), output=rgb2hsv(rgb).astype(np.float32), key=ixs)

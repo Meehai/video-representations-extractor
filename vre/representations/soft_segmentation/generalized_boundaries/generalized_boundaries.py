@@ -24,7 +24,7 @@ class GeneralizedBoundaries(Representation, ComputeRepresentationMixin, NpIORepr
         self.max_channels = max_channels
 
     @overrides
-    def compute(self, video: VREVideo, ixs: list[int] | slice):
+    def compute(self, video: VREVideo, ixs: list[int]):
         assert self.data is None, f"[{self}] data must not be computed before calling this"
         x = tr.from_numpy(np.array(video[ixs])).type(tr.float) / 255
         x = x.permute(0, 3, 1, 2)

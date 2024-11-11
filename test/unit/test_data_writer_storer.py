@@ -82,7 +82,7 @@ def test_DataStorer(n_threads: int):
     batches = [[0, 3], [3, 6], [6, 10]]
     for storer in storers:
         for l, r in batches:
-            storer(ReprOut(imgs[l:r], y[l:r], key=slice(l, r)), imgs[l:r], l=l, r=r)
+            storer(ReprOut(imgs[l:r], y[l:r], key=list(range(l, r))), imgs[l:r], l=l, r=r)
     [storer.join_with_timeout(2) for storer in storers]
     if n_threads > 0:
         with pytest.raises(AssertionError):

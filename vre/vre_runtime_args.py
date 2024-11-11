@@ -49,7 +49,7 @@ class VRERuntimeArgs:
     def to_dict(self) -> dict:
         """A dict representation of this runtime args. Used in Metadata() to be stored on disk during the run."""
         return {
-            "video_path": getattr(self.video, "file", ""), "video_shape": f"{self.video.shape}",
+            "video_path": str(getattr(self.video, "file", "")), "video_shape": f"{self.video.shape}",
             "video_fps": f"{self.video.frame_rate:.2f}",
             "representations": [r.name for r in self.representations.values()],
             "frames": (self.start_frame, self.end_frame),

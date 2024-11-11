@@ -45,7 +45,7 @@ class SafeUAV(Representation, LearnedRepresentationMixin, ComputeRepresentationM
         self.output_dtype = "uint8" if semantic_argmax_only else "float16"
 
     @overrides
-    def compute(self, video: VREVideo, ixs: list[int] | slice):
+    def compute(self, video: VREVideo, ixs: list[int]):
         assert self.data is None, f"[{self}] data must not be computed before calling this"
         tr_frames = tr.from_numpy(np.array(video[ixs])).to(self.device)
         frames_norm = tr_frames.permute(0, 3, 1, 2) / 255

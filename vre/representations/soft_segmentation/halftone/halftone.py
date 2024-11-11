@@ -38,7 +38,7 @@ class Halftone(Representation, ComputeRepresentationMixin, NpIORepresentation):
         self._check_arguments()
 
     @overrides
-    def compute(self, video: VREVideo, ixs: list[int] | slice):
+    def compute(self, video: VREVideo, ixs: list[int]):
         assert self.data is None, f"[{self}] data must not be computed before calling this"
         self.data = ReprOut(frames=np.array(video[ixs]),
                             output=np.array([self._make_one_image(frame) for frame in video[ixs]]), key=ixs)

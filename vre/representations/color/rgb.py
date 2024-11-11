@@ -16,7 +16,7 @@ class RGB(Representation, ComputeRepresentationMixin, NpIORepresentation):
         self.output_dtype = "uint8"
 
     @overrides
-    def compute(self, video: VREVideo, ixs: list[int] | slice):
+    def compute(self, video: VREVideo, ixs: list[int]):
         assert self.data is None, f"[{self}] data must not be computed before calling this"
         self.data = ReprOut(frames=(frames := np.array(video[ixs])), output=frames, key=ixs)
 
