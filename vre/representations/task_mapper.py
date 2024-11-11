@@ -39,7 +39,7 @@ class TaskMapper(Representation, IORepresentationMixin, ComputeRepresentationMix
         return merged_data
 
     @overrides
-    def compute(self, video: VREVideo, ixs: list[int] | slice):
+    def compute(self, video: VREVideo, ixs: list[int]):
         data = [dep.data.output for dep in self.dependencies]
         assert all(dep.data.key == ixs for dep in self.dependencies), ([dep.data.key for dep in self.dependencies], ixs)
         res = []

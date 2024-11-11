@@ -27,7 +27,7 @@ class NpIORepresentation(IORepresentationMixin):
     @overrides
     def load_from_disk(self, path: Path) -> DiskData:
         """Reads the npz data from the disk and transforms it properly"""
-        if (key := (str(getattr(self, "name", None)), str(getattr(self, "normalization", None)), path.name)) in _CACHE:
+        if (key := (str(getattr(self, "name", None)), str(getattr(self, "normalization", None)), str(path))) in _CACHE:
             logger.debug2(f"HIT: '{key}'")
             return deepcopy(_CACHE[key])
         logger.debug2(f"MISS: '{key}'")

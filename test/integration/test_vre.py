@@ -59,7 +59,7 @@ def test_vre_output_shape():
             super().__init__(*args, **kwargs)
             self.shape = shape
 
-        def compute(self, video: VREVideo, ixs: list[int] | slice):
+        def compute(self, video: VREVideo, ixs: list[int]):
             assert self.data is None, f"[{self}] data must not be computed before calling this"
             super().compute(video, ixs)
             self.data = ReprOut(frames=np.array(video[ixs]),

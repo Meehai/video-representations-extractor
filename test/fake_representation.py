@@ -15,7 +15,7 @@ class FakeRepresentation(Representation, ComputeRepresentationMixin, NpIOReprese
         assert len(self.dependencies) == 0, self.dependencies
 
     @overrides
-    def compute(self, video: VREVideo, ixs: list[int] | slice):
+    def compute(self, video: VREVideo, ixs: list[int]):
         assert self.data is None, "data must not be computed before calling this"
         self.data = ReprOut(frames=np.array(video[ixs]), output=np.array(video[ixs]), key=ixs)
 

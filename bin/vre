@@ -10,7 +10,7 @@ from vre import VRE
 from vre.utils import FakeVideo, image_read
 from vre.representations import build_representations_from_cfg
 from vre.logger import vre_logger as logger
-from omegaconf import OmegaConf, DictConfig
+from omegaconf import OmegaConf
 
 import imp
 
@@ -28,16 +28,16 @@ def get_args() -> Namespace:
     parser.add_argument("--output_dir_exists_mode", choices=["overwrite", "skip_computed", "raise"])
     parser.add_argument("--n_threads_data_storer", type=int, default=0)
     # other parameters
-    parser.add_argument("--frame_rate", type=int, default=-1, help="For a dir of images. Required for optical flow")
+    parser.add_argument("--frame_rate", type=float, default=-1, help="For a dir of images. Required for optical flow")
     parser.add_argument("--make_video_collage", action="store_true")
-    parser.add_argument("--collage_fps", type=int)
+    parser.add_argument("--collage_fps", type=float)
 
     args = parser.parse_args()
     args.video_path = Path(args.video_path).absolute()
     args.output_path = Path(args.output_path).absolute()
     args.cfg_path = Path(args.cfg_path).absolute()
     if args.make_video_collage:
-        assert args.collage_fps is not None and isinstance(args.collage_fps, int) and args.collage_fps > 0
+        assert args.collage_fps is not None and args.collage_fps > 0, args.collage_fps
     return args
 
 def main(args: Namespace):
@@ -56,12 +56,7 @@ def main(args: Namespace):
     else:
         video = pims.Video(args.video_path)
 
-    representations = build_representations_from_cfg(
-        representations_dict=cfg.representations,
-        compute_representations_defaults=cfg.get("default_compute_parameters"),
-        learned_representations_defaults=cfg.get("default_learned_parameters"),
-        io_representations_defaults=cfg.get("default_io_parameters")
-    )
+    representations = build_representations_from_cfg(cfg=cfg)
     vre = VRE(video, representations)
     vre_metadata = vre.run(args.output_path, start_frame=args.start_frame, end_frame=args.end_frame,
                            output_dir_exists_mode=args.output_dir_exists_mode,
@@ -71,7 +66,7 @@ def main(args: Namespace):
 
     if args.make_video_collage:
         vre_collage = imp.load_source("vre_collage", (Path(__file__).parent / "vre_collage").__str__())
-        vre_collage.main(Namespace(vre_export_dir=args.output_path, output_path=args.output_path/"collage",
+        vre_collage.main(Namespace(vre_export_dir=args.output_path, output_path=args.output_path / "collage",
                                    video=True, fps=args.collage_fps, output_resolution=None))
 
 if __name__ == "__main__":
