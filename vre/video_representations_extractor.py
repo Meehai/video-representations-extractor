@@ -17,14 +17,14 @@ from .metadata import Metadata
 from .utils import VREVideo, now_fmt
 from .logger import vre_logger as logger
 
-def _make_batches(video: VREVideo, start_frame: int, end_frame: int, batch_size: int) -> list[int]:
+def _make_batches(frames: list[int], batch_size: int) -> list[int]:
     """return 1D array [start_frame, start_frame+bs, start_frame+2*bs... end_frame]"""
-    if batch_size > end_frame - start_frame:
-        logger.warning(f"batch size {batch_size} is larger than #frames to process [{start_frame}:{end_frame}].")
-        batch_size = end_frame - start_frame
-    last_one = min(end_frame, len(video))
-    batches = list(range(start_frame, last_one, batch_size))
-    batches = [*batches, last_one] if batches[-1] != last_one else batches
+    if batch_size > len(frames):
+        logger.warning(f"batch size {batch_size} is larger than #frames to process {len(frames)}.")
+        batch_size = len(frames)
+    batches, n_batches = [], len(frames) // batch_size + (len(frames) % batch_size > 0)
+    for i in range(n_batches):
+        batches.append(frames[i * batch_size: (i + 1) * batch_size])
     return batches
 
 class VideoRepresentationsExtractor:
@@ -56,7 +56,7 @@ class VideoRepresentationsExtractor:
             r.set_io_params(**kwargs)
         return self
 
-    def run(self, output_dir: Path, start_frame: int | None = None, end_frame: int | None = None,
+    def run(self, output_dir: Path, frames: list[int] | None = None,
             output_dir_exists_mode: str = "raise", exception_mode: str = "stop_execution",
             n_threads_data_storer: int = 0) -> dict[str, Any]:
         """
@@ -66,8 +66,7 @@ class VideoRepresentationsExtractor:
         - A dataframe with the run statistics for each representation
         """
         self._setup_logger(output_dir, now := now_fmt())
-        runtime_args = VRERuntimeArgs(self.video, self.representations, start_frame,
-                                      end_frame, exception_mode, n_threads_data_storer)
+        runtime_args = VRERuntimeArgs(self.video, self.representations, frames, exception_mode, n_threads_data_storer)
         logger.info(runtime_args)
         self._metadata = Metadata(self.repr_names, runtime_args, self._logs_file.parent / f"run_metadata-{now}.json")
         for vre_repr in self._get_output_representations():
@@ -91,9 +90,9 @@ class VideoRepresentationsExtractor:
             if isinstance(dep, LearnedRepresentationMixin) and dep.setup_called:
                 dep.vre_free()
 
-    def _compute_one_representation_batch(self, rep: Representation, l: int, r: int, output_dir: Path):
+    def _compute_one_representation_batch(self, rep: Representation, batch: list[int], output_dir: Path):
         rep.data = None # Important to invalidate any previous results here
-        load_from_disk_if_possible(rep, self.video, list(range(l, r)), output_dir)
+        load_from_disk_if_possible(rep, self.video, batch, output_dir)
         if rep.data is not None:
             return
 
@@ -101,13 +100,13 @@ class VideoRepresentationsExtractor:
         rep.vre_setup() if isinstance(rep, LearnedRepresentationMixin) and not rep.setup_called else None
         for dep in rep.dependencies: # Note: hopefully toposorted...
             dep.data = None # TODO: make unit test with this (lingering .data from previous computation)
-            load_from_disk_if_possible(dep, self.video, list(range(l, r)), output_dir)
+            load_from_disk_if_possible(dep, self.video, batch, output_dir)
             if dep.data is None:
                 assert isinstance(dep, ComputeRepresentationMixin), dep
                 dep.vre_setup() if isinstance(dep, LearnedRepresentationMixin) and not dep.setup_called else None
-                dep.compute(self.video, ixs=list(range(l, r)))
-        rep.compute(self.video, ixs=list(range(l, r)))
-        assert rep.data is not None, f"{rep} {l} {l} {output_dir}"
+                dep.compute(self.video, ixs=batch)
+        rep.compute(self.video, ixs=batch)
+        assert rep.data is not None, f"{rep} {batch} {output_dir}"
 
     def _do_one_representation(self, data_writer: DataWriter, runtime_args: VRERuntimeArgs) -> bool:
         """main loop of each representation. Returns true if had exception, false otherwise"""
@@ -117,31 +116,31 @@ class VideoRepresentationsExtractor:
         self._metadata.metadata["data_writers"][rep.name] = data_writer.to_dict()
         rep.output_size = self.video.frame_shape[0:2] if rep.output_size == "video_shape" else rep.output_size
 
-        batches = _make_batches(self.video, runtime_args.start_frame, runtime_args.end_frame, rep.batch_size)
-        left, right = batches[0:-1], batches[1:]
+        batches = _make_batches(runtime_args.frames, rep.batch_size)
+        # left, right = batches[0:-1], batches[1:]
         pbar = tqdm(total=runtime_args.n_frames, desc=f"[VRE] {rep.name} bs={rep.batch_size}")
-        for i, (l, r) in enumerate(zip(left, right)): # main VRE loop
+        for i, batch in enumerate(batches):
             if i % runtime_args.store_metadata_every_n_iters == 0:
                 self._metadata.store_on_disk()
 
             now = datetime.now()
             try:
                 tr.cuda.empty_cache() # might empty some unused memory, not 100% if needed.
-                self._compute_one_representation_batch(rep=rep, l=l, r=r, output_dir=data_writer.output_dir)
-                assert rep.data is not None, (rep, l, r)
+                self._compute_one_representation_batch(rep=rep, batch=batch, output_dir=data_writer.output_dir)
+                assert rep.data is not None, (rep, batch)
                 if isinstance(rep.output_size, tuple):
                     rep.resize(rep.output_size)
                 if rep.data.output.dtype != rep.output_dtype:
                     rep.cast(rep.output_dtype)
                 imgs = rep.make_images() if rep.export_image else None
-                data_storer(rep.data, imgs, l, r)
+                data_storer(rep.data, imgs, batch)
             except Exception:
-                self._log_error(f"\n[{rep.name} {rep.batch_size=} {l=} {r=}] {traceback.format_exc()}\n")
-                self._metadata.add_time(rep.name, 1 << 31, runtime_args.end_frame - l)
+                self._log_error(f"\n[{rep.name} {rep.batch_size=} {batch=}] {traceback.format_exc()}\n")
+                self._metadata.add_time(rep.name, 1 << 31, len(runtime_args.frames) - i * rep.batch_size)
                 self._cleanup_one_representation(rep, data_storer)
                 return True
-            self._metadata.add_time(rep.name, (datetime.now() - now).total_seconds(), r - l)
-            pbar.update(r - l)
+            self._metadata.add_time(rep.name, (datetime.now() - now).total_seconds(), len(batch))
+            pbar.update(len(batch))
         self._cleanup_one_representation(rep, data_storer)
         return False
 

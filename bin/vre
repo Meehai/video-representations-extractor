@@ -58,10 +58,10 @@ def main(args: Namespace):
 
     representations = build_representations_from_cfg(cfg=cfg)
     vre = VRE(video, representations)
-    vre_metadata = vre.run(args.output_path, start_frame=args.start_frame, end_frame=args.end_frame,
+    vre_metadata = vre.run(args.output_path, frames=list(range(args.start_frame, args.end_frame or len(video))),
                            output_dir_exists_mode=args.output_dir_exists_mode,
                            n_threads_data_storer=args.n_threads_data_storer)
-    vre_run_stats = pd.DataFrame(vre_metadata["run_stats"], index=range(*vre_metadata["runtime_args"]["frames"]))
+    vre_run_stats = pd.DataFrame(vre_metadata["run_stats"], index=vre_metadata["runtime_args"]["frames"])
     print(vre_run_stats if len(vre_run_stats) > 1 else vre_run_stats.T)
 
     if args.make_video_collage:

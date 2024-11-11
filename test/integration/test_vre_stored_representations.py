@@ -66,12 +66,13 @@ def test_vre_stored_representation():
     vre = VRE(video, representations).set_io_parameters(binary_format="npz", image_format="png")
     print(vre)
 
-    res = vre.run(output_dir=Path(tmp_dir), start_frame=0, end_frame=None, output_dir_exists_mode="skip_computed")
-    vre_run_stats = pd.DataFrame(res["run_stats"], index=range(*res["runtime_args"]["frames"]))
+    res = vre.run(output_dir=Path(tmp_dir), frames=list(range(0, len(video))), output_dir_exists_mode="skip_computed")
+    breakpoint()
+    vre_run_stats = pd.DataFrame(res["run_stats"], index=res["runtime_args"]["frames"])
     print(vre_run_stats)
 
     # assert that it works the 2nd time too!
-    res = vre.run(output_dir=Path(tmp_dir), start_frame=0, end_frame=None, output_dir_exists_mode="skip_computed")
+    res = vre.run(output_dir=Path(tmp_dir), frames=list(range(0, len(video))), output_dir_exists_mode="skip_computed")
 
 
 if __name__ == "__main__":

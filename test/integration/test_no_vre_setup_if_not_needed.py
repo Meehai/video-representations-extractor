@@ -53,7 +53,7 @@ def test_no_vre_setup_if_not_needed():
     vre = VRE(video, {"r1": r1, "r2": r2}) \
         .set_compute_params(output_size="native", output_dtype="uint8") \
         .set_io_parameters(binary_format="npz")
-    vre.run(tmp_dir, start_frame=0, end_frame=None, output_dir_exists_mode="skip_computed")
+    vre.run(tmp_dir, frames=list(range(0, len(video))), output_dir_exists_mode="skip_computed")
     assert r1.make_called is False, (r1.make_called, r1.vre_setup_called, r1.vre_free_called)
     # since all the data of r1 is already on the disk, there's no need to call vre_setup and vre_free at all
     assert r1.vre_setup_called is False, (r1.make_called, r1.vre_setup_called, r1.vre_free_called)

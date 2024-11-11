@@ -28,16 +28,17 @@ class DataWriter:
         self.output_dir_exists_mode = output_dir_exists_mode
         self._make_dirs()
 
-    def write(self, y_repr: ReprOut, imgs: np.ndarray | None, l: int, r: int):
+    def write(self, y_repr: ReprOut, imgs: np.ndarray | None, batch: list[int]):
         """store the data in the right format"""
         assert y_repr is not None and y_repr.output is not None
-        assert len(y_repr.output) == r - l, f"{len(y_repr.output)} - {r - l} ({r=} {l=})"
+        assert len(y_repr.output) == len(batch), f"{len(y_repr.output)} - {batch} ({len(batch)})"
         if self.rep.export_image:
             assert imgs is not None
-            assert (shp := imgs.shape)[0] == r - l and shp[-1] == 3, f"Expected {r - l} images ({l=} {r=}), got {shp}"
+            assert (shp := imgs.shape)[0] == len(batch) and shp[-1] == 3, \
+                f"Expected {len(batch)} images ({batch=}), got {shp}"
             assert imgs.dtype in (np.uint8, np.uint16, np.uint32, np.uint64), imgs.dtype
 
-        for i, t in enumerate(range(l, r)):
+        for i, t in enumerate(batch):
             if self.rep.export_binary:
                 ext = self.rep.binary_format.value
                 if (bin_path := self.output_dir / self.rep.name / ext / f"{t}.{ext}").exists():
@@ -46,7 +47,7 @@ class DataWriter:
                     disk_fmt = self.rep.to_disk_fmt(y_repr.output[i])
                     self.rep.save_to_disk(disk_fmt, bin_path)
                 if (extra := y_repr.extra) is not None and len(y_repr.extra) > 0:
-                    assert len(extra) == r - l, f"Extra must be a list of len ({len(extra)}) = batch_size ({r-l})"
+                    assert len(extra) == len(batch), f"Extra must be a list of len ({len(extra)}) = {len(batch)=}"
                     np.savez(bin_path.parent / f"{t}_extra.npz", extra[i])
 
             if self.rep.export_image:

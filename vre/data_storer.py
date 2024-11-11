@@ -60,13 +60,13 @@ class DataStorer:
             self.queue.all_tasks_done.release()
         self.queue = None
 
-    def __call__(self, y_repr: ReprOut, imgs: np.ndarray | None, l: int, r: int):
+    def __call__(self, y_repr: ReprOut, imgs: np.ndarray | None, batch: list[int]):
         assert isinstance(y_repr, ReprOut), f"{self.data_writer.representation=}, {type(y_repr)=}"
         if self.n_threads == 0:
-            self.data_writer(y_repr, imgs, l, r)
+            self.data_writer(y_repr, imgs, batch)
         else:
             assert self.queue is not None, "Queue was closed, create a new DataStorer object..."
-            self.queue.put((y_repr, imgs, l, r), block=True, timeout=30)
+            self.queue.put((y_repr, imgs, batch), block=True, timeout=30)
 
     def __repr__(self):
         return f"""[DataStorer]

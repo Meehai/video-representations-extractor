@@ -145,9 +145,9 @@ representations:
 
     vre = VRE(video, representations)
     vre.set_compute_params(batch_size=1).set_io_parameters(binary_format="npz", image_format="png", compress=True)
-    took1 = vre(tmp_dir_bs, start_frame=start_frame, end_frame=end_frame, output_dir_exists_mode="raise")
+    took1 = vre(tmp_dir_bs, frames=list(range(start_frame, end_frame)), output_dir_exists_mode="raise")
     vre.set_compute_params(batch_size=batch_size)
-    took_bs = vre(tmp_dir, start_frame=start_frame, end_frame=end_frame, output_dir_exists_mode="raise")
+    took_bs = vre(tmp_dir, frames=list(range(start_frame, end_frame)), output_dir_exists_mode="raise")
 
     both = pd.concat([pd.DataFrame(took1["run_stats"]).mean().rename("unbatched"),
                       pd.DataFrame(took_bs["run_stats"]).mean().rename(f"batch={batch_size}")], axis=1)

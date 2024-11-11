@@ -33,14 +33,14 @@ def test_DataWriter_ctor_and_basic_writes():
     imgs = np.random.randint(0, 255, size=(3, 240, 240, 3)).astype(np.uint8)
     y_repr = ReprOut(imgs, np.random.randn(3, 240, 240), key=[0, 1, 2])
     with pytest.raises(AssertionError):
-        writer.write(y_repr, None, l=0, r=3)
+        writer.write(y_repr, None, [0, 1, 2])
     with pytest.raises(AssertionError):
-        writer.write(y_repr, imgs.astype(np.int64), l=0, r=3)
-    writer.write(y_repr, imgs, l=0, r=3)
+        writer.write(y_repr, imgs.astype(np.int64), [0, 1, 2])
+    writer.write(y_repr, imgs, [0, 1, 2])
     assert Path(tmp_dir / "rgb/npz/0.npz").exists()
-    writer.write(y_repr, imgs.astype(np.uint32), l=0, r=3)
+    writer.write(y_repr, imgs.astype(np.uint32), [0, 1, 2])
     with pytest.raises(AssertionError):
-        writer.write(y_repr, imgs, l=0, r=2)
+        writer.write(y_repr, imgs, [0, 1])
 
 def test_DataWriter_all_batches_exist():
     tmp_dir = Path(TemporaryDirectory().name)
@@ -52,7 +52,7 @@ def test_DataWriter_all_batches_exist():
     for l in range(0, 2):
         for r in range(l+1, 3):
             assert all_batch_exists(writer, l=l, r=r) is False, (l, r)
-    writer.write(y_repr, None, l=0, r=3)
+    writer.write(y_repr, None, [0, 1, 2])
     for l in range(0, 2):
         for r in range(l+1, 3):
             assert all_batch_exists(writer, l=l, r=r), (l, r)
@@ -79,13 +79,13 @@ def test_DataStorer(n_threads: int):
     y = np.random.randn(10, 240, 240)
     imgs = np.random.randint(0, 255, size=(10, 240, 240, 3)).astype(np.uint8)
 
-    batches = [[0, 3], [3, 6], [6, 10]]
+    batches = [[0, 1, 2], [3, 4, 5], [6, 7, 8, 9]]
     for storer in storers:
-        for l, r in batches:
-            storer(ReprOut(imgs[l:r], y[l:r], key=list(range(l, r))), imgs[l:r], l=l, r=r)
+        for batch in batches:
+            storer(ReprOut(imgs[batch], y[batch], key=batch), imgs[batch], batch)
     [storer.join_with_timeout(2) for storer in storers]
     if n_threads > 0:
         with pytest.raises(AssertionError):
-            storer(ReprOut(imgs[0:1], y[0:1], key=[0]), imgs[0:1], l=0, r=1)
+            storer(ReprOut(imgs[0:1], y[0:1], key=[0]), imgs[0:1], [0])
     assert all_batch_exists(writer_rgb, l=0, r=10)
     assert all_batch_exists(writer_hsv, l=0, r=10)
