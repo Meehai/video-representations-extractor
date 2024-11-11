@@ -21,8 +21,7 @@ class ReprOut:
         assert self.frames is None or len(self.frames) == len(self.output), (len(self.frames), len(self.output))
 
     def __repr__(self):
-        return (f"[ReprOut](frames={self.frames or lo(self.frames)}, output={lo(self.output)}, "
-                f"key={self.key}, extra={self.extra})")
+        return f"[ReprOut](frames={lo(self.frames)}, output={lo(self.output)}, key={self.key}, extra={self.extra})"
 
 class Representation(ABC):
     """Generic Representation class for VRE"""

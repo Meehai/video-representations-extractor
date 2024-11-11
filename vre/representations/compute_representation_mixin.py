@@ -31,7 +31,7 @@ class ComputeRepresentationMixin(ABC):
             assert len(os) == 2 and all(isinstance(x, int) and x > 0 for x in os), os
         if isinstance(os, str):
             assert os in ("native", "video_shape"), os
-        self._output_size = os
+        self._output_size = os if isinstance(os, str) else tuple(os)
 
     @property
     def batch_size(self) -> int:
