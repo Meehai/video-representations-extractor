@@ -115,6 +115,7 @@ class IORepresentationMixin(ABC):
 def load_from_disk_if_possible(rep: Representation | IORepresentationMixin, video: VREVideo,
                                ixs: list[int], output_dir: Path):
     """loads (batched) data from disk if possible. Used in VRE main loop. TODO: integrate better in the class"""
+    # TODO: see vre_with_stored_representations.py -- this needs to deepwalk if needed.
     assert isinstance(ixs, list) and all(isinstance(ix, int) for ix in ixs), (type(ixs), [type(ix) for ix in ixs])
     assert output_dir is not None and output_dir.exists(), output_dir
     npz_paths: list[Path] = [output_dir / rep.name / f"npz/{ix}.npz" for ix in ixs]

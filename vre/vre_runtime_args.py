@@ -24,7 +24,7 @@ class VRERuntimeArgs:
         assert all(isinstance(r, Representation) for r in representations.values()), representations
         assert exception_mode in ("stop_execution", "skip_representation"), exception_mode
         frames = sorted(list(range(len(video))) if frames is None else frames)
-        assert all(isinstance(x, int) for x in frames)
+        assert all(isinstance(x, int) for x in frames), frames
         assert 0 <= frames[0] <= frames[-1] < len(video), f"{frames[0]=}, {frames[-1]=}, {len(video)=}"
 
         self.video = video

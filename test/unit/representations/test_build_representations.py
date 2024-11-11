@@ -114,12 +114,12 @@ def test_build_representations_from_cfg_output_size():
 
     cfg = {**orig_cfg, "compute_parameters": {"output_size": [100, 200]}}
     res = build_representation_from_cfg(cfg, name="rgb", built_so_far={})
-    assert res.output_size == [100, 200], res.output_size
+    assert res.output_size == (100, 200), res.output_size
 
     cfg = {**orig_cfg, "compute_parameters": {"output_size": [100, 200]}}
     res = build_representation_from_cfg(cfg, name="rgb", built_so_far={},
                                         compute_representations_defaults={"output_size": "native"})
-    assert res.output_size == [100, 200], res.output_size
+    assert res.output_size == (100, 200), res.output_size
 
     with pytest.raises(AssertionError):
         _ = build_representation_from_cfg({**orig_cfg, "compute_parameters": {"output_size": "lala"}},

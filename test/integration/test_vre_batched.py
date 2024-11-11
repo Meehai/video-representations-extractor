@@ -130,6 +130,7 @@ representations:
 """)
 
     all_representations = build_representations_from_cfg(all_representations_dict)
+    np.random.seed(0)
     chosen = np.random.choice(list(all_representations.keys()), size=2, replace=False)
     representations = {k: v for k, v in all_representations.items() if k in chosen}
     logger.info(f"Kept representations: {representations}")

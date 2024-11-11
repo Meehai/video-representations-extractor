@@ -70,9 +70,8 @@ def test_vre_stored_representation():
     vre_run_stats = pd.DataFrame(res["run_stats"], index=res["runtime_args"]["frames"])
     print(vre_run_stats)
 
-    # assert that it works the 2nd time too!
+    # assert that it works the 2nd time too and no computation is done !
     res = vre.run(output_dir=Path(tmp_dir), frames=list(range(0, len(video))), output_dir_exists_mode="skip_computed")
-
 
 if __name__ == "__main__":
     test_vre_stored_representation()
