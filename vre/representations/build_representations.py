@@ -1,5 +1,6 @@
 """builder for all the representations in VRE. Can be used outside of VRE too, see examples/notebooks."""
 from typing import Type
+import imp # pylint: disable=deprecated-module
 from omegaconf import DictConfig, OmegaConf
 
 from ..logger import vre_logger as logger
@@ -124,7 +125,6 @@ def build_representation_from_cfg(repr_cfg: dict, name: str, built_so_far: dict[
 def build_representations_from_cfg(cfg: DictConfig | dict) -> dict[str, Representation]:
     """builds a dict of representations given a dict config (yaml file)"""
     cfg: dict = OmegaConf.to_container(cfg, resolve=True) if isinstance(cfg, DictConfig) else cfg
-
     assert len(repr_cfg := cfg["representations"]) > 0 and isinstance(repr_cfg, dict), repr_cfg
 
     tsr: dict[str, Representation] = {}
@@ -141,3 +141,23 @@ def build_representations_from_cfg(cfg: DictConfig | dict) -> dict[str, Represen
                                             cfg.get("default_learned_parameters"), cfg.get("default_io_parameters"))
         tsr[name] = obj
     return tsr
+
+def add_external_representations(representations: dict[str, Representation], external_path: str,
+                                 cfg: DictConfig) -> dict[str, Representation]:
+    """adds external representations from an provided path in the format: /path/to/script.py:fn_name"""
+    path, fn = external_path.split(":")
+    external_representations: dict[str, Representation] = getattr(imp.load_source("external", path), fn)()
+    assert all(isinstance(v, IORepresentationMixin) for v in external_representations.values())
+    assert all(isinstance(v, ComputeRepresentationMixin) for v in external_representations.values())
+    assert all(isinstance(v, Representation) for v in external_representations.values())
+    assert (clash := set(external_representations.keys()).intersection(representations)) == set(), clash
+    logger.info(f"Adding {list(external_representations)} from {path}")
+    for repr in external_representations.values():
+        repr.set_compute_params(**cfg.get("default_compute_parameters", {}))
+        repr.set_io_params(**cfg.get("default_io_parameters", {}))
+        if isinstance(repr, LearnedRepresentationMixin):
+            repr.set_learned_parameters(**cfg.get("default_learned_parameters", {}))
+    representations = {**representations, **external_representations}
+    tsr = topological_sort({r.name: [_r.name for _r in r.dependencies] for r in representations.values()})
+    representations = {k: representations[k] for k in tsr}
+    return representations
