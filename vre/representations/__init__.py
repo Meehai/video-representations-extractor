@@ -1,6 +1,7 @@
 """Init file"""
 # pylint: disable=reimported
-from .build_representations import build_representations_from_cfg, build_representation_from_cfg
+from .build_representations import (
+    build_representations_from_cfg, build_representation_from_cfg, add_external_representations)
 from .representation import Representation, ReprOut
 from .task_mapper import TaskMapper
 

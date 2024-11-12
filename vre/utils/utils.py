@@ -82,3 +82,7 @@ def semantic_mapper(semantic_original: np.ndarray, mapping: dict[str, list[str]]
             flat_mapping[_v] = k
     mapped_data = np.vectorize(flat_mapping.get)(semantic_original).astype(np.uint8)
     return mapped_data
+
+def abs_path(x: str | Path) -> Path:
+    """returns the absolute path of a string/path"""
+    return Path(x).absolute()
