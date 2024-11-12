@@ -4,9 +4,9 @@ sys.path.append(str(Path(__file__).parents[1] / "semantic_mapper"))
 from semantic_mapper import get_new_dronescapes_tasks, run_vre
 
 import pandas as pd
-import pims
-from vre.representations.color import RGB, HSV
 from vre import VRE
+from vre.representations.color import RGB, HSV
+from vre.utils import FFmpegVideo
 
 def main():
     video_path = Path(sys.argv[1])
@@ -17,7 +17,7 @@ def main():
 
     new_tasks = get_new_dronescapes_tasks()
     representations = {"rgb": (rgb := RGB("rgb")), "buildings": new_tasks["buildings"], "hsv": HSV("hsv", [rgb])}
-    video = pims.Video(video_path)
+    video = FFmpegVideo(video_path)
     vre = VRE(video, representations) \
         .set_io_parameters(binary_format="npz", image_format="png", compress=True) \
         .set_compute_params(output_size="video_shape", batch_size=3)

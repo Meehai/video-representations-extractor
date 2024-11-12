@@ -45,7 +45,7 @@ class MyDependentRepresentation(Representation, ComputeRepresentationMixin, NpIO
 def test_no_vre_setup_if_not_needed():
     tmp_dir = Path(TemporaryDirectory().name)
     (tmp_dir / "r1/npz").mkdir(parents=True, exist_ok=False)
-    video = FakeVideo(np.random.randint(0, 255, size=(10, 20, 20, 3)).astype(np.uint8), frame_rate=30)
+    video = FakeVideo(np.random.randint(0, 255, size=(10, 20, 20, 3)).astype(np.uint8), fps=30)
     for i in range(len(video)):
         np.savez(f"{tmp_dir}/r1/npz/{i}.npz", video[i])
     r1 = MyRepresentation("r1", [])

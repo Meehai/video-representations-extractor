@@ -3,7 +3,7 @@ from vre.representations.color import RGB, HSV
 from vre.utils import FakeVideo
 
 def test_hsv_compute():
-    video = FakeVideo(np.random.randint(0, 255, size=(20, 64, 128, 3), dtype=np.uint8), frame_rate=30)
+    video = FakeVideo(np.random.randint(0, 255, size=(20, 64, 128, 3), dtype=np.uint8), fps=30)
     hsv_repr = HSV("hsv", dependencies=[RGB("rgb")])
     assert hsv_repr.name == "hsv"
     assert hsv_repr.compress is True # default from ComputeRepresentationMixin
@@ -17,7 +17,7 @@ def test_hsv_compute():
     assert y_hsv_images.dtype == np.uint8, y_hsv_images.dtype
 
 def test_hsv_resize():
-    video = FakeVideo(np.random.randint(0, 255, size=(20, 64, 128, 3), dtype=np.uint8), frame_rate=30)
+    video = FakeVideo(np.random.randint(0, 255, size=(20, 64, 128, 3), dtype=np.uint8), fps=30)
     hsv_repr = HSV("hsv", dependencies=[RGB("rgb")])
 
     hsv_repr.dependencies[0].compute(video, [0]) # TODO: can this be automated?

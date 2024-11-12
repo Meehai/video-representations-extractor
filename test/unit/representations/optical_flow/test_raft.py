@@ -5,7 +5,7 @@ from vre.utils import FakeVideo
 
 @pytest.mark.parametrize(["iters", "small"], [(2, False), (2, True), (4, True)])
 def test_raft(iters: int, small: bool):
-    video = FakeVideo(np.random.randint(0, 255, size=(20, 255, 255, 3), dtype=np.uint8), frame_rate=30)
+    video = FakeVideo(np.random.randint(0, 255, size=(20, 255, 255, 3), dtype=np.uint8), fps=30)
     raft_repr = FlowRaft(name="raft", dependencies=[], inference_height=128, inference_width=128,
                          iters=iters, small=small)
     raft_repr.vre_setup(load_weights=False)

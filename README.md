@@ -90,7 +90,7 @@ Note: use `--cfg_path test/end_to_end/imgur/cfg.yaml` for 'out of the box' worki
 
 ### 3.1 Video
 
-Any video format that is supported by `pims`. Representations were mostly tested on UAV-like videos, but they should
+Any video format that is supported by `ffmpeg`. Representations were mostly tested on UAV-like videos, but they should
 be fine for self driving videos or even indoor handheld videos.
 
 ### 3.2 Config files

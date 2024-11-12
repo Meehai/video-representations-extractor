@@ -3,7 +3,7 @@ from vre.representations.soft_segmentation.halftone import Halftone
 from vre.utils import FakeVideo
 
 def test_halftone():
-    video = FakeVideo(np.random.randint(0, 255, size=(20, 64, 128, 3), dtype=np.uint8), frame_rate=30)
+    video = FakeVideo(np.random.randint(0, 255, size=(20, 64, 128, 3), dtype=np.uint8), fps=30)
     halftone_repr = Halftone(name="halftone", dependencies=[], sample=3, scale=1, percentage=91,
                              angles=[0, 15, 30, 45], antialias=False, resolution=video.frame_shape[0:2])
     assert halftone_repr.name == "halftone"

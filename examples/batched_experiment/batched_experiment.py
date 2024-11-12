@@ -2,7 +2,6 @@
 """experiment using batches of frames"""
 from pathlib import Path
 from tempfile import TemporaryDirectory
-import pims
 import pandas as pd
 import torch as tr
 import os
@@ -10,7 +9,7 @@ import os
 from vre import VRE
 from vre.logger import vre_logger as logger
 from vre.representations import build_representations_from_cfg
-from vre.utils import get_project_root
+from vre.utils import get_project_root, FFmpegVideo
 
 def get_representation_dict() -> dict:
     """setup all representations we want to use, including one representation per device"""
@@ -100,7 +99,7 @@ def _process_all(results: list[dict], batch_sizes: list[int]) -> pd.DataFrame:
 
 def main():
     """main fn"""
-    video = pims.Video(get_project_root() / "resources/test_video.mp4")
+    video = FFmpegVideo(get_project_root() / "resources/test_video.mp4")
     representations_dict = get_representation_dict()
     batch_sizes = [5, 3, 1]
     start_frame = 1000

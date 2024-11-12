@@ -43,7 +43,7 @@ class VRERuntimeArgs:
         """A dict representation of this runtime args. Used in Metadata() to be stored on disk during the run."""
         return {
             "video_path": str(getattr(self.video, "file", "")), "video_shape": f"{self.video.shape}",
-            "video_fps": f"{self.video.frame_rate:.2f}",
+            "video_fps": f"{self.video.fps:.2f}",
             "representations": [r.name for r in self.representations.values()],
             "frames": self.frames,
             "exception_mode": self.exception_mode,
@@ -54,7 +54,7 @@ class VRERuntimeArgs:
         return f"""[{parsed_str_type(self)}]
 - Video path: '{getattr(self.video, "file", "")}'
 - Representations ({len(self.representations)}): {", ".join(x for x in self.representations.keys())}
-- Video shape: {self.video.shape} (FPS: {self.video.frame_rate:.2f})
+- Video shape: {self.video.shape} (FPS: {self.video.fps:.2f})
 - Output frames ({self.n_frames}): [{self.frames[0]} : {self.frames[-1]}]
 - Exception mode: '{self.exception_mode}'
 - #threads DataStorer: {self.n_threads_data_storer} (0 = only using main thread)
