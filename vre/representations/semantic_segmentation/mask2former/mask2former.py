@@ -84,11 +84,11 @@ class Mask2Former(Representation, LearnedRepresentationMixin, ComputeRepresentat
 
     def _get_metadata(self, model_id: str) -> tuple[list[str], list[tuple[int, int, int]], dict[str, int]]:
         metadata = None
-        if model_id == "49189528_1":
+        if model_id == "49189528_1": # r50
             metadata = json.load(open(f"{self._m2f_resources}/mapillary_metadata.json", "r"))
-        if model_id == "47429163_0":
+        if model_id == "47429163_0": # swin
             metadata = json.load(open(f"{self._m2f_resources}/coco_metadata.json", "r"))
-        if model_id == "49189528_0":
+        if model_id == "49189528_0": # swin
             metadata = json.load(open(f"{self._m2f_resources}/mapillary_metadata2.json", "r"))
         return metadata["stuff_classes"], metadata["stuff_colors"], metadata.get("thing_dataset_id_to_contiguous_id")
 
