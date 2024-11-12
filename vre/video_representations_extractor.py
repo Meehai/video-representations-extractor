@@ -61,7 +61,13 @@ class VideoRepresentationsExtractor:
             n_threads_data_storer: int = 0) -> dict[str, Any]:
         """
         The main loop of the VRE. This will run all the representations on the video and store results in the output_dir
-        See VRERuntimeArgs for parameters definition.
+        Parameters:
+        - output_dir The directory where VRE will store the representations
+        - frames The list of frames to run VRE for. If None, will export all the frames of the video
+        - exception_mode What to do when encountering an exception. It always writes the exception to 'exception.txt'
+          - 'skip_representation' Will stop the run of the current representation and start the next one
+          - 'stop_execution' (default) Will stop the execution of VRE
+        - n_threads_data_storer The number of threads used by the DataStorer
         Returns:
         - A dataframe with the run statistics for each representation
         """

@@ -61,18 +61,21 @@ def build_representation_type(repr_type: str) -> Type[Representation]:
         raise ValueError(f"Unknown type: '{repr_type}'")
     return obj_type
 
+def _validate_repr_cfg(repr_cfg: dict, name: str):
+    assert isinstance(repr_cfg, dict), f"Broken format (not a dict) for {name}. Type: {type(repr_cfg)}."
+    valid_keys = {"type", "parameters", "dependencies", "compute_parameters", "learned_parameters", "io_parameters"}
+    required_keys = {"type", "parameters", "dependencies"}
+    assert set(repr_cfg).issubset(valid_keys), f"{name} wrong keys: {repr_cfg.keys()}"
+    assert (diff := required_keys.difference(repr_cfg)) == set(), f"{name} missing keys: {diff}"
+    assert isinstance(repr_cfg["parameters"], dict), type(repr_cfg["parameters"])
+    assert name.find("/") == -1, "No '/' allowed in the representation name. Got '{name}'"
+
 def build_representation_from_cfg(repr_cfg: dict, name: str, built_so_far: dict[str, Representation],
                                   compute_representations_defaults: dict | None = None,
                                   learned_representations_defaults: dict | None = None,
                                   io_representations_defaults: dict | None = None) -> Representation:
     """Builds a representation given a dict config and a name."""
-    assert isinstance(repr_cfg, dict), f"Broken format (not a dict) for {name}. Type: {type(repr_cfg)}."
-    valid_keys = {"type", "parameters", "dependencies", "compute_parameters", "learned_parameters", "io_parameters"}
-    assert set(repr_cfg).issubset(valid_keys), f"{name} wrong keys: {repr_cfg.keys()}"
-    assert {"type", "parameters", "dependencies"}.issubset(repr_cfg), f"{name} missing keys: {repr_cfg.keys()}"
-    assert isinstance(repr_cfg["parameters"], dict), type(repr_cfg["parameters"])
-    assert name.find("/") == -1, "No '/' allowed in the representation name. Got '{name}'"
-
+    _validate_repr_cfg(repr_cfg, name)
     logger.info(f"Building '{repr_cfg['type']}' (vre name: {name})")
     obj_type = build_representation_type(repr_cfg["type"])
     dependencies = [built_so_far[dep] for dep in repr_cfg["dependencies"]]
@@ -128,6 +131,7 @@ def build_representations_from_cfg(cfg: DictConfig | dict) -> dict[str, Represen
     logger.debug("Doing topological sort...")
     dep_graph = {}
     for repr_name, repr_cfg_values in repr_cfg.items():
+        _validate_repr_cfg(repr_cfg_values, repr_name)
         assert isinstance(repr_cfg_values, dict), f"{repr_name} not a dict cfg: {type(repr_cfg_values)}"
         dep_graph[repr_name] = repr_cfg_values["dependencies"]
     topo_sorted = {k: repr_cfg[k] for k in topological_sort(dep_graph)}
