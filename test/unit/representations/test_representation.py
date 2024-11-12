@@ -10,7 +10,7 @@ class SimpleRepresentation(FakeRepresentation): pass
 
 @pytest.fixture
 def video() -> FakeVideo:
-    return FakeVideo(np.random.randint(0, 255, size=(10, 20, 30, 3), dtype=np.uint8), frame_rate=25)
+    return FakeVideo(np.random.randint(0, 255, size=(10, 20, 30, 3), dtype=np.uint8), fps=25)
 
 def test_representation_ctor():
     repr = SimpleRepresentation("simple_representation")

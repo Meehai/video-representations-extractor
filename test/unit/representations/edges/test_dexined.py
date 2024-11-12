@@ -3,7 +3,7 @@ from vre.representations.edges.dexined import DexiNed
 from vre.utils import FakeVideo
 
 def test_dexined_1():
-    video = FakeVideo(np.random.randint(0, 255, size=(20, 64, 128, 3), dtype=np.uint8), frame_rate=30)
+    video = FakeVideo(np.random.randint(0, 255, size=(20, 64, 128, 3), dtype=np.uint8), fps=30)
     dexined_repr = DexiNed(name="dexined", dependencies=[])
     dexined_repr.vre_setup(load_weights=False)
     assert dexined_repr.name == "dexined"

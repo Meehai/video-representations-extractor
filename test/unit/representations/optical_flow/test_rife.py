@@ -5,7 +5,7 @@ from vre.utils import FakeVideo
 
 @pytest.mark.parametrize("uhd", [False, True])
 def test_rife_uhd_false(uhd):
-    video = FakeVideo(np.random.randint(0, 255, size=(20, 64, 128, 3), dtype=np.uint8), frame_rate=30)
+    video = FakeVideo(np.random.randint(0, 255, size=(20, 64, 128, 3), dtype=np.uint8), fps=30)
     rife_repr = FlowRife(name="rife", dependencies=[], compute_backward_flow=False, uhd=uhd)
     rife_repr.vre_setup(load_weights=False)
     assert rife_repr.name == "rife"

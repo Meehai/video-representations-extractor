@@ -4,10 +4,8 @@ from pathlib import Path
 from natsort import natsorted
 import numpy as np
 import pandas as pd
-import pims
-import sys
 from vre import VRE
-from vre.utils import FakeVideo, image_read
+from vre.utils import FFmpegVideo, FakeVideo, image_read
 from vre.representations import build_representations_from_cfg
 from vre.logger import vre_logger as logger
 from omegaconf import OmegaConf
@@ -52,9 +50,9 @@ def main(args: Namespace):
         raw_data = [image_read(f) for f in natsorted(args.video_path.glob("*.png"), key=lambda p: p.name)]
         assert all(x.shape == raw_data[0].shape for x in raw_data), f"Images shape differ in '{args.video_path}'"
         logger.info(f"--video_path is a directory. Assuming a directory of images. Found {len(raw_data)} images.")
-        video = FakeVideo(np.array(raw_data, dtype=np.uint8), frame_rate=args.frame_rate)
+        video = FakeVideo(np.array(raw_data, dtype=np.uint8), fps=args.fps)
     else:
-        video = pims.Video(args.video_path)
+        video = FFmpegVideo(args.video_path)
 
     representations = build_representations_from_cfg(cfg=cfg)
     vre = VRE(video, representations)

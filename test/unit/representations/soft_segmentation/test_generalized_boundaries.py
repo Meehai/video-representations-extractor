@@ -3,7 +3,7 @@ from vre.representations.soft_segmentation.generalized_boundaries import General
 from vre.utils import FakeVideo
 
 def test_generalized_boundaries():
-    video = FakeVideo(np.random.randint(0, 255, size=(20, 64, 128, 3), dtype=np.uint8), frame_rate=30)
+    video = FakeVideo(np.random.randint(0, 255, size=(20, 64, 128, 3), dtype=np.uint8), fps=30)
     gb_repr = GeneralizedBoundaries(name="gb", dependencies=[], use_median_filtering=True,
                                     adjust_to_rgb=True, max_channels=3)
     assert gb_repr.name == "gb"

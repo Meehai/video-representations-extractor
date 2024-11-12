@@ -4,7 +4,7 @@ from vre.representations.normals.depth_svd import DepthNormalsSVD
 from vre.utils import FakeVideo
 
 def test_depth_normals_svd_dpt():
-    video = FakeVideo(np.random.randint(0, 255, size=(20, 128, 128, 3), dtype=np.uint8), frame_rate=30)
+    video = FakeVideo(np.random.randint(0, 255, size=(20, 128, 128, 3), dtype=np.uint8), fps=30)
     dpt_repr = DepthDpt(name="dpt", dependencies=[])
     normals_svd_repr = DepthNormalsSVD(name="depth_svd_normals_dpt", dependencies=[dpt_repr],
                                        sensor_fov=30, sensor_width=100, sensor_height=100, window_size=5,

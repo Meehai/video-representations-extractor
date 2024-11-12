@@ -3,7 +3,7 @@ from vre.representations.semantic_segmentation.safeuav import SafeUAV
 from vre.utils import FakeVideo
 
 def test_safeuav():
-    video = FakeVideo(np.random.randint(0, 255, size=(20, 64, 128, 3), dtype=np.uint8), frame_rate=30)
+    video = FakeVideo(np.random.randint(0, 255, size=(20, 64, 128, 3), dtype=np.uint8), fps=30)
     train_height, train_width = 100, 200
     safeuav_repr = SafeUAV(name="safeuav", dependencies=[], num_classes=3, train_height=train_height,
                            train_width=train_width, color_map=[[0, 255, 0], [0, 127, 0], [255, 255, 0]],

@@ -6,13 +6,13 @@ from pprint import pprint
 from loggez import loggez_logger as logger
 from omegaconf import OmegaConf
 from overrides import overrides
-import pims
 import torch as tr
 import numpy as np
 import matplotlib.pyplot as plt
 
 from vre import VRE
-from vre.utils import semantic_mapper, colorize_semantic_segmentation, image_add_title, image_write, collage_fn
+from vre.utils import (semantic_mapper, colorize_semantic_segmentation, image_add_title, image_write, collage_fn,
+                       FFmpegVideo)
 from vre.readers import MultiTaskDataset
 from vre.representations import TaskMapper, NpIORepresentation, ReprOut, build_representations_from_cfg, Representation
 
@@ -56,7 +56,7 @@ def run_vre(video_path: Path, vre_path: Path | None, frames: int | list[int]=VRE
                 set(list(map(lambda x: int(x.stem), D.iterdir()))) == set(frames) for repr in representations):
         logger.info(f"{vre_path} already computed, using as-is w/o calling VRE again. Delete it if you want again")
         return vre_path
-    video = pims.Video(video_path)
+    video = FFmpegVideo(video_path)
     vre = VRE(video, representations)
     vre.run(vre_path, frames=frames, n_threads_data_storer=2)
     return vre_path

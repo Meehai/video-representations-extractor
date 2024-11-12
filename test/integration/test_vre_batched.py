@@ -2,18 +2,17 @@ import shutil
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import yaml
-import pims
 import pandas as pd
 import numpy as np
 import torch as tr
 
 from vre import VRE
 from vre.representations import build_representations_from_cfg
-from vre.utils import fetch_resource
+from vre.utils import fetch_resource, FFmpegVideo
 from vre.logger import vre_logger as logger
 
 def test_vre_batched():
-    video = pims.Video(fetch_resource("test_video.mp4"))
+    video = FFmpegVideo(fetch_resource("test_video.mp4"))
     device = "cuda" if tr.cuda.is_available() else "cpu"
     all_representations_dict = yaml.safe_load(f"""
 representations:
@@ -130,7 +129,7 @@ representations:
 """)
 
     all_representations = build_representations_from_cfg(all_representations_dict)
-    np.random.seed(0)
+    np.random.seed(2)
     chosen = np.random.choice(list(all_representations.keys()), size=2, replace=False)
     representations = {k: v for k, v in all_representations.items() if k in chosen}
     logger.info(f"Kept representations: {representations}")
