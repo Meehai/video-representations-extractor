@@ -16,7 +16,7 @@ def main():
     video = FFmpegVideo(get_project_root() / "resources/test_video.mp4")
     representations = build_representations_from_cfg(OmegaConf.load(Path(__file__).parent / "cfg.yaml"))
     vre = VRE(video, representations)
-    frames = list(range(1000, 1005 if len(sys.argv) == 1 else int(sys.argv[1])))
+    frames = list(range(1000, 1000 + (5 if len(sys.argv) == 1 else int(sys.argv[1]))))
     batch_sizes = [1, 3, 5]
     out_dirs = [Path(__file__).parent / f"experiment_{batch_size}" for batch_size in batch_sizes]
 
