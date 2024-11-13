@@ -1,79 +1,88 @@
 #!/usr/bin/env python3
-import sys
-import os
-from pathlib import Path
-from pprint import pprint
-from loggez import loggez_logger as logger
-from omegaconf import OmegaConf
+"""semantic_mapper.py -- primivites for new tasks based on existing CV/dronescapes tasks"""
 from overrides import overrides
-import torch as tr
 import numpy as np
-import matplotlib.pyplot as plt
 
-from vre import VRE
-from vre.utils import (semantic_mapper, colorize_semantic_segmentation, image_add_title, image_write, collage_fn,
-                       FFmpegVideo)
-from vre.readers import MultiTaskDataset
-from vre.representations import TaskMapper, NpIORepresentation, ReprOut, build_representations_from_cfg, Representation
+from vre.utils import semantic_mapper, colorize_semantic_segmentation
+from vre.representations import TaskMapper, NpIORepresentation
+from vre.representations.cv_representations import DepthRepresentation, NormalsRepresentation, SemanticRepresentation
 
-sys.path.append(Path(__file__).parent.__str__())
-from dronescapes_representations import dronescapes_task_types, coco_classes, mapillary_classes
+coco_classes = ["person", "bicycle", "car", "motorcycle", "airplane", "bus", "train", "truck", "boat", "traffic light",
+                "fire hydrant", "stop sign", "parking meter", "bench", "bird", "cat", "dog", "horse", "sheep", "cow",
+                "elephant", "bear", "zebra", "giraffe", "backpack", "umbrella", "handbag", "tie", "suitcase", "frisbee",
+                "skis", "snowboard", "sports ball", "kite", "baseball bat", "baseball glove", "skateboard", "surfboard",
+                "tennis racket", "bottle", "wine glass", "cup", "fork", "knife", "spoon", "bowl", "banana", "apple",
+                "sandwich", "orange", "broccoli", "carrot", "hot dog", "pizza", "donut", "cake", "chair", "couch",
+                "potted plant", "bed", "dining table", "toilet", "tv", "laptop", "mouse", "remote", "keyboard",
+                "cell phone", "microwave", "oven", "toaster", "sink", "refrigerator", "book", "clock", "vase",
+                "scissors", "teddy bear", "hair drier", "toothbrush", "banner", "blanket", "bridge", "cardboard",
+                "counter", "curtain", "door-stuff", "floor-wood", "flower", "fruit", "gravel", "house", "light",
+                "mirror-stuff", "net", "pillow", "platform", "playingfield", "railroad", "river", "road", "roof",
+                "sand", "sea", "shelf", "snow", "stairs", "tent", "towel", "wall-brick", "wall-stone", "wall-tile",
+                "wall-wood", "water-other", "window-blind", "window-other", "tree-merged", "fence-merged",
+                "ceiling-merged", "sky-other-merged", "cabinet-merged", "table-merged", "floor-other-merged",
+                "pavement-merged", "mountain-merged", "grass-merged", "dirt-merged", "paper-merged",
+                "food-other-merged", "building-other-merged", "rock-merged", "wall-other-merged", "rug-merged"]
+coco_color_map = [[220, 20, 60], [119, 11, 32], [0, 0, 142], [0, 0, 230], [106, 0, 228], [0, 60, 100], [0, 80, 100],
+                  [0, 0, 70], [0, 0, 192], [250, 170, 30], [100, 170, 30], [220, 220, 0], [175, 116, 175], [250, 0, 30],
+                  [165, 42, 42], [255, 77, 255], [0, 226, 252], [182, 182, 255], [0, 82, 0], [120, 166, 157],
+                  [110, 76, 0], [174, 57, 255], [199, 100, 0], [72, 0, 118], [255, 179, 240], [0, 125, 92],
+                  [209, 0, 151], [188, 208, 182], [0, 220, 176], [255, 99, 164], [92, 0, 73], [133, 129, 255],
+                  [78, 180, 255], [0, 228, 0], [174, 255, 243], [45, 89, 255], [134, 134, 103], [145, 148, 174],
+                  [255, 208, 186], [197, 226, 255], [171, 134, 1], [109, 63, 54], [207, 138, 255], [151, 0, 95],
+                  [9, 80, 61], [84, 105, 51], [74, 65, 105], [166, 196, 102], [208, 195, 210], [255, 109, 65],
+                  [0, 143, 149], [179, 0, 194], [209, 99, 106], [5, 121, 0], [227, 255, 205], [147, 186, 208],
+                  [153, 69, 1], [3, 95, 161], [163, 255, 0], [119, 0, 170], [0, 182, 199], [0, 165, 120],
+                  [183, 130, 88], [95, 32, 0], [130, 114, 135], [110, 129, 133], [166, 74, 118], [219, 142, 185],
+                  [79, 210, 114], [178, 90, 62], [65, 70, 15], [127, 167, 115], [59, 105, 106], [142, 108, 45],
+                  [196, 172, 0], [95, 54, 80], [128, 76, 255], [201, 57, 1], [246, 0, 122], [191, 162, 208],
+                  [255, 255, 128], [147, 211, 203], [150, 100, 100], [168, 171, 172], [146, 112, 198],
+                  [210, 170, 100], [92, 136, 89], [218, 88, 184], [241, 129, 0], [217, 17, 255], [124, 74, 181],
+                  [70, 70, 70], [255, 228, 255], [154, 208, 0], [193, 0, 92], [76, 91, 113], [255, 180, 195],
+                  [106, 154, 176], [230, 150, 140], [60, 143, 255], [128, 64, 128], [92, 82, 55], [254, 212, 124],
+                  [73, 77, 174], [255, 160, 98], [255, 255, 255], [104, 84, 109], [169, 164, 131], [225, 199, 255],
+                  [137, 54, 74], [135, 158, 223], [7, 246, 231], [107, 255, 200], [58, 41, 149], [183, 121, 142],
+                  [255, 73, 97], [107, 142, 35], [190, 153, 153], [146, 139, 141], [70, 130, 180], [134, 199, 156],
+                  [209, 226, 140], [96, 36, 108], [96, 96, 96], [64, 170, 64], [152, 251, 152], [208, 229, 228],
+                  [206, 186, 171], [152, 161, 64], [116, 112, 0], [0, 114, 143], [102, 102, 156], [250, 141, 255]]
+mapillary_classes = ["Bird", "Ground Animal", "Curb", "Fence", "Guard Rail", "Barrier", "Wall", "Bike Lane",
+                     "Crosswalk - Plain", "Curb Cut", "Parking", "Pedestrian Area", "Rail Track", "Road",
+                     "Service Lane", "Sidewalk", "Bridge", "Building", "Tunnel", "Person", "Bicyclist",
+                     "Motorcyclist", "Other Rider", "Lane Marking - Crosswalk", "Lane Marking - General",
+                     "Mountain", "Sand", "Sky", "Snow", "Terrain", "Vegetation", "Water", "Banner", "Bench",
+                     "Bike Rack", "Billboard", "Catch Basin", "CCTV Camera", "Fire Hydrant", "Junction Box",
+                     "Mailbox", "Manhole", "Phone Booth", "Pothole", "Street Light", "Pole", "Traffic Sign Frame",
+                     "Utility Pole", "Traffic Light", "Traffic Sign (Back)", "Traffic Sign (Front)", "Trash Can",
+                     "Bicycle", "Boat", "Bus", "Car", "Caravan", "Motorcycle", "On Rails", "Other Vehicle", "Trailer",
+                     "Truck", "Wheeled Slow", "Car Mount", "Ego Vehicle"]
+mapillary_color_map = [[165, 42, 42], [0, 192, 0], [196, 196, 196], [190, 153, 153], [180, 165, 180], [90, 120, 150],
+                       [102, 102, 156], [128, 64, 255], [140, 140, 200], [170, 170, 170], [250, 170, 160], [96, 96, 96],
+                       [230, 150, 140], [128, 64, 128], [110, 110, 110], [244, 35, 232], [150, 100, 100], [70, 70, 70],
+                       [150, 120, 90], [220, 20, 60], [255, 0, 0], [255, 0, 100], [255, 0, 200], [200, 128, 128],
+                       [255, 255, 255], [64, 170, 64], [230, 160, 50], [70, 130, 180], [190, 255, 255], [152, 251, 152],
+                       [107, 142, 35], [0, 170, 30], [255, 255, 128], [250, 0, 30], [100, 140, 180], [220, 220, 220],
+                       [220, 128, 128], [222, 40, 40], [100, 170, 30], [40, 40, 40], [33, 33, 33], [100, 128, 160],
+                       [142, 0, 0], [70, 100, 150], [210, 170, 100], [153, 153, 153], [128, 128, 128], [0, 0, 80],
+                       [250, 170, 30], [192, 192, 192], [220, 220, 0], [140, 140, 20], [119, 11, 32], [150, 0, 255],
+                       [0, 60, 100], [0, 0, 142], [0, 0, 90], [0, 0, 230], [0, 80, 100], [128, 64, 64], [0, 0, 110],
+                       [0, 0, 70], [0, 0, 192], [32, 32, 32], [120, 10, 10]]
 
-INCLUDE_SEMANTICS_ORIGINAL = True
-VRE_N_FRAMES = 5
-
-### Some utils function for plotting and running VRE if needed (on a video)
-
-def vre_plot_fn(x: tr.Tensor, node: Representation) -> np.ndarray:
-    x = x.cpu().numpy()
-    node.data = ReprOut(None, x[None], [0])
-    res = node.make_images()[0]
-    return res
-
-def reorder_dict(data: dict[str, "Any"], keys: list[str]) -> dict[str, "Any"]:
-    assert (diff := set(keys).difference(data.keys())) == set(),diff
-    for k in keys[::-1]:
-        data = {k: data[k], **{k: v for k, v in data.items() if data != k}}
-    return data
-
-def plot_one(data: "MultiTaskItem", title: str, order: list[str],
-             name_to_task: dict[str, Representation]) -> np.ndarray:
-    print(title)
-    img_data = {k: vre_plot_fn(v, name_to_task[k]) for k, v in data.items()}
-    img_data = reorder_dict(img_data, order)
-    titles = [title if len(title) < 40 else f"{title[0:19]}..{title[-19:]}" for title in img_data]
-    collage = collage_fn(list(img_data.values()), titles=titles, size_px=40)
-    collage = image_add_title(collage, title, size_px=55, top_padding=110)
-    return collage
-
-def run_vre(video_path: Path, vre_path: Path | None, frames: int | list[int]=VRE_N_FRAMES):
-    vre_path = vre_path or Path.cwd() / f"data_{video_path.name}"
-    frames = frames if isinstance(frames, list) else np.random.choice(len(video), size=frames, replace=True).tolist()
-    os.environ["VRE_DEVICE"] = ("cuda" if tr.cuda.is_available() else "cpu")
-    representations = build_representations_from_cfg(OmegaConf.load(Path(__file__).parent / "cfg.yaml"))
-    if vre_path.exists() and \
-            all(((D := vre_path/repr/"npz").exists()) and
-                set(list(map(lambda x: int(x.stem), D.iterdir()))) == set(frames) for repr in representations):
-        logger.info(f"{vre_path} already computed, using as-is w/o calling VRE again. Delete it if you want again")
-        return vre_path
-    video = FFmpegVideo(video_path)
-    vre = VRE(video, representations)
-    vre.run(vre_path, frames=frames, n_threads_data_storer=2)
-    return vre_path
-
-### Representations only below
+m2f_coco = SemanticRepresentation("semantic_mask2former_coco_47429163_0", classes=coco_classes,
+                                    color_map=coco_color_map)
+m2f_mapillary = SemanticRepresentation("semantic_mask2former_mapillary_49189528_0", classes=mapillary_classes,
+                                        color_map=mapillary_color_map)
+marigold = DepthRepresentation("depth_marigold", min_depth=0, max_depth=1)
+normals_svd_marigold = NormalsRepresentation("normals_svd(depth_marigold)")
 
 class BinaryMapper(TaskMapper, NpIORepresentation):
     """
     Note for future self: this is never generic enough to be in VRE -- we'll keep it in this separate code only
     TaskMapper is the only high level interface that makes sense, so we should focus on keeping that generic and easy.
     """
-    def __init__(self, name: str, dependencies: list, mapping: list[dict[str, list]],
-                 color_map: list[tuple[int, int, int]], mode: str = "all_agree"):
+    def __init__(self, name: str, dependencies: list, mapping: list[dict[str, list]], mode: str = "all_agree"):
         TaskMapper.__init__(self, name=name, dependencies=dependencies, n_channels=2)
         NpIORepresentation.__init__(self)
         assert mode in ("all_agree", "at_least_one"), mode
-        assert len(mapping[0]) == len(color_map), (len(mapping[0]), len(color_map))
         assert len(mapping[0]) == 2, mapping
         assert len(mapping) == len(dependencies), (len(mapping), len(dependencies))
         assert all(mapping[0].keys() == m.keys() for m in mapping), [m.keys() for m in mapping]
@@ -119,9 +128,7 @@ class BuildingsFromM2FDepth(TaskMapper, NpIORepresentation):
             }
         ]
 
-        dependencies = [dronescapes_task_types["semantic_mask2former_mapillary_49189528_0"],
-                        dronescapes_task_types["semantic_mask2former_coco_47429163_0"],
-                        dronescapes_task_types["depth_marigold"]]
+        dependencies = [m2f_mapillary, m2f_coco, marigold]
         TaskMapper.__init__(self, name=name, dependencies=dependencies, n_channels=2)
         NpIORepresentation.__init__(self)
         self.color_map = [[255, 255, 255], [0, 0, 0]]
@@ -149,10 +156,7 @@ class SafeLandingAreas(TaskMapper, NpIORepresentation):
     def __init__(self, name: str, original_classes: tuple[list[str], list[str]], include_semantics: bool = False,
                  sky_water: BinaryMapper | None = None):
         self.include_semantics = include_semantics
-        dependencies = [dronescapes_task_types["semantic_mask2former_mapillary_49189528_0"],
-                        dronescapes_task_types["semantic_mask2former_coco_47429163_0"],
-                        dronescapes_task_types["depth_marigold"],
-                        dronescapes_task_types["normals_svd(depth_marigold)"]]
+        dependencies = [m2f_mapillary, m2f_coco, marigold, normals_svd_marigold]
         TaskMapper.__init__(self, name, dependencies=dependencies, n_channels=2)
         NpIORepresentation.__init__(self)
         self.color_map = [[0, 255, 0], [255, 0, 0]]
@@ -177,10 +181,8 @@ class SafeLandingAreas(TaskMapper, NpIORepresentation):
             where_safe = (where_safe * sw * (depth < 0.9)).astype(bool)
         return np.eye(2)[(~where_safe).astype(int)]
 
-def get_new_dronescapes_tasks(tasks_subset: list[str] | None = None) -> dict[str, TaskMapper]:
-    color_map_binary = [[255, 255, 255], [0, 0, 0]]
-    sem_mapillary, sem_coco = [dronescapes_task_types["semantic_mask2former_mapillary_49189528_0"],
-                               dronescapes_task_types["semantic_mask2former_coco_47429163_0"]]
+def get_new_semantic_mapped_tasks(tasks_subset: list[str] | None = None) -> dict[str, TaskMapper]:
+    """The exported function for VRE!"""
     buildings_mapping = [
         {
             "buildings": (cls := ["Building", "Utility Pole", "Pole", "Fence", "Wall"]),
@@ -252,13 +254,12 @@ def get_new_dronescapes_tasks(tasks_subset: list[str] | None = None) -> dict[str
     ]
 
     available_tasks: list[TaskMapper] = [
-        BinaryMapper("buildings", [sem_mapillary, sem_coco], buildings_mapping, color_map=color_map_binary),
-        BinaryMapper("living-vs-non-living", [sem_mapillary, sem_coco], living_mapping, color_map=color_map_binary),
-        sky_water := BinaryMapper("sky-and-water", [sem_mapillary, sem_coco], sky_and_water_mapping,
-                                  color_map=color_map_binary, mode="at_least_one"),
-        BinaryMapper("transportation", [sem_mapillary, sem_coco], transportation_mapping,
-                     color_map=color_map_binary, mode="at_least_one"),
-        BinaryMapper("containing", [sem_mapillary, sem_coco], containing_mapping, color_map=color_map_binary),
+        BinaryMapper("buildings", [m2f_mapillary, m2f_coco], buildings_mapping),
+        BinaryMapper("living-vs-non-living", [m2f_mapillary, m2f_coco], living_mapping),
+        sky_water := BinaryMapper("sky-and-water", [m2f_mapillary, m2f_coco], sky_and_water_mapping,
+                                  mode="at_least_one"),
+        BinaryMapper("transportation", [m2f_mapillary, m2f_coco], transportation_mapping, mode="at_least_one"),
+        BinaryMapper("containing", [m2f_mapillary, m2f_coco], containing_mapping),
         BuildingsFromM2FDepth("buildings(nearby)", [mapillary_classes, coco_classes]),
         SafeLandingAreas("safe-landing-no-sseg", [mapillary_classes, coco_classes]),
         SafeLandingAreas("safe-landing-semantics", [mapillary_classes, coco_classes],
@@ -267,54 +268,3 @@ def get_new_dronescapes_tasks(tasks_subset: list[str] | None = None) -> dict[str
     if tasks_subset is None:
         return {t.name: t for t in available_tasks}
     return {t.name: t for t in available_tasks if t.name in tasks_subset}
-
-def add_tasks_to_reader(reader: MultiTaskDataset, orig_task_names: list[str]):
-    for task_name in reader.task_names:
-        if task_name not in orig_task_names:
-            reader.remove_task(task_name)
-    for new_task in get_new_dronescapes_tasks().values():
-        reader.add_task(new_task, overwrite=True)
-
-def main():
-    task_names = ["rgb", "depth_marigold", "normals_svd(depth_marigold)", "opticalflow_rife",
-                  "semantic_mask2former_swin_mapillary_converted", "semantic_mask2former_swin_coco_converted"]
-    order = ["rgb", "depth_marigold", "normals_svd(depth_marigold)"]
-    if INCLUDE_SEMANTICS_ORIGINAL:
-        task_names.extend(["semantic_mask2former_coco_47429163_0", "semantic_mask2former_mapillary_49189528_0"])
-        order = ["rgb", "semantic_mask2former_mapillary_49189528_0", "semantic_mask2former_coco_47429163_0",
-                 "depth_marigold", "normals_svd(depth_marigold)"]
-    data_path = Path(sys.argv[1])
-    if data_path.suffix == ".mp4":
-        logger.info(f"{data_path} is a video. Running VRE first to get the raw representations")
-        data_path = run_vre(data_path, Path.cwd() / f"data_{data_path.name}")
-
-    reader = MultiTaskDataset(data_path, task_names=task_names,
-                              task_types=dronescapes_task_types, handle_missing_data="fill_nan",
-                              normalization="min_max", cache_task_stats=True, batch_size_stats=100)
-    print(reader)
-    print("== Shapes ==")
-    pprint(reader.data_shape)
-
-    orig_task_names = list(reader.task_types.keys())
-    add_tasks_to_reader(reader, orig_task_names)
-
-    print("== Random loaded item ==")
-    ixs = np.random.permutation(range(len(reader))).tolist()
-    data, name, _ = reader[ixs[0]] # get a random item
-    print(name)
-    img_data = {}
-    for k, v in data.items():
-        assert v is not None, k
-        reader.name_to_task[k].data = ReprOut(None, v.numpy()[None], ixs[0:1], None)
-        img_data[k] = reader.name_to_task[k].make_images()[0]
-    img_data = reorder_dict(img_data, order)
-    titles = [title if len(title) < 40 else f"{title[0:19]}..{title[-19:]}" for title in img_data]
-    collage = collage_fn(list(img_data.values()), titles=titles, size_px=40)
-    collage = image_add_title(collage, name, size_px=55, top_padding=110)
-    plt.figure(figsize=(20, 10))
-    plt.imshow(collage)
-    image_write(collage, out_path := f"collage_{name[0:-4]}.png")
-    logger.info(f"Stored at '{out_path}'")
-
-if __name__ == "__main__":
-    main()

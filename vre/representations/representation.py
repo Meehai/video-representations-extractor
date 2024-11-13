@@ -26,11 +26,11 @@ class ReprOut:
 class Representation(ABC):
     """Generic Representation class for VRE"""
     def __init__(self, name: str, dependencies: list[Representation] | None = None):
-        dependencies = [] if dependencies is None else dependencies
-        assert isinstance(dependencies, list), type(dependencies)
-        assert all(isinstance(dep, Representation) for dep in dependencies), (type(dep) for dep in dependencies)
+        deps = [] if dependencies is None else dependencies
+        assert isinstance(deps, list), type(deps)
+        assert all(isinstance(dep, Representation) for dep in deps), (name, [(dep, type(dep)) for dep in deps])
         self.name = name
-        self.dependencies = dependencies
+        self.dependencies = deps
         self.data: ReprOut | None = None
 
     ## Abstract methods ##

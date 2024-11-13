@@ -205,7 +205,7 @@ class MultiTaskDataset(Dataset):
 
     def remove_task(self, task_name: str):
         """Safely removes a task from this reader"""
-        logger.debug(f"Removing a task: '{task_name}'")
+        logger.info(f"Removing a task: '{task_name}'")
         assert task_name in self.task_names, f"Task '{task_name}' doesn't exist: {self.task_names}"
         self.task_names = sorted(name for name in self.task_names if name != task_name)
         del self.task_types[task_name]
