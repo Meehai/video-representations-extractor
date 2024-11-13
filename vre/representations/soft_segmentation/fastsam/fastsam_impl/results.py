@@ -368,10 +368,6 @@ class Results(SimpleClass):
                          file=save_dir / self.names[int(d.cls)] / f'{file_name.stem}.jpg',
                          BGR=True)
 
-    def pandas(self):
-        """Convert the object to a pandas DataFrame (not yet implemented)."""
-        logger.warning("WARNING ⚠️ 'Results.pandas' method is not yet implemented.")
-
     def tojson(self, normalize=False):
         """Convert the object to JSON format."""
         if self.probs is not None:
@@ -599,11 +595,6 @@ class Masks(BaseTensor):
         """Return the raw masks tensor (deprecated)."""
         logger.warning("WARNING ⚠️ 'Masks.masks' is deprecated. Use 'Masks.data' instead.")
         return self.data
-
-    def pandas(self):
-        """Convert the object to a pandas DataFrame (not yet implemented)."""
-        logger.warning("WARNING ⚠️ 'Masks.pandas' method is not yet implemented.")
-
 
 class Keypoints(BaseTensor):
     """

@@ -5,7 +5,6 @@ from datetime import datetime
 from typing import Any
 import traceback
 from tqdm import tqdm
-import pandas as pd
 import torch as tr
 
 from .representations import Representation, ComputeRepresentationMixin, LearnedRepresentationMixin
@@ -161,7 +160,7 @@ class VideoRepresentationsExtractor:
         open(self._logs_file, "a").write(f"{'=' * 80}\n{now_fmt()}\n{msg}\n{'=' * 80}")
         logger.debug(f"Error: {msg}")
 
-    def _end_run(self) -> pd.DataFrame:
+    def _end_run(self):
         logger.remove_file_handler()
         self._metadata.store_on_disk()
         logger.info(f"Stored vre run log file at '{self._metadata.disk_location}")
@@ -174,7 +173,7 @@ class VideoRepresentationsExtractor:
         assert len(out_r) > 0, f"No output format set for any I/O Representation: {', '.join([r.name for r in crs])}"
         return out_r
 
-    def __call__(self, *args, **kwargs) -> pd.DataFrame:
+    def __call__(self, *args, **kwargs) -> dict[str, Any]:
         return self.run(*args, **kwargs)
 
     def __str__(self) -> str:

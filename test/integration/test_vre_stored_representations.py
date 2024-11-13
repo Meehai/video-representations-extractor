@@ -3,9 +3,7 @@ from pathlib import Path
 from natsort import natsorted
 import shutil
 import numpy as np
-import torch as tr
 import pandas as pd
-from torch.nn import functional as F
 from vre import VRE
 from vre.utils import FakeVideo, colorize_semantic_segmentation, semantic_mapper
 from vre.representations import Representation, TaskMapper, NpIORepresentation
