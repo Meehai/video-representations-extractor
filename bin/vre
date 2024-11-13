@@ -22,14 +22,17 @@ def get_args() -> Namespace:
     parser.add_argument("--cfg_path", required=True, help="Path to global YAML cfg file", type=abs_path)
     parser.add_argument("--representations", nargs="+", help="Subset of representations to run VRE for")
     # run parameters
-    parser.add_argument("--start_frame", type=int, default=0, help="The first frame index. If not set, defaults to 0.")
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument("--frames", type=int, nargs="+", help="The list of frames to be exported from the video")
+    group.add_argument("--start_frame", type=int, help="The first frame index. If not set, defaults to 0.")
     parser.add_argument("--end_frame", type=int, help="The end frame index. If not set, defaults to length of video")
     parser.add_argument("--output_dir_exists_mode", choices=["overwrite", "skip_computed", "raise"], default="raise")
     parser.add_argument("--n_threads_data_storer", type=int, default=0)
-    parser.add_argument("--include_representations", "-I", nargs="+", default=[], help="Path to external reprs (.py)")
-    # other parameters
-    parser.add_argument("--make_video_collage", action="store_true")
-    parser.add_argument("--collage_fps", type=float)
+    parser.add_argument("--include_representations", "-I", nargs="+", default=[],
+                        help="Path to external reprs. Format: /path/to/file.py:fn_name. fn -> {str: Representation}")
+    # collage parameters (calls vre_collage)
+    parser.add_argument("--make_video_collage", action="store_true", help="if set, calls vre_collage on the output")
+    parser.add_argument("--collage_fps", type=float, help="Required by --make_video_collage for the collage output")
 
     args = parser.parse_args()
     if args.make_video_collage:
@@ -51,15 +54,18 @@ def main(args: Namespace):
         video = FakeVideo(np.array(raw_data, dtype=np.uint8), fps=1)
     else:
         video = FFmpegVideo(args.video_path)
-    representations = build_representations_from_cfg(cfg=cfg)
 
+    frames = args.frames
+    if args.start_frame is not None:
+        frames = range(args.start_frame, args.end_frame or len(video))
+
+    representations = build_representations_from_cfg(cfg=cfg)
     if len(args.include_representations) > 0:
         for external_path in args.include_representations:
             representations = add_external_representations(representations, external_path, cfg)
 
     vre = VRE(video, representations)
-    vre_metadata = vre.run(args.output_path, frames=list(range(args.start_frame, args.end_frame or len(video))),
-                           output_dir_exists_mode=args.output_dir_exists_mode,
+    vre_metadata = vre.run(args.output_path, frames=frames, output_dir_exists_mode=args.output_dir_exists_mode,
                            n_threads_data_storer=args.n_threads_data_storer)
     vre_run_stats = pd.DataFrame(vre_metadata["run_stats"], index=vre_metadata["runtime_args"]["frames"])
     print(vre_run_stats if len(vre_run_stats) > 1 else vre_run_stats.T)

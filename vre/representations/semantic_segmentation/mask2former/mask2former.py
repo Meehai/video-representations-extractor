@@ -49,6 +49,7 @@ class Mask2Former(Representation, LearnedRepresentationMixin, ComputeRepresentat
     @overrides
     def make_images(self) -> np.ndarray:
         assert self.data is not None, f"[{self}] data must be first computed using compute()"
+        assert self.data.frames is not None and self.data.output is not None, self.data
         res = []
         frames_rsz = image_resize_batch(self.data.frames, *self.data.output.shape[1:3])
         for img, pred in zip(frames_rsz, self.data.output):

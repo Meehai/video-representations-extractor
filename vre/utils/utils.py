@@ -86,3 +86,10 @@ def semantic_mapper(semantic_original: np.ndarray, mapping: dict[str, list[str]]
 def abs_path(x: str | Path) -> Path:
     """returns the absolute path of a string/path"""
     return Path(x).absolute()
+
+def reorder_dict(data: dict[str, Any], keys: list[str]) -> dict[str, Any]:
+    """simply puts in front the desired keys from the original dict, keeping the others intact"""
+    assert (diff := set(keys).difference(data.keys())) == set(),diff
+    for k in keys[::-1]:
+        data = {k: data[k], **{k: v for k, v in data.items() if data != k}}
+    return data
