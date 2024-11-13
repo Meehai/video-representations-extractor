@@ -43,7 +43,7 @@ curl https://gitlab.com/video-representations-extractor/video-representations-ex
 docker run -v `pwd`/example:/app/example -v `pwd`/resources/weights:/app/weights \
   --gpus all -e VRE_DEVICE='cuda' -e VRE_WEIGHTS_DIR=/app/weights \
   meehai/vre:latest /app/example/video.mp4 \
-  --cfg_path /app/example/cfg.yaml -o /app/example/output_dir --start_frame 100 --end_frame 101
+  --config_path /app/example/cfg.yaml -o /app/example/output_dir --start_frame 100 --end_frame 101
 ```
 
 Note: For the `--gpus all -e VRE_DEVICE='cuda'` part to work, you need to install `nvidia-container-toolkit` as well.
@@ -62,7 +62,7 @@ pytest test/
 
 After either option, you should be able to run:
 ```bash
-vre <path/to/video.mp4> --cfg_path <path/to/cfg> -o <path/to/export_dir>
+vre <path/to/video.mp4> --config_path <path/to/cfg> -o <path/to/export_dir>
 ```
 
 ### Relevant env variables
@@ -81,10 +81,10 @@ You can get the representations for a single image (or a directory of images) by
 directory.
 
 ```bash
-vre <path/to/dir_of_images> --cfg_path <path/to/cfg> -o <path/to/export_dir>
+vre <path/to/dir_of_images> --config_path <path/to/cfg> -o <path/to/export_dir>
 ```
 
-Note: use `--cfg_path test/end_to_end/imgur/cfg.yaml` for 'out of the box' working representations.
+Note: use `--config_path test/end_to_end/imgur/cfg.yaml` for 'out of the box' working representations.
 
 ## 3. Details about inputs and outputs
 

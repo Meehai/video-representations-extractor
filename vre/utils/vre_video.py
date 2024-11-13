@@ -1,16 +1,27 @@
 """FakeVideo module"""
 from typing import Union
+from pathlib import Path
 import numpy as np
 import ffmpeg
 
 class FakeVideo:
-    """FakeVideo -- class used to test representations with a given numpy array"""
-    def __init__(self, data: np.ndarray, fps: float):
+    """
+    FakeVideo -- class used to test representations with a given numpy array.
+    If 'frames' is provided, then these are the frames indexes, i.e. video[ix] returns self.data[self.frames_ix[ix]]
+    This can be used to create a FakeVideo out of a directory with files: [1.png, 10.png, 100.png]
+    """
+    def __init__(self, data: np.ndarray, fps: float, frames: list[int] | None = None):
         assert len(data) > 0, "No data provided"
         self.data = data
         self.fps = fps
         self.frame_shape = data.shape[1:]
         self.file = f"FakeVideo {self.data.shape}"
+        self.frames = list(range(len(data))) if frames is None else frames
+        assert 0 < len(self.frames) <= 1_000_000 # max 1M frames to keep it tight
+        assert len(self.frames) == len(self.data), (self.frames, self.data)
+        assert all(isinstance(frame, int) for frame in self.frames), self.frames
+        assert sorted(set(self.frames)) == self.frames, self.frames
+        self.frames_ix = dict(zip(self.frames, range(len(self.frames)))) # {ix: frame}
 
     @property
     def shape(self):
@@ -18,19 +29,24 @@ class FakeVideo:
         return self.data.shape
 
     def __len__(self) -> int:
-        return len(self.data)
+        return self.frames[-1] + 1
 
-    def __getitem__(self, ix: int) -> np.ndarray:
-        return self.data[ix]
+    def __getitem__(self, ix: int | list[int] | slice) -> np.ndarray:
+        if isinstance(ix, list):
+            return np.array([self[_ix] for _ix in ix])
+        if isinstance(ix, slice):
+            return np.array([self[_ix] for _ix in range(ix.start, ix.stop)])
+        return self.data[self.frames_ix[ix]]
 
     def __repr__(self):
         return f"[FakeVideo] FPS: {self.fps}. Len: {len(self.data)}. Frame shape: {self.data.shape[1:]}. FPS: "
 
 class FFmpegVideo:
     """FFmpegVideo -- reads data from a video using ffmpeg"""
-    def __init__(self, path, cache_len: int = 30):
-        self.path = path
-        self.probe = ffmpeg.probe(path)
+    def __init__(self, path: Path, cache_len: int = 30):
+        self.path = Path(path)
+        assert self.path.exists(), f"Video '{self.path}' doesn't exist"
+        self.probe = ffmpeg.probe(self.path)
         self.stream_info = next((stream for stream in self.probe["streams"] if stream["codec_type"] == "video"), None)
         self.fps = eval(self.stream_info["avg_frame_rate"]) # pylint: disable=eval-used
         self.width = int(self.stream_info["width"])
@@ -86,9 +102,7 @@ class FFmpegVideo:
 
     def get_frame_by_number(self, frame_number: int) -> np.ndarray:
         """Retrieve a frame from the video by frame number, using nearby frames caching."""
-        if isinstance(frame_number, list):
-            return np.array([self.get_frame_by_number(ix) for ix in frame_number], dtype=np.uint8)
-        assert isinstance(frame_number, (int, list)), type(frame_number)
+        assert isinstance(frame_number, int), type(frame_number)
         assert 0 <= frame_number < self.total_frames, f"Frame out of bounds: {frame_number}. Len: {len(self)}"
 
         # Load new cache if the requested frame is outside the current cache range
@@ -106,12 +120,16 @@ class FFmpegVideo:
     def __len__(self) -> int:
         return self.total_frames
 
-    def __getitem__(self, frame_number: int) -> np.ndarray:
-        return self.get_frame_by_number(frame_number)
+    def __getitem__(self, ix: int | list[int] | slice) -> np.ndarray:
+        if isinstance(ix, list):
+            return np.array([self[_ix] for _ix in ix])
+        if isinstance(ix, slice):
+            return np.array([self[_ix] for _ix in range(ix.start, ix.stop)])
+        return self.get_frame_by_number(ix)
 
     def __del__(self):
         """Clean up the ffmpeg process when done."""
-        if self.video_process is not None:
+        if hasattr(self, "video_process") and self.video_process is not None: # in case it throws in the constructor
             self.video_process.stdout.close()
             self.video_process.stderr.close()
             self.video_process.terminate()

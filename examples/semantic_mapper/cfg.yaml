@@ -1,10 +1,10 @@
 default_compute_parameters:
   output_size: [540, 960]
-  batch_size: 1
+  batch_size: 10
 
 default_io_parameters:
   binary_format: npz
-  image_format: png
+  image_format: not-set
   compress: True
 
 default_learned_parameters:

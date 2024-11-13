@@ -35,7 +35,7 @@ def cv2_image_write(x: np.ndarray, path: Path):
     """wrapper on top of cv2.imwrite"""
     assert x.dtype == np.uint8, x.dtype
     res = cv2.imwrite(f"{path}", x[..., ::-1])
-    assert res is not None, f"Image {x.shape} could not be saved to '{path}'"
+    assert res is not None and res is not False, f"Image {x.shape} could not be saved to '{path}'"
 
 def cv2_image_resize(data: np.ndarray, height: int, width: int, interpolation: str, **kwargs) -> np.ndarray:
     """wraper on top of cv2.image_resize"""

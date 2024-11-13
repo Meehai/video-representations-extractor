@@ -22,7 +22,7 @@ def image_resize_batch(x_batch: np.ndarray | list[np.ndarray], *args, **kwargs) 
     """resizes a bath of images to the given height and width"""
     return np.array([image_resize(x, *args, **kwargs) for x in x_batch])
 
-def image_write(x: np.ndarray, path: Path, library: str = "cv2"):
+def image_write(x: np.ndarray, path: Path, library: str = "PIL"):
     """writes an image to a bytes string"""
     assert x.dtype == np.uint8, x.dtype
     return {"cv2": cv2_image_write, "PIL": pil_image_write}[library](x, path)
