@@ -11,6 +11,7 @@ except ImportError:
 
 from .video_representations_extractor import VideoRepresentationsExtractor, VideoRepresentationsExtractor as VRE
 from .representations import Representation, ReprOut
+from .utils.vre_video import FFmpegVideo
 
 try:
     import pdbp

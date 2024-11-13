@@ -27,9 +27,13 @@ pylint:
   script:
     - python -m pylint --rcfile=.pylintrc $(git ls-files "*.py" | grep -v "test/\|examples/")
 
-test_end_to_end_imgur:
+e2e_imgur:
   script:
     - bash test/end_to_end/imgur/run.sh
+
+e2e_task_mapped:
+  script:
+    - bash test/end_to_end/task_mapped_reprsentations/run.sh
 
 unit_tests:
   script:

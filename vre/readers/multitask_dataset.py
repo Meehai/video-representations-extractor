@@ -227,6 +227,7 @@ class MultiTaskDataset(Dataset):
                     all_files.extend(part.glob(f"*.{self.suffix}"))
             else: # dataset is stored as repr/0.npz, ..., repr/n.npz
                 all_files = dir_name.glob(f"*.{self.suffix}")
+            all_files = [x for x in all_files if not x.name.endswith("_extra.npz")] # important: remove xxx_extra.npz
             in_files[repr_dir_name] = natsorted(all_files, key=lambda x: x.name) # important: use natsorted() here
         assert not any(len(x) == 0 for x in in_files.values()), f"{ [k for k, v in in_files.items() if len(v) == 0] }"
         return in_files
@@ -240,6 +241,7 @@ class MultiTaskDataset(Dataset):
             logger.debug(f"The following tasks do not have data on disk: {list(diff)}. Checking dependencies.")
         relevant_tasks_for_files = set() # hsv requires only rgb, so we look at dependencies later on
         for task_name in task_names:
+            assert task_name in task_types, f"Task '{task_name}' not in {task_types=}. Check your tasks."
             if task_name not in diff and task_types[task_name].dep_names != [task_name]:
                 logger.debug(f"Upating the deps of '{task_name}' as all its data is on disk!")
                 task_types[task_name].dependencies = [task_types[task_name]]
@@ -271,18 +273,8 @@ class MultiTaskDataset(Dataset):
                     files_per_task[task].append(paths if len(deps) > 1 else paths[0])
         return files_per_task, all_names
 
-    # Python magic methods (pretty printing the reader object, reader[0], len(reader) etc.)
-    def __getitem__(self, index: int | str | slice | list[int, str] | tuple[int, str]) -> MultiTaskItem:
-        """Read the data all the desired nodes"""
-        assert isinstance(index, (int, slice, list, tuple, str)), type(index)
-        if isinstance(index, slice):
-            assert index.start is not None and index.stop is not None and index.step is None, "Only reader[l:r] allowed"
-            index = list(range(index.stop)[index])
-        if isinstance(index, (list, tuple)):
-            return self.collate_fn([self.__getitem__(ix) for ix in index])
-        if isinstance(index, str):
-            return self.__getitem__(self.file_names.index(index))
-
+    def _get_one_item(self, index: int) -> MultiTaskItem:
+        assert isinstance(index, int), type(index)
         res: dict[str, tr.Tensor] = {}
         for task_name in self.task_names:
             task = [t for t in self.tasks if t.name == task_name][0]
@@ -298,7 +290,21 @@ class MultiTaskDataset(Dataset):
                 if isinstance(task, NormedRepresentationMixin) and self.statistics is not None:
                     np_memory_data = task.normalize(np_memory_data)
                 res[task_name] = tr.from_numpy(np_memory_data)
+        # TODO: why is self.task_names require here. It's already in res.keys().
         return (res, self.file_names[index], self.task_names)
+
+    # Python magic methods (pretty printing the reader object, reader[0], len(reader) etc.)
+    def __getitem__(self, index: int | str | slice | list[int, str] | tuple[int, str]) -> MultiTaskItem:
+        """Read the data all the desired nodes"""
+        assert isinstance(index, (int, slice, list, tuple, str)), type(index)
+        if isinstance(index, slice):
+            assert index.start is not None and index.stop is not None and index.step is None, "Only reader[l:r] allowed"
+            index = list(range(index.start, index.stop))
+        if isinstance(index, (list, tuple)):
+            return self.collate_fn([self.__getitem__(ix) for ix in index])
+        if isinstance(index, str):
+            return self.__getitem__(self.file_names.index(index))
+        return self._get_one_item(index)
 
     def __len__(self) -> int:
         return len(self.files_per_repr[self.task_names[0]]) # all of them have the same number (filled with None or not)
