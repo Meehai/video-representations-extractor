@@ -2,6 +2,7 @@
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
 from natsort import natsorted
+import imp
 import numpy as np
 import pandas as pd
 from vre import VRE
@@ -10,7 +11,16 @@ from vre.representations import build_representations_from_cfg, add_external_rep
 from vre.logger import vre_logger as logger
 from omegaconf import OmegaConf
 
-import imp
+def _get_raw_data(video_path: Path) -> tuple[np.ndarray, list[str]]:
+    all_files = natsorted([f for f in video_path.iterdir() if f.is_file()], key=lambda p: p.name)
+    suffixes = set(p.suffix for p in all_files)
+    assert len(suffixes) == 1, f"Expected a single type of files in '{video_path}' found {suffixes}"
+    frames = [int(x.stem) for x in all_files]
+    fn = {".png": image_read, ".npz": lambda p: np.load(p)["arr_0"], ".npy": np.load}[next(iter(suffixes))]
+    raw_data = [fn(f) for f in all_files]
+    assert all(x.shape == raw_data[0].shape for x in raw_data), f"Images shape differ in '{video_path}'"
+    logger.info(f"--video_path is a directory. Assuming a directory of images. Found {len(raw_data)} images.")
+    return raw_data, frames
 
 def get_args() -> Namespace:
     """cli args"""
@@ -41,32 +51,23 @@ def get_args() -> Namespace:
 def main(args: Namespace):
     """Za main function"""
     cfg = OmegaConf.to_container(OmegaConf.load(args.config_path), resolve=True)
-    if args.representations is not None:
-        assert (d := set(args.representations).difference(r := cfg["representations"].keys())) == set(), f"\n-{d}\n-{r}"
-        logger.info(f"Keeping only {args.representations} from the config")
-        cfg["representations"] = {k: v for k, v in cfg["representations"].items() if k in args.representations}
 
     if args.video_path.is_dir():
-        all_files = natsorted([f for f in args.video_path.iterdir() if f.is_file()], key=lambda p: p.name)
-        suffixes = set(p.suffix for p in all_files)
-        assert len(suffixes) == 1, f"Expected a single type of files in '{args.video_path}' found {suffixes}"
-        frames = [int(x.stem) for x in all_files]
-        fn = {".png": image_read, ".npz": lambda p: np.load(p)["arr_0"], ".npy": np.load}[next(iter(suffixes))]
-        raw_data = [fn(f) for f in all_files]
-        assert all(x.shape == raw_data[0].shape for x in raw_data), f"Images shape differ in '{args.video_path}'"
-        logger.info(f"--video_path is a directory. Assuming a directory of images. Found {len(raw_data)} images.")
-        video = FakeVideo(np.array(raw_data, dtype=np.uint8), fps=1, frames=frames)
+        raw_data, _frames = _get_raw_data(args.video_path)
+        video = FakeVideo(np.array(raw_data, dtype=np.uint8), fps=1, frames=_frames)
     else:
         video = FFmpegVideo(args.video_path)
 
-    frames = args.frames
-    if args.start_frame is not None:
-        frames = range(args.start_frame, args.end_frame or len(video))
+    frames = args.frames if args.start_frame is None else range(args.start_frame or 0, args.end_frame or len(video))
 
     representations = build_representations_from_cfg(cfg=cfg)
     if len(args.external_representations) > 0:
         for external_path in args.external_representations:
             representations = add_external_representations(representations, external_path, cfg)
+
+    if args.representations is not None:
+        logger.info(f"--representation is set from the CLI. Keeping only {args.representations}")
+        representations = {k: representations[k] for k in args.representations}
 
     vre = VRE(video, representations)
     vre_metadata = vre.run(args.output_path, frames=frames, output_dir_exists_mode=args.output_dir_exists_mode,
