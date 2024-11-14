@@ -122,7 +122,6 @@ class VideoRepresentationsExtractor:
         rep.output_size = self.video.frame_shape[0:2] if rep.output_size == "video_shape" else rep.output_size
 
         batches = _make_batches(runtime_args.frames, rep.batch_size)
-        # left, right = batches[0:-1], batches[1:]
         pbar = tqdm(total=runtime_args.n_frames, desc=f"[VRE] {rep.name} bs={rep.batch_size}")
         for i, batch in enumerate(batches):
             if i % runtime_args.store_metadata_every_n_iters == 0:
