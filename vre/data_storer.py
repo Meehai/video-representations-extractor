@@ -2,6 +2,7 @@
 from threading import Thread
 from multiprocessing import cpu_count
 from queue import Queue, Empty
+from copy import deepcopy
 from time import time
 import numpy as np
 
@@ -66,7 +67,7 @@ class DataStorer:
             self.data_writer(y_repr, imgs, batch)
         else:
             assert self.queue is not None, "Queue was closed, create a new DataStorer object..."
-            self.queue.put((y_repr, imgs, batch), block=True, timeout=30)
+            self.queue.put((deepcopy(y_repr), imgs, batch), block=True, timeout=30)
 
     def __repr__(self):
         return f"""[DataStorer]
