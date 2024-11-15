@@ -21,7 +21,7 @@ def test_safeuav():
     assert y_safeuav_rgb.dtype == np.uint8, y_safeuav_rgb.dtype
 
     assert safeuav_repr.size == (1, train_height, train_width)
-    safeuav_repr.resize((64, 128)) # we can resize it though
+    safeuav_repr.data = safeuav_repr.resize(safeuav_repr.data, (64, 128)) # we can resize it though
     assert safeuav_repr.size == (1, 64, 128)
     assert safeuav_repr.make_images().shape == (1, 64, 128, 3)
 

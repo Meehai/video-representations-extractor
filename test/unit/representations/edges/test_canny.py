@@ -15,7 +15,7 @@ def test_canny_1():
     assert y_canny_images.dtype == np.uint8, y_canny_images.dtype
 
     assert canny_repr.size == (1, 64, 128)
-    canny_repr.resize((32, 64)) # we can resize it though
+    canny_repr.data = canny_repr.resize(canny_repr.data, (32, 64)) # we can resize it though
     assert canny_repr.size == (1, 32, 64)
     assert canny_repr.make_images().shape == (1, 32, 64, 3)
 

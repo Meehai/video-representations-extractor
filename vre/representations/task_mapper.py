@@ -33,9 +33,11 @@ class TaskMapper(Representation, IORepresentationMixin, ComputeRepresentationMix
         """used in MultiTaskReader. Unclear if it's a good idea"""
         paths = [paths] if isinstance(paths, Path) else paths
         assert isinstance(paths, list) and len(paths) == len(self.dependencies), (paths, self.dependencies)
-        dep_disk_data = [dep.load_from_disk(path) for dep, path in zip(self.dependencies, paths)]
-        dep_memory_data = [dep.from_disk_fmt(disk_data) for dep, disk_data in zip(self.dependencies, dep_disk_data)]
-        merged_data = self.merge_fn(dep_memory_data)
+        deps_memory_data = []
+        dep: IORepresentationMixin
+        for i, dep in enumerate(self.dependencies):
+            deps_memory_data.append(dep.disk_to_memory_fmt(dep.load_from_disk(paths[i])))
+        merged_data = self.merge_fn(deps_memory_data)
         return merged_data
 
     @overrides

@@ -133,7 +133,7 @@ class MultiTaskDataset(Dataset):
             if isinstance(task, TaskMapper) and task.dependencies[0] != task:
                 data_shape[task_name] = task.compute_from_dependencies_paths(first_npz[task_name]).shape
             else:
-                data_shape[task_name] = task.from_disk_fmt(task.load_from_disk(first_npz[task_name])).shape
+                data_shape[task_name] = task.disk_to_memory_fmt(task.load_from_disk(first_npz[task_name])).shape
         return data_shape
 
     @property
@@ -285,7 +285,7 @@ class MultiTaskDataset(Dataset):
                 if isinstance(task, TaskMapper) and task.dependencies[0] != task:
                     np_memory_data = task.compute_from_dependencies_paths(file_path)
                 else: # can also be TaskMapper here too, but with deps[0] == task (pre-computed)
-                    np_memory_data = task.from_disk_fmt(task.load_from_disk(file_path))
+                    np_memory_data = task.disk_to_memory_fmt(task.load_from_disk(file_path))
 
                 if isinstance(task, NormedRepresentationMixin) and self.statistics is not None:
                     np_memory_data = task.normalize(np_memory_data)

@@ -12,21 +12,22 @@ def test_fastsam():
     assert fastsam_repr.device == "cpu" # default from LearnedRepresentationMixin
 
     fastsam_repr.compute(video, [0])
+    assert fastsam_repr.size == (1, 64, 128, 3), fastsam_repr.size
     assert fastsam_repr.data.output.shape == (1, 32, 128, 256), fastsam_repr.data.output.shape
     assert len(fastsam_repr.data.extra) == 1 # no objects in random images
     assert fastsam_repr.data.extra[0]["boxes"].shape == (300, 38), fastsam_repr.data.extra[0]["boxes"].shape
-    assert fastsam_repr.data.extra[0]["inference_size"] == (512, 1024), fastsam_repr.data.extra[0]["inference_size"]
+    assert fastsam_repr.data.extra[0]["inference_size"] == (32, 64), fastsam_repr.data.extra[0]["inference_size"]
+    assert fastsam_repr.data.extra[0]["image_size"] == (64, 128), fastsam_repr.data.extra[0]["image_size"]
 
     y_fastsam_rgb = fastsam_repr.make_images()
-    assert y_fastsam_rgb.shape == (1, 512, 1024, 3) # no guarantee about the raw inference output
+    assert y_fastsam_rgb.shape == (1, 64, 128, 3) # no guarantee about the raw inference output
     assert y_fastsam_rgb.dtype == np.uint8, y_fastsam_rgb.dtype
-    assert fastsam_repr.size == (512, 1024)
+    assert fastsam_repr.size == (1, 64, 128, 3)
+    assert np.allclose(y_fastsam_rgb[0], video[0])
 
-    fastsam_repr.resize((64, 128)) # we can resize it though
-    assert fastsam_repr.size == (64, 128)
-    y_fastsam_rgb_resized = fastsam_repr.make_images()
-    assert y_fastsam_rgb_resized.shape == (1, 64, 128, 3)
-    assert np.allclose(y_fastsam_rgb_resized, video[0])
+    fastsam_repr.data = fastsam_repr.resize(fastsam_repr.data, (80, 160)) # we can resize it though
+    assert fastsam_repr.size == (1, 80, 160, 3), fastsam_repr.size
+    assert (A := fastsam_repr.data.output.shape) == (1, 32, 128, 256), A # this never changes
 
 if __name__ == "__main__":
     test_fastsam()

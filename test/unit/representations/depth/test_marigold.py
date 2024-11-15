@@ -19,7 +19,7 @@ def test_marigold():
     assert y_dpt_images.dtype == np.uint8, y_dpt_images.dtype
 
     assert marigold_repr.size == (1, 8, 24)
-    marigold_repr.resize((64, 128)) # we can resize it though
+    marigold_repr.data = marigold_repr.resize(marigold_repr.data, (64, 128)) # we can resize it though
     assert marigold_repr.size == (1, 64, 128)
     assert marigold_repr.make_images().shape == (1, 64, 128, 3)
 

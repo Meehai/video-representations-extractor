@@ -44,9 +44,9 @@ class NpIORepresentation(IORepresentationMixin):
         self.save_fn(path, memory_data, allow_pickle=False) # pylint: disable=not-callable
 
     @overrides
-    def to_disk_fmt(self, memory_data: MemoryData) -> DiskData:
+    def memory_to_disk_fmt(self, memory_data: MemoryData) -> DiskData:
         return memory_data
 
     @overrides
-    def from_disk_fmt(self, disk_data: DiskData) -> MemoryData:
+    def disk_to_memory_fmt(self, disk_data: DiskData) -> MemoryData:
         return disk_data

@@ -23,7 +23,7 @@ def test_rgb_resize():
     rgb_repr.compute(video, [0])
     assert rgb_repr.size == (1, 64, 128, 3)
 
-    rgb_repr.resize((32, 64))
+    rgb_repr.data = rgb_repr.resize(rgb_repr.data, (32, 64))
     assert rgb_repr.size == (1, 32, 64, 3)
 
     y_rgb_images_resized = rgb_repr.make_images()

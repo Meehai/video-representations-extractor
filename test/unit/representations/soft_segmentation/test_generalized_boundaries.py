@@ -17,7 +17,7 @@ def test_generalized_boundaries():
     assert y_gb_images.dtype == np.uint8, y_gb_images.dtype
 
     assert gb_repr.size == (1, 64, 128, 3)
-    gb_repr.resize((32, 64))
+    gb_repr.data = gb_repr.resize(gb_repr.data, (32, 64))
     assert gb_repr.size == (1, 32, 64, 3)
     assert gb_repr.make_images().shape == (1, 32, 64, 3)
 

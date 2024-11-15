@@ -18,7 +18,7 @@ def test_dpt():
     assert y_dpt_images.dtype == np.uint8, y_dpt_images.dtype
 
     assert dpt_repr.size == (1, 192, 384)
-    dpt_repr.resize((64, 128)) # we can resize it though
+    dpt_repr.data = dpt_repr.resize(dpt_repr.data, (64, 128)) # we can resize it though
     assert dpt_repr.size == (1, 64, 128)
     assert dpt_repr.make_images().shape == (1, 64, 128, 3)
 

@@ -2,18 +2,20 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from lovely_numpy import lo
 import numpy as np
 
-from ..utils import parsed_str_type, image_resize_batch
+from ..utils import parsed_str_type, lo
+
+MemoryData = np.ndarray
 
 @dataclass
 class ReprOut:
     """The output of representation.compute()"""
     frames: np.ndarray | None
-    output: np.ndarray
+    output: MemoryData
     key: list[int]
     extra: list[dict] | None = None
+    output_images: np.ndarray | None = None
 
     def __post_init__(self):
         assert isinstance(self.output, np.ndarray), type(self.output)
@@ -21,7 +23,8 @@ class ReprOut:
         assert self.frames is None or len(self.frames) == len(self.output), (len(self.frames), len(self.output))
 
     def __repr__(self):
-        return f"[ReprOut](frames={lo(self.frames)}, output={lo(self.output)}, key={self.key}, extra={self.extra})"
+        return (f"[ReprOut](key={self.key}, output={lo(self.output)}, output_images={lo(self.output_images)} "
+                f"extra set={self.extra is not None}, frames={lo(self.frames)})")
 
 class Representation(ABC):
     """Generic Representation class for VRE"""
@@ -46,7 +49,7 @@ class Representation(ABC):
 
     @property
     def size(self) -> tuple[int, ...]:
-        """Returns the (h, w) tuple of the size of the current representation"""
+        """Returns the (b, h, w, c) tuple of the size of the current representation"""
         assert self.data is not None, f"[{self}] data must be first computed using compute()"
         return tuple(self.data.output.shape)
 
@@ -54,22 +57,6 @@ class Representation(ABC):
     def is_classification(self) -> bool:
         """if we have self.classes. Used in MultiTaskReader."""
         return hasattr(self, "classes") and self.classes is not None # pylint: disable=no-member
-
-    def resize(self, new_size: tuple[int, int]):
-        """resizes the data. size is provided in (h, w)"""
-        assert self.data is not None, f"[{self}] data must be first computed using compute()"
-        interpolation = "nearest" if np.issubdtype(d := self.data.output.dtype, np.integer) or d == bool else "bilinear"
-        self.data = ReprOut(frames=self.data.frames, key=self.data.key, extra=self.data.extra,
-                            output=image_resize_batch(self.data.output, *new_size, interpolation=interpolation))
-
-    def cast(self, dtype: str):
-        """Cast the output of a self.compute(frames) call into some other dtype"""
-        assert self.data is not None, f"[{self}] data must be first computed using compute()"
-        if (np.issubdtype(self.data.output.dtype, np.integer) and np.issubdtype(dtype, np.floating) or
-            np.issubdtype(self.data.output.dtype, np.floating) and np.issubdtype(dtype, np.integer)):
-            raise TypeError(f"Cannot convert {self.data.output.dtype} to {dtype}")
-        self.data = ReprOut(frames=self.data.frames, output=self.data.output.astype(dtype),
-                            extra=self.data.extra, key=self.data.key)
 
     ## Magic methods ##
     def __repr__(self):

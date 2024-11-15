@@ -21,6 +21,6 @@ def test_depth_normals_svd_dpt():
     assert y_normals_img.shape == (1, 384, 384, 3), y_normals_img.shape
 
     assert normals_svd_repr.size == (1, 384, 384, 3)
-    y_normals_resized = normals_svd_repr.resize((64, 128)) # we can resize it though
+    normals_svd_repr.data = normals_svd_repr.resize(normals_svd_repr.data, (64, 128)) # we can resize it though
     assert normals_svd_repr.size == (1, 64, 128, 3)
     assert normals_svd_repr.make_images().shape == (1, 64, 128, 3)

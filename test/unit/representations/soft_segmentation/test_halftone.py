@@ -16,7 +16,7 @@ def test_halftone():
     assert y_halftone_images.dtype == np.uint8, y_halftone_images.dtype
 
     assert halftone_repr.size == (1, 64, 128, 3)
-    halftone_repr.resize((32, 64))
+    halftone_repr.data = halftone_repr.resize(halftone_repr.data, (32, 64))
     assert halftone_repr.size == (1, 32, 64, 3)
     assert halftone_repr.make_images().shape == (1, 32, 64, 3)
 

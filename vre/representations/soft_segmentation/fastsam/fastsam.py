@@ -30,8 +30,8 @@ class FastSam(Representation, LearnedRepresentationMixin, ComputeRepresentationM
         self.variant = variant
         self.conf = conf
         self.iou = iou
-        self.imgsz = 1024 # TODO: can be changed?
         self.model: nn.Module | None = None
+        self._imgsz: int | None = None
 
     @overrides
     def compute(self, video: VREVideo, ixs: list[int]):
@@ -40,52 +40,53 @@ class FastSam(Representation, LearnedRepresentationMixin, ComputeRepresentationM
         tr_y: tr.FloatTensor = self.model.forward(tr_x)
         mb, _, i_h, i_w = tr_x.shape[0:4]
         boxes = self._postprocess(preds=tr_y, inference_height=i_h, inference_width=i_w, conf=self.conf, iou=self.iou)
-        extra = [{"boxes": boxes[i].to("cpu").numpy(), "inference_size": (i_h, i_w)} for i in range(mb)]
+        # Note: image_size' see the commnet in resize()
+        extra = [{"boxes": boxes[i].to("cpu").numpy(), "inference_size": (i_h, i_w), "image_size": frames.shape[1:3]}
+                 for i in range(mb)]
         assert len(tr_y[1]) == 3, len(tr_y[1])
         # Note: this is called 'proto' in the original implementation. Only this part of predictions is used for plots.
-        res = tr_y[1][-1].to("cpu").numpy()
-        self.data = ReprOut(frames=frames, output=res, extra=extra, key=ixs)
+        self.data = ReprOut(frames=frames, output=tr_y[1][-1].to("cpu").numpy(), extra=extra, key=ixs)
 
     @overrides(check_signature=False)
     def make_images(self) -> np.ndarray:
         y_fastsam, extra = self.data.output, self.data.extra # len(y_fastsam) == len(extra) == len(ixs)
-        assert all(e["inference_size"] == extra[0]["inference_size"] for e in extra), extra
-        frames_rsz = image_resize_batch(self.data.frames, *self.size)
-        frame_h, frame_w = frames_rsz.shape[1:3]
-
+        assert all((inf_size := e["inference_size"]) == extra[0]["inference_size"] for e in extra), extra
+        assert all((img_size := e["image_size"]) == extra[0]["image_size"] for e in extra), extra
         tr_y = tr.from_numpy(y_fastsam).to(self.device)
         boxes = [tr.from_numpy(e["boxes"]).to(self.device) for e in extra]
-        scaled_boxes = [self._scale_box(box, *extra[0]["inference_size"], frame_h, frame_w) for box in boxes]
+        # scaled_boxes = [self._scale_box(box, *inf_size, *img_size) for box in boxes] # TODO: needed for faster proc?
 
         res: list[np.ndarray] = []
-        for i, (scaled_box, frame) in enumerate(zip(scaled_boxes, frames_rsz)):
-            if len(scaled_box) == 0:  # save empty boxes
+        for i, (box, frame) in enumerate(zip(boxes, self.data.frames)):
+            if len(box) == 0:  # save empty boxes
                 res.append(frame)
                 continue
-            masks = process_mask_native(tr_y[i], scaled_box[:, 6:], scaled_box[:, :4], (frame_h, frame_w))
-            res_i = Results(orig_img=frame, path=None, names={0: "object"}, boxes=scaled_box[:, 0:6], masks=masks)
+            masks = process_mask_native(tr_y[i], box[:, 6:], box[:, :4], inf_size)
+            res_i = Results(orig_img=frame, path=None, names={0: "object"}, boxes=box[:, 0:6], masks=masks)
             prompt_process = FastSAMPrompt(frame, [res_i], device=self.device)
             ann = prompt_process.results[0].masks.data
             prompt_res = prompt_process.plot_to_result(annotations=ann, better_quality=False, withContours=False)
             res.append(prompt_res)
-        res_arr = np.array(res)
+        res_arr = image_resize_batch(np.array(res), *img_size, interpolation="bilinear")
         return res_arr
 
     @property
     @overrides
     def size(self) -> tuple[int, ...]:
         assert self.data is not None, f"[{self}] data must be first computed using size()"
-        return self.data.extra[0]["inference_size"]
+        return (len(self.data.output), *self.data.extra[0]["image_size"], 3) # Note: not the embeddings size!
 
     @overrides
-    def resize(self, new_size: tuple[int, int]) -> ReprOut:
-        assert self.data is not None, f"[{self}] data must be first computed using size()"
-        y_fastsam, extra = self.data.output, self.data.extra
-        old_size = extra[0]["inference_size"]
-        new_extra = [{"boxes": self._scale_box(tr.from_numpy(e["boxes"]), *old_size, *new_size).numpy(),
-                      "inference_size": new_size} for e in extra]
-        new_y_fastsam = F.interpolate(tr.from_numpy(y_fastsam), (new_size[0] // 4, new_size[1] // 4)).numpy()
-        self.data = ReprOut(frames=self.data.frames, output=new_y_fastsam, extra=new_extra, key=self.data.key)
+    def resize(self, data: ReprOut, new_size: tuple[int, int]) -> ReprOut:
+        assert data is not None
+        # Note: check the old implementation. We used to rescale the boxes, now we just keep them as-is and
+        # only resize the final output. It's debatable if we want to resize the boxes or not to maintain quality.
+        new_extra = [{**e, "image_size": new_size} for e in data.extra]
+        output_images = None
+        if data.output_images is not None:
+            output_images = image_resize_batch(data.output_images, *new_size, interpolation="nearest")
+        return ReprOut(frames=self.data.frames, output=self.data.output, extra=new_extra, key=self.data.key,
+                       output_images=output_images)
 
     @overrides
     def vre_setup(self, load_weights: bool = True):
@@ -96,7 +97,8 @@ class FastSam(Representation, LearnedRepresentationMixin, ComputeRepresentationM
             "fastsam-x": lambda: fetch_weights(__file__) / "FastSAM-x.pt",
             "testing": lambda: "testing",
         }[self.variant]()
-        _overrides = {"task": "segment", "imgsz": self.imgsz, "single_cls": False, "model": str(weights_file),
+        self._imgsz = 1024 if self.variant != "testing" else 64
+        _overrides = {"task": "segment", "imgsz": self._imgsz, "single_cls": False, "model": str(weights_file),
                       "conf": self.conf, "device": "cpu", "retina_masks": False, "iou": self.iou,
                       "mode": "predict", "save": False}
         predictor = FastSAMPredictor(overrides=_overrides)
@@ -143,7 +145,7 @@ class FastSam(Representation, LearnedRepresentationMixin, ComputeRepresentationM
 
     def _preproces(self, x: np.ndarray) -> tr.Tensor:
         x = x.astype(np.float32) / 255
-        desired_max = self.imgsz
+        desired_max = self._imgsz
         tr_x = tr.from_numpy(x).permute(0, 3, 1, 2).to(self.device)
         w, h = x.shape[1:3]
         if w > h:
@@ -181,7 +183,7 @@ def main(args: Namespace):
 
     output_path_rsz = args.output_path.parent / f"{args.output_path.stem}_rsz{args.output_path.suffix}"
     pred = deepcopy(fastsam.data)
-    fastsam.resize(img.shape[0:2])
+    fastsam.data = fastsam.resize(fastsam.data, (300, 1024))
     pred_rsz = fastsam.data
     semantic_result_rsz = fastsam.make_images()[0]
     image_write(semantic_result_rsz, output_path_rsz)
@@ -191,14 +193,15 @@ def main(args: Namespace):
     if args.input_image.name == "demo1.jpg" and args.model_id == "fastsam-s":
         assert np.allclose(a := pred.output.mean(), 0.8813972, rtol=rtol), a
         assert np.allclose(b := pred.extra[0]["boxes"].mean(), 46.200043, rtol=rtol), b
-        assert np.allclose(a := pred_rsz.output.mean(), 0.88434076, rtol=rtol), a
-        assert np.allclose(b := pred_rsz.extra[0]["boxes"].mean(), 28.541258, rtol=rtol), b
+        # Note: now only the tuple size and make_images is changed. To be decided if it's worth to downscale preds.
+        assert np.allclose(a := pred_rsz.output.mean(), 0.8813972, rtol=rtol), a
+        assert np.allclose(b := pred_rsz.extra[0]["boxes"].mean(), 46.200043, rtol=rtol), b
         logger.info("Mean and std test passed!")
     elif args.input_image.name == "demo1.jpg" and args.model_id == "fastsam-x":
         assert np.allclose(a := pred.output.mean(), 0.80122584, rtol=rtol), a
         assert np.allclose(b := pred.extra[0]["boxes"].mean(), 49.640644, rtol=rtol), b
-        assert np.allclose(a := pred_rsz.output.mean(), 0.80056435, rtol=rtol), a
-        assert np.allclose(b := pred_rsz.extra[0]["boxes"].mean(), 30.688671, rtol=rtol), b
+        assert np.allclose(a := pred_rsz.output.mean(), 0.80122584, rtol=rtol), a
+        assert np.allclose(b := pred_rsz.extra[0]["boxes"].mean(), 49.640644, rtol=rtol), b
         logger.info("Mean and std test passed!")
 
 if __name__ == "__main__":
