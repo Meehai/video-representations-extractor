@@ -36,6 +36,8 @@ def get_args() -> Namespace:
     group.add_argument("--start_frame", type=int, help="The first frame index. If not set, defaults to 0.")
     parser.add_argument("--end_frame", type=int, help="The end frame index. If not set, defaults to length of video")
     parser.add_argument("--output_dir_exists_mode", choices=["overwrite", "skip_computed", "raise"], default="raise")
+    parser.add_argument("--exception_mode", type=str, choices=["skip_representation", "stop_execution"],
+                        default="stop_execution")
     parser.add_argument("--n_threads_data_storer", type=int, default=0)
     parser.add_argument("--external_representations", "-I", nargs="+", default=[],
                         help="Path to external reprs. Format: /path/to/file.py:fn_name. fn -> {str: Representation}")
@@ -71,7 +73,7 @@ def main(args: Namespace):
 
     vre = VRE(video, representations)
     vre_metadata = vre.run(args.output_path, frames=frames, output_dir_exists_mode=args.output_dir_exists_mode,
-                           n_threads_data_storer=args.n_threads_data_storer)
+                           n_threads_data_storer=args.n_threads_data_storer, exception_mode=args.exception_mode)
     vre_run_stats = pd.DataFrame(vre_metadata["run_stats"], index=vre_metadata["runtime_args"]["frames"])
     print(vre_run_stats if len(vre_run_stats) > 1 else vre_run_stats.T)
 

@@ -1,4 +1,5 @@
 """DataWriter module -- used to store binary (npz) or image (png) files given a representation output"""
+from __future__ import annotations
 import shutil
 from pathlib import Path
 import numpy as np
@@ -56,6 +57,19 @@ class DataWriter:
                     logger.debug2(f"[{self.rep}] '{img_path}' already exists. Skipping.")
                 else:
                     image_write(imgs[i], img_path)
+
+    def all_batch_exists(self, frames: list[int]) -> bool:
+        """true if all batch [l:r] exists on the disk"""
+        def _path(writer: DataWriter, t: int, suffix: str) -> Path:
+            return writer.output_dir / writer.rep.name / suffix / f"{t}.{suffix}"
+        assert all(isinstance(frame, int) and frame >= 0 for frame in frames), (frames, self.rep)
+        assert self.rep.export_binary or self.rep.export_image, self.rep
+        for ix in frames:
+            if self.rep.export_binary and not _path(self, ix, self.rep.binary_format.value).exists():
+                return False
+            if self.rep.export_image and not _path(self, ix, self.rep.image_format.value).exists():
+                return False
+        return True
 
     def to_dict(self):
         """A dict representation of this DataWriter and information about its ComputeRepresentation object"""
