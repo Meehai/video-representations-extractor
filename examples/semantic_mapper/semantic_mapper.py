@@ -101,11 +101,11 @@ class BinaryMapper(TaskMapper, NpIORepresentation):
         return np.array(res)
 
     @overrides
-    def from_disk_fmt(self, disk_data: np.ndarray) -> np.ndarray:
+    def disk_to_memory_fmt(self, disk_data: np.ndarray) -> np.ndarray:
         return np.eye(2)[disk_data.astype(int)].astype(np.float32)
 
     @overrides
-    def to_disk_fmt(self, memory_data: np.ndarray) -> np.ndarray:
+    def memory_to_disk_fmt(self, memory_data: np.ndarray) -> np.ndarray:
         return memory_data.argmax(-1).astype(bool)
 
     @overrides

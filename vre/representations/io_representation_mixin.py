@@ -6,11 +6,10 @@ from pathlib import Path
 import numpy as np
 
 from vre.logger import vre_logger as logger
-from vre.utils import VREVideo
-from .representation import Representation, ReprOut
+from vre.utils import VREVideo, image_resize_batch
+from .representation import Representation, ReprOut, MemoryData
 
 DiskData = np.ndarray
-MemoryData = np.ndarray
 
 class BinaryFormat(Enum):
     """types of binary outputs from a representation"""
@@ -28,8 +27,8 @@ class IORepresentationMixin(ABC):
     """
     StoredRepresentation. These methods define the blueprint to store and load a representation from disk to RAM.
     Data transformations order:
-    - DISK [.npz] -> load_from_disk() -> [disk_fmt] -> from_disk_fmt() -> RAM [memory_fmt] (stored in .data)
-    - RAM [memory_fmt] -> to_disk_fmt() -> [disk_fmt] -> store_to_disk() -> DISK [.npz]
+    - DISK [.npz] -> load_from_disk() -> [disk_fmt] -> disk_to_memory_fmt() -> RAM [memory_fmt] (stored in .data)
+    - RAM [memory_fmt] -> memory_to_disk_fmt() -> [disk_fmt] -> store_to_disk() -> DISK [.npz]
     The intermediate disk_fmt is only used for storage efficiency, while all the vre operations happen with memory_fmt
     For example: disk_fmt is a binary bool vector, while memory_fmt is a one-hot 2 channels map.
     """
@@ -43,11 +42,11 @@ class IORepresentationMixin(ABC):
         """Reads the data from the disk into disk_fmt"""
 
     @abstractmethod
-    def from_disk_fmt(self, disk_data: DiskData) -> MemoryData:
+    def disk_to_memory_fmt(self, disk_data: DiskData) -> MemoryData:
         """Transforms the data from disk_fmt into memory_fmt (usable in VRE)"""
 
     @abstractmethod
-    def to_disk_fmt(self, memory_data: MemoryData) -> DiskData:
+    def memory_to_disk_fmt(self, memory_data: MemoryData) -> DiskData:
         """Transformes the data from memory_fmt (usable in VRE) to disk_fmt"""
 
     @abstractmethod
@@ -112,6 +111,16 @@ class IORepresentationMixin(ABC):
             if attr in kwargs:
                 setattr(self, attr, kwargs[attr])
 
+    def resize(self, data: ReprOut, new_size: tuple[int, int]):
+        """resizes the data. size is provided in (h, w)"""
+        assert data is not None, "No data provided"
+        interpolation = "nearest" if np.issubdtype(d := data.output.dtype, np.integer) or d == bool else "bilinear"
+        output_images = None
+        if data.output_images is not None:
+            output_images = image_resize_batch(data.output_images, *new_size, interpolation="nearest")
+        return ReprOut(frames=data.frames, key=data.key, extra=data.extra, output_images=output_images,
+                       output=image_resize_batch(data.output, *new_size, interpolation=interpolation))
+
 def load_from_disk_if_possible(rep: Representation | IORepresentationMixin, video: VREVideo,
                                ixs: list[int], output_dir: Path):
     """loads (batched) data from disk if possible. Used in VRE main loop. TODO: integrate better in the class"""
@@ -127,4 +136,4 @@ def load_from_disk_if_possible(rep: Representation | IORepresentationMixin, vide
     disk_data: DiskData = np.array([rep.load_from_disk(x) for x in npz_paths])
     extra = [np.load(x, allow_pickle=True)["arr_0"].item() for x in extra_paths] if ee == ep else None
     logger.debug2(f"[{rep}] Slice: [{ixs[0]}:{ixs[-1]}]. All data found on disk and loaded")
-    rep.data = ReprOut(frames=np.array(video[ixs]), output=rep.from_disk_fmt(disk_data), extra=extra, key=ixs)
+    rep.data = ReprOut(frames=np.array(video[ixs]), output=rep.disk_to_memory_fmt(disk_data), extra=extra, key=ixs)

@@ -136,12 +136,8 @@ class VideoRepresentationsExtractor:
                 tr.cuda.empty_cache() # might empty some unused memory, not 100% if needed.
                 self._compute_one_representation_batch(rep=rep, batch=batch, output_dir=data_writer.output_dir)
                 assert rep.data is not None, (rep, batch)
-                if isinstance(rep.output_size, tuple):
-                    rep.resize(rep.output_size)
-                if rep.data.output.dtype != rep.output_dtype:
-                    rep.cast(rep.output_dtype)
-                imgs = rep.make_images() if rep.export_image else None
-                data_storer(rep.data, imgs, batch)
+                rep.data.output_images = rep.make_images() if rep.export_image else None
+                data_storer(rep.data)
             except Exception:
                 self._log_error(f"\n[{rep.name} {rep.batch_size=} {batch=}] {traceback.format_exc()}\n")
                 self._metadata.add_time(rep.name, 1 << 31, len(runtime_args.frames) - i * rep.batch_size)

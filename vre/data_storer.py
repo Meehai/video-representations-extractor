@@ -4,7 +4,6 @@ from multiprocessing import cpu_count
 from queue import Queue, Empty
 from copy import deepcopy
 from time import time
-import numpy as np
 
 from .representations import ReprOut
 from .data_writer import DataWriter
@@ -61,13 +60,13 @@ class DataStorer:
             self.queue.all_tasks_done.release()
         self.queue = None
 
-    def __call__(self, y_repr: ReprOut, imgs: np.ndarray | None, batch: list[int]):
-        assert isinstance(y_repr, ReprOut), f"{self.data_writer.representation=}, {type(y_repr)=}"
+    def __call__(self, y_repr: ReprOut):
+        assert isinstance(y_repr, ReprOut), f"{self.data_writer.rep=}, {type(y_repr)=}"
         if self.n_threads == 0:
-            self.data_writer(y_repr, imgs, batch)
+            self.data_writer(y_repr)
         else:
             assert self.queue is not None, "Queue was closed, create a new DataStorer object..."
-            self.queue.put((deepcopy(y_repr), imgs, batch), block=True, timeout=30)
+            self.queue.put((deepcopy(y_repr), ), block=True, timeout=30)
 
     def __repr__(self):
         return f"""[DataStorer]

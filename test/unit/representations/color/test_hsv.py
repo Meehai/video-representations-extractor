@@ -24,7 +24,7 @@ def test_hsv_resize():
     hsv_repr.compute(video, ixs=[0])
     assert hsv_repr.size == (1, 64, 128, 3), hsv_repr.size
 
-    hsv_repr.resize((32, 64))
+    hsv_repr.data = hsv_repr.resize(hsv_repr.data, (32, 64))
     assert hsv_repr.size == (1, 32, 64, 3), hsv_repr.size
 
     y_hsv_images_resized = hsv_repr.make_images()

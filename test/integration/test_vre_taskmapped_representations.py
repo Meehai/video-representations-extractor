@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 from vre import VRE
 from vre.utils import FakeVideo, colorize_semantic_segmentation, semantic_mapper
-from vre.representations import Representation, TaskMapper, NpIORepresentation
+from vre.representations import Representation, TaskMapper, NpIORepresentation, DiskData, MemoryData
 from vre.representations.color import RGB, HSV
 from vre.representations.cv_representations import SemanticRepresentation
 
@@ -21,20 +21,23 @@ class Buildings(TaskMapper, NpIORepresentation):
         ]
         self.original_classes = [[0, 1, 2, 3, 4, 5, 6, 7], [0, 1, 2, 3, 4, 5, 6, 7]]
         self.classes = ["buildings", "others"]
+        self.color_map = [[255, 255, 255], [0, 0, 0]]
+        self.output_dtype = "uint8"
 
-    def from_disk_fmt(self, disk_data: np.ndarray) -> np.ndarray:
+    def disk_to_memory_fmt(self, disk_data: DiskData) -> MemoryData:
         return np.eye(2)[disk_data.astype(int)].astype(np.float32)
 
-    def to_disk_fmt(self, memory_data: np.ndarray) -> np.ndarray:
+    def memory_to_disk_fmt(self, memory_data: MemoryData) -> DiskData:
         return memory_data.argmax(-1).astype(bool)
 
-    def merge_fn(self, dep_data: list[np.ndarray]) -> np.ndarray:
+    def merge_fn(self, dep_data: list[MemoryData]) -> MemoryData:
         dep_data_converted = [semantic_mapper(x.argmax(-1), mapping, oc)
                               for x, mapping, oc in zip(dep_data, self.mapping, self.original_classes)]
-        return sum(dep_data_converted) > 0 # mode='all_agree' in the original code
+        res = self.disk_to_memory_fmt(sum(dep_data_converted) > 0)
+        return res
 
     def make_images(self) -> np.ndarray:
-        res = [colorize_semantic_segmentation(item.astype(int), self.classes, color_map=[[255, 255, 255], [0, 0, 0]],
+        res = [colorize_semantic_segmentation(item.argmax(-1).astype(int), self.classes, color_map=self.color_map,
                                               original_rgb=None, font_size_scale=2) for item in self.data.output]
         return np.array(res)
 

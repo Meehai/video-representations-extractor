@@ -11,8 +11,7 @@ from overrides import overrides
 from tqdm.auto import tqdm
 from diffusers import AutoencoderKL, DDIMScheduler, LCMScheduler, UNet2DConditionModel
 
-from vre.utils import (image_resize_batch, image_read, colorize_depth, image_write,
-                       fetch_weights, vre_load_weights, VREVideo)
+from vre.utils import image_read, colorize_depth, image_write, fetch_weights, vre_load_weights, VREVideo
 from vre.representations import (
     Representation, ReprOut, LearnedRepresentationMixin, ComputeRepresentationMixin, NpIORepresentation)
 from vre.representations.depth.marigold.marigold_impl import MarigoldPipeline
@@ -63,11 +62,6 @@ class Marigold(Representation, LearnedRepresentationMixin, ComputeRepresentation
     def make_images(self) -> np.ndarray:
         assert self.data is not None, f"[{self}] data must be first computed using compute()"
         return (colorize_depth(self.data.output, 0, 1) * 255).astype(np.uint8)
-
-    @overrides
-    def resize(self, new_size: tuple[int, int]) -> ReprOut:
-        self.data = ReprOut(frames=self.data.frames, extra=self.data.extra, key=self.data.key,
-                            output=image_resize_batch(self.data.output, *new_size, "bilinear").clip(0, 1))
 
     @overrides
     def vre_free(self):
@@ -192,7 +186,7 @@ def main():
             except AssertionError as e:
                 print(e)
 
-        marigold.resize(rgb.shape[0:2])
+        marigold.data = marigold.resize(marigold.data, rgb.shape[0:2])
         depth_img = marigold.make_images()[0]
         image_write(depth_img, output_dir / "png" / f"{rgb_path.stem}_pred.png")
 

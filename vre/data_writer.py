@@ -10,6 +10,11 @@ from .logger import vre_logger as logger
 
 Repr = Representation | IORepresentationMixin | ComputeRepresentationMixin
 
+def _check_dtype_compat(disk_data_dtype: str, rep_dtype: str):
+    if (np.issubdtype(disk_data_dtype, np.integer) and np.issubdtype(rep_dtype, np.floating) or
+        np.issubdtype(disk_data_dtype, np.floating) and np.issubdtype(rep_dtype, np.integer)):
+        raise TypeError(f"Cannot convert {disk_data_dtype} to {rep_dtype}")
+
 class DataWriter:
     """
     Class used to store one representation on disk. Single thread only, for multi-threaded use DataStorer.
@@ -29,34 +34,37 @@ class DataWriter:
         self.output_dir_exists_mode = output_dir_exists_mode
         self._make_dirs()
 
-    def write(self, y_repr: ReprOut, imgs: np.ndarray | None, batch: list[int]):
+    def write(self, y_repr: ReprOut):
         """store the data in the right format"""
         assert y_repr is not None and y_repr.output is not None
-        assert len(y_repr.output) == len(batch), f"{len(y_repr.output)} - {batch} ({len(batch)})"
+        # TODO: this should be in ReprOut setter
         if self.rep.export_image:
-            assert imgs is not None
-            assert (shp := imgs.shape)[0] == len(batch) and shp[-1] == 3, \
-                f"Expected {len(batch)} images ({batch=}), got {shp}"
-            assert imgs.dtype in (np.uint8, np.uint16, np.uint32, np.uint64), imgs.dtype
+            assert y_repr.output_images is not None, (self.rep, y_repr)
+            assert len(y_repr.output_images) == len(y_repr.key)
+        if y_repr.extra is not None:
+            assert len(y_repr.extra) == len(y_repr.key)
 
-        for i, t in enumerate(batch):
+        if isinstance(self.rep.output_size, tuple):
+            y_repr = self.rep.resize(y_repr, self.rep.output_size)
+
+        for i, t in enumerate(y_repr.key):
             if self.rep.export_binary:
                 ext = self.rep.binary_format.value
                 if (bin_path := self.output_dir / self.rep.name / ext / f"{t}.{ext}").exists():
-                    logger.debug2(f"[{self.rep}] '{bin_path}' already exists. Skipping.")
-                else:
-                    disk_fmt = self.rep.to_disk_fmt(y_repr.output[i])
-                    self.rep.save_to_disk(disk_fmt, bin_path)
-                if (extra := y_repr.extra) is not None and len(y_repr.extra) > 0:
-                    assert len(extra) == len(batch), f"Extra must be a list of len ({len(extra)}) = {len(batch)=}"
+                    logger.warning(f"[{self.rep}] '{bin_path}' already exists. Overwriting.")
+                disk_fmt = self.rep.memory_to_disk_fmt(y_repr.output[i])
+                if disk_fmt.dtype != self.rep.output_dtype:
+                    _check_dtype_compat(disk_fmt.dtype, self.rep.output_dtype)
+                    disk_fmt = disk_fmt.astype(self.rep.output_dtype)
+                self.rep.save_to_disk(disk_fmt, bin_path)
+                if (extra := y_repr.extra) is not None:
                     np.savez(bin_path.parent / f"{t}_extra.npz", extra[i])
 
             if self.rep.export_image:
                 ext = self.rep.image_format.value
                 if (img_path := self.output_dir / self.rep.name / ext / f"{t}.{ext}").exists():
-                    logger.debug2(f"[{self.rep}] '{img_path}' already exists. Skipping.")
-                else:
-                    image_write(imgs[i], img_path)
+                    logger.warning(f"[{self.rep}] '{img_path}' already exists. Overwriting.")
+                image_write(y_repr.output_images[i], img_path)
 
     def all_batch_exists(self, frames: list[int]) -> bool:
         """true if all batch [l:r] exists on the disk"""
