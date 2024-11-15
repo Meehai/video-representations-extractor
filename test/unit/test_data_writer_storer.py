@@ -11,19 +11,6 @@ from vre.data_storer import DataStorer
 sys.path.append(str(get_project_root() / "test"))
 from fake_representation import FakeRepresentation
 
-def all_batch_exists(writer: DataWriter, l: int, r: int) -> bool:
-    """true if all batch [l:r] exists on the disk"""
-    def _path(writer: DataWriter, t: int, suffix: str) -> Path:
-        return writer.output_dir / writer.rep.name / suffix / f"{t}.{suffix}"
-    assert isinstance(l, int) and isinstance(r, int) and 0 <= l < r, (l, r, type(l), type(r))
-    assert writer.rep.export_binary or writer.rep.export_image, writer.rep
-    for ix in range(l, r):
-        if writer.rep.export_binary and not _path(writer, ix, writer.rep.binary_format.value).exists():
-            return False
-        if writer.rep.export_image and not _path(writer, ix, writer.rep.image_format.value).exists():
-            return False
-    return True
-
 def test_DataWriter_ctor_and_basic_writes():
     tmp_dir = Path(TemporaryDirectory().name)
     rgb = FakeRepresentation("rgb", [])
@@ -51,20 +38,16 @@ def test_DataWriter_all_batches_exist():
     y_repr = ReprOut(None, np.random.randn(3, 240, 240), key=[0, 1, 2])
     for l in range(0, 2):
         for r in range(l+1, 3):
-            assert all_batch_exists(writer, l=l, r=r) is False, (l, r)
+            assert writer.all_batch_exists(list(range(l, r))) is False, (l, r)
     writer.write(y_repr, None, [0, 1, 2])
     for l in range(0, 2):
         for r in range(l+1, 3):
-            assert all_batch_exists(writer, l=l, r=r), (l, r)
-    assert all_batch_exists(writer, l=0, r=4) is False
+            assert writer.all_batch_exists(list(range(l, r))), (l, r)
+    assert writer.all_batch_exists([0, 1, 2, 3]) is False
     with pytest.raises(AssertionError):
-        all_batch_exists(writer, l=-1, r=3)
+        writer.all_batch_exists([-1, 0, 1, 2])
     with pytest.raises(AssertionError):
-        all_batch_exists(writer, l="asdf", r=3)
-    with pytest.raises(AssertionError):
-        all_batch_exists(writer, l=0, r="qq")
-    with pytest.raises(AssertionError):
-        all_batch_exists(writer, l=3, r=0)
+        writer.all_batch_exists([1, "asdf", 3])
 
 @pytest.mark.parametrize("n_threads", [0, 1, 4])
 def test_DataStorer(n_threads: int):
@@ -87,5 +70,5 @@ def test_DataStorer(n_threads: int):
     if n_threads > 0:
         with pytest.raises(AssertionError):
             storer(ReprOut(imgs[0:1], y[0:1], key=[0]), imgs[0:1], [0])
-    assert all_batch_exists(writer_rgb, l=0, r=10)
-    assert all_batch_exists(writer_hsv, l=0, r=10)
+    assert writer_rgb.all_batch_exists(list(range(10)))
+    assert writer_hsv.all_batch_exists(list(range(10)))

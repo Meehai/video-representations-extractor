@@ -55,9 +55,8 @@ class VideoRepresentationsExtractor:
             r.set_io_params(**kwargs)
         return self
 
-    def run(self, output_dir: Path, frames: list[int] | None = None,
-            output_dir_exists_mode: str = "raise", exception_mode: str = "stop_execution",
-            n_threads_data_storer: int = 0) -> dict[str, Any]:
+    def run(self, output_dir: Path, frames: list[int] | None = None, output_dir_exists_mode: str = "raise",
+            exception_mode: str = "stop_execution", n_threads_data_storer: int = 0) -> dict[str, Any]:
         """
         The main loop of the VRE. This will run all the representations on the video and store results in the output_dir
         Parameters:
@@ -128,6 +127,11 @@ class VideoRepresentationsExtractor:
                 self._metadata.store_on_disk()
 
             now = datetime.now()
+            if data_writer.all_batch_exists(batch):
+                self._metadata.add_time(rep.name, (datetime.now() - now).total_seconds(), len(batch))
+                pbar.update(len(batch))
+                continue
+
             try:
                 tr.cuda.empty_cache() # might empty some unused memory, not 100% if needed.
                 self._compute_one_representation_batch(rep=rep, batch=batch, output_dir=data_writer.output_dir)
