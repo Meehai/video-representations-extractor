@@ -4,7 +4,7 @@ from overrides import overrides
 import numpy as np
 
 from vre.utils import semantic_mapper, colorize_semantic_segmentation
-from vre.representations import TaskMapper, NpIORepresentation
+from vre.representations import TaskMapper, NpIORepresentation, Representation
 from vre.representations.cv_representations import DepthRepresentation, NormalsRepresentation, SemanticRepresentation
 
 coco_classes = ["person", "bicycle", "car", "motorcycle", "airplane", "bus", "train", "truck", "boat", "traffic light",
@@ -74,12 +74,108 @@ m2f_mapillary = SemanticRepresentation("semantic_mask2former_mapillary_49189528_
 marigold = DepthRepresentation("depth_marigold", min_depth=0, max_depth=1)
 normals_svd_marigold = NormalsRepresentation("normals_svd(depth_marigold)")
 
+class SemanticMask2FormerMapillaryConvertedPaper(TaskMapper, NpIORepresentation):
+    def __init__(self, name: str, dependencies: list[Representation]):
+        TaskMapper.__init__(self, name=name, n_channels=8, dependencies=dependencies)
+        NpIORepresentation.__init__(self)
+        self.mapping = {
+            "land": ["Terrain", "Sand", "Snow"],
+            "forest": ["Vegetation"],
+            "residential": ["Building", "Utility Pole", "Pole", "Fence", "Wall", "Manhole", "Street Light", "Curb",
+                            "Guard Rail", "Caravan", "Junction Box", "Traffic Sign (Front)", "Billboard", "Banner",
+                            "Mailbox", "Traffic Sign (Back)", "Bench", "Fire Hydrant", "Trash Can", "CCTV Camera",
+                            "Traffic Light", "Barrier", "Rail Track", "Phone Booth", "Curb Cut", "Traffic Sign Frame",
+                            "Bike Rack"],
+            "road": ["Road", "Lane Marking - General", "Sidewalk", "Bridge", "Other Vehicle", "Motorcyclist", "Pothole",
+                     "Catch Basin", "Car Mount", "Tunnel", "Parking", "Service Lane", "Lane Marking - Crosswalk",
+                     "Pedestrian Area", "On Rails", "Bike Lane", "Crosswalk - Plain"],
+            "little-objects": ["Car", "Person", "Truck", "Boat", "Wheeled Slow", "Trailer", "Ground Animal", "Bicycle",
+                               "Motorcycle", "Bird", "Bus", "Ego Vehicle", "Bicyclist", "Other Rider"],
+            "water": ["Water"],
+            "sky": ["Sky"],
+            "hill": ["Mountain"]
+        }
+        self.color_map = [[0, 255, 0], [0, 127, 0], [255, 255, 0], [255, 255, 255],
+                          [255, 0, 0], [0, 0, 255], [0, 255, 255], [127, 127, 63]]
+        self.original_classes = mapillary_classes
+        self.classes = list(self.mapping.keys())
+        self.n_classes = len(self.classes)
+        self.output_dtype = "uint8"
+
+    @overrides
+    def make_images(self) -> np.ndarray:
+        res = [colorize_semantic_segmentation(item.argmax(-1).astype(int), self.classes, self.color_map,
+                                              original_rgb=None, font_size_scale=2) for item in self.data.output]
+        return np.array(res)
+
+    @overrides
+    def merge_fn(self, dep_data: list[np.ndarray]) -> np.ndarray:
+        m2f_mapillary = dep_data[0].argmax(-1)
+        m2f_mapillary_converted = semantic_mapper(m2f_mapillary, self.mapping, self.original_classes)
+        return self.disk_to_memory_fmt(m2f_mapillary_converted)
+
+    @overrides
+    def memory_to_disk_fmt(self, memory_data: np.ndarray) -> np.ndarray:
+        return memory_data.argmax(-1).astype(np.uint8)
+
+    @overrides
+    def disk_to_memory_fmt(self, disk_data: np.ndarray) -> np.ndarray:
+        return np.eye(self.n_classes)[disk_data.astype(int)]
+
+class SemanticMask2FormerCOCOConverted(TaskMapper, NpIORepresentation):
+    def __init__(self, name: str, dependencies: list[Representation]):
+        TaskMapper.__init__(self, name=name, n_channels=8, dependencies=dependencies)
+        NpIORepresentation.__init__(self)
+        self.mapping = {
+            "land": ["grass-merged", "dirt-merged", "sand", "gravel", "flower", "playingfield", "snow", "platform"],
+            "forest": ["tree-merged"],
+            "residential": ["building-other-merged", "house", "roof", "fence-merged", "wall-other-merged", "wall-brick",
+                            "rock-merged", "tent", "bridge", "bench", "window-other", "fire hydrant", "traffic light",
+                            "umbrella", "wall-stone", "clock", "chair", "sports ball", "floor-other-merged",
+                            "floor-wood", "stop sign", "door-stuff", "banner", "light", "net", "surfboard", "frisbee",
+                            "rug-merged", "potted plant", "parking meter"],
+            "road": ["road", "railroad", "pavement-merged", "stairs"],
+            "little-objects": ["truck", "car", "boat", "horse", "person", "train", "elephant", "bus", "bird", "sheep",
+                               "cow", "motorcycle", "dog", "bicycle", "airplane", "kite"],
+            "water": ["river", "water-other", "sea"],
+            "sky": ["sky-other-merged"],
+            "hill": ["mountain-merged"]
+        }
+        self.color_map = [[0, 255, 0], [0, 127, 0], [255, 255, 0], [255, 255, 255],
+                          [255, 0, 0], [0, 0, 255], [0, 255, 255], [127, 127, 63]]
+        self.original_classes = coco_classes
+        self.classes = list(self.mapping.keys())
+        self.n_classes = len(self.classes)
+        self.output_dtype = "uint8"
+
+    @overrides
+    def make_images(self) -> np.ndarray:
+        res = [colorize_semantic_segmentation(item.argmax(-1).astype(int), self.classes, self.color_map,
+                                              original_rgb=None, font_size_scale=2) for item in self.data.output]
+        return np.array(res)
+
+    @overrides
+    def merge_fn(self, dep_data: list[np.ndarray]) -> np.ndarray:
+        m2f_mapillary = dep_data[0].argmax(-1)
+        m2f_mapillary_converted = semantic_mapper(m2f_mapillary, self.mapping, self.original_classes)
+        res = self.disk_to_memory_fmt(m2f_mapillary_converted)
+        return res
+
+    @overrides
+    def memory_to_disk_fmt(self, memory_data: np.ndarray) -> np.ndarray:
+        return memory_data.argmax(-1).astype(np.uint8)
+
+    @overrides
+    def disk_to_memory_fmt(self, disk_data: np.ndarray) -> np.ndarray:
+        return np.eye(self.n_classes)[disk_data.astype(int)]
+
 class BinaryMapper(TaskMapper, NpIORepresentation):
     """
     Note for future self: this is never generic enough to be in VRE -- we'll keep it in this separate code only
     TaskMapper is the only high level interface that makes sense, so we should focus on keeping that generic and easy.
     """
-    def __init__(self, name: str, dependencies: list, mapping: list[dict[str, list]], mode: str = "all_agree"):
+    def __init__(self, name: str, dependencies: list[Representation], mapping: list[dict[str, list]],
+                 mode: str = "all_agree"):
         TaskMapper.__init__(self, name=name, dependencies=dependencies, n_channels=2)
         NpIORepresentation.__init__(self)
         assert mode in ("all_agree", "at_least_one"), mode
@@ -253,13 +349,28 @@ def get_new_semantic_mapped_tasks(tasks_subset: list[str] | None = None) -> dict
         }
     ]
 
+    vegetation_mapping = [
+        {
+            "vegetation": (cls := ["Mountain", "Sand", "Sky", "Snow", "Terrain", "Vegetation"]),
+            "others": [x for x in mapillary_classes if x not in cls],
+        },
+        {
+            "vegetation": (cls := ["tree-merged", "grass-merged", "dirt-merged", "flower", "potted plant", "river",
+                                "sea", "water-other", "mountain-merged", "rock-merged"]),
+            "others": [x for x in coco_classes if x not in cls],
+        }
+    ]
+
     available_tasks: list[TaskMapper] = [
+        SemanticMask2FormerMapillaryConvertedPaper("semantic_mask2former_swin_mapillary_converted", [m2f_mapillary]),
+        SemanticMask2FormerCOCOConverted("semantic_mask2former_swin_coco_converted", [m2f_coco]),
         BinaryMapper("buildings", [m2f_mapillary, m2f_coco], buildings_mapping),
         BinaryMapper("living-vs-non-living", [m2f_mapillary, m2f_coco], living_mapping),
         sky_water := BinaryMapper("sky-and-water", [m2f_mapillary, m2f_coco], sky_and_water_mapping,
                                   mode="at_least_one"),
         BinaryMapper("transportation", [m2f_mapillary, m2f_coco], transportation_mapping, mode="at_least_one"),
         BinaryMapper("containing", [m2f_mapillary, m2f_coco], containing_mapping),
+        BinaryMapper("vegetation", [m2f_mapillary, m2f_coco], vegetation_mapping),
         BuildingsFromM2FDepth("buildings(nearby)", [mapillary_classes, coco_classes]),
         SafeLandingAreas("safe-landing-no-sseg", [mapillary_classes, coco_classes]),
         SafeLandingAreas("safe-landing-semantics", [mapillary_classes, coco_classes],

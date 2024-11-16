@@ -3,11 +3,12 @@ from pathlib import Path
 from setuptools import setup, find_packages
 
 NAME = "video-representations-extractor"
-VERSION = "1.5.9"
+VERSION = "1.5.10"
 DESCRIPTION = "Video Representations Extractor (VRE) for computing algorithmic or neural representations of each frame."
 URL = "https://gitlab.com/video-representations-extractor/video-representations-extractor"
 
-with open(f"{Path(__file__).absolute().parent}/README.md", "r", encoding="utf-8") as fh:
+CWD = Path(__file__).absolute().parent
+with open(CWD/"README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 REQUIRED = [
@@ -40,6 +41,8 @@ setup(
     long_description_content_type="text/markdown",
     url=URL,
     packages=find_packages(),
+    data_files = [str(x) for x in (CWD / "vre").glob("**/*")
+                  if x.is_file() and x.suffix not in (".py", ".pyc", ".png", ".jpg") and x.name != ".gitignore"],
     install_requires=REQUIRED,
     dependency_links=[],
     license="MIT",
