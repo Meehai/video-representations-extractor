@@ -33,10 +33,9 @@ REQUIRED = [
     "diffusers==0.30.3",
 ]
 
-data_files = [str(x) for x in Path("vre/representations").glob("**/*")
-              if x.is_file() and x.suffix not in (".py", ".pyc", ".png", ".jpg") and x.name != ".gitignore"]
 package_data = {
-    "": data_files
+    "": [str(x) for x in Path("vre/representations").glob("**/*")
+         if x.is_file() and x.suffix not in (".py", ".pyc", ".png", ".jpg") and x.name != ".gitignore"]
 }
 
 setup(
