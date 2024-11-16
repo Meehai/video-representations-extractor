@@ -9,7 +9,7 @@ from ..logger import vre_logger as logger
 from .utils import get_project_root, is_git_lfs, DownloadProgressBar
 
 REPO_URL = "https://gitlab.com/video-representations-extractor/video-representations-extractor"
-RESOURCES_URL = f"{REPO_URL}/-/raw/master/resources/"
+RESOURCES_URL = f"{REPO_URL}/-/raw/master/resources"
 RESOURCES_DIR = get_project_root() / "resources"
 
 # TODO: this is a stupid way to do it but i can't get git-lfs info or scrap gitlab yet.
