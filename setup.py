@@ -1,9 +1,9 @@
-"""setup.py"""
+"""setup.py -- note use setuptools==73.0.1; older versions fuck up the data files, newer versions include resources."""
 from pathlib import Path
 from setuptools import setup, find_packages
 
 NAME = "video-representations-extractor"
-VERSION = "1.5.13"
+VERSION = "1.5.18"
 DESCRIPTION = "Video Representations Extractor (VRE) for computing algorithmic or neural representations of each frame."
 URL = "https://gitlab.com/video-representations-extractor/video-representations-extractor"
 
@@ -33,8 +33,11 @@ REQUIRED = [
     "diffusers==0.30.3",
 ]
 
-data_files = [str(x) for x in Path("vre").glob("**/*")
+data_files = [str(x) for x in Path("vre/representations").glob("**/*")
               if x.is_file() and x.suffix not in (".py", ".pyc", ".png", ".jpg") and x.name != ".gitignore"]
+package_data = {
+    "": data_files
+}
 
 setup(
     name=NAME,
@@ -44,7 +47,8 @@ setup(
     long_description_content_type="text/markdown",
     url=URL,
     packages=find_packages(),
-    data_files=data_files,
+    package_data=package_data,
+    include_package_data=True,
     install_requires=REQUIRED,
     dependency_links=[],
     license="MIT",
