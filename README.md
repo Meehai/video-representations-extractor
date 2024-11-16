@@ -60,6 +60,10 @@ pytest test/
 [VRE_DEVICE=cuda CUDA_VISIBLE_DEVICES=0] bash test/end_to_end/imgur/run.sh
 ```
 
+### Google Colab
+Here's is a recent google colab run: [link](https://colab.research.google.com/drive/1vAp71H-TLewhF56odv33TkmGwwhuoFJ-?usp=sharing)
+that is based in [this examples notebook](examples/semantic_mapper/semantic_mapper.ipynb).
+
 After either option, you should be able to run:
 ```bash
 vre <path/to/video.mp4> --config_path <path/to/cfg> -o <path/to/export_dir>
