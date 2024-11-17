@@ -19,7 +19,7 @@ before_script:
   - export VRE_LOGLEVEL=3
   - export PYTHONPATH="$PYTHONPATH:$VRE_ROOT"
   - export PATH="$PATH:$VRE_ROOT/bin"
-  - cat requirements.txt | sed "s/torch==2.4.1/torch @ https:\/\/download.pytorch.org\/whl\/cpu\/torch-2.4.1%2Bcpu-cp311-cp311-linux_x86_64.whl/g" | sed "s/torchvision==0.19.1/torchvision @ https:\/\/download.pytorch.org\/whl\/cpu\/torchvision-0.19.1%2Bcpu-cp311-cp311-linux_x86_64.whl/g" > /tmp/requirements_ci.txt
+  - cat requirements.txt | sed "s/torch==2.5.1/torch @ https:\/\/download.pytorch.org\/whl\/cpu\/torch-2.5.1%2Bcpu-cp311-cp311-linux_x86_64.whl/g" | sed "s/torchvision==0.20.1/torchvision @ https:\/\/download.pytorch.org\/whl\/cpu\/torchvision-0.20.1%2Bcpu-cp311-cp311-linux_x86_64.whl/g" > /tmp/requirements_ci.txt
   - pip install -r /tmp/requirements_ci.txt
   - pip install pylint==3.2.7 pytest
 
