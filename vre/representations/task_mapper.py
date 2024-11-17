@@ -37,6 +37,7 @@ class TaskMapper(Representation, IORepresentationMixin, ComputeRepresentationMix
         for i, dep in enumerate(self.dependencies):
             deps_memory_data.append(dep.disk_to_memory_fmt(dep.load_from_disk(paths[i])))
         merged_data = self.merge_fn(deps_memory_data)
+        assert isinstance(merged_data, MemoryData) (self, type(merged_data))
         return merged_data
 
     @overrides
@@ -46,4 +47,5 @@ class TaskMapper(Representation, IORepresentationMixin, ComputeRepresentationMix
         res = []
         for i in range(len(data[0])):
             res.append(self.merge_fn([x[i] for x in data]))
+        assert all(isinstance(item, MemoryData) for item in res), (self, [type(item) for item in res])
         self.data = ReprOut(video[ixs], MemoryData(res), key=ixs)

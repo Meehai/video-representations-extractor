@@ -209,7 +209,7 @@ class BinaryMapper(TaskMapper, NpIORepresentation):
         dep_data_converted = [semantic_mapper(x.argmax(-1), mapping, oc)
                               for x, mapping, oc in zip(dep_data, self.mapping, self.original_classes)]
         res_argmax = sum(dep_data_converted) > (0 if self.mode == "all_agree" else 1)
-        return np.eye(2)[res_argmax.astype(int)].astype(np.float32)
+        return MemoryData(np.eye(2)[res_argmax.astype(int)].astype(np.float32))
 
 class BuildingsFromM2FDepth(TaskMapper, NpIORepresentation):
     def __init__(self, name: str, original_classes: tuple[list[str], list[str]]):
@@ -246,7 +246,7 @@ class BuildingsFromM2FDepth(TaskMapper, NpIORepresentation):
         m2f_coco_converted = semantic_mapper(m2f_coco, self.mapping[1], self.original_classes[1])
         thr = 0.3 # np.percentile(depth.numpy(), 0.8)
         combined = (m2f_mapillary_converted + m2f_coco_converted + (depth > thr)) != 0
-        return np.eye(2)[combined.astype(int)]
+        return MemoryData(np.eye(2)[combined.astype(int)])
 
 class SafeLandingAreas(TaskMapper, NpIORepresentation):
     def __init__(self, name: str, original_classes: tuple[list[str], list[str]], include_semantics: bool = False,
@@ -275,7 +275,7 @@ class SafeLandingAreas(TaskMapper, NpIORepresentation):
         if self.include_semantics:
             sw = self.sky_water.merge_fn(dep_data).argmax(-1)
             where_safe = (where_safe * sw * (depth < 0.9)).astype(bool)
-        return np.eye(2)[(~where_safe).astype(int)]
+        return MemoryData(np.eye(2)[(~where_safe).astype(int)])
 
 def get_new_semantic_mapped_tasks(tasks_subset: list[str] | None = None) -> dict[str, TaskMapper]:
     """The exported function for VRE!"""
