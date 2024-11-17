@@ -25,6 +25,11 @@ class Metadata:
         """returns the runtime_args of the metadata"""
         return self.metadata["runtime_args"]
 
+    @property
+    def frames(self) -> list[int] | None:
+        """returns the list of frames in this metadata"""
+        return self.metadata["runtime_args"]["frames"]
+
     def add_time(self, representation: str, duration: float, batch_size: int):
         """adds a (batched) time to the representation's run_stats"""
         assert batch_size > 0, batch_size
@@ -41,8 +46,10 @@ class Metadata:
     def pretty_format(self) -> str:
         """returns a pretty formatted string of the metadata"""
         vre_run_stats_np = np.array(list(self.metadata["run_stats"].values())).T.round(3)
-        res = f"{'ix':<5}" + "|" + "|".join([f"{str_maxk(k, 15):<15}" for k in self.metadata["run_stats"].keys()])
-        for i, frame in enumerate(self.metadata["runtime_args"]["frames"][0:5]):
-            res += "\n" + f"{frame:<5}" + "|" + "|".join([f"{str_maxk(str(v), 15):<15}" for v in vre_run_stats_np[i]])
+        vre_run_stats_np[vre_run_stats_np == 1>>31] = float("nan")
+        res = f"{'ix':<5}" + "|" + "|".join([f"{str_maxk(k, 20):<20}" for k in self.metadata["run_stats"].keys()])
+        for frame in sorted(np.random.choice(self.frames, size=min(5, len(self.frames)), replace=False)):
+            ix = self.frames.index(frame)
+            res += "\n" + f"{frame:<5}" + "|" + "|".join([f"{str_maxk(str(v), 20):<20}" for v in vre_run_stats_np[ix]])
         res += "\n" + f"\nTotal:\n{pformat(dict(zip(self.metadata['run_stats'], vre_run_stats_np.sum(0).round(2))))}"
         return res
