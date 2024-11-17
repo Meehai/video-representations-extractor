@@ -57,5 +57,5 @@ class VRERuntimeArgs:
 - Video shape: {self.video.shape} (FPS: {self.video.fps:.2f})
 - Output frames ({self.n_frames}): [{self.frames[0]} : {self.frames[-1]}]
 - Exception mode: '{self.exception_mode}'
-- #threads DataStorer: {self.n_threads_data_storer} (0 = only using main thread)
+- DataStorer Threads: {self.n_threads_data_storer} (0 = only using main thread)
 """

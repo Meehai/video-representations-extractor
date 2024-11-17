@@ -3,7 +3,7 @@ from __future__ import annotations
 import numpy as np
 from overrides import overrides
 
-from vre.utils import VREVideo
+from vre.utils import VREVideo, MemoryData
 from vre.representations import Representation, ReprOut, ComputeRepresentationMixin, NpIORepresentation
 
 class RGB(Representation, ComputeRepresentationMixin, NpIORepresentation):
@@ -18,7 +18,7 @@ class RGB(Representation, ComputeRepresentationMixin, NpIORepresentation):
     @overrides
     def compute(self, video: VREVideo, ixs: list[int]):
         assert self.data is None, f"[{self}] data must not be computed before calling this"
-        self.data = ReprOut(frames=(frames := np.array(video[ixs])), output=frames, key=ixs)
+        self.data = ReprOut(frames=video[ixs], output=MemoryData(video[ixs]), key=ixs) # video[ixs] is cached
 
     @overrides
     def make_images(self) -> np.ndarray:

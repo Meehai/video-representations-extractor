@@ -4,7 +4,7 @@ from overrides import overrides
 from matplotlib.cm import gray # pylint: disable=no-name-in-module
 
 from vre.representations import Representation, ReprOut, ComputeRepresentationMixin, NpIORepresentation
-from vre.utils import VREVideo
+from vre.utils import VREVideo, MemoryData
 from vre.utils.cv2_utils import cv2_Canny
 
 class Canny(Representation, ComputeRepresentationMixin, NpIORepresentation):
@@ -21,8 +21,8 @@ class Canny(Representation, ComputeRepresentationMixin, NpIORepresentation):
     @overrides
     def compute(self, video: VREVideo, ixs: list[int]):
         assert self.data is None, f"[{self}] data must not be computed before calling this"
-        self.data = ReprOut(frames=np.array(video[ixs]),
-                            output=np.array([self._make_one(frame) for frame in video[ixs]]), key=ixs)
+        self.data = ReprOut(frames=video[ixs], key=ixs,
+                            output=MemoryData([self._make_one(frame) for frame in video[ixs]]))
 
     @overrides
     def make_images(self) -> np.ndarray:

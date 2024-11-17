@@ -94,9 +94,6 @@ def reorder_dict(data: dict[str, Any], keys: list[str]) -> dict[str, Any]:
         data = {k: data[k], **{k: v for k, v in data.items() if data != k}}
     return data
 
-def lo(x: np.ndarray | None) -> str:
-    """reimplementation of lovely_numpy's lo() without any extra stuff that spams the terminal"""
-    assert isinstance(x, (type(None), np.ndarray)), type(x)
-    def _dt(x: str):
-        return x if x == "bool" else (f"{x[0]}{x[-1]}" if x[-1] == "8" else f"{x[0]}{x[-2:]}")
-    return x if x is None else f"arr{[*x.shape]} {_dt(str(x.dtype))} x∈[{x.min()}, {x.max()}]"
+def str_maxk(s: str, k: int) -> str:
+    """returns the string if it is smaller than k, otherwise returns the first k-2 and last 5"""
+    return f"{s[0:k-7]}..{s[-5:]}" if len(s) > k else s

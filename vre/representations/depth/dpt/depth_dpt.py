@@ -4,7 +4,7 @@ import torch as tr
 import torch.nn.functional as F
 from overrides import overrides
 
-from vre.utils import VREVideo, fetch_weights, colorize_depth, vre_load_weights
+from vre.utils import VREVideo, fetch_weights, colorize_depth, vre_load_weights, MemoryData
 from vre.representations import (
     Representation, ReprOut, LearnedRepresentationMixin, ComputeRepresentationMixin, NpIORepresentation)
 from vre.representations.depth.dpt.dpt_impl import DPTDepthModel, get_size
@@ -24,11 +24,11 @@ class DepthDpt(Representation, LearnedRepresentationMixin, ComputeRepresentation
     @overrides
     def compute(self, video: VREVideo, ixs: list[int]):
         assert self.data is None, f"[{self}] data must not be computed before calling this"
-        tr_frames = self._preprocess(np.array(video[ixs]))
+        tr_frames = self._preprocess(video[ixs])
         with tr.no_grad():
             predictions = self.model(tr_frames)
         res = self._postprocess(predictions)
-        self.data = ReprOut(frames=np.array(video[ixs]), output=res, key=ixs)
+        self.data = ReprOut(frames=video[ixs], output=MemoryData(res), key=ixs)
 
     @overrides
     def make_images(self) -> np.ndarray:

@@ -23,7 +23,7 @@ class MyRepresentation(Representation, LearnedRepresentationMixin, ComputeRepres
 
     def compute(self, video, ixs):
         self.make_called = True
-        self.data = ReprOut(frames := np.array(video[ixs]), output=frames, key=ixs)
+        self.data = ReprOut(frames := video[ixs], output=frames, key=ixs)
     def make_images(self):
         return self.data.output
     def vre_setup(self, load_weights = True):
@@ -38,7 +38,7 @@ class MyDependentRepresentation(Representation, ComputeRepresentationMixin, NpIO
         ComputeRepresentationMixin.__init__(self)
         NpIORepresentation.__init__(self)
     def compute(self, video, ixs):
-        self.data = ReprOut(frames=np.array(video[ixs]), output=self.dependencies[0].data.output, key=ixs)
+        self.data = ReprOut(frames=video[ixs], output=self.dependencies[0].data.output, key=ixs)
     def make_images(self):
         return self.data.output
 

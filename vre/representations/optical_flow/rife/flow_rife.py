@@ -4,7 +4,7 @@ import torch as tr
 import torch.nn.functional as F
 from overrides import overrides
 
-from vre.utils import fetch_weights, VREVideo, colorize_optical_flow
+from vre.utils import fetch_weights, VREVideo, colorize_optical_flow, MemoryData
 from vre.representations import (
     Representation, ReprOut, LearnedRepresentationMixin, ComputeRepresentationMixin, NpIORepresentation)
 from vre.representations.optical_flow.rife.rife_impl import Model
@@ -26,13 +26,13 @@ class FlowRife(Representation, LearnedRepresentationMixin, ComputeRepresentation
     @overrides
     def compute(self, video: VREVideo, ixs: list[int]):
         assert self.data is None, f"[{self}] data must not be computed before calling this"
-        frames = np.array(video[ixs])
+        frames = video[ixs]
         right_frames = self._get_delta_frames(video, ixs)
         x_s, x_t, padding = self._preprocess(frames, right_frames)
         with tr.no_grad():
             prediction = self.model.inference(x_s, x_t, self.uhd, self.no_backward_flow)
         flow = self._postprocess(prediction, padding)
-        self.data = ReprOut(frames=np.array(video[ixs]), output=flow, key=ixs)
+        self.data = ReprOut(frames=video[ixs], output=MemoryData(flow), key=ixs)
 
     @overrides
     def make_images(self) -> np.ndarray:
@@ -83,4 +83,4 @@ class FlowRife(Representation, LearnedRepresentationMixin, ComputeRepresentation
     def _get_delta_frames(self, video: VREVideo, ixs: list[int]) -> np.ndarray:
         ixs = list(range(ixs.start, ixs.stop)) if isinstance(ixs, slice) else ixs
         ixs = [min(ix + 1, len(video) - 1) for ix in ixs]
-        return np.array(video[ixs])
+        return video[ixs]

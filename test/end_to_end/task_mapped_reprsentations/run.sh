@@ -9,7 +9,7 @@ chmod +x $CWD/imgur.sh
 # Note: no need to start from existing data, it's just faster for CI. We could start from test_video.mp4 and generate
 # the seed representations that are pre-stored in data/
 test -d $CWD/data || tar -xzvf $CWD/data.tar.gz -C $CWD
-rm -f $CWD/data_ci
+rm -rf $CWD/data_ci
 cp -r $CWD/data $CWD/data_ci
 
 vre $CWD/data_ci/rgb/npz/ -o $CWD/data_ci --config_path $CWD/cfg.yaml \

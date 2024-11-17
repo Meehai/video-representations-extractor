@@ -4,14 +4,13 @@ from pathlib import Path
 from natsort import natsorted
 import imp
 import numpy as np
-import pandas as pd
 from vre import VRE
 from vre.utils import FFmpegVideo, FakeVideo, image_read, abs_path
 from vre.representations import build_representations_from_cfg, add_external_representations
 from vre.logger import vre_logger as logger
 from omegaconf import OmegaConf
 
-def _get_raw_data(video_path: Path) -> tuple[np.ndarray, list[str]]:
+def _get_raw_data(video_path: Path) -> dict[str, np.ndarray | list[str]]:
     all_files = natsorted([f for f in video_path.iterdir() if f.is_file()], key=lambda p: p.name)
     suffixes = set(p.suffix for p in all_files)
     assert len(suffixes) == 1, f"Expected a single type of files in '{video_path}' found {suffixes}"
@@ -20,7 +19,7 @@ def _get_raw_data(video_path: Path) -> tuple[np.ndarray, list[str]]:
     raw_data = [fn(f) for f in all_files]
     assert all(x.shape == raw_data[0].shape for x in raw_data), f"Images shape differ in '{video_path}'"
     logger.info(f"--video_path is a directory. Assuming a directory of images. Found {len(raw_data)} images.")
-    return raw_data, frames
+    return {"data": np.array(raw_data, dtype=np.uint8), "frames": frames}
 
 def get_args() -> Namespace:
     """cli args"""
@@ -55,8 +54,7 @@ def main(args: Namespace):
     cfg = OmegaConf.to_container(OmegaConf.load(args.config_path), resolve=True)
 
     if args.video_path.is_dir():
-        raw_data, _frames = _get_raw_data(args.video_path)
-        video = FakeVideo(np.array(raw_data, dtype=np.uint8), fps=1, frames=_frames)
+        video = FakeVideo(**_get_raw_data(args.video_path), fps=1)
     else:
         video = FFmpegVideo(args.video_path)
 
@@ -74,8 +72,7 @@ def main(args: Namespace):
     vre = VRE(video, representations)
     vre_metadata = vre.run(args.output_path, frames=frames, output_dir_exists_mode=args.output_dir_exists_mode,
                            n_threads_data_storer=args.n_threads_data_storer, exception_mode=args.exception_mode)
-    vre_run_stats = pd.DataFrame(vre_metadata["run_stats"], index=vre_metadata["runtime_args"]["frames"])
-    print(vre_run_stats if len(vre_run_stats) > 1 else vre_run_stats.T)
+    print(vre_metadata.pretty_format())
 
     if args.make_video_collage:
         vre_collage = imp.load_source("vre_collage", (Path(__file__).parent / "vre_collage").__str__())

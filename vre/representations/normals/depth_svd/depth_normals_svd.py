@@ -2,7 +2,7 @@
 from overrides import overrides
 import numpy as np
 
-from vre.utils import VREVideo
+from vre.utils import VREVideo, MemoryData
 from vre.representations import Representation, ReprOut, ComputeRepresentationMixin, NpIORepresentation
 from vre.representations.normals.depth_svd.depth_svd_impl import (
     fov_diag_to_intrinsic, get_sampling_grid, get_normalized_coords, depth_to_normals)
@@ -36,8 +36,8 @@ class DepthNormalsSVD(Representation, ComputeRepresentationMixin, NpIORepresenta
         assert (A := self.dependencies[0].data) is not None and self.dependencies[0].data.key == ixs, (A.key, ixs)
         depths = self.dependencies[0].data.output
         assert len(depths.shape) == 3, f"Expected (T, H, W) got: {depths.shape}"
-        res = np.array([self._make_one_normal(depth) for depth in depths])
-        self.data = ReprOut(frames=np.array(video[ixs]), output=res, key=ixs)
+        res = MemoryData([self._make_one_normal(depth) for depth in depths])
+        self.data = ReprOut(frames=video[ixs], output=res, key=ixs)
 
     @overrides
     def make_images(self) -> np.ndarray:

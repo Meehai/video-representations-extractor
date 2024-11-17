@@ -4,7 +4,7 @@ import numpy as np
 import torch as tr
 from torch.nn import functional as F
 
-from vre.utils import fetch_weights, vre_load_weights, VREVideo, colorize_optical_flow
+from vre.utils import fetch_weights, vre_load_weights, VREVideo, colorize_optical_flow, MemoryData
 from vre.logger import vre_logger as logger
 from vre.representations import (
     Representation, ReprOut, LearnedRepresentationMixin, ComputeRepresentationMixin, NpIORepresentation)
@@ -33,14 +33,14 @@ class FlowRaft(Representation, LearnedRepresentationMixin, ComputeRepresentation
     @overrides
     def compute(self, video: VREVideo, ixs: list[int]):
         assert self.data is None, f"[{self}] data must not be computed before calling this"
-        frames = np.array(video[ixs])
+        frames = video[ixs]
         right_frames = self._get_delta_frames(video, ixs)
         source, dest = self._preprocess(frames), self._preprocess(right_frames)
         tr.manual_seed(self.seed) if self.seed is not None else None
         with tr.no_grad():
             _, predictions = self.model(source, dest, iters=self.iters, test_mode=True)
         flow = self._postporcess(predictions)
-        self.data = ReprOut(frames=np.array(video[ixs]), output=flow, key=ixs)
+        self.data = ReprOut(frames=video[ixs], output=MemoryData(flow), key=ixs)
 
     @overrides
     def make_images(self) -> np.ndarray:
@@ -95,4 +95,4 @@ class FlowRaft(Representation, LearnedRepresentationMixin, ComputeRepresentation
     def _get_delta_frames(self, video: VREVideo, ixs: list[int]) -> np.ndarray:
         ixs = list(range(ixs.start, ixs.stop)) if isinstance(ixs, slice) else ixs
         ixs = [min(ix + 1, len(video) - 1) for ix in ixs]
-        return np.array(video[ixs])
+        return video[ixs]

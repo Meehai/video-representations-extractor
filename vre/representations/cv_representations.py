@@ -37,7 +37,7 @@ class HSVRepresentation(ColorRepresentation):
     """HSVRepresentation -- CV representation for HSV derived from RGB directly"""
     @overrides
     def disk_to_memory_fmt(self, disk_data: DiskData) -> MemoryData:
-        return rgb2hsv(disk_data)
+        return MemoryData(rgb2hsv(disk_data))
 
     @overrides
     def make_images(self) -> np.ndarray:
@@ -68,7 +68,7 @@ class DepthRepresentation(Representation, NpIORepresentation, NormedRepresentati
 
     @overrides
     def disk_to_memory_fmt(self, disk_data: DiskData) -> MemoryData:
-        return disk_data.clip(self.min_depth, self.max_depth)
+        return MemoryData(disk_data.clip(self.min_depth, self.max_depth))
 
     @overrides
     def make_images(self) -> np.ndarray:
@@ -107,7 +107,7 @@ class SemanticRepresentation(Representation, NpIORepresentation):
     @overrides
     def disk_to_memory_fmt(self, disk_data: DiskData) -> MemoryData:
         assert disk_data.dtype in (np.uint8, np.uint16), disk_data.dtype
-        return np.eye(self.n_classes)[disk_data].astype(np.float32)
+        return MemoryData(np.eye(self.n_classes)[disk_data].astype(np.float32))
 
     @overrides
     def make_images(self) -> np.ndarray:
