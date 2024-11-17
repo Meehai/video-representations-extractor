@@ -2,7 +2,6 @@
 from pathlib import Path
 from abc import ABC, abstractmethod
 from overrides import overrides
-import numpy as np
 
 from vre.utils import VREVideo
 from .io_representation_mixin import IORepresentationMixin, MemoryData
@@ -47,4 +46,4 @@ class TaskMapper(Representation, IORepresentationMixin, ComputeRepresentationMix
         res = []
         for i in range(len(data[0])):
             res.append(self.merge_fn([x[i] for x in data]))
-        self.data = ReprOut(np.array(video[ixs]), np.array(res), key=ixs)
+        self.data = ReprOut(video[ixs], MemoryData(res), key=ixs)

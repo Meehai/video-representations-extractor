@@ -11,13 +11,12 @@ from torch.nn import functional as F
 
 from vre.representations import (Representation, ReprOut, LearnedRepresentationMixin,
                                  ComputeRepresentationMixin, NpIORepresentation)
-from vre.utils import image_resize_batch, fetch_weights, image_read, image_write, VREVideo, FakeVideo
+from vre.utils import image_resize_batch, fetch_weights, image_read, image_write, VREVideo, FakeVideo, MemoryData
 from vre.logger import vre_logger as logger
 from vre.representations.soft_segmentation.fastsam.fastsam_impl import FastSAM as Model, FastSAMPredictor, FastSAMPrompt
 from vre.representations.soft_segmentation.fastsam.fastsam_impl.results import Results
 from vre.representations.soft_segmentation.fastsam.fastsam_impl.utils import bbox_iou
-from vre.representations.soft_segmentation.fastsam.fastsam_impl.ops import (
-    scale_boxes, non_max_suppression, process_mask_native)
+from vre.representations.soft_segmentation.fastsam.fastsam_impl.ops import non_max_suppression, process_mask_native
 
 class FastSam(Representation, LearnedRepresentationMixin, ComputeRepresentationMixin, NpIORepresentation):
     """FastSAM representation."""
@@ -36,7 +35,7 @@ class FastSam(Representation, LearnedRepresentationMixin, ComputeRepresentationM
     @overrides
     def compute(self, video: VREVideo, ixs: list[int]):
         assert self.data is None, f"[{self}] data must not be computed before calling this"
-        tr_x = self._preproces(frames := np.array(video[ixs]))
+        tr_x = self._preproces(frames := video[ixs])
         tr_y: tr.FloatTensor = self.model.forward(tr_x)
         mb, _, i_h, i_w = tr_x.shape[0:4]
         boxes = self._postprocess(preds=tr_y, inference_height=i_h, inference_width=i_w, conf=self.conf, iou=self.iou)
@@ -45,7 +44,7 @@ class FastSam(Representation, LearnedRepresentationMixin, ComputeRepresentationM
                  for i in range(mb)]
         assert len(tr_y[1]) == 3, len(tr_y[1])
         # Note: this is called 'proto' in the original implementation. Only this part of predictions is used for plots.
-        self.data = ReprOut(frames=frames, output=tr_y[1][-1].to("cpu").numpy(), extra=extra, key=ixs)
+        self.data = ReprOut(frames=frames, output=MemoryData(tr_y[1][-1].to("cpu").numpy()), extra=extra, key=ixs)
 
     @overrides(check_signature=False)
     def make_images(self) -> np.ndarray:
@@ -54,7 +53,7 @@ class FastSam(Representation, LearnedRepresentationMixin, ComputeRepresentationM
         assert all((img_size := e["image_size"]) == extra[0]["image_size"] for e in extra), extra
         tr_y = tr.from_numpy(y_fastsam).to(self.device)
         boxes = [tr.from_numpy(e["boxes"]).to(self.device) for e in extra]
-        # scaled_boxes = [self._scale_box(box, *inf_size, *img_size) for box in boxes] # TODO: needed for faster proc?
+        # scaled_boxes = [scale_box(box, *inf_size, *img_size) for box in boxes] # TODO: needed for faster proc?
 
         res: list[np.ndarray] = []
         for i, (box, frame) in enumerate(zip(boxes, self.data.frames)):
@@ -67,7 +66,7 @@ class FastSam(Representation, LearnedRepresentationMixin, ComputeRepresentationM
             ann = prompt_process.results[0].masks.data
             prompt_res = prompt_process.plot_to_result(annotations=ann, better_quality=False, withContours=False)
             res.append(prompt_res)
-        res_arr = image_resize_batch(np.array(res), *img_size, interpolation="bilinear")
+        res_arr = image_resize_batch(res, *img_size, interpolation="bilinear")
         return res_arr
 
     @property
@@ -115,15 +114,6 @@ class FastSam(Representation, LearnedRepresentationMixin, ComputeRepresentationM
             tr.cuda.empty_cache()
         self.model = None
         self.setup_called = False
-
-    def _scale_box(self, box: tr.Tensor, inference_height: int, inference_width: int, original_height: int,
-                   original_width: int) -> tr.Tensor:
-        scaled_box = box.clone()
-        if len(scaled_box) == 0:
-            return scaled_box
-        scaled_box[:, 0:4] = scale_boxes((inference_height, inference_width), scaled_box[:, 0:4],
-                                         (original_height, original_width))
-        return scaled_box
 
     def _postprocess(self, preds: tr.Tensor, inference_height: int, inference_width: int,
                      conf: float, iou: float) -> list[tr.Tensor]:

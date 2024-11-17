@@ -1,30 +1,9 @@
 """VRE Representation module"""
 from __future__ import annotations
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
 import numpy as np
 
-from ..utils import parsed_str_type, lo
-
-MemoryData = np.ndarray
-
-@dataclass
-class ReprOut:
-    """The output of representation.compute()"""
-    frames: np.ndarray | None
-    output: MemoryData
-    key: list[int]
-    extra: list[dict] | None = None
-    output_images: np.ndarray | None = None
-
-    def __post_init__(self):
-        assert isinstance(self.output, np.ndarray), type(self.output)
-        assert len(self.output) == len(self.key), (len(self.output), len(self.key))
-        assert self.frames is None or len(self.frames) == len(self.output), (len(self.frames), len(self.output))
-
-    def __repr__(self):
-        return (f"[ReprOut](key={self.key}, output={lo(self.output)}, output_images={lo(self.output_images)} "
-                f"extra set={self.extra is not None}, frames={lo(self.frames)})")
+from ..utils import parsed_str_type, ReprOut
 
 class Representation(ABC):
     """Generic Representation class for VRE"""

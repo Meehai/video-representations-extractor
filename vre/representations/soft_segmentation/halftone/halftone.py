@@ -10,7 +10,7 @@ from PIL import Image, ImageDraw, ImageStat
 from overrides import overrides
 
 from vre.representations import Representation, ReprOut, ComputeRepresentationMixin, NpIORepresentation
-from vre.utils import image_resize, VREVideo
+from vre.utils import image_resize, VREVideo, MemoryData
 
 class Halftone(Representation, ComputeRepresentationMixin, NpIORepresentation):
     """
@@ -40,8 +40,8 @@ class Halftone(Representation, ComputeRepresentationMixin, NpIORepresentation):
     @overrides
     def compute(self, video: VREVideo, ixs: list[int]):
         assert self.data is None, f"[{self}] data must not be computed before calling this"
-        self.data = ReprOut(frames=np.array(video[ixs]),
-                            output=np.array([self._make_one_image(frame) for frame in video[ixs]]), key=ixs)
+        self.data = ReprOut(frames=video[ixs], key=ixs,
+                            output=MemoryData([self._make_one_image(frame) for frame in video[ixs]]))
 
     @overrides
     def make_images(self) -> np.ndarray:

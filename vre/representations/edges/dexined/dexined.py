@@ -4,7 +4,7 @@ import torch as tr
 from overrides import overrides
 
 from vre.logger import vre_logger as logger
-from vre.utils import image_resize_batch, fetch_weights, vre_load_weights, VREVideo
+from vre.utils import image_resize_batch, fetch_weights, vre_load_weights, VREVideo, MemoryData
 from vre.representations import (
     Representation, ReprOut, LearnedRepresentationMixin, ComputeRepresentationMixin, NpIORepresentation)
 from vre.representations.edges.dexined.model_dexined import DexiNed as Model
@@ -22,11 +22,11 @@ class DexiNed(Representation, LearnedRepresentationMixin, ComputeRepresentationM
     @overrides
     def compute(self, video: VREVideo, ixs: list[int]):
         assert self.data is None, f"[{self}] data must not be computed before calling this"
-        tr_frames = self._preprocess(np.array(video[ixs]), self.inference_height, self.inference_width)
+        tr_frames = self._preprocess(video[ixs], self.inference_height, self.inference_width)
         with tr.no_grad():
             y = self.model.forward(tr_frames)
         outs = self._postprocess(y)
-        self.data = ReprOut(frames=np.array(video[ixs]), output=outs, key=ixs)
+        self.data = ReprOut(frames=video[ixs], output=MemoryData(outs), key=ixs)
 
     @overrides
     def make_images(self) -> np.ndarray:

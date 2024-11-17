@@ -5,7 +5,7 @@ from pathlib import Path
 from omegaconf import OmegaConf
 import shutil
 import json
-import pandas as pd
+import pandas as pd # must be installed by the user
 
 from vre import VRE
 from vre.representations import build_representations_from_cfg
@@ -26,7 +26,7 @@ def main():
         vre.run(out_dir, frames=frames, n_threads_data_storer=2, exception_mode="skip_representation")
 
     jsons = [json.load(open(next((out_dir/".logs").glob("*.json")), "r")) for out_dir in out_dirs]
-    dfs = [pd.DataFrame(_json["run_stats"], index=frames).replace(1 <<31, float("nan")) for _json in jsons]
+    dfs = [pd.DataFrame(_json.run_stats, index=frames).replace(1 <<31, float("nan")) for _json in jsons]
     avgs = pd.concat([df.mean() for df in dfs], axis=1)
     avgs.columns = [f"{bs=}" for bs in batch_sizes]
     for bs in batch_sizes[1:]:

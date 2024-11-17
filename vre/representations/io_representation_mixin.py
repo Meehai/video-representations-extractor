@@ -6,10 +6,8 @@ from pathlib import Path
 import numpy as np
 
 from vre.logger import vre_logger as logger
-from vre.utils import VREVideo, image_resize_batch
-from .representation import Representation, ReprOut, MemoryData
-
-DiskData = np.ndarray
+from vre.utils import VREVideo, image_resize_batch, MemoryData, DiskData
+from .representation import Representation, ReprOut
 
 class BinaryFormat(Enum):
     """types of binary outputs from a representation"""
@@ -136,4 +134,4 @@ def load_from_disk_if_possible(rep: Representation | IORepresentationMixin, vide
     disk_data: DiskData = np.array([rep.load_from_disk(x) for x in npz_paths])
     extra = [np.load(x, allow_pickle=True)["arr_0"].item() for x in extra_paths] if ee == ep else None
     logger.debug2(f"[{rep}] Slice: [{ixs[0]}:{ixs[-1]}]. All data found on disk and loaded")
-    rep.data = ReprOut(frames=np.array(video[ixs]), output=rep.disk_to_memory_fmt(disk_data), extra=extra, key=ixs)
+    rep.data = ReprOut(frames=video[ixs], output=rep.disk_to_memory_fmt(disk_data), extra=extra, key=ixs)

@@ -3,10 +3,9 @@ from pathlib import Path
 from natsort import natsorted
 import shutil
 import numpy as np
-import pandas as pd
 from vre import VRE
-from vre.utils import FakeVideo, colorize_semantic_segmentation, semantic_mapper
-from vre.representations import Representation, TaskMapper, NpIORepresentation, DiskData, MemoryData
+from vre.utils import FakeVideo, colorize_semantic_segmentation, semantic_mapper, DiskData, MemoryData
+from vre.representations import Representation, TaskMapper, NpIORepresentation
 from vre.representations.color import RGB, HSV
 from vre.representations.cv_representations import SemanticRepresentation
 
@@ -25,7 +24,7 @@ class Buildings(TaskMapper, NpIORepresentation):
         self.output_dtype = "uint8"
 
     def disk_to_memory_fmt(self, disk_data: DiskData) -> MemoryData:
-        return np.eye(2)[disk_data.astype(int)].astype(np.float32)
+        return MemoryData(np.eye(2)[disk_data.astype(int)].astype(np.float32))
 
     def memory_to_disk_fmt(self, memory_data: MemoryData) -> DiskData:
         return memory_data.argmax(-1).astype(bool)
@@ -68,8 +67,7 @@ def test_vre_stored_representation():
     print(vre)
 
     res = vre.run(output_dir=Path(tmp_dir), frames=list(range(0, len(video))), output_dir_exists_mode="skip_computed")
-    vre_run_stats = pd.DataFrame(res["run_stats"], index=res["runtime_args"]["frames"])
-    print(vre_run_stats)
+    print(res.pretty_format())
 
     # assert that it works the 2nd time too and no computation is done !
     res = vre.run(output_dir=Path(tmp_dir), frames=list(range(0, len(video))), output_dir_exists_mode="skip_computed")

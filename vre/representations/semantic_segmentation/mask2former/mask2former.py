@@ -10,7 +10,7 @@ import numpy as np
 
 from vre.logger import vre_logger as logger
 from vre.utils import (image_resize_batch, fetch_weights, image_read, image_write,
-                       vre_load_weights, colorize_semantic_segmentation, VREVideo, FakeVideo)
+                       vre_load_weights, colorize_semantic_segmentation, VREVideo, FakeVideo, MemoryData)
 from vre.representations import (
     Representation, ReprOut, LearnedRepresentationMixin, ComputeRepresentationMixin, NpIORepresentation)
 from vre.representations.semantic_segmentation.mask2former.mask2former_impl import MaskFormer, CfgNode, get_output_shape
@@ -44,7 +44,7 @@ class Mask2Former(Representation, LearnedRepresentationMixin, ComputeRepresentat
         for pred in predictions:
             _pred = pred.argmax(dim=0) if self.semantic_argmax_only else pred.permute(1, 2, 0)
             res.append(_pred.to("cpu").numpy())
-        self.data = ReprOut(frames=np.array(video[ixs]), output=np.stack(res), key=ixs)
+        self.data = ReprOut(frames=video[ixs], output=MemoryData(res), key=ixs)
 
     @overrides
     def make_images(self) -> np.ndarray:

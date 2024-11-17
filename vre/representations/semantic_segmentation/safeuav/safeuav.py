@@ -5,7 +5,8 @@ import torch as tr
 from torch import nn
 from torch.nn import functional as F
 
-from vre.utils import image_resize_batch, fetch_weights, vre_load_weights, colorize_semantic_segmentation, VREVideo
+from vre.utils import (
+    image_resize_batch, fetch_weights, vre_load_weights, colorize_semantic_segmentation, VREVideo, MemoryData)
 from vre.logger import vre_logger as logger
 from vre.representations import (
     Representation, ReprOut, LearnedRepresentationMixin, ComputeRepresentationMixin, NpIORepresentation)
@@ -47,14 +48,14 @@ class SafeUAV(Representation, LearnedRepresentationMixin, ComputeRepresentationM
     @overrides
     def compute(self, video: VREVideo, ixs: list[int]):
         assert self.data is None, f"[{self}] data must not be computed before calling this"
-        tr_frames = tr.from_numpy(np.array(video[ixs])).to(self.device)
+        tr_frames = tr.from_numpy(video[ixs]).to(self.device)
         frames_norm = tr_frames.permute(0, 3, 1, 2) / 255
         frames_resized = F.interpolate(frames_norm, (self.train_height, self.train_width), mode="bilinear")
         with tr.no_grad():
             prediction = self.model.forward(frames_resized)
         np_pred = prediction.permute(0, 2, 3, 1).cpu().numpy().astype(np.float32)
         y_out = np.argmax(np_pred, axis=-1).astype(np.uint8) if self.semantic_argmax_only else np_pred
-        self.data = ReprOut(frames=np.array(video[ixs]), output=y_out, key=ixs)
+        self.data = ReprOut(frames=video[ixs], output=MemoryData(y_out), key=ixs)
 
     @overrides
     def make_images(self) -> np.ndarray:

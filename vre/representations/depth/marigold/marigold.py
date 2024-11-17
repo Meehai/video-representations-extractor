@@ -11,7 +11,7 @@ from overrides import overrides
 from tqdm.auto import tqdm
 from diffusers import AutoencoderKL, DDIMScheduler, LCMScheduler, UNet2DConditionModel
 
-from vre.utils import image_read, colorize_depth, image_write, fetch_weights, vre_load_weights, VREVideo
+from vre.utils import image_read, colorize_depth, image_write, fetch_weights, vre_load_weights, VREVideo, MemoryData
 from vre.representations import (
     Representation, ReprOut, LearnedRepresentationMixin, ComputeRepresentationMixin, NpIORepresentation)
 from vre.representations.depth.marigold.marigold_impl import MarigoldPipeline
@@ -55,8 +55,8 @@ class Marigold(Representation, LearnedRepresentationMixin, ComputeRepresentation
     @overrides
     def compute(self, video: VREVideo, ixs: list[int]):
         assert self.data is None, f"[{self}] data must not be computed before calling this"
-        self.data = ReprOut(frames=np.array(video[ixs]),
-                            output=np.stack([self._make_one_frame(frame) for frame in video[ixs]]), key=ixs)
+        self.data = ReprOut(frames=video[ixs], key=ixs,
+                            output=MemoryData([self._make_one_frame(frame) for frame in video[ixs]]))
 
     @overrides
     def make_images(self) -> np.ndarray:

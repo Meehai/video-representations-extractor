@@ -3,7 +3,7 @@ from __future__ import annotations
 import numpy as np
 from overrides import overrides
 
-from vre.utils import VREVideo
+from vre.utils import VREVideo, MemoryData
 from vre.representations import Representation, ReprOut, ComputeRepresentationMixin, NpIORepresentation
 
 class FakeRepresentation(Representation, ComputeRepresentationMixin, NpIORepresentation):
@@ -17,7 +17,7 @@ class FakeRepresentation(Representation, ComputeRepresentationMixin, NpIOReprese
     @overrides
     def compute(self, video: VREVideo, ixs: list[int]):
         assert self.data is None, "data must not be computed before calling this"
-        self.data = ReprOut(frames=np.array(video[ixs]), output=np.array(video[ixs]), key=ixs)
+        self.data = ReprOut(frames=video[ixs], output=MemoryData(video[ixs]), key=ixs)
 
     @overrides
     def make_images(self) -> np.ndarray:

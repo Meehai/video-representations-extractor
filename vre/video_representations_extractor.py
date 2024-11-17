@@ -56,7 +56,7 @@ class VideoRepresentationsExtractor:
         return self
 
     def run(self, output_dir: Path, frames: list[int] | None = None, output_dir_exists_mode: str = "raise",
-            exception_mode: str = "stop_execution", n_threads_data_storer: int = 0) -> dict[str, Any]:
+            exception_mode: str = "stop_execution", n_threads_data_storer: int = 0) -> Metadata:
         """
         The main loop of the VRE. This will run all the representations on the video and store results in the output_dir
         Parameters:
@@ -83,7 +83,7 @@ class VideoRepresentationsExtractor:
                 raise RuntimeError(f"Representation '{vre_repr.name}' threw. Check '{self._logs_file}' for information")
             vre_repr.vre_free() if isinstance(vre_repr, LearnedRepresentationMixin) and vre_repr.setup_called else None
         self._end_run()
-        return self._metadata.metadata
+        return self._metadata
 
     # Private methods
     def _cleanup_one_representation(self, representation: Representation, data_storer: DataStorer):

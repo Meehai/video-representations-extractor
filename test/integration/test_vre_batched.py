@@ -2,7 +2,6 @@ import shutil
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import yaml
-import pandas as pd
 import numpy as np
 import torch as tr
 
@@ -141,7 +140,7 @@ representations:
 
     start_frame = 1000 if __name__ == "__main__" else np.random.randint(0, len(video) - 2)
     end_frame = start_frame + 2
-    batch_size = 2 # BS=2 is enough to test this. In examples/ we have a becnhmark that tries more values
+    batch_size = 2 # BS=2 is enough to test this. In examples/ we have a benchmark that tries more values
 
     vre = VRE(video, representations)
     vre.set_compute_params(batch_size=1).set_io_parameters(binary_format="npz", image_format="png", compress=True)
@@ -149,10 +148,13 @@ representations:
     vre.set_compute_params(batch_size=batch_size)
     took_bs = vre(tmp_dir, frames=list(range(start_frame, end_frame)), output_dir_exists_mode="raise")
 
-    both = pd.concat([pd.DataFrame(took1["run_stats"]).mean().rename("unbatched"),
-                      pd.DataFrame(took_bs["run_stats"]).mean().rename(f"batch={batch_size}")], axis=1)
-    both.loc["total"] = both.sum() * (end_frame - start_frame)
-    print(both)
+    unbatched = np.array(list(took1.run_stats.values())).mean(axis=1)
+    batched = np.array(list(took_bs.run_stats.values())).mean(axis=1)
+    total_u, total_b = (end_frame - start_frame) * unbatched.sum(), (end_frame - start_frame) * batched.sum()
+    keys = list(took1.run_stats.keys())
+    for k, u, b in zip(keys, unbatched, batched):
+        logger.info(f"{k}: {u:.2f} vs {b:.2f} ({u / b:.2f})")
+    logger.info(f"Total: {total_u:.2f} vs {total_b:.2f} ({total_u / total_b:.2f})")
 
     for representation in vre.representations.keys():
         for t in range(start_frame, end_frame):

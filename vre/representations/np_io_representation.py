@@ -49,4 +49,4 @@ class NpIORepresentation(IORepresentationMixin):
 
     @overrides
     def disk_to_memory_fmt(self, disk_data: DiskData) -> MemoryData:
-        return disk_data
+        return MemoryData(disk_data)

@@ -3,7 +3,7 @@ from pathlib import Path
 import time
 import numpy as np
 import pytest
-from vre import VRE, ReprOut
+from vre import VRE, ReprOut, MemoryData
 from vre.utils import FakeVideo, image_resize_batch, fetch_resource, VREVideo, FFmpegVideo
 from vre.representations.color import RGB, HSV
 from vre.representations.depth.dpt import DepthDpt
@@ -24,13 +24,13 @@ def test_vre_run(video: FakeVideo):
     vre = VRE(video=video, representations={"rgb": RGB("rgb")})
     vre.set_io_parameters(binary_format="npz", image_format="not-set")
     res = vre.run(Path(TemporaryDirectory().name))
-    assert len(res["run_stats"]["rgb"]) == 2, res
+    assert len(res.run_stats["rgb"]) == 2, res
 
 def test_vre_run_with_dep(video: FakeVideo):
     vre = VRE(video=video, representations={"rgb": (rgb := RGB("rgb")), "hsv": HSV("hsv", dependencies=[rgb])})
     vre.set_io_parameters(binary_format="npz", image_format="not-set")
     res = vre.run(X := Path(TemporaryDirectory().name))
-    assert len(res["run_stats"]["rgb"]) == 2, res
+    assert len(res.run_stats["rgb"]) == 2, res
     res = vre.run(X, output_dir_exists_mode="skip_computed")
 
 def test_vre_output_dir_exists_mode():
@@ -61,8 +61,8 @@ def test_vre_output_shape():
         def compute(self, video: VREVideo, ixs: list[int]):
             assert self.data is None, f"[{self}] data must not be computed before calling this"
             super().compute(video, ixs)
-            self.data = ReprOut(frames=np.array(video[ixs]),
-                                output=image_resize_batch(self.data.output, *self.shape), key=ixs)
+            self.data = ReprOut(frames=video[ixs],
+                                output=MemoryData(image_resize_batch(self.data.output, *self.shape)), key=ixs)
 
     video = FakeVideo(np.random.randint(0, 255, size=(2, 128, 128, 3), dtype=np.uint8), fps=30)
     representations = {"rgb": RGBWithShape((64, 64), "rgb")}
@@ -72,13 +72,13 @@ def test_vre_output_shape():
     _ = vre.run(tmp_dir := Path(TemporaryDirectory().name))
     assert np.load(tmp_dir / "rgb/npz/0.npz")["arr_0"].shape == (128, 128, 3)
 
-    # vre.set_compute_params(output_size="native").set_io_parameters(binary_format="npz", image_format="not-set")
-    # _ = vre.run(tmp_dir := Path(TemporaryDirectory().name))
-    # assert np.load(tmp_dir / "rgb/npz/0.npz")["arr_0"].shape == (64, 64, 3)
+    vre.set_compute_params(output_size="native").set_io_parameters(binary_format="npz", image_format="not-set")
+    _ = vre.run(tmp_dir := Path(TemporaryDirectory().name))
+    assert np.load(tmp_dir / "rgb/npz/0.npz")["arr_0"].shape == (64, 64, 3)
 
-    # vre.set_compute_params(output_size=(100, 100)).set_io_parameters(binary_format="npz", image_format="not-set")
-    # _ = vre.run(tmp_dir := Path(TemporaryDirectory().name))
-    # assert np.load(tmp_dir / "rgb/npz/0.npz")["arr_0"].shape == (100, 100, 3)
+    vre.set_compute_params(output_size=(100, 100)).set_io_parameters(binary_format="npz", image_format="not-set")
+    _ = vre.run(tmp_dir := Path(TemporaryDirectory().name))
+    assert np.load(tmp_dir / "rgb/npz/0.npz")["arr_0"].shape == (100, 100, 3)
 
 def test_vre_simple_representations():
     video = FFmpegVideo(fetch_resource("test_video.mp4"))
@@ -94,8 +94,8 @@ def test_vre_metadata():
     vre = VRE(video=video, representations={"rgb": RGB("rgb")})
     vre.set_io_parameters(binary_format="npz", image_format="not-set")
     res = vre.run(output_dir=Path(TemporaryDirectory().name))
-    assert res["run_stats"].keys() == {"rgb"}
-    assert res["runtime_args"]["frames"] == [0, 1]
+    assert res.run_stats.keys() == {"rgb"}
+    assert res.runtime_args["frames"] == [0, 1]
 
 def test_vre_dep_data_not_saved():
     video = FFmpegVideo(fetch_resource("test_video.mp4"))

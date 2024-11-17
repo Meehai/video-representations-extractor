@@ -5,6 +5,16 @@ import numpy as np
 import torchvision
 from torch.nn import functional as F
 from vre.logger import vre_logger as logger
+import torch as tr
+
+def scale_box(box: tr.Tensor, inference_height: int, inference_width: int, original_height: int,
+              original_width: int) -> tr.Tensor:
+    scaled_box = box.clone()
+    if len(scaled_box) == 0:
+        return scaled_box
+    scaled_box[:, 0:4] = scale_boxes((inference_height, inference_width), scaled_box[:, 0:4],
+                                        (original_height, original_width))
+    return scaled_box
 
 def scale_boxes(img1_shape, boxes, img0_shape, ratio_pad=None):
     """

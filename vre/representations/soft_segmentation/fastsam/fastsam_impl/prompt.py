@@ -1,7 +1,6 @@
 # pylint: disable=all
 import os
 import sys
-import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from .utils import image_to_np_ndarray
@@ -102,9 +101,14 @@ class FastSAMPrompt:
         image = cv2_cvtColor(image, cv2_COLOR_BGR2RGB)
         original_h = image.shape[0]
         original_w = image.shape[1]
-        if sys.platform == "darwin":
-            plt.switch_backend("TkAgg")
-        plt.figure(figsize=(original_w / 100, original_h / 100))
+        import matplotlib
+        import matplotlib.pyplot as plt
+        try:
+            matplotlib.use("TkAgg")
+            plt.figure(figsize=(original_w / 100, original_h / 100))
+        except:
+            matplotlib.use("Agg")
+            plt.figure(figsize=(original_w / 100, original_h / 100))
         # Add subplot with no margin.
         plt.subplots_adjust(top=1, bottom=0, right=1, left=0, hspace=0, wspace=0)
         plt.margins(0, 0)

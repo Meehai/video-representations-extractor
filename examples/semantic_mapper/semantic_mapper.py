@@ -3,7 +3,7 @@
 from overrides import overrides
 import numpy as np
 
-from vre.utils import semantic_mapper, colorize_semantic_segmentation
+from vre.utils import semantic_mapper, colorize_semantic_segmentation, DiskData, MemoryData
 from vre.representations import TaskMapper, NpIORepresentation, Representation
 from vre.representations.cv_representations import DepthRepresentation, NormalsRepresentation, SemanticRepresentation
 
@@ -109,18 +109,18 @@ class SemanticMask2FormerMapillaryConvertedPaper(TaskMapper, NpIORepresentation)
         return np.array(res)
 
     @overrides
-    def merge_fn(self, dep_data: list[np.ndarray]) -> np.ndarray:
+    def merge_fn(self, dep_data: list[MemoryData]) -> MemoryData:
         m2f_mapillary = dep_data[0].argmax(-1)
         m2f_mapillary_converted = semantic_mapper(m2f_mapillary, self.mapping, self.original_classes)
         return self.disk_to_memory_fmt(m2f_mapillary_converted)
 
     @overrides
-    def memory_to_disk_fmt(self, memory_data: np.ndarray) -> np.ndarray:
+    def memory_to_disk_fmt(self, memory_data: MemoryData) -> DiskData:
         return memory_data.argmax(-1).astype(np.uint8)
 
     @overrides
-    def disk_to_memory_fmt(self, disk_data: np.ndarray) -> np.ndarray:
-        return np.eye(self.n_classes)[disk_data.astype(int)]
+    def disk_to_memory_fmt(self, disk_data: DiskData) -> MemoryData:
+        return MemoryData(np.eye(self.n_classes)[disk_data.astype(int)])
 
 class SemanticMask2FormerCOCOConverted(TaskMapper, NpIORepresentation):
     def __init__(self, name: str, dependencies: list[Representation]):
@@ -155,19 +155,19 @@ class SemanticMask2FormerCOCOConverted(TaskMapper, NpIORepresentation):
         return np.array(res)
 
     @overrides
-    def merge_fn(self, dep_data: list[np.ndarray]) -> np.ndarray:
+    def merge_fn(self, dep_data: list[MemoryData]) -> MemoryData:
         m2f_mapillary = dep_data[0].argmax(-1)
         m2f_mapillary_converted = semantic_mapper(m2f_mapillary, self.mapping, self.original_classes)
         res = self.disk_to_memory_fmt(m2f_mapillary_converted)
         return res
 
     @overrides
-    def memory_to_disk_fmt(self, memory_data: np.ndarray) -> np.ndarray:
+    def memory_to_disk_fmt(self, memory_data: MemoryData) -> DiskData:
         return memory_data.argmax(-1).astype(np.uint8)
 
     @overrides
-    def disk_to_memory_fmt(self, disk_data: np.ndarray) -> np.ndarray:
-        return np.eye(self.n_classes)[disk_data.astype(int)]
+    def disk_to_memory_fmt(self, disk_data: DiskData) -> MemoryData:
+        return MemoryData(np.eye(self.n_classes)[disk_data.astype(int)])
 
 class BinaryMapper(TaskMapper, NpIORepresentation):
     """
@@ -197,15 +197,15 @@ class BinaryMapper(TaskMapper, NpIORepresentation):
         return np.array(res)
 
     @overrides
-    def disk_to_memory_fmt(self, disk_data: np.ndarray) -> np.ndarray:
-        return np.eye(2)[disk_data.astype(int)].astype(np.float32)
+    def disk_to_memory_fmt(self, disk_data: DiskData) -> MemoryData:
+        return MemoryData(np.eye(2)[disk_data.astype(int)].astype(np.float32))
 
     @overrides
-    def memory_to_disk_fmt(self, memory_data: np.ndarray) -> np.ndarray:
+    def memory_to_disk_fmt(self, memory_data: MemoryData) -> DiskData:
         return memory_data.argmax(-1).astype(bool)
 
     @overrides
-    def merge_fn(self, dep_data: list[np.ndarray]) -> np.ndarray:
+    def merge_fn(self, dep_data: list[MemoryData]) -> MemoryData:
         dep_data_converted = [semantic_mapper(x.argmax(-1), mapping, oc)
                               for x, mapping, oc in zip(dep_data, self.mapping, self.original_classes)]
         res_argmax = sum(dep_data_converted) > (0 if self.mode == "all_agree" else 1)
@@ -239,7 +239,7 @@ class BuildingsFromM2FDepth(TaskMapper, NpIORepresentation):
                                               original_rgb=None, font_size_scale=2) for item in self.data.output]
         return np.array(res)
 
-    def merge_fn(self, dep_data: list[np.ndarray]) -> np.ndarray:
+    def merge_fn(self, dep_data: list[MemoryData]) -> MemoryData:
         m2f_mapillary, m2f_coco = dep_data[0].argmax(-1), dep_data[1].argmax(-1)
         depth = dep_data[2].squeeze()
         m2f_mapillary_converted = semantic_mapper(m2f_mapillary, self.mapping[0], self.original_classes[0])
@@ -268,7 +268,7 @@ class SafeLandingAreas(TaskMapper, NpIORepresentation):
         return np.array(res)
 
     @overrides
-    def merge_fn(self, dep_data: list[np.ndarray]) -> np.ndarray:
+    def merge_fn(self, dep_data: list[MemoryData]) -> MemoryData:
         normals, depth = dep_data[3], dep_data[2].squeeze()
         v1, v2, v3 = normals.transpose(2, 0, 1)
         where_safe = (v2 > 0.8) * ((v1 + v3) < 1.2)

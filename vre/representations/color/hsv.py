@@ -62,7 +62,7 @@ class HSV(Representation, ComputeRepresentationMixin, NpIORepresentation):
     def compute(self, video: VREVideo, ixs: list[int]):
         assert self.data is None, "data must not be computed before calling this"
         rgb = self.dependencies[0].data.output
-        self.data = ReprOut(frames=np.array(video[ixs]), output=rgb2hsv(rgb).astype(np.float32), key=ixs)
+        self.data = ReprOut(frames=video[ixs], output=rgb2hsv(rgb).astype(np.float32), key=ixs)
 
     @overrides
     def make_images(self) -> np.ndarray:

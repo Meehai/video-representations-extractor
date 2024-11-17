@@ -3,7 +3,7 @@ import torch as tr
 import numpy as np
 from overrides import overrides
 
-from vre.utils import VREVideo
+from vre.utils import VREVideo, MemoryData
 from vre.representations import Representation, ReprOut, ComputeRepresentationMixin, NpIORepresentation
 from vre.representations.soft_segmentation.generalized_boundaries.gb_impl.softseg import soft_seg
 
@@ -26,12 +26,12 @@ class GeneralizedBoundaries(Representation, ComputeRepresentationMixin, NpIORepr
     @overrides
     def compute(self, video: VREVideo, ixs: list[int]):
         assert self.data is None, f"[{self}] data must not be computed before calling this"
-        x = tr.from_numpy(np.array(video[ixs])).type(tr.float) / 255
+        x = tr.from_numpy(video[ixs]).type(tr.float) / 255
         x = x.permute(0, 3, 1, 2)
         y = soft_seg(x, use_median_filtering=self.use_median_filtering, as_image=self.adjust_to_rgb,
                      max_channels=self.max_channels)
         y = y.permute(0, 2, 3, 1).cpu().numpy()
-        self.data = ReprOut(frames=np.array(video[ixs]), output=y, key=ixs)
+        self.data = ReprOut(frames=video[ixs], output=MemoryData(y), key=ixs)
 
     @overrides
     def make_images(self) -> np.ndarray:

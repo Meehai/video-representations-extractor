@@ -471,7 +471,6 @@ class Boxes(BaseTensor):
         numpy(): Convert the object to a numpy array.
         cuda(): Move the object to CUDA memory.
         to(*args, **kwargs): Move the object to the specified device.
-        pandas(): Convert the object to a pandas DataFrame (not yet implemented).
     """
 
     def __init__(self, boxes, orig_shape) -> None:
