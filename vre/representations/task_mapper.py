@@ -37,7 +37,7 @@ class TaskMapper(Representation, IORepresentationMixin, ComputeRepresentationMix
         for i, dep in enumerate(self.dependencies):
             deps_memory_data.append(dep.disk_to_memory_fmt(dep.load_from_disk(paths[i])))
         merged_data = self.merge_fn(deps_memory_data)
-        assert isinstance(merged_data, MemoryData) (self, type(merged_data))
+        assert isinstance(merged_data, MemoryData), (self, type(merged_data)) # TODO(!82): unittest this
         return merged_data
 
     @overrides
