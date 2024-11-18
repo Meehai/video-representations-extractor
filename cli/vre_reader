@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 """vre_reader tool -- iterates over a directory output by vre (in the --output_path argument)"""
-from pathlib import Path
 from argparse import ArgumentParser, Namespace
 from vre.readers import MultiTaskDataset
 from vre.representations import build_representations_from_cfg, add_external_representations
-from vre.utils import abs_path
+from vre.utils import abs_path, lo
 from omegaconf import OmegaConf
 from pprint import pprint
 from torch.utils.data import DataLoader
@@ -16,8 +15,10 @@ def get_args() -> Namespace:
     parser = ArgumentParser()
     parser.add_argument("dataset_path", type=abs_path)
     parser.add_argument("config_path", type=abs_path)
+    parser.add_argument("--mode", choices=["read_one_batch", "iterate_all_data"], default="read_one_batch")
     parser.add_argument("--external_representations", "-I", nargs="+", default=[],
                         help="Path to external reprs. Format: /path/to/file.py:fn_name. fn -> {str: Representation}")
+    parser.add_argument("--batch_size", type=int, default=5)
     args = parser.parse_args()
     return args
 
@@ -33,27 +34,35 @@ def main(args: Namespace):
                               task_types=representations, handle_missing_data="fill_nan",
                               normalization="min_max", cache_task_stats=True)
     print(reader)
-
     print("== Shapes ==")
     pprint(reader.data_shape)
 
-    print("== Random loaded item ==")
-    rand_ix = random.randint(0, len(reader) - 1)
-    data, name, repr_names = reader[rand_ix] # get a random item
-    pprint({k: v for k, v in data.items()})
+    if args.mode == "read_one_batch":
+        print("== Random loaded item ==")
+        rand_ix = random.randint(0, len(reader) - 1)
+        data, name, _ = reader[rand_ix] # get a random item
+        print(f"{name=}")
+        pprint({k: v for k, v in data.items()})
+        assert not any(v.isnan().any() for v in data.values())
 
-    # img_data = {}
-    # for k, v in data.items():
-    #     img_data[k] = reader.name_to_task[k].plot_fn(v) if v is not None else np.zeros((*reader.data_shape[k][0:2], 3))
+        print("== Random loaded batch using torch DataLoader ==")
+        loader = DataLoader(reader, collate_fn=reader.collate_fn, batch_size=args.batch_size, shuffle=True)
+        batch_data, names, _ = next(iter(loader))
+        print(f"{names=}")
+        pprint({k: v for k, v in batch_data.items()}) # Nones are converted to 0s automagically
 
-    # print("== Random loaded batch ==")
-    # batch_data, name, repr_names = reader[rand_ix: min(len(reader), rand_ix + 5)] # get a random batch
-    # pprint({k: v for k, v in batch_data.items()}) # Nones are converted to 0s automagically
+        print("== Plot each image in the loaded batch ==")
+        img_data = {}
+        for k, v in batch_data.items():
+            img_data[k] = np.zeros((len(names), *reader.data_shape[k][0:2], 3))
+            if v is not None and hasattr(reader.name_to_task[k], "plot_fn"):
+                for i in range(len(names)):
+                    img_data[k][i] = reader.name_to_task[k].plot_fn(v[i])
 
-    # print("== Random loaded batch using torch DataLoader ==")
-    # loader = DataLoader(reader, collate_fn=reader.collate_fn, batch_size=5, shuffle=True)
-    # batch_data, name, repr_names = next(iter(loader))
-    # pprint({k: v for k, v in batch_data.items()}) # Nones are converted to 0s automagically
+        pprint({k: lo(v) for k, v in img_data.items()}, width=120)
+
+    if args.mode == "iterate_all_data":
+        pass
 
 if __name__ == "__main__":
     main(get_args())
