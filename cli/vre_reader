@@ -4,9 +4,11 @@ from argparse import ArgumentParser, Namespace
 from vre.readers import MultiTaskDataset
 from vre.representations import build_representations_from_cfg, add_external_representations
 from vre.utils import abs_path, lo
+from vre.logger import vre_logger as logger
 from omegaconf import OmegaConf
-from pprint import pprint
+from pprint import pformat
 from torch.utils.data import DataLoader
+from tqdm import tqdm
 import random
 import numpy as np
 
@@ -19,6 +21,7 @@ def get_args() -> Namespace:
     parser.add_argument("--external_representations", "-I", nargs="+", default=[],
                         help="Path to external reprs. Format: /path/to/file.py:fn_name. fn -> {str: Representation}")
     parser.add_argument("--batch_size", type=int, default=5)
+    parser.add_argument("--num_workers", default=0, type=int)
     parser.add_argument("--handle_missing_data", default="raise")
     args = parser.parse_args()
     return args
@@ -34,23 +37,24 @@ def main(args: Namespace):
     reader = MultiTaskDataset(args.dataset_path, task_names=list(representations.keys()),
                               task_types=representations, handle_missing_data=args.handle_missing_data,
                               normalization="min_max", cache_task_stats=True)
-    print(reader)
-    print("== Shapes ==")
-    pprint(reader.data_shape)
+    logger.info(reader)
+    logger.info("== Shapes ==")
+    logger.info(pformat(reader.data_shape))
 
     if args.mode == "read_one_batch":
-        print("== Random loaded item ==")
+        logger.info("== Random loaded item ==")
         rand_ix = random.randint(0, len(reader) - 1)
         data, name, _ = reader[rand_ix] # get a random item
-        print(f"{name=}")
-        pprint({k: v for k, v in data.items()})
+        logger.info(f"{name=}")
+        logger.info({k: v for k, v in data.items()})
         assert not any(v.isnan().any() for v in data.values())
 
-        print("== Random loaded batch using torch DataLoader ==")
-        loader = DataLoader(reader, collate_fn=reader.collate_fn, batch_size=args.batch_size, shuffle=True)
+        logger.info("== Random loaded batch using torch DataLoader ==")
+        loader = DataLoader(reader, collate_fn=reader.collate_fn, batch_size=args.batch_size,
+                            shuffle=True, num_workers=0)
         batch_data, names, _ = next(iter(loader))
-        print(f"{names=}")
-        pprint({k: v for k, v in batch_data.items()}) # Nones are converted to 0s automagically
+        logger.info(f"{names=}")
+        logger.info(pformat({k: v for k, v in batch_data.items()})) # Nones are converted to 0s automagically
 
         print("== Plot each image in the loaded batch ==")
         img_data = {}
@@ -60,10 +64,12 @@ def main(args: Namespace):
                 for i in range(len(names)):
                     img_data[k][i] = reader.name_to_task[k].plot_fn(v[i])
 
-        pprint({k: lo(v) for k, v in img_data.items()}, width=120)
+        logger.info(pformat({k: lo(v) for k, v in img_data.items()}, width=120))
 
     if args.mode == "iterate_all_data":
-        raise NotImplementedError("")
+        loader = DataLoader(reader, collate_fn=reader.collate_fn, batch_size=args.batch_size,
+                            shuffle=True, num_workers=args.num_workers)
+        for _ in tqdm(iter(loader)): pass
 
 if __name__ == "__main__":
     main(get_args())
