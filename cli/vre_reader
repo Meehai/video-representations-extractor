@@ -63,7 +63,7 @@ def main(args: Namespace):
         pprint({k: lo(v) for k, v in img_data.items()}, width=120)
 
     if args.mode == "iterate_all_data":
-        pass
+        raise NotImplementedError("")
 
 if __name__ == "__main__":
     main(get_args())

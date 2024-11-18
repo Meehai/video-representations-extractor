@@ -257,9 +257,14 @@ class MultiTaskDataset(Dataset):
                 names_to_tasks[path_name].append(task_name)
 
         if self.handle_missing_data == "raise":
+            diffs = []
             for k, _v in names_to_tasks.items():
                 if (v := set(_v)) != (first := set(names_to_tasks[next(iter(names_to_tasks))])):
-                    raise ValueError(f"Key '{k}' has different files:\n-{v=}\n-{first=}\n-{v-first=}\n-{first-v=}")
+                    diffs.append((k, v, first, v - first, first - v))
+            if len(diffs) > 0:
+                for k, v, first, diff1, diff2 in diffs:
+                    logger.error(f"Key '{k}' has different files:\n-{v=}\n-{first=}\n-{diff1=}\n-{diff2=}")
+                raise ValueError
 
         if self.handle_missing_data == "drop":
             b4 = len(names_to_tasks)
