@@ -80,6 +80,7 @@ def semantic_mapper(semantic_original: np.ndarray, mapping: dict[str, list[str]]
     for k, v in mapping_ix.items():
         for _v in v:
             flat_mapping[_v] = k
+    assert (A := set(flat_mapping)) == (B := set(original_classes)), f"\n-{A}\n-{B}\n-{A-B}\n-{B-A}"
     mapped_data = np.vectorize(flat_mapping.get)(semantic_original).astype(np.uint8)
     return mapped_data
 
