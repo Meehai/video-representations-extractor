@@ -50,5 +50,5 @@ setup(
     dependency_links=[],
     license="MIT",
     python_requires=">=3.10",
-    scripts=["bin/vre", "bin/vre_collage", "bin/vre_reader"],
+    scripts=["cli/vre", "cli/vre_collage", "cli/vre_reader"],
 )
