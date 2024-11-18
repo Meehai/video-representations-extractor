@@ -3,7 +3,7 @@ from pathlib import Path
 from setuptools import setup, find_packages
 
 NAME = "video-representations-extractor"
-VERSION = "1.6.3"
+VERSION = "1.6.4"
 DESCRIPTION = "Video Representations Extractor (VRE) for computing algorithmic or neural representations of each frame."
 URL = "https://gitlab.com/video-representations-extractor/video-representations-extractor"
 
@@ -50,5 +50,5 @@ setup(
     dependency_links=[],
     license="MIT",
     python_requires=">=3.10",
-    scripts=["bin/vre", "bin/vre_collage"],
+    scripts=["bin/vre", "bin/vre_collage", "bin/vre_reader"],
 )

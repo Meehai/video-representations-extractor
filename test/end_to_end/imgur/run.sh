@@ -16,10 +16,10 @@ n_frames=$(ffprobe -v error -select_streams v:0 -count_packets -show_entries str
 X=$(shuf -i 1-"$n_frames" -n 1)
 # rm -rf $CWD/test_imgur/
 
-# run VRE & collage
-vre $VID --config_path $CWD/cfg.yaml -o $CWD/test_imgur/ --start_frame $X --end_frame $((X+1)) \
-    --output_dir_exists_mode skip_computed
-vre_collage $CWD/test_imgur/ -o $CWD/collage --config_path $CWD/cfg.yaml --overwrite
+# run vre, vre_reader & vre_collage
+vre $VID --config_path $CWD/cfg.yaml -o $CWD/test_imgur/ --frames $X --output_dir_exists_mode skip_computed
+vre_reader $CWD/test_imgur/ --config_path $CWD/cfg.yaml
+vre_collage $CWD/test_imgur/ --config_path $CWD/cfg.yaml -o $CWD/collage --overwrite
 
 out_img=$CWD/collage/$X.png
 test -f $out_img || ( echo "Image $out_img not found"; kill $$ )
