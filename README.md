@@ -120,7 +120,7 @@ name_of_representation: # spaces work too in the name but it's less desired due 
   learned_parameters: # applies only to representations that are learned and require weights (only torch atm)
     device: "cuda" # for representations that have in their vre_setup() method a model.to(device) call
 
-name_of_representation 2:
+name_of_representation_2:
   type: some other type
   name: some other method
   dependencies: [name_of_representation] # since this representation depends on the prev one, it'll be computed after
@@ -154,7 +154,7 @@ For the above CFG file, 2 subdirectories will be created:
       1.npz, ..., N.npz
     png/ # if image_format=='png'
       1.png, ..., N.png
-  name_of_representation 2/
+  name_of_representation_2/
     npz/
       1.npz, ..., N.npz
 ```
