@@ -2,6 +2,7 @@
 """semantic_mapper.py -- primivites for new tasks based on existing CV/dronescapes tasks"""
 from overrides import overrides
 import numpy as np
+from functools import reduce
 
 from vre.utils import semantic_mapper, colorize_semantic_segmentation, DiskData, MemoryData
 from vre.representations import TaskMapper, NpIORepresentation, Representation
@@ -97,7 +98,8 @@ class SemanticMask2FormerMapillaryConvertedPaper(TaskMapper, NpIORepresentation)
         }
         self.color_map = [[0, 255, 0], [0, 127, 0], [255, 255, 0], [255, 255, 255],
                           [255, 0, 0], [0, 0, 255], [0, 255, 255], [127, 127, 63]]
-        self.original_classes = mapillary_classes
+        self.original_classes = dependencies[0].classes
+        assert set(reduce(lambda x, y: x + y, self.mapping.values(), [])) == set(self.original_classes)
         self.classes = list(self.mapping.keys())
         self.n_classes = len(self.classes)
         self.output_dtype = "uint8"
@@ -133,7 +135,16 @@ class SemanticMask2FormerCOCOConverted(TaskMapper, NpIORepresentation):
                             "rock-merged", "tent", "bridge", "bench", "window-other", "fire hydrant", "traffic light",
                             "umbrella", "wall-stone", "clock", "chair", "sports ball", "floor-other-merged",
                             "floor-wood", "stop sign", "door-stuff", "banner", "light", "net", "surfboard", "frisbee",
-                            "rug-merged", "potted plant", "parking meter"],
+                            "rug-merged", "potted plant", "parking meter", "tennis racket", "sink", "hair drier",
+                            "food-other-merged", "curtain", "mirror-stuff", "baseball glove", "baseball bat", "zebra",
+                            "spoon", "towel", "donut", "apple", "handbag", "couch", "orange", "wall-wood",
+                            "window-blind", "pizza", "cabinet-merged", "skateboard", "remote", "bottle", "bed",
+                            "table-merged", "backpack", "bear", "wall-tile", "cup", "scissors", "ceiling-merged",
+                            "oven", "cell phone", "microwave", "toaster", "carrot", "fork", "giraffe", "paper-merged",
+                            "cat", "book", "sandwich", "wine glass", "pillow", "blanket", "tie", "bowl", "snowboard",
+                            "vase", "toothbrush", "toilet", "dining table", "laptop", "tv", "cardboard", "keyboard",
+                            "hot dog", "cake", "knife", "suitcase", "refrigerator", "fruit", "shelf", "counter", "skis",
+                            "banana", "teddy bear", "broccoli", "mouse"],
             "road": ["road", "railroad", "pavement-merged", "stairs"],
             "little-objects": ["truck", "car", "boat", "horse", "person", "train", "elephant", "bus", "bird", "sheep",
                                "cow", "motorcycle", "dog", "bicycle", "airplane", "kite"],
@@ -143,7 +154,8 @@ class SemanticMask2FormerCOCOConverted(TaskMapper, NpIORepresentation):
         }
         self.color_map = [[0, 255, 0], [0, 127, 0], [255, 255, 0], [255, 255, 255],
                           [255, 0, 0], [0, 0, 255], [0, 255, 255], [127, 127, 63]]
-        self.original_classes = coco_classes
+        self.original_classes = dependencies[0].classes
+        assert set(reduce(lambda x, y: x + y, self.mapping.values(), [])) == set(self.original_classes)
         self.classes = list(self.mapping.keys())
         self.n_classes = len(self.classes)
         self.output_dtype = "uint8"
