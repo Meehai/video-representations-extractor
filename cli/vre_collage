@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""vre_collage tool"""
+"""vre_collage tool -- makes a collage from a directory output by vre (for all image representations)"""
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
 from pprint import pformat
