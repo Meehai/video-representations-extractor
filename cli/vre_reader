@@ -31,7 +31,7 @@ def main(args: Namespace):
             representations = add_external_representations(representations, external_path, cfg)
 
     reader = MultiTaskDataset(args.dataset_path, task_names=list(representations.keys()),
-                              task_types=representations, handle_missing_data="fill_nan",
+                              task_types=representations, handle_missing_data="raise",
                               normalization="min_max", cache_task_stats=True)
     print(reader)
     print("== Shapes ==")

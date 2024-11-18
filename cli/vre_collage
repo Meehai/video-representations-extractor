@@ -58,8 +58,6 @@ def main(args: Namespace):
     if args.video:
         logger.info(f"Export video: '{args.output_path / 'collage.mp4'}'")
 
-    # TODO: can we make the VRE-dir self contained so we don't need the original cfg again?
-    # (representation.save_cfg() might be useful here) -- especially for external representations
     cfg = OmegaConf.to_container(OmegaConf.load(args.config_path), resolve=True)
     representations = build_representations_from_cfg(cfg=cfg)
     if len(args.external_representations) > 0:

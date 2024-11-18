@@ -31,7 +31,8 @@ class MultiTaskDataset(Dataset):
       - 'standardization': Calls task.standardize(task.read_from_disk(path), means[task], stds[task])
       If normalization is not 'none', then task-level statistics will be computed. Environmental variable
       STATS_PBAR=0/1 enables tqdm during statistics computation.
-    - handle_missing_data: Modes to handle missing data. Valid options are:
+    - handle_missing_data: Modes to handle missing data. Defaults to 'fill_none'. Valid options are:
+      - 'raise': Raise exception if any missing data.
       - 'drop': Drop the data point if any of the representations is missing.
       - 'fill_{none,zero,nan}': Fill the missing data with Nones, zeros or NaNs.
     - files_suffix: What suffix to look for when creating the dataset. Valid values: 'npy' or 'npz'.
@@ -62,7 +63,7 @@ class MultiTaskDataset(Dataset):
                  statistics: dict[str, TaskStatistics] | None = None,
     ):
         assert Path(path).exists(), f"Provided path '{path}' doesn't exist!"
-        assert handle_missing_data in ("drop", "fill_none", "fill_zero", "fill_nan"), \
+        assert handle_missing_data in ("drop", "fill_none", "fill_zero", "fill_nan", "raise"), \
             f"Invalid handle_missing_data mode: {handle_missing_data}"
         assert isinstance(task_names, Iterable), type(task_names)
         self.path = Path(path).absolute()
@@ -254,6 +255,11 @@ class MultiTaskDataset(Dataset):
             for path_name in all_files[task_name].keys():
                 names_to_tasks.setdefault(path_name, [])
                 names_to_tasks[path_name].append(task_name)
+
+        if self.handle_missing_data == "raise":
+            for k, _v in names_to_tasks.items():
+                if (v := set(_v)) != (first := set(names_to_tasks[next(iter(names_to_tasks))])):
+                    raise ValueError(f"Key '{k}' has different files:\n-{v=}\n-{first=}\n-{v-first=}\n-{first-v=}")
 
         if self.handle_missing_data == "drop":
             b4 = len(names_to_tasks)
