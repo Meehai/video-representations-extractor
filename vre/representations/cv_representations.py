@@ -28,7 +28,11 @@ class ColorRepresentation(ExternalRepresentation, NpIORepresentation, NormedRepr
         ExternalRepresentation.__init__(self, name=name, dependencies=dependencies)
         NpIORepresentation.__init__(self)
         NormedRepresentationMixin.__init__(self)
-        self.n_channels = 3
+
+    @property
+    @overrides
+    def n_channels(self) -> int:
+        return 3
 
     @overrides
     def make_images(self) -> np.ndarray:
@@ -61,7 +65,11 @@ class EdgesRepresentation(ExternalRepresentation, NpIORepresentation, NormedRepr
         ExternalRepresentation.__init__(self, *args, **kwargs)
         NpIORepresentation.__init__(self)
         NormedRepresentationMixin.__init__(self)
-        self.n_channels = 1 # TODO
+
+    @property
+    @overrides
+    def n_channels(self) -> int:
+        return 1
 
     def make_images(self) -> np.ndarray:
         y = self.unnormalize(self.data.output) if self.normalization is not None else self.data.output
@@ -73,9 +81,13 @@ class DepthRepresentation(ExternalRepresentation, NpIORepresentation, NormedRepr
         ExternalRepresentation.__init__(self, name=name, **kwargs)
         NpIORepresentation.__init__(self)
         NormedRepresentationMixin.__init__(self)
-        self.n_channels = 1 # TODO
         self.min_depth = min_depth
         self.max_depth = max_depth
+
+    @property
+    @overrides
+    def n_channels(self) -> int:
+        return 1
 
     @overrides
     def disk_to_memory_fmt(self, disk_data: DiskData) -> MemoryData:
@@ -112,8 +124,12 @@ class SemanticRepresentation(ExternalRepresentation, NpIORepresentation):
         NpIORepresentation.__init__(self)
         self.classes = list(range(classes)) if isinstance(classes, int) else classes
         self.color_map = color_map
-        self.n_channels = self.n_classes # TODO
         assert len(color_map) == self.n_classes and self.n_classes > 1, (color_map, self.n_classes)
+
+    @property
+    @overrides
+    def n_channels(self) -> int:
+        return self.n_classes
 
     @overrides
     def disk_to_memory_fmt(self, disk_data: DiskData) -> MemoryData:

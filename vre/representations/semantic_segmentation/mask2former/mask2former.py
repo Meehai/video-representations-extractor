@@ -31,6 +31,11 @@ class Mask2Former(Representation, LearnedRepresentationMixin, ComputeRepresentat
         self.cfg: CfgNode | None = None
         self.output_dtype = "uint8" if semantic_argmax_only else "float16"
 
+    @property
+    @overrides
+    def n_channels(self) -> int:
+        return len(self.classes)
+
     @tr.no_grad()
     @overrides
     def compute(self, video: VREVideo, ixs: list[int]):

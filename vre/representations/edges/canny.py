@@ -29,6 +29,11 @@ class Canny(Representation, ComputeRepresentationMixin, NpIORepresentation):
         assert self.data is not None, f"[{self}] data must be first computed using compute()"
         return (255 * gray(self.data.output)[..., 0:3]).astype(np.uint8)
 
+    @property
+    @overrides
+    def n_channels(self) -> int:
+        return 1
+
     def _make_one(self, x: np.ndarray) -> np.ndarray:
         res = cv2_Canny(x, threshold1=self.threshold1, threshold2=self.threshold2,
                         apertureSize=self.aperture_size, L2gradient=self.l2_gradient)

@@ -30,6 +30,11 @@ class DepthNormalsSVD(Representation, ComputeRepresentationMixin, NpIORepresenta
         assert len(self.dependencies) == 1, f"Expected exactly one depth method, got: {self.dependencies}"
         self._grid_cache = {}
 
+    @property
+    @overrides
+    def n_channels(self) -> int:
+        return 3
+
     @overrides
     def compute(self, video: VREVideo, ixs: list[int]):
         assert self.data is None, f"[{self}] data must not be computed before calling this"

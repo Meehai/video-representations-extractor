@@ -23,6 +23,11 @@ class GeneralizedBoundaries(Representation, ComputeRepresentationMixin, NpIORepr
         self.adjust_to_rgb = adjust_to_rgb
         self.max_channels = max_channels
 
+    @property
+    @overrides
+    def n_channels(self) -> int:
+        return 3
+
     @overrides
     def compute(self, video: VREVideo, ixs: list[int]):
         assert self.data is None, f"[{self}] data must not be computed before calling this"

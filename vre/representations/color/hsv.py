@@ -67,3 +67,8 @@ class HSV(Representation, ComputeRepresentationMixin, NpIORepresentation):
     @overrides
     def make_images(self) -> np.ndarray:
         return (self.data.output * 255).astype(np.uint8)
+
+    @property
+    @overrides
+    def n_channels(self) -> int:
+        return 3

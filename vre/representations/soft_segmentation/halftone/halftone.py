@@ -48,6 +48,11 @@ class Halftone(Representation, ComputeRepresentationMixin, NpIORepresentation):
         assert self.data is not None, f"[{self}] data must be first computed using compute()"
         return (self.data.output * 255).astype(np.uint8)
 
+    @property
+    @overrides
+    def n_channels(self) -> int:
+        return 3
+
     def _gcr(self, im, percentage):
         """
         Basic "Gray Component Replacement" function. Returns a CMYK image with

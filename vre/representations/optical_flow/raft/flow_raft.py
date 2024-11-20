@@ -70,6 +70,11 @@ class FlowRaft(Representation, LearnedRepresentationMixin, ComputeRepresentation
         self.model = None
         self.setup_called = False
 
+    @property
+    @overrides
+    def n_channels(self) -> int:
+        return 2
+
     def _check_frames_resolution_requirements(self, frames: np.ndarray):
         assert frames.shape[1] >= 128 and frames.shape[2] >= 128, \
             f"This flow doesn't work with small videos. At least 128x128 is required, but got {frames.shape}"

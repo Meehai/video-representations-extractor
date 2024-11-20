@@ -23,6 +23,11 @@ class FlowRife(Representation, LearnedRepresentationMixin, ComputeRepresentation
         self.no_backward_flow = True if compute_backward_flow is None else not compute_backward_flow
         self.model: Model | None = None
 
+    @property
+    @overrides
+    def n_channels(self) -> int:
+        return 2
+
     @overrides
     def compute(self, video: VREVideo, ixs: list[int]):
         assert self.data is None, f"[{self}] data must not be computed before calling this"
