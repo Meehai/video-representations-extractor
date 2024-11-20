@@ -115,6 +115,11 @@ class FastSam(Representation, LearnedRepresentationMixin, ComputeRepresentationM
         self.model = None
         self.setup_called = False
 
+    @property
+    @overrides
+    def n_channels(self) -> int:
+        raise ValueError("I hate inheritance. Makes no sense for this representation")
+
     def _postprocess(self, preds: tr.Tensor, inference_height: int, inference_width: int,
                      conf: float, iou: float) -> list[tr.Tensor]:
         p = non_max_suppression(preds[0], conf, iou, agnostic=False, max_det=300, nc=1, classes=None)

@@ -20,7 +20,6 @@ class MyRepresentation(Representation, LearnedRepresentationMixin, ComputeRepres
         self.vre_setup_called = False
         self.vre_free_called = False
         self.make_called = False
-
     def compute(self, video, ixs):
         self.make_called = True
         self.data = ReprOut(frames := video[ixs], output=frames, key=ixs)
@@ -31,6 +30,8 @@ class MyRepresentation(Representation, LearnedRepresentationMixin, ComputeRepres
     def vre_free(self):
         self.vre_free_called = True
         self.setup_called = False
+    def n_channels(self):
+        return 1
 
 class MyDependentRepresentation(Representation, ComputeRepresentationMixin, NpIORepresentation):
     def __init__(self, *args, **kwargs):
@@ -41,6 +42,8 @@ class MyDependentRepresentation(Representation, ComputeRepresentationMixin, NpIO
         self.data = ReprOut(frames=video[ixs], output=self.dependencies[0].data.output, key=ixs)
     def make_images(self):
         return self.data.output
+    def n_channels(self):
+        return 1
 
 def test_no_vre_setup_if_not_needed():
     tmp_dir = Path(TemporaryDirectory().name)

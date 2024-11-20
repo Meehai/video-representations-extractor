@@ -45,6 +45,11 @@ class SafeUAV(Representation, LearnedRepresentationMixin, ComputeRepresentationM
         self.model: _SafeUavWrapper | None = None
         self.output_dtype = "uint8" if semantic_argmax_only else "float16"
 
+    @property
+    @overrides
+    def n_channels(self) -> int:
+        raise len(self.classes)
+
     @overrides
     def compute(self, video: VREVideo, ixs: list[int]):
         assert self.data is None, f"[{self}] data must not be computed before calling this"

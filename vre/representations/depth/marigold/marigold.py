@@ -32,6 +32,11 @@ class Marigold(Representation, LearnedRepresentationMixin, ComputeRepresentation
         self.model: MarigoldPipeline | None = None
         self.seed = seed
 
+    @property
+    @overrides
+    def n_channels(self) -> int:
+        return 1
+
     @overrides
     def vre_setup(self, load_weights: bool=True):
         assert self.setup_called is False

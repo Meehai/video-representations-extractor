@@ -22,7 +22,12 @@ class TaskMapper(Representation, IORepresentationMixin, ComputeRepresentationMix
         ComputeRepresentationMixin.__init__(self)
         assert len(self.dependencies) > 0 and self.dep_names[0] != self.name, "Need at least one dependency"
         assert all(isinstance(dep, IORepresentationMixin) for dep in self.dependencies), self.dependencies
-        self.n_channels = n_channels
+        self._n_channels = n_channels
+
+    @property
+    @overrides
+    def n_channels(self) -> int:
+        return self._n_channels
 
     @abstractmethod
     def merge_fn(self, dep_data: list[MemoryData]) -> MemoryData:

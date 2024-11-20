@@ -52,6 +52,11 @@ class DexiNed(Representation, LearnedRepresentationMixin, ComputeRepresentationM
         self.model = None
         self.setup_called = False
 
+    @property
+    @overrides
+    def n_channels(self) -> int:
+        return 1
+
     def _preprocess(self, images: np.ndarray, height: int, width: int) -> tr.Tensor:
         assert len(images.shape) == 4, images.shape
         logger.debug2(f"Original shape: {images.shape}")

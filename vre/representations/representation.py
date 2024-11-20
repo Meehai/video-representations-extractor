@@ -20,6 +20,11 @@ class Representation(ABC):
     def make_images(self) -> np.ndarray:
         """Given the output of self.compute(video, ixs) of type ReprOut, return a [0:255] image for each frame"""
 
+    @property
+    @abstractmethod
+    def n_channels(self) -> int:
+        """The number of channels (dimensions, not resolution) of this representation"""
+
     ## Public methods & properties ##
     @property
     def dep_names(self) -> list[str]:

@@ -54,6 +54,11 @@ class DepthDpt(Representation, LearnedRepresentationMixin, ComputeRepresentation
         self.model = None
         self.setup_called = False
 
+    @property
+    @overrides
+    def n_channels(self) -> int:
+        return 1
+
     def _preprocess(self, x: np.ndarray) -> tr.Tensor:
         tr_frames = tr.from_numpy(x).to(self.device)
         tr_frames_perm = tr_frames.permute(0, 3, 1, 2).float() / 255

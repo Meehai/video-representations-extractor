@@ -24,3 +24,8 @@ class RGB(Representation, ComputeRepresentationMixin, NpIORepresentation):
     def make_images(self) -> np.ndarray:
         assert self.data is not None, f"[{self}] data must be first computed using compute()"
         return self.data.output
+
+    @property
+    @overrides
+    def n_channels(self) -> int:
+        return 3
