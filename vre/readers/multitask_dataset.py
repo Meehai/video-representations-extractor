@@ -240,9 +240,9 @@ class MultiTaskDataset(Dataset):
 
         if (diff := set(task_names).difference(all_files)) != set():
             logger.debug(f"The following tasks do not have data on disk: {list(diff)}. Checking dependencies.")
+        assert (diff := set(task_names).difference(task_types)) == set(), f"\n-{diff}\n-{list(task_types)}"
         relevant_tasks_for_files = set() # hsv requires only rgb, so we look at dependencies later on
         for task_name in task_names:
-            assert task_name in task_types, f"Task '{task_name}' not in {task_types=}. Check your tasks."
             if task_name not in diff and task_types[task_name].dep_names != [task_name]:
                 logger.debug(f"Upating the deps of '{task_name}' as all its data is on disk!")
                 task_types[task_name].dependencies = [task_types[task_name]]

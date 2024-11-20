@@ -31,7 +31,11 @@ class NpIORepresentation(IORepresentationMixin):
             logger.debug2(f"HIT: '{key}'")
             return deepcopy(_CACHE[key])
         logger.debug2(f"MISS: '{key}'")
-        data = np.load(path, allow_pickle=False)
+        try:
+            data = np.load(path, allow_pickle=False)
+        except Exception as e:
+            logger.error(f"Failed with {e} on '{path}'") # thx numpy for failing w/o giving me the path...
+            raise e
         data = data if isinstance(data, np.ndarray) else data["arr_0"] # in case on npz, we need this as well
         data = data.astype(np.float32) if np.issubdtype(data.dtype, np.floating) else data # float16 is dangerous
         _CACHE[key] = deepcopy(data)
