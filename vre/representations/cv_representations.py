@@ -12,22 +12,22 @@ from .representation import Representation
 from .compute_representation_mixin import ComputeRepresentationMixin
 from .color.hsv import rgb2hsv
 
-class ExternalRepresentation(Representation, ComputeRepresentationMixin):
+class ExternalRepresentation(Representation, ComputeRepresentationMixin, NormedRepresentationMixin):
     """External Representations wrapper, so we can load stuff on the disk w/o explicit representations"""
     def __init__(self, name, dependencies = None):
         Representation.__init__(self, name=name, dependencies=dependencies)
         ComputeRepresentationMixin.__init__(self)
+        NormedRepresentationMixin.__init__(self)
 
     @overrides
     def compute(self, video: VREVideo, ixs: list[int]):
         raise NotImplementedError(f"{self} supposed to be used only as external representation")
 
-class ColorRepresentation(ExternalRepresentation, NpIORepresentation, NormedRepresentationMixin):
+class ColorRepresentation(ExternalRepresentation, NpIORepresentation):
     """ColorRepresentation -- a wrapper over all 3-channeled colored representations"""
     def __init__(self, name: str, dependencies: list[Representation] | None = None):
         ExternalRepresentation.__init__(self, name=name, dependencies=dependencies)
         NpIORepresentation.__init__(self)
-        NormedRepresentationMixin.__init__(self)
 
     @property
     @overrides
@@ -38,8 +38,6 @@ class ColorRepresentation(ExternalRepresentation, NpIORepresentation, NormedRepr
     def make_images(self) -> np.ndarray:
         y = self.unnormalize(self.data.output) if self.normalization is not None else self.data.output
         return y.astype(np.uint8)
-
-class RGBRepresentation(ColorRepresentation): pass # pylint: disable=missing-class-docstring, multiple-statements
 
 class NormalsRepresentation(ColorRepresentation):
     """NormalsRepresentation -- CV representation for world and camera normals"""
@@ -59,12 +57,11 @@ class HSVRepresentation(ColorRepresentation):
         y = self.unnormalize(self.data.output) if self.normalization is not None else self.data.output
         return (y * 255).astype(np.uint8)
 
-class EdgesRepresentation(ExternalRepresentation, NpIORepresentation, NormedRepresentationMixin):
+class EdgesRepresentation(ExternalRepresentation, NpIORepresentation):
     """EdgesRepresentation -- CV representation for 1-channeled edges/boundaries"""
     def __init__(self, *args, **kwargs):
         ExternalRepresentation.__init__(self, *args, **kwargs)
         NpIORepresentation.__init__(self)
-        NormedRepresentationMixin.__init__(self)
 
     @property
     @overrides
@@ -75,12 +72,11 @@ class EdgesRepresentation(ExternalRepresentation, NpIORepresentation, NormedRepr
         y = self.unnormalize(self.data.output) if self.normalization is not None else self.data.output
         return (np.repeat(y, 3, axis=-1) * 255).astype(np.uint8)
 
-class DepthRepresentation(ExternalRepresentation, NpIORepresentation, NormedRepresentationMixin):
+class DepthRepresentation(ExternalRepresentation, NpIORepresentation):
     """DepthRepresentation. Implements depth task-specific stuff, like spectral map for plots."""
     def __init__(self, name: str, min_depth: float, max_depth: float, **kwargs):
         ExternalRepresentation.__init__(self, name=name, **kwargs)
         NpIORepresentation.__init__(self)
-        NormedRepresentationMixin.__init__(self)
         self.min_depth = min_depth
         self.max_depth = max_depth
 
@@ -102,13 +98,16 @@ class DepthRepresentation(ExternalRepresentation, NpIORepresentation, NormedRepr
         y: np.ndarray = Spectral(x)[..., 0:3] * 255
         return y.astype(np.uint8)
 
-class OpticalFlowRepresentation(ExternalRepresentation, NpIORepresentation, NormedRepresentationMixin):
+class OpticalFlowRepresentation(ExternalRepresentation, NpIORepresentation):
     """OpticalFlowRepresentation. Implements flow task-specific stuff, like using flow_vis."""
     def __init__(self, *args, **kwargs):
         ExternalRepresentation.__init__(self, *args, **kwargs)
         NpIORepresentation.__init__(self)
-        NormedRepresentationMixin.__init__(self)
-        self.n_channels = 2 # TODO
+
+    @property
+    @overrides
+    def n_channels(self) -> int:
+        return 2
 
     @overrides
     def make_images(self) -> np.ndarray:
@@ -116,11 +115,12 @@ class OpticalFlowRepresentation(ExternalRepresentation, NpIORepresentation, Norm
         y = np.nan_to_num(((self.data.output - _min) / (_max - _min)), False, 0, 0, 0).astype(np.float32)
         return np.array([flow_vis.flow_to_color(_y) for _y in y])
 
-class SemanticRepresentation(ExternalRepresentation, NpIORepresentation):
+class SemanticRepresentation(Representation, ComputeRepresentationMixin, NpIORepresentation):
     """SemanticRepresentation. Implements semantic task-specific stuff, like argmaxing if needed"""
     def __init__(self, *args, classes: int | list[str], color_map: list[tuple[int, int, int]], **kwargs):
         self.n_classes = len(list(range(classes)) if isinstance(classes, int) else classes)
-        ExternalRepresentation.__init__(self, *args, **kwargs)
+        Representation.__init__(self, *args, **kwargs)
+        ComputeRepresentationMixin.__init__(self)
         NpIORepresentation.__init__(self)
         self.classes = list(range(classes)) if isinstance(classes, int) else classes
         self.color_map = color_map
@@ -138,6 +138,8 @@ class SemanticRepresentation(ExternalRepresentation, NpIORepresentation):
 
     @overrides
     def make_images(self) -> np.ndarray:
-        res = [colorize_semantic_segmentation(item.argmax(-1).astype(int), self.classes, self.color_map,
-                                              original_rgb=None, font_size_scale=2) for item in self.data.output]
-        return np.array(res)
+        return colorize_semantic_segmentation(self.data.output.argmax(-1), self.classes, self.color_map)
+
+    @overrides
+    def compute(self, video: VREVideo, ixs: list[int]):
+        raise NotImplementedError(f"{self} supposed to be used only as external representation")

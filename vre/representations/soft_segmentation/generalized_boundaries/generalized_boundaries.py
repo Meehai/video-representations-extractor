@@ -4,10 +4,11 @@ import numpy as np
 from overrides import overrides
 
 from vre.utils import VREVideo, MemoryData
-from vre.representations import Representation, ReprOut, ComputeRepresentationMixin, NpIORepresentation
+from vre.representations import (Representation, ReprOut, ComputeRepresentationMixin,
+                                 NpIORepresentation, NormedRepresentationMixin)
 from vre.representations.soft_segmentation.generalized_boundaries.gb_impl.softseg import soft_seg
 
-class GeneralizedBoundaries(Representation, ComputeRepresentationMixin, NpIORepresentation):
+class GeneralizedBoundaries(Representation, ComputeRepresentationMixin, NpIORepresentation, NormedRepresentationMixin):
     """
     Soft-seg implementation from https://link.springer.com/chapter/10.1007/978-3-642-33765-9_37
     Parameters:
@@ -19,6 +20,7 @@ class GeneralizedBoundaries(Representation, ComputeRepresentationMixin, NpIORepr
         Representation.__init__(self, **kwargs)
         ComputeRepresentationMixin.__init__(self)
         NpIORepresentation.__init__(self)
+        NormedRepresentationMixin.__init__(self)
         self.use_median_filtering = use_median_filtering
         self.adjust_to_rgb = adjust_to_rgb
         self.max_channels = max_channels

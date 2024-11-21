@@ -9,10 +9,11 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageStat
 from overrides import overrides
 
-from vre.representations import Representation, ReprOut, ComputeRepresentationMixin, NpIORepresentation
+from vre.representations import (Representation, ReprOut, ComputeRepresentationMixin,
+                                 NpIORepresentation, NormedRepresentationMixin)
 from vre.utils import image_resize, VREVideo, MemoryData
 
-class Halftone(Representation, ComputeRepresentationMixin, NpIORepresentation):
+class Halftone(Representation, ComputeRepresentationMixin, NpIORepresentation, NormedRepresentationMixin):
     """
     Halftone representation
     Parameters:
@@ -28,6 +29,7 @@ class Halftone(Representation, ComputeRepresentationMixin, NpIORepresentation):
         Representation.__init__(self, **kwargs)
         ComputeRepresentationMixin.__init__(self)
         NpIORepresentation.__init__(self)
+        NormedRepresentationMixin.__init__(self)
         assert len(resolution) == 2, resolution
         self.sample = sample
         self.scale = scale

@@ -4,14 +4,16 @@ import numpy as np
 from overrides import overrides
 
 from vre.utils import VREVideo, MemoryData
-from vre.representations import Representation, ReprOut, ComputeRepresentationMixin, NpIORepresentation
+from vre.representations import (
+    Representation, ReprOut, ComputeRepresentationMixin, NpIORepresentation, NormedRepresentationMixin)
 
-class RGB(Representation, ComputeRepresentationMixin, NpIORepresentation):
+class RGB(Representation, ComputeRepresentationMixin, NpIORepresentation, NormedRepresentationMixin):
     """Basic RGB representation."""
     def __init__(self, *args, **kwargs):
         Representation.__init__(self, *args, **kwargs)
         ComputeRepresentationMixin.__init__(self)
         NpIORepresentation.__init__(self)
+        NormedRepresentationMixin.__init__(self)
         assert len(self.dependencies) == 0, self.dependencies
         self.output_dtype = "uint8"
 
@@ -22,8 +24,8 @@ class RGB(Representation, ComputeRepresentationMixin, NpIORepresentation):
 
     @overrides
     def make_images(self) -> np.ndarray:
-        assert self.data is not None, f"[{self}] data must be first computed using compute()"
-        return self.data.output
+        y = self.unnormalize(self.data.output) if self.normalization is not None else self.data.output
+        return y.astype(np.uint8)
 
     @property
     @overrides

@@ -55,13 +55,9 @@ class Mask2Former(Representation, LearnedRepresentationMixin, ComputeRepresentat
     def make_images(self) -> np.ndarray:
         assert self.data is not None, f"[{self}] data must be first computed using compute()"
         assert self.data.frames is not None and self.data.output is not None, self.data
-        res = []
         frames_rsz = image_resize_batch(self.data.frames, *self.data.output.shape[1:3])
-        for img, pred in zip(frames_rsz, self.data.output):
-            _pred = pred if self.semantic_argmax_only else pred.argmax(-1)
-            res.append(colorize_semantic_segmentation(_pred, self.classes, self.color_map, img))
-        res = np.stack(res)
-        return res
+        preds = self.data.output if self.semantic_argmax_only else self.data.output.argmax(-1)
+        return colorize_semantic_segmentation(preds, self.classes, self.color_map, rgb=frames_rsz)
 
     @overrides
     def vre_setup(self, load_weights = True):
