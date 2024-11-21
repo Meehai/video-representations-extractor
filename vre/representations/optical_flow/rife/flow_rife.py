@@ -5,17 +5,19 @@ import torch.nn.functional as F
 from overrides import overrides
 
 from vre.utils import fetch_weights, VREVideo, colorize_optical_flow, MemoryData
-from vre.representations import (
-    Representation, ReprOut, LearnedRepresentationMixin, ComputeRepresentationMixin, NpIORepresentation)
+from vre.representations import (Representation, ReprOut, LearnedRepresentationMixin,
+                                 ComputeRepresentationMixin, NpIORepresentation, NormedRepresentationMixin)
 from vre.representations.optical_flow.rife.rife_impl import Model
 
-class FlowRife(Representation, LearnedRepresentationMixin, ComputeRepresentationMixin, NpIORepresentation):
+class FlowRife(Representation, LearnedRepresentationMixin, ComputeRepresentationMixin,
+               NpIORepresentation, NormedRepresentationMixin):
     """FlowRife representation"""
     def __init__(self, compute_backward_flow: bool, uhd: bool, flow_delta_frames: int = 1, **kwargs):
         Representation.__init__(self, **kwargs)
         LearnedRepresentationMixin.__init__(self)
         ComputeRepresentationMixin.__init__(self)
         NpIORepresentation.__init__(self)
+        NormedRepresentationMixin.__init__(self)
         tr.manual_seed(42)
         self.uhd = uhd
         self.flow_delta_frames = flow_delta_frames
@@ -42,7 +44,7 @@ class FlowRife(Representation, LearnedRepresentationMixin, ComputeRepresentation
     @overrides
     def make_images(self) -> np.ndarray:
         assert self.data is not None, f"[{self}] data must be first computed using compute()"
-        return np.array([colorize_optical_flow(_pred) for _pred in self.data.output])
+        return colorize_optical_flow(self.data.output)
 
     @overrides
     def vre_setup(self, load_weights: bool = True):

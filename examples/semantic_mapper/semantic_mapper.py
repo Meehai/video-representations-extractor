@@ -104,11 +104,14 @@ class SemanticMask2FormerMapillaryConvertedPaper(TaskMapper, NpIORepresentation)
         self.n_classes = len(self.classes)
         self.output_dtype = "uint8"
 
+    @property
+    @overrides
+    def n_channels(self) -> int:
+        return self.n_classes
+
     @overrides
     def make_images(self) -> np.ndarray:
-        res = [colorize_semantic_segmentation(item.argmax(-1).astype(int), self.classes, self.color_map,
-                                              original_rgb=None, font_size_scale=2) for item in self.data.output]
-        return np.array(res)
+        return colorize_semantic_segmentation(self.data.output.argmax(-1), self.classes, self.color_map)
 
     @overrides
     def merge_fn(self, dep_data: list[MemoryData]) -> MemoryData:
@@ -160,11 +163,14 @@ class SemanticMask2FormerCOCOConverted(TaskMapper, NpIORepresentation):
         self.n_classes = len(self.classes)
         self.output_dtype = "uint8"
 
+    @property
+    @overrides
+    def n_channels(self) -> int:
+        return self.n_classes
+
     @overrides
     def make_images(self) -> np.ndarray:
-        res = [colorize_semantic_segmentation(item.argmax(-1).astype(int), self.classes, self.color_map,
-                                              original_rgb=None, font_size_scale=2) for item in self.data.output]
-        return np.array(res)
+        return colorize_semantic_segmentation(self.data.output.argmax(-1), self.classes, self.color_map)
 
     @overrides
     def merge_fn(self, dep_data: list[MemoryData]) -> MemoryData:
@@ -204,9 +210,7 @@ class BinaryMapper(TaskMapper, NpIORepresentation):
 
     @overrides
     def make_images(self) -> np.ndarray:
-        res = [colorize_semantic_segmentation(item.argmax(-1).astype(int), self.classes, color_map=self.color_map,
-                                              original_rgb=None, font_size_scale=2) for item in self.data.output]
-        return np.array(res)
+        return colorize_semantic_segmentation(self.data.output.argmax(-1), self.classes, self.color_map)
 
     @overrides
     def disk_to_memory_fmt(self, disk_data: DiskData) -> MemoryData:
@@ -247,9 +251,7 @@ class BuildingsFromM2FDepth(TaskMapper, NpIORepresentation):
 
     @overrides
     def make_images(self) -> np.ndarray:
-        res = [colorize_semantic_segmentation(item.argmax(-1).astype(int), self.classes, self.color_map,
-                                              original_rgb=None, font_size_scale=2) for item in self.data.output]
-        return np.array(res)
+        return colorize_semantic_segmentation(self.data.output.argmax(-1), self.classes, self.color_map)
 
     def merge_fn(self, dep_data: list[MemoryData]) -> MemoryData:
         m2f_mapillary, m2f_coco = dep_data[0].argmax(-1), dep_data[1].argmax(-1)
@@ -275,9 +277,7 @@ class SafeLandingAreas(TaskMapper, NpIORepresentation):
 
     @overrides
     def make_images(self) -> np.ndarray:
-        res = [colorize_semantic_segmentation(item.argmax(-1).astype(int), self.classes, color_map=self.color_map,
-                                              original_rgb=None, font_size_scale=2) for item in self.data.output]
-        return np.array(res)
+        return colorize_semantic_segmentation(self.data.output.argmax(-1), self.classes, self.color_map)
 
     @overrides
     def merge_fn(self, dep_data: list[MemoryData]) -> MemoryData:

@@ -12,11 +12,12 @@ from tqdm.auto import tqdm
 from diffusers import AutoencoderKL, DDIMScheduler, LCMScheduler, UNet2DConditionModel
 
 from vre.utils import image_read, colorize_depth, image_write, fetch_weights, vre_load_weights, VREVideo, MemoryData
-from vre.representations import (
-    Representation, ReprOut, LearnedRepresentationMixin, ComputeRepresentationMixin, NpIORepresentation)
+from vre.representations import (Representation, ReprOut, LearnedRepresentationMixin, ComputeRepresentationMixin,
+                                 NpIORepresentation, NormedRepresentationMixin)
 from vre.representations.depth.marigold.marigold_impl import MarigoldPipeline
 
-class Marigold(Representation, LearnedRepresentationMixin, ComputeRepresentationMixin, NpIORepresentation):
+class Marigold(Representation, LearnedRepresentationMixin, ComputeRepresentationMixin,
+               NpIORepresentation, NormedRepresentationMixin):
     """Marigold VRE implementation"""
     def __init__(self, variant: str, denoising_steps: int, ensemble_size: int, processing_resolution: int,
                  seed: int | None = None, **kwargs):
@@ -24,6 +25,7 @@ class Marigold(Representation, LearnedRepresentationMixin, ComputeRepresentation
         LearnedRepresentationMixin.__init__(self)
         ComputeRepresentationMixin.__init__(self)
         NpIORepresentation.__init__(self)
+        NormedRepresentationMixin.__init__(self)
         assert variant in ("marigold-v1-0", "marigold-lcm-v1-0", "testing"), variant
         self.variant = variant
         self.denoising_steps = denoising_steps
