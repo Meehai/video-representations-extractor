@@ -242,9 +242,9 @@ class MultiTaskDataset(Dataset):
         all_npz_files = self._get_all_npz_files()
         all_files: dict[str, dict[str, Path]] = {k: {_v.name: _v for _v in v} for k, v in all_npz_files.items()}
 
+        assert (diff := set(task_names).difference(task_types)) == set(), f"\n-{diff}\n-{list(task_types)}"
         if (diff := set(task_names).difference(all_files)) != set():
             logger.debug(f"The following tasks do not have data on disk: {list(diff)}. Checking dependencies.")
-        assert (diff := set(task_names).difference(task_types)) == set(), f"\n-{diff}\n-{list(task_types)}"
         relevant_tasks_for_files = set() # hsv requires only rgb, so we look at dependencies later on
         for task_name in task_names:
             if task_name not in diff and task_types[task_name].dep_names != [task_name]:
