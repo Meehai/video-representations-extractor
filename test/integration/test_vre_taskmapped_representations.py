@@ -36,9 +36,7 @@ class Buildings(TaskMapper, NpIORepresentation):
         return res
 
     def make_images(self) -> np.ndarray:
-        res = [colorize_semantic_segmentation(item.argmax(-1).astype(int), self.classes, color_map=self.color_map,
-                                              original_rgb=None, font_size_scale=2) for item in self.data.output]
-        return np.array(res)
+        return colorize_semantic_segmentation(self.data.output.argmax(-1), self.classes, self.color_map)
 
 def _generate_random_data(n: int) -> Path:
     tmp_dir = Path(__file__).parent / "data" if __name__ == "__main__" else Path(TemporaryDirectory().name)

@@ -40,6 +40,8 @@ class MultiTaskDataset(Dataset):
     using the environmental variable STATS_CACHE=1. Defaults to False.
     - batch_size_stats: Controls the batch size during statistics computation. Can be enabled by environmental variable
     STATS_BATCH_SIZE. Defaults to 1.
+    - num_workers_stats: Controls the num_woprkers during statistics computation. Can be enabled by environmental
+    variable STATS_NUM_WORKERS. Defaults to 0.
     - statistics The dictionary of statistics which can be externally provided too, otherwise computes or loads them
     from the datasert dir if normalization is set.
 
@@ -60,6 +62,7 @@ class MultiTaskDataset(Dataset):
                  files_suffix: str = "npz",
                  cache_task_stats: bool = (os.getenv("STATS_CACHE", "1") == "1"),
                  batch_size_stats: int = int(os.getenv("STATS_BATCH_SIZE", "1")),
+                 num_workers_stats: int = int(os.getenv("NUM_WORKERS_STATS", "0")),
                  statistics: dict[str, TaskStatistics] | None = None,
     ):
         assert Path(path).exists(), f"Provided path '{path}' doesn't exist!"
@@ -72,6 +75,7 @@ class MultiTaskDataset(Dataset):
         self.files_per_repr, self.file_names = self._build_dataset(task_types, task_names) # + handle_missing_data
         self.cache_task_stats = cache_task_stats
         self.batch_size_stats = batch_size_stats
+        self.num_workers_stats = num_workers_stats
 
         assert all(isinstance(x, str) for x in task_names), tuple(zip(task_names, (type(x) for x in task_names)))
         assert (diff := set(self.files_per_repr).difference(task_names)) == set(), f"Not all tasks in files: {diff}"
@@ -298,7 +302,8 @@ class MultiTaskDataset(Dataset):
                 else: # can also be TaskMapper here too, but with deps[0] == task (pre-computed)
                     np_memory_data = task.disk_to_memory_fmt(task.load_from_disk(file_path))
 
-                if isinstance(task, NormedRepresentationMixin) and self.statistics is not None:
+                if self.statistics is not None and not hasattr(task, "classes"): # TODO: use NormedRepresentation
+                    assert isinstance(task, NormedRepresentationMixin), task
                     np_memory_data = task.normalize(np_memory_data)
                 res[task_name] = tr.from_numpy(np_memory_data)
         # TODO: why is self.task_names require here. It's already in res.keys().

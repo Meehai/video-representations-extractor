@@ -1,11 +1,12 @@
 """compute or load statistics for a set of Normed Representations of a MultiTaskDataset"""
 from __future__ import annotations
-from typing import Tuple
+from typing import Tuple, Iterator
 from pathlib import Path
 import os
+from torch.utils.data import DataLoader
 import torch as tr
 import numpy as np
-from tqdm import trange
+from tqdm import tqdm
 
 from vre.logger import vre_logger as logger
 from vre.representations import NormedRepresentationMixin, Representation
@@ -38,14 +39,22 @@ def compute_statistics(reader: "MultiTaskDataset") -> dict[str, TaskStatistics]:
                      if isinstance(name_to_task[t], NormedRepresentationMixin)]
     if len(missing_tasks) == 0:
         return res
+
     logger.info(f"Computing global task statistics (dataset len {len(reader)}) for {missing_tasks}")
-    res = {**res, **_compute_channel_level_stats(reader, missing_tasks)}
+    old_names, old_normalization = reader.task_names, reader.normalization
+    reader.task_names, reader.normalization = missing_tasks, None # for reader[ix]
+    _iter = iter(DataLoader(reader, batch_size=reader.batch_size_stats, num_workers=reader.num_workers_stats))
+    res_missing = _c2(_iter, missing_tasks, reader.data_shape)
+    reader.task_names, reader.normalization = old_names, old_normalization
+    res = {**res, **res_missing}
+
     logger.info(f"Computed task statistics: { {k: tuple(v[0].shape) for k, v in res.items()} }")
     np.savez(cache_path, res)
     return res
 
-def _compute_channel_level_stats(reader: "MultiTaskDataset", missing_tasks: list[str]) -> dict[str, TaskStatistics]:
+def _c2(iterator: Iterator, tasks: list[str], data_shapes: dict[str, tuple[int, ...]]) -> dict[str, TaskStatistics]:
     # kinda based on: https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Welford's_online_algorithm
+    # sadly this function cannot be at task-level because of speed issues, even if it'd be a bit more readable.
     def update(counts: tr.Tensor, counts_delta: float,  mean: tr.Tensor, m2: tr.Tensor,
                 new_value: tr.Tensor) -> tuple[tr.Tensor, tr.Tensor, tr.Tensor]:
         new_count = counts + counts_delta
@@ -58,26 +67,16 @@ def _compute_channel_level_stats(reader: "MultiTaskDataset", missing_tasks: list
         assert not new_mean.isnan().any() and not new_m2.isnan().any(), (mean, new_mean, counts, counts_delta)
         return new_count, new_mean, new_m2
 
-    name_to_task: dict[str, Representation] = reader.name_to_task
-    assert all(mt := [isinstance(name_to_task[t], NormedRepresentationMixin) for t in missing_tasks]), mt
-    assert len(missing_tasks) > 0, missing_tasks
-    ch = {k: v[-1] if len(v) == 3 else 1 for k, v in reader.data_shape.items()}
-    counts = {task_name: tr.zeros(ch[task_name]).long() for task_name in missing_tasks}
-    mins = {task_name: tr.zeros(ch[task_name]).type(tr.float64) + 10**10 for task_name in missing_tasks}
-    maxs = {task_name: tr.zeros(ch[task_name]).type(tr.float64) - 10**10 for task_name in missing_tasks}
-    means_vec = {task_name: tr.zeros(ch[task_name]).type(tr.float64) for task_name in missing_tasks}
-    m2s_vec = {task_name: tr.zeros(ch[task_name]).type(tr.float64) for task_name in missing_tasks}
+    ch = {task_name: data_shapes[task_name][-1] if len(data_shapes[task_name]) == 3 else 1 for task_name in tasks}
+    counts = {task_name: tr.zeros(ch[task_name]).long() for task_name in tasks}
+    mins = {task_name: tr.zeros(ch[task_name]).type(tr.float64) + 10**10 for task_name in tasks}
+    maxs = {task_name: tr.zeros(ch[task_name]).type(tr.float64) - 10**10 for task_name in tasks}
+    means_vec = {task_name: tr.zeros(ch[task_name]).type(tr.float64) for task_name in tasks}
+    m2s_vec = {task_name: tr.zeros(ch[task_name]).type(tr.float64) for task_name in tasks}
 
-    old_names, old_normalization = reader.task_names, reader.normalization
-    reader.task_names, reader.normalization = missing_tasks, None # for reader[ix]
-    res = {}
-    bs = min(len(reader), reader.batch_size_stats)
-    n = (len(reader) // bs) + (len(reader) % bs != 0)
-
-    logger.debug(f"Global task statistics. Batch size: {bs}. N iterations: {n}.")
-    for ix in trange(n, disable=os.getenv("STATS_PBAR", "0") == "0", desc="Computing stats"):
-        item = reader[ix * bs: min(len(reader), (ix + 1) * bs)][0]
-        for task in missing_tasks:
+    for (item, _, __) in tqdm(iterator, disable=os.getenv("STATS_PBAR", "0") == "0", desc="Computing stats"):
+        assert all(task in item.keys() for task in tasks), f"Missing: {set(tasks).difference(item)}"
+        for task in tasks:
             item_flat_ch = item[task].reshape(-1, ch[task])
             item_no_nan = item_flat_ch.nan_to_num(0).type(tr.float64)
             mins[task] = tr.minimum(mins[task], item_no_nan.min(0)[0])
@@ -86,8 +85,8 @@ def _compute_channel_level_stats(reader: "MultiTaskDataset", missing_tasks: list
             counts[task], means_vec[task], m2s_vec[task] = \
                 update(counts[task], counts_delta, means_vec[task], m2s_vec[task], item_no_nan)
 
-    for task in missing_tasks:
+    res = {}
+    for task in tasks:
         res[task] = (mins[task], maxs[task], means_vec[task], (m2s_vec[task] / counts[task]).sqrt())
         assert not any(x[0].isnan().any() for x in res[task]), (task, res[task])
-    reader.task_names, reader.normalization = old_names, old_normalization
     return res

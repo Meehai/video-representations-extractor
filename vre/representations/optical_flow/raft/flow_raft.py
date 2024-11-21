@@ -45,7 +45,7 @@ class FlowRaft(Representation, LearnedRepresentationMixin, ComputeRepresentation
     @overrides
     def make_images(self) -> np.ndarray:
         assert self.data is not None, f"[{self}] data must be first computed using compute()"
-        return np.array([colorize_optical_flow(_pred) for _pred in self.data.output])
+        return colorize_optical_flow(self.data.output)
 
     @overrides
     def vre_setup(self, load_weights: bool = True):

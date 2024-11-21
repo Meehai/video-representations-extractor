@@ -1,7 +1,7 @@
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from vre.readers import MultiTaskDataset
-from vre.representations.cv_representations import RGBRepresentation, DepthRepresentation, SemanticRepresentation
+from vre.representations.cv_representations import ColorRepresentation, DepthRepresentation, SemanticRepresentation
 from vre.representations import NormedRepresentationMixin
 from torch.utils.data import DataLoader
 import numpy as np
@@ -11,7 +11,7 @@ import pytest
 color_map_8classes = [[0, 255, 0], [0, 127, 0], [255, 255, 0], [255, 255, 255],
                     [255, 0, 0], [0, 0, 255], [0, 255, 255], [127, 127, 63]]
 fake_dronescapes_task_types = {
-    "rgb": RGBRepresentation("rgb"),
+    "rgb": ColorRepresentation("rgb"),
     "depth_sfm_manual202204": DepthRepresentation("depth_sfm_manual202204", min_depth=0, max_depth=300),
     "semantic_segprop8": SemanticRepresentation("semantic_segprop8", classes=8, color_map=color_map_8classes),
 }
@@ -63,7 +63,8 @@ def test_MultiTaskDataset_ctor_shapes_and_types(dataset_path: Path):
 @pytest.mark.parametrize("normalization", ["standardization", "min_max"])
 def test_MultiTaskDataset_normalization(dataset_path: Path, normalization: str):
     dataset = MultiTaskDataset(dataset_path, task_names=list(fake_dronescapes_task_types.keys()),
-                               task_types=fake_dronescapes_task_types, normalization=normalization)
+                               task_types=fake_dronescapes_task_types, normalization=normalization,
+                               batch_size_stats=2)
     x, _, __ = dataset[0]
     for task in dataset.task_names:
         assert x[task].dtype == tr.float32, x[task].dtype

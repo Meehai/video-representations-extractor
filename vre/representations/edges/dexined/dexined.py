@@ -5,17 +5,19 @@ from overrides import overrides
 
 from vre.logger import vre_logger as logger
 from vre.utils import image_resize_batch, fetch_weights, vre_load_weights, VREVideo, MemoryData
-from vre.representations import (
-    Representation, ReprOut, LearnedRepresentationMixin, ComputeRepresentationMixin, NpIORepresentation)
+from vre.representations import (Representation, ReprOut, LearnedRepresentationMixin,
+                                 ComputeRepresentationMixin, NpIORepresentation, NormedRepresentationMixin)
 from vre.representations.edges.dexined.model_dexined import DexiNed as Model
 
-class DexiNed(Representation, LearnedRepresentationMixin, ComputeRepresentationMixin, NpIORepresentation):
+class DexiNed(Representation, LearnedRepresentationMixin, ComputeRepresentationMixin,
+              NpIORepresentation, NormedRepresentationMixin):
     """Dexined representation."""
     def __init__(self, **kwargs):
         Representation.__init__(self, **kwargs)
         LearnedRepresentationMixin.__init__(self)
         ComputeRepresentationMixin.__init__(self)
         NpIORepresentation.__init__(self)
+        NormedRepresentationMixin.__init__(self)
         self.model: Model | None = None
         self.inference_height, self.inference_width = 512, 512 # fixed for this model
 
