@@ -1,5 +1,6 @@
 """builder for all the representations in VRE. Can be used outside of VRE too, see examples/notebooks."""
 from typing import Type
+from pathlib import Path
 import imp # pylint: disable=deprecated-module
 from omegaconf import DictConfig, OmegaConf
 
@@ -122,8 +123,10 @@ def build_representation_from_cfg(repr_cfg: dict, name: str, built_so_far: dict[
         assert "io_parameters" not in repr_cfg, f"I/O parameters not allowed for {name}"
     return obj
 
-def build_representations_from_cfg(cfg: DictConfig | dict) -> dict[str, Representation]:
+def build_representations_from_cfg(cfg: Path | str | DictConfig | dict) -> dict[str, Representation]:
     """builds a dict of representations given a dict config (yaml file)"""
+    assert isinstance(cfg, (Path, str, DictConfig, dict)), type(cfg)
+    cfg = OmegaConf.load(cfg) if isinstance(cfg, (Path, str)) else cfg
     cfg: dict = OmegaConf.to_container(cfg, resolve=True) if isinstance(cfg, DictConfig) else cfg
     assert len(repr_cfg := cfg["representations"]) > 0 and isinstance(repr_cfg, dict), repr_cfg
 

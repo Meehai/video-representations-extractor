@@ -1,10 +1,23 @@
-"""FakeVideo module"""
-from typing import Union
+"""VREVideo module"""
+from abc import ABC, abstractmethod
 from pathlib import Path
+from overrides import overrides
 import numpy as np
 import ffmpeg
 
-class FakeVideo:
+class VREVideo(ABC):
+    """VREVideo -- A generic wrapper on top of a Video container"""
+    @property
+    @abstractmethod
+    def shape(self) -> tuple[int, int, int, int]:
+        """Returns the (N, H, W, 3) tuple of the video"""
+
+    @property
+    @abstractmethod
+    def fps(self) -> float:
+        """The frame rate of the video"""
+
+class FakeVideo(VREVideo):
     """
     FakeVideo -- class used to test representations with a given numpy array.
     If 'frames' is provided, then these are the frames indexes, i.e. video[ix] returns self.data[self.frames_ix[ix]]
@@ -13,10 +26,10 @@ class FakeVideo:
     def __init__(self, data: np.ndarray, fps: float, frames: list[int] | None = None):
         assert len(data) > 0, "No data provided"
         self.data = data
-        self.fps = fps
+        self._fps = fps
+        self.frames = list(range(len(data))) if frames is None else frames
         self.frame_shape = data.shape[1:]
         self.file = f"FakeVideo {self.data.shape}"
-        self.frames = list(range(len(data))) if frames is None else frames
         assert 0 < len(self.frames) <= 1_000_000 # max 1M frames to keep it tight
         assert len(self.frames) == len(self.data), (self.frames, self.data)
         assert all(isinstance(frame, int) for frame in self.frames), self.frames
@@ -24,9 +37,14 @@ class FakeVideo:
         self.frames_ix = dict(zip(self.frames, range(len(self.frames)))) # {ix: frame}
 
     @property
-    def shape(self):
-        """returns the shape of the data"""
+    @overrides
+    def shape(self) -> tuple[int, int, int, int]:
         return self.data.shape
+
+    @property
+    @overrides
+    def fps(self) -> float:
+        return self._fps
 
     def __len__(self) -> int:
         return self.frames[-1] + 1
@@ -41,25 +59,36 @@ class FakeVideo:
     def __repr__(self):
         return f"[FakeVideo] FPS: {self.fps}. Len: {len(self.data)}. Frame shape: {self.data.shape[1:]}. FPS: "
 
-class FFmpegVideo:
+class FFmpegVideo(VREVideo):
     """FFmpegVideo -- reads data from a video using ffmpeg"""
     def __init__(self, path: Path, cache_len: int = 30):
         self.path = Path(path)
         assert self.path.exists(), f"Video '{self.path}' doesn't exist"
         self.probe = ffmpeg.probe(self.path)
         self.stream_info = next((stream for stream in self.probe["streams"] if stream["codec_type"] == "video"), None)
-        self.fps = eval(self.stream_info["avg_frame_rate"]) # pylint: disable=eval-used
         self.width = int(self.stream_info["width"])
         self.height = int(self.stream_info["height"])
         self.total_frames = int(float(self.stream_info["nb_frames"])) if "nb_frames" in self.stream_info else None
         self.frame_shape = (self.height, self.width, 3)
-        self.shape = (self.total_frames, *self.frame_shape)
+        self._fps: float | None = None
 
         self.cache = []
         self.cache_max_len = cache_len
         self.cache_start_frame = None
         self.cache_end_frame = None
         self.video_process = None
+
+    @property
+    @overrides
+    def shape(self) -> tuple[int, int, int, int]:
+        return (self.total_frames, *self.frame_shape)
+
+    @property
+    @overrides
+    def fps(self) -> float:
+        if self._fps is None:
+            self._fps = eval(self.stream_info["avg_frame_rate"]) # pylint: disable=eval-used
+        return self._fps
 
     def _start_ffmpeg_process(self, start_time):
         """
@@ -133,5 +162,3 @@ class FFmpegVideo:
             self.video_process.stdout.close()
             self.video_process.stderr.close()
             self.video_process.terminate()
-
-VREVideo = Union[FFmpegVideo, FakeVideo]

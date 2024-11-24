@@ -1,6 +1,6 @@
 """compute or load statistics for a set of Normed Representations of a MultiTaskDataset"""
 from __future__ import annotations
-from typing import Tuple, Iterator
+from typing import Iterator
 from pathlib import Path
 import os
 from torch.utils.data import DataLoader
@@ -11,7 +11,7 @@ from tqdm import tqdm
 from vre.logger import vre_logger as logger
 from vre.representations import NormedRepresentationMixin, Representation
 
-TaskStatistics = Tuple[tr.Tensor, tr.Tensor, tr.Tensor, tr.Tensor] # (min, max, mean, std)
+TaskStatistics = tuple[tr.Tensor, tr.Tensor, tr.Tensor, tr.Tensor] # (min, max, mean, std)
 
 def load_external_statistics(reader: "MultiTaskDataset",
                              statistics: dict[str, TaskStatistics | list]) -> dict[str, TaskStatistics]:
@@ -74,7 +74,7 @@ def _c2(iterator: Iterator, tasks: list[str], data_shapes: dict[str, tuple[int, 
     means_vec = {task_name: tr.zeros(ch[task_name]).type(tr.float64) for task_name in tasks}
     m2s_vec = {task_name: tr.zeros(ch[task_name]).type(tr.float64) for task_name in tasks}
 
-    for (item, _, __) in tqdm(iterator, disable=os.getenv("STATS_PBAR", "0") == "0", desc="Computing stats"):
+    for (item, _) in tqdm(iterator, disable=os.getenv("STATS_PBAR", "0") == "0", desc="Computing stats"):
         assert all(task in item.keys() for task in tasks), f"Missing: {set(tasks).difference(item)}"
         for task in tasks:
             item_flat_ch = item[task].reshape(-1, ch[task])

@@ -45,7 +45,7 @@ def main(args: Namespace):
     if args.mode == "read_one_batch":
         logger.info("== Random loaded item ==")
         rand_ix = random.randint(0, len(reader) - 1)
-        data, name, _ = reader[rand_ix] # get a random item
+        data, name = reader[rand_ix] # get a random item
         logger.info(f"{name=}")
         logger.info({k: v for k, v in data.items()})
         assert not any(v.isnan().any() for v in data.values())
@@ -53,7 +53,7 @@ def main(args: Namespace):
         logger.info("== Random loaded batch using torch DataLoader ==")
         loader = DataLoader(reader, collate_fn=reader.collate_fn, batch_size=args.batch_size,
                             shuffle=True, num_workers=0)
-        batch_data, names, _ = next(iter(loader))
+        batch_data, names = next(iter(loader))
         logger.info(f"{names=}")
         logger.info(pformat({k: v for k, v in batch_data.items()})) # Nones are converted to 0s automagically
 
