@@ -10,7 +10,7 @@ from .pil_utils import pil_image_resize, pil_image_add_title, pil_image_read, pi
 
 def image_resize(data: np.ndarray, height: int | None, width: int | None, interpolation: str = "bilinear",
                  library: str = "cv2", **kwargs) -> np.ndarray:
-    """image resize. Allows 2 libraries: PIL and opencv (to alleviate potential pre-trained issues)"""
+    """image resize. Allows 2 libraries: PIL and cv2 (to alleviate potential pre-trained issues)"""
     assert ((width is None) or width == -1) + ((height is None) or height == -1) <= 1, "At least one must be set"
     def _scale(a: int, b: int, c: int) -> int:
         return int(a / b * c)
@@ -150,3 +150,10 @@ def image_add_border(image: np.ndarray, color: tuple[int, int, int] | int, thicc
     new_image[:, 0: thicc] = color
     new_image[:, -thicc:] = color
     return new_image
+
+def image_blend(x: np.ndarray, y: np.ndarray) -> np.ndarray:
+    """blends two [0:1] images with the 2 one having an alpha channel too. Returns a non-alpha image"""
+    assert np.issubdtype(x.dtype, np.floating) and np.issubdtype(y.dtype, np.floating), (x.dtype, y.dtype)
+    assert x.shape[-1] == 3 and y.shape[-1] == 4, (x.shape, y.shape)
+    y_rgb, alpha = y[..., 0:3], y[..., 3:4]
+    return (1 - alpha) * x + alpha * y_rgb

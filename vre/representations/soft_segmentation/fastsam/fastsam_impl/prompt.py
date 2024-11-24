@@ -1,18 +1,14 @@
 # pylint: disable=all
-import os
-import sys
 import numpy as np
 import torch
 from .utils import image_to_np_ndarray
 from PIL import Image
 
-from vre.utils.cv2_utils import (cv2_findContours, cv2_boundingRect, cv2_drawContours, cv2_morphologyEx,
-                                 cv2_RETR_TREE, cv2_CHAIN_APPROX_SIMPLE, cv2_RETR_EXTERNAL, cv2_MORPH_OPEN,
-                                 cv2_MORPH_CLOSE, cv2_COLOR_BGR2RGB, cv2_COLOR_RGB2BGR, cv2_cvtColor)
-from vre.utils import image_write, image_resize
+from vre.utils.cv2_utils import (cv2_findContours, cv2_boundingRect, cv2_drawContours, cv2_RETR_TREE,
+                                 cv2_CHAIN_APPROX_SIMPLE, cv2_RETR_EXTERNAL, cv2_COLOR_BGR2RGB, cv2_cvtColor)
+from vre.utils import image_resize, image_blend
 
 class FastSAMPrompt:
-
     def __init__(self, image, results, device='cuda'):
         if isinstance(image, str) or isinstance(image, Image.Image):
             image = image_to_np_ndarray(image)
@@ -87,74 +83,30 @@ class FastSAMPrompt:
         return [x1, y1, x2, y2]
 
     def plot_to_result(self,
-             annotations,
-             bboxes=None,
-             points=None,
-             point_label=None,
+             annotations: torch.Tensor,
              mask_random_color=True,
-             better_quality=True,
              retina=False,
              withContours=True) -> np.ndarray:
         if isinstance(annotations[0], dict):
             annotations = [annotation['segmentation'] for annotation in annotations]
-        image = self.img
-        image = cv2_cvtColor(image, cv2_COLOR_BGR2RGB)
-        original_h = image.shape[0]
-        original_w = image.shape[1]
-        import matplotlib
-        import matplotlib.pyplot as plt
-        try:
-            matplotlib.use("TkAgg")
-            plt.figure(figsize=(original_w / 100, original_h / 100))
-        except:
-            matplotlib.use("Agg")
-            plt.figure(figsize=(original_w / 100, original_h / 100))
-        # Add subplot with no margin.
-        plt.subplots_adjust(top=1, bottom=0, right=1, left=0, hspace=0, wspace=0)
-        plt.margins(0, 0)
-        plt.gca().xaxis.set_major_locator(plt.NullLocator())
-        plt.gca().yaxis.set_major_locator(plt.NullLocator())
 
-        plt.imshow(image)
-        if better_quality:
-            if isinstance(annotations[0], torch.Tensor):
-                annotations = np.array(annotations.cpu())
-            for i, mask in enumerate(annotations):
-                mask = cv2_morphologyEx(mask.astype(np.uint8), cv2_MORPH_CLOSE, np.ones((3, 3), np.uint8))
-                annotations[i] = cv2_morphologyEx(mask.astype(np.uint8), cv2_MORPH_OPEN, np.ones((8, 8), np.uint8))
-        if self.device == 'cpu':
-            annotations = np.array(annotations)
-            self.fast_show_mask(
-                annotations,
-                plt.gca(),
-                random_color=mask_random_color,
-                bboxes=bboxes,
-                points=points,
-                pointlabel=point_label,
-                retinamask=retina,
-                target_height=original_h,
-                target_width=original_w,
-            )
-        else:
-            if isinstance(annotations[0], np.ndarray):
-                annotations = torch.from_numpy(annotations)
-            self.fast_show_mask_gpu(
-                annotations,
-                plt.gca(),
-                random_color=mask_random_color,
-                bboxes=bboxes,
-                points=points,
-                pointlabel=point_label,
-                retinamask=retina,
-                target_height=original_h,
-                target_width=original_w,
-            )
-        if isinstance(annotations, torch.Tensor):
-            annotations = annotations.cpu().numpy()
+        image = self.img.astype(float) / 255
+        original_h, original_w = image.shape[0:2]
+
+        mask: np.ndarray = self.fast_show_mask(
+            annotations,
+            random_color=mask_random_color,
+            retinamask=retina,
+            target_height=original_h,
+            target_width=original_w,
+        )
+        res = image_blend(image, mask)
+
         if withContours:
             contour_all = []
             temp = np.zeros((original_h, original_w, 1))
-            for i, mask in enumerate(annotations):
+            annotations_np = annotations.cpu().numpy()
+            for mask in annotations_np:
                 if type(mask) == dict:
                     mask = mask['segmentation']
                 annotation = mask.astype(np.uint8)
@@ -166,123 +118,17 @@ class FastSAMPrompt:
             cv2_drawContours(temp, contour_all, -1, (255, 255, 255), 2)
             color = np.array([0 / 255, 0 / 255, 255 / 255, 0.8])
             contour_mask = temp / 255 * color.reshape(1, 1, -1)
-            plt.imshow(contour_mask)
+            res = image_blend(res, contour_mask)
+        return (res * 255).astype(np.uint8)
 
-        plt.axis('off')
-        fig = plt.gcf()
-        plt.draw()
-
-        try:
-            buf = fig.canvas.tostring_rgb()
-        except AttributeError:
-            fig.canvas.draw()
-            buf = fig.canvas.tostring_rgb()
-        cols, rows = fig.canvas.get_width_height()
-        img_array = np.frombuffer(buf, dtype=np.uint8).reshape(rows, cols, 3)
-        result = cv2_cvtColor(img_array, cv2_COLOR_RGB2BGR)
-        plt.close()
-        return result
-
-    # Remark for refactoring: IMO a function should do one thing only, storing the image and plotting should be seperated and do not necessarily need to be class functions but standalone utility functions that the user can chain in his scripts to have more fine-grained control. 
-    def plot(self,
-             annotations,
-             output_path,
-             bboxes=None,
-             points=None,
-             point_label=None,
-             mask_random_color=True,
-             better_quality=True,
-             retina=False,
-             withContours=True):
-        if len(annotations) == 0:
-            return None
-        result = self.plot_to_result(
-            annotations,
-            bboxes,
-            points,
-            point_label,
-            mask_random_color,
-            better_quality,
-            retina,
-            withContours,
-        )
-
-        path = os.path.dirname(os.path.abspath(output_path))
-        if not os.path.exists(path):
-            os.makedirs(path)
-        result = result[:, :, ::-1]
-        image_write(result, output_path, library="cv2")
-
-    #   CPU post process
     def fast_show_mask(
         self,
         annotation,
-        ax,
         random_color=False,
-        bboxes=None,
-        points=None,
-        pointlabel=None,
         retinamask=True,
         target_height=960,
         target_width=960,
-    ):
-        msak_sum = annotation.shape[0]
-        height = annotation.shape[1]
-        weight = annotation.shape[2]
-        #Sort annotations based on area.
-        areas = np.sum(annotation, axis=(1, 2))
-        sorted_indices = np.argsort(areas)
-        annotation = annotation[sorted_indices]
-
-        index = (annotation != 0).argmax(axis=0)
-        if random_color:
-            color = np.random.random((msak_sum, 1, 1, 3))
-        else:
-            color = np.ones((msak_sum, 1, 1, 3)) * np.array([30 / 255, 144 / 255, 255 / 255])
-        transparency = np.ones((msak_sum, 1, 1, 1)) * 0.6
-        visual = np.concatenate([color, transparency], axis=-1)
-        mask_image = np.expand_dims(annotation, -1) * visual
-
-        show = np.zeros((height, weight, 4))
-        h_indices, w_indices = np.meshgrid(np.arange(height), np.arange(weight), indexing='ij')
-        indices = (index[h_indices, w_indices], h_indices, w_indices, slice(None))
-        # Use vectorized indexing to update the values of 'show'.
-        show[h_indices, w_indices, :] = mask_image[indices]
-        if bboxes is not None:
-            for bbox in bboxes:
-                x1, y1, x2, y2 = bbox
-                ax.add_patch(plt.Rectangle((x1, y1), x2 - x1, y2 - y1, fill=False, edgecolor='b', linewidth=1))
-        # draw point
-        if points is not None:
-            plt.scatter(
-                [point[0] for i, point in enumerate(points) if pointlabel[i] == 1],
-                [point[1] for i, point in enumerate(points) if pointlabel[i] == 1],
-                s=20,
-                c='y',
-            )
-            plt.scatter(
-                [point[0] for i, point in enumerate(points) if pointlabel[i] == 0],
-                [point[1] for i, point in enumerate(points) if pointlabel[i] == 0],
-                s=20,
-                c='m',
-            )
-
-        if not retinamask:
-            show = image_resize(show, target_height, target_width, "nearest", library="cv2")
-        ax.imshow(show)
-
-    def fast_show_mask_gpu(
-        self,
-        annotation,
-        ax,
-        random_color=False,
-        bboxes=None,
-        points=None,
-        pointlabel=None,
-        retinamask=True,
-        target_height=960,
-        target_width=960,
-    ):
+    ) -> np.ndarray:
         msak_sum = annotation.shape[0]
         height = annotation.shape[1]
         weight = annotation.shape[2]
@@ -306,27 +152,9 @@ class FastSAMPrompt:
         # Use vectorized indexing to update the values of 'show'.
         show[h_indices, w_indices, :] = mask_image[indices]
         show_cpu = show.cpu().numpy()
-        if bboxes is not None:
-            for bbox in bboxes:
-                x1, y1, x2, y2 = bbox
-                ax.add_patch(plt.Rectangle((x1, y1), x2 - x1, y2 - y1, fill=False, edgecolor='b', linewidth=1))
-        # draw point
-        if points is not None:
-            plt.scatter(
-                [point[0] for i, point in enumerate(points) if pointlabel[i] == 1],
-                [point[1] for i, point in enumerate(points) if pointlabel[i] == 1],
-                s=20,
-                c='y',
-            )
-            plt.scatter(
-                [point[0] for i, point in enumerate(points) if pointlabel[i] == 0],
-                [point[1] for i, point in enumerate(points) if pointlabel[i] == 0],
-                s=20,
-                c='m',
-            )
         if not retinamask:
             show_cpu = image_resize(show_cpu, target_height, target_width, "nearest", library="cv2")
-        ax.imshow(show_cpu)
+        return show_cpu
 
     # clip
     @torch.no_grad()

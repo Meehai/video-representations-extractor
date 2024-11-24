@@ -66,7 +66,7 @@ class FastSam(Representation, LearnedRepresentationMixin, ComputeRepresentationM
             res_i = Results(orig_img=frame, path=None, names={0: "object"}, boxes=box[:, 0:6], masks=masks)
             prompt_process = FastSAMPrompt(frame, [res_i], device=self.device)
             ann = prompt_process.results[0].masks.data
-            prompt_res = prompt_process.plot_to_result(annotations=ann, better_quality=False, withContours=False)
+            prompt_res = prompt_process.plot_to_result(annotations=ann, withContours=True)
             res.append(prompt_res)
         res_arr = image_resize_batch(res, *img_size, interpolation="bilinear")
         return res_arr
