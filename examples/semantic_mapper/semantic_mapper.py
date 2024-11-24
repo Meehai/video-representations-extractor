@@ -1,12 +1,30 @@
 #!/usr/bin/env python3
 """semantic_mapper.py -- primivites for new tasks based on existing CV/dronescapes tasks"""
 from overrides import overrides
-import numpy as np
+from pathlib import Path
 from functools import reduce
+from pprint import pprint
+import numpy as np
+import torch as tr
 
-from vre.utils import semantic_mapper, colorize_semantic_segmentation, DiskData, MemoryData
-from vre.representations import TaskMapper, NpIORepresentation, Representation
+from vre.utils import (semantic_mapper, colorize_semantic_segmentation, DiskData, MemoryData, ReprOut, reorder_dict,
+                       collage_fn, image_add_title)
+from vre.readers.multitask_dataset import MultiTaskDataset, MultiTaskItem
+from vre.representations import TaskMapper, NpIORepresentation, Representation, build_representations_from_cfg
 from vre.representations.cv_representations import DepthRepresentation, NormalsRepresentation, SemanticRepresentation
+
+def plot_one(data: MultiTaskItem, title: str, order: list[str] | None,
+             name_to_task: dict[str, Representation]) -> np.ndarray:
+    """simple plot function: plot_one(reader[0][0], reader[0][1], None, reader.name_to_task)"""
+    def vre_plot_fn(rgb: tr.Tensor, x: tr.Tensor, node: Representation) -> np.ndarray:
+        node.data = ReprOut(rgb.cpu().detach().numpy()[None], MemoryData(x.cpu().detach().numpy()[None]), [0])
+        return node.make_images()[0]
+    img_data = {k: vre_plot_fn(data["rgb"], v, name_to_task[k]) for k, v in data.items()}
+    img_data = reorder_dict(img_data, order) if order is not None else img_data
+    titles = [title if len(title) < 40 else f"{title[0:19]}..{title[-19:]}" for title in img_data]
+    collage = collage_fn(list(img_data.values()), titles=titles, size_px=40)
+    collage = image_add_title(collage, title, size_px=55, top_padding=110)
+    return collage
 
 coco_classes = ["person", "bicycle", "car", "motorcycle", "airplane", "bus", "train", "truck", "boat", "traffic light",
                 "fire hydrant", "stop sign", "parking meter", "bench", "bird", "cat", "dog", "horse", "sheep", "cow",
@@ -193,42 +211,47 @@ class BinaryMapper(TaskMapper, NpIORepresentation):
     TaskMapper is the only high level interface that makes sense, so we should focus on keeping that generic and easy.
     """
     def __init__(self, name: str, dependencies: list[Representation], mapping: list[dict[str, list]],
-                 mode: str = "all_agree"):
+                 mode: str = "all_agree", load_mode: str = "binary"):
         TaskMapper.__init__(self, name=name, dependencies=dependencies, n_channels=2)
         NpIORepresentation.__init__(self)
         assert mode in ("all_agree", "at_least_one"), mode
+        assert load_mode in ("one_hot", "binary")
         assert len(mapping[0]) == 2, mapping
         assert len(mapping) == len(dependencies), (len(mapping), len(dependencies))
         assert all(mapping[0].keys() == m.keys() for m in mapping), [m.keys() for m in mapping]
         self.original_classes = [dep.classes for dep in dependencies]
         self.mapping = mapping
+        self.mode = mode
+        self.load_mode = load_mode
         self.classes = list(mapping[0].keys())
         self.n_classes = len(self.classes)
-        self.mode = mode
         self.color_map = [[255, 255, 255], [0, 0, 0]]
         self.output_dtype = "bool"
 
     @overrides
     def make_images(self) -> np.ndarray:
-        return colorize_semantic_segmentation(self.data.output.argmax(-1), self.classes, self.color_map)
+        x = self.data.output.argmax(-1) if self.load_mode == "one_hot" else (self.data.output > 0.5).astype(int)
+        x = x[..., 0] if x.shape[-1] == 1 else x
+        return colorize_semantic_segmentation(x, self.classes, self.color_map)
 
     @overrides
     def disk_to_memory_fmt(self, disk_data: DiskData) -> MemoryData:
-        return MemoryData(np.eye(2)[disk_data.astype(int)].astype(np.float32))
+        y = np.eye(2)[disk_data.astype(int)] if self.load_mode == "one_hot" else disk_data
+        return MemoryData(y.astype(np.float32))
 
     @overrides
     def memory_to_disk_fmt(self, memory_data: MemoryData) -> DiskData:
-        return memory_data.argmax(-1).astype(bool)
+        return memory_data.argmax(-1).astype(bool) if self.load_mode == "one_hot" else memory_data.astype(bool)
 
     @overrides
     def merge_fn(self, dep_data: list[MemoryData]) -> MemoryData:
         dep_data_converted = [semantic_mapper(x.argmax(-1), mapping, oc)
                               for x, mapping, oc in zip(dep_data, self.mapping, self.original_classes)]
         res_argmax = sum(dep_data_converted) > (0 if self.mode == "all_agree" else 1)
-        return MemoryData(np.eye(2)[res_argmax.astype(int)].astype(np.float32))
+        return self.disk_to_memory_fmt(res_argmax)
 
-class BuildingsFromM2FDepth(TaskMapper, NpIORepresentation):
-    def __init__(self, name: str, original_classes: tuple[list[str], list[str]]):
+class BuildingsFromM2FDepth(BinaryMapper, NpIORepresentation):
+    def __init__(self, name: str, original_classes: tuple[list[str], list[str]], load_mode: str = "binary"):
         buildings_mapping = [
             {
                 "buildings": (cls := ["Building", "Utility Pole", "Pole", "Fence", "Wall"]),
@@ -248,10 +271,7 @@ class BuildingsFromM2FDepth(TaskMapper, NpIORepresentation):
         self.mapping = buildings_mapping
         self.classes = list(buildings_mapping[0].keys())
         self.n_classes = len(self.classes)
-
-    @overrides
-    def make_images(self) -> np.ndarray:
-        return colorize_semantic_segmentation(self.data.output.argmax(-1), self.classes, self.color_map)
+        self.load_mode = load_mode
 
     def merge_fn(self, dep_data: list[MemoryData]) -> MemoryData:
         m2f_mapillary, m2f_coco = dep_data[0].argmax(-1), dep_data[1].argmax(-1)
@@ -260,11 +280,11 @@ class BuildingsFromM2FDepth(TaskMapper, NpIORepresentation):
         m2f_coco_converted = semantic_mapper(m2f_coco, self.mapping[1], self.original_classes[1])
         thr = 0.3 # np.percentile(depth.numpy(), 0.8)
         combined = (m2f_mapillary_converted + m2f_coco_converted + (depth > thr)) != 0
-        return MemoryData(np.eye(2)[combined.astype(int)])
+        return self.disk_to_memory_fmt(combined)
 
-class SafeLandingAreas(TaskMapper, NpIORepresentation):
+class SafeLandingAreas(BinaryMapper, NpIORepresentation):
     def __init__(self, name: str, original_classes: tuple[list[str], list[str]], include_semantics: bool = False,
-                 sky_water: BinaryMapper | None = None):
+                 sky_water: BinaryMapper | None = None, load_mode: str = "binary"):
         self.include_semantics = include_semantics
         dependencies = [m2f_mapillary, m2f_coco, marigold, normals_svd_marigold]
         TaskMapper.__init__(self, name, dependencies=dependencies, n_channels=2)
@@ -274,10 +294,7 @@ class SafeLandingAreas(TaskMapper, NpIORepresentation):
         self.classes = ["safe-landing", "unsafe-landing"]
         self.n_classes = len(self.classes)
         self.sky_water = sky_water
-
-    @overrides
-    def make_images(self) -> np.ndarray:
-        return colorize_semantic_segmentation(self.data.output.argmax(-1), self.classes, self.color_map)
+        self.load_mode = load_mode
 
     @overrides
     def merge_fn(self, dep_data: list[MemoryData]) -> MemoryData:
@@ -285,9 +302,10 @@ class SafeLandingAreas(TaskMapper, NpIORepresentation):
         v1, v2, v3 = normals.transpose(2, 0, 1)
         where_safe = (v2 > 0.8) * ((v1 + v3) < 1.2)
         if self.include_semantics:
-            sw = self.sky_water.merge_fn(dep_data).argmax(-1)
+            sw = self.sky_water.merge_fn(dep_data)
+            sw = sw.argmax(-1) if self.sky_water.load_mode == "one_hot" else sw
             where_safe = (where_safe * sw * (depth < 0.9)).astype(bool)
-        return MemoryData(np.eye(2)[(~where_safe).astype(int)])
+        return self.disk_to_memory_fmt(~where_safe)
 
 def get_new_semantic_mapped_tasks(tasks_subset: list[str] | None = None) -> dict[str, TaskMapper]:
     """The exported function for VRE!"""
@@ -391,3 +409,34 @@ def get_new_semantic_mapped_tasks(tasks_subset: list[str] | None = None) -> dict
     if tasks_subset is None:
         return {t.name: t for t in available_tasks}
     return {t.name: t for t in available_tasks if t.name in tasks_subset}
+
+if __name__ == "__main__":
+    cfg_path = Path.cwd() / "cfg.yaml"
+    data_path = Path.cwd() / "data"
+    vre_dir = data_path
+
+    task_names = ["rgb", "depth_marigold", "normals_svd(depth_marigold)", "opticalflow_rife",
+                "semantic_mask2former_coco_47429163_0", "semantic_mask2former_mapillary_49189528_0"]
+    order = ["rgb", "semantic_mask2former_mapillary_49189528_0", "semantic_mask2former_coco_47429163_0",
+                "depth_marigold", "normals_svd(depth_marigold)"]
+
+    representations = build_representations_from_cfg(cfg_path)
+    reader = MultiTaskDataset(vre_dir, task_names=task_names,
+                            task_types=representations, handle_missing_data="fill_nan",
+                            normalization="min_max", cache_task_stats=True, batch_size_stats=100)
+    orig_task_names = list(reader.task_types.keys())
+
+    new_tasks = get_new_semantic_mapped_tasks()
+    for task_name in reader.task_names:
+        if task_name not in orig_task_names:
+            reader.remove_task(task_name)
+    for new_task in new_tasks.values():
+        reader.add_task(new_task, overwrite=True)
+
+    print("== Random loaded item ==")
+    ixs = np.random.permutation(range(len(reader))).tolist()
+    for ix in ixs:
+        data, name = reader[ix]
+        pprint(data)
+        print(plot_one(data, title=name, order=order, name_to_task=reader.name_to_task).shape)
+        break
