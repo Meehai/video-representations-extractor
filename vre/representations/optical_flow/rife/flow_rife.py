@@ -44,7 +44,8 @@ class FlowRife(Representation, LearnedRepresentationMixin, ComputeRepresentation
     @overrides
     def make_images(self) -> np.ndarray:
         assert self.data is not None, f"[{self}] data must be first computed using compute()"
-        return colorize_optical_flow(self.data.output)
+        y = self.unnormalize(self.data.output) if self.normalization is not None else self.data.output
+        return colorize_optical_flow(y)
 
     @overrides
     def vre_setup(self, load_weights: bool = True):

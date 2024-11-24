@@ -6,11 +6,12 @@ from torch.nn import functional as F
 
 from vre.utils import fetch_weights, vre_load_weights, VREVideo, colorize_optical_flow, MemoryData
 from vre.logger import vre_logger as logger
-from vre.representations import (
-    Representation, ReprOut, LearnedRepresentationMixin, ComputeRepresentationMixin, NpIORepresentation)
+from vre.representations import (Representation, ReprOut, LearnedRepresentationMixin,
+                                 ComputeRepresentationMixin, NpIORepresentation, NormedRepresentationMixin)
 from vre.representations.optical_flow.raft.raft_impl import RAFT, InputPadder
 
-class FlowRaft(Representation, LearnedRepresentationMixin, ComputeRepresentationMixin, NpIORepresentation):
+class FlowRaft(Representation, LearnedRepresentationMixin, ComputeRepresentationMixin,
+               NpIORepresentation, NormedRepresentationMixin):
     """FlowRaft representation"""
     def __init__(self, inference_height: int, inference_width: int, iters: int, small: bool,
                  seed: int | None = None, flow_delta_frames: int = 1, **kwargs):
@@ -18,6 +19,7 @@ class FlowRaft(Representation, LearnedRepresentationMixin, ComputeRepresentation
         LearnedRepresentationMixin.__init__(self)
         ComputeRepresentationMixin.__init__(self)
         NpIORepresentation.__init__(self)
+        NormedRepresentationMixin.__init__(self)
         assert inference_height >= 128 and inference_width >= 128, f"This flow doesn't work with small " \
             f"videos. At least 128x128 is required, but got {inference_height}x{inference_width}"
         self.mixed_precision = False
@@ -45,7 +47,8 @@ class FlowRaft(Representation, LearnedRepresentationMixin, ComputeRepresentation
     @overrides
     def make_images(self) -> np.ndarray:
         assert self.data is not None, f"[{self}] data must be first computed using compute()"
-        return colorize_optical_flow(self.data.output)
+        y = self.unnormalize(self.data.output) if self.normalization is not None else self.data.output
+        return colorize_optical_flow(y)
 
     @overrides
     def vre_setup(self, load_weights: bool = True):

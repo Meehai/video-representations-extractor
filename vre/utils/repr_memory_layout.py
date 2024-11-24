@@ -13,6 +13,11 @@ class MemoryData(np.ndarray):
         obj = np.asarray(*args, **kwargs).view(cls)
         return obj
 
+    @property
+    def v(self) -> str:
+        """returns the underlying numpy array string in case we want a more verbose output"""
+        return np.ndarray.__str__(self)
+
     def __repr__(self):
         return lo(self)
 
