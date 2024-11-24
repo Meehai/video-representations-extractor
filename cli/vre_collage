@@ -80,7 +80,7 @@ def main(args: Namespace):
 
     names = []
     for ix in trange(len(reader), desc="collage"):
-        data, name, _ = reader[ix] # get a random item
+        data, name = reader[ix] # get a random item
         img_data = reorder_dict(plot_one(data, name, reader.path, name_to_task=reader.name_to_task), ["rgb"])
         titles = [title if len(title) < 40 else f"{title[0:19]}..{title[-19:]}" for title in img_data.keys()]
         collage = collage_fn(list(img_data.values()), titles=titles, size_px=40)

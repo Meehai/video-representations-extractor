@@ -47,7 +47,7 @@ def test_MultiTaskDataset_ctor_shapes_and_types(dataset_path: Path):
     assert dataset.task_names == ["depth_sfm_manual202204", "rgb", "semantic_segprop8"], dataset.task_names # inferred
     expected_shapes = {"rgb": (H, W, 3), "semantic_segprop8": (H, W, 8), "depth_sfm_manual202204": (H, W, 1)}
     assert (A := dataset.data_shape) == (B := expected_shapes), f"\n- {A} vs\n- {B}"
-    x, _, __ = dataset[0]
+    x, _ = dataset[0]
 
     assert x["rgb"].min() == 0 and x["rgb"].max() >= 240 and x["rgb"].max() <= 255, x["rgb"]
     assert x["rgb"].dtype == tr.uint8, x["rgb"]
@@ -65,7 +65,7 @@ def test_MultiTaskDataset_normalization(dataset_path: Path, normalization: str):
     dataset = MultiTaskDataset(dataset_path, task_names=list(fake_dronescapes_task_types.keys()),
                                task_types=fake_dronescapes_task_types, normalization=normalization,
                                batch_size_stats=2)
-    x, _, __ = dataset[0]
+    x, _ = dataset[0]
     for task in dataset.task_names:
         assert x[task].dtype == tr.float32, x[task].dtype
         if normalization == "min_max":
@@ -83,18 +83,15 @@ def test_MultiTaskDataset_getitem(dataset_path):
                               task_types=fake_dronescapes_task_types, normalization=None)
 
     rand_ix = np.random.randint(len(reader))
-    data, _, repr_names = reader[rand_ix] # get a random single data point
+    data, _ = reader[rand_ix] # get a random single data point
     assert all(len(x.shape) == 3 for x in data.values()), data
-    assert set(repr_names) == set(reader.task_names)
 
-    data, _, repr_names = reader[rand_ix: min(len(reader), rand_ix + 5)] # get a random batch
+    data, _ = reader[rand_ix: min(len(reader), rand_ix + 5)] # get a random batch
     assert all(len(x.shape) == 4 for x in data.values()), data
-    assert set(repr_names) == set(reader.task_names)
 
     loader = DataLoader(reader, collate_fn=reader.collate_fn, batch_size=5, shuffle=True)
-    data, _, repr_names = next(iter(loader)) # get a random batch using torch DataLoader
+    data, _ = next(iter(loader)) # get a random batch using torch DataLoader
     assert all(len(x.shape) == 4 for x in data.values()), data
-    assert set(repr_names) == set(reader.task_names)
 
 if __name__ == "__main__":
     test_MultiTaskDataset_normalization(_dataset_path(), "min_max")

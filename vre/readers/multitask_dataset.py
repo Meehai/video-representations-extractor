@@ -3,7 +3,7 @@
 from __future__ import annotations
 import os
 from pathlib import Path
-from typing import Dict, List, Tuple, Iterable, Union
+from typing import Iterable
 from copy import deepcopy
 from natsort import natsorted
 import torch as tr
@@ -14,9 +14,9 @@ from vre.logger import vre_logger as logger
 
 from .statistics import compute_statistics, load_external_statistics, TaskStatistics
 
-BuildDatasetTuple = Tuple[Dict[str, List[Path]], List[str]]
-MultiTaskItem = Tuple[Dict[str, tr.Tensor], str, List[str]] # [{task: data}, stem(name) | list[stem(name)], [tasks]]
-Repr = Union[Representation | IORepresentationMixin]
+BuildDatasetTuple = tuple[dict[str, list[Path]]]
+MultiTaskItem = tuple[dict[str, tr.Tensor], str] # [{task: data}, stem(name) | list[stem(name)]]
+Repr = Representation | IORepresentationMixin
 
 class MultiTaskDataset(Dataset):
     """
@@ -84,24 +84,26 @@ class MultiTaskDataset(Dataset):
         self.task_names = sorted(task_names)
         logger.info(f"Tasks used in this dataset: {self.task_names}")
 
-        if normalization is not None:
-            if isinstance(normalization, str):
-                logger.debug(f"Normalization provided as a string ({normalization}). Setting all tasks to this")
-                normalization: dict[str, str] = {task: normalization for task in self.task_names}
-            if "*" in normalization.keys(): # for the lazy, we can put {"*": "standardization", "depth": "min_max"}
-                value = normalization.pop("*")
-                for missing_task in set(self.task_names).difference(normalization.keys()):
-                    normalization[missing_task] = value
-            assert all(n in ("min_max", "standardization") for n in normalization.values()), normalization
-            assert all(k in task_names for k in normalization.keys()), set(normalization).difference(task_names)
-        self.normalization: dict[str, str] | None = normalization
-
         self._data_shape: tuple[int, ...] | None = None
         self._tasks: list[Repr] | None = None
         self._default_vals: dict[str, tr.Tensor] | None = None
         self._statistics: dict[str, TaskStatistics] | None = None
         if statistics is not None:
             self._statistics = load_external_statistics(self, statistics)
+
+        if normalization is not None:
+            if isinstance(normalization, str):
+                logger.debug(f"Normalization provided as a string ({normalization}). Setting all tasks to this")
+                _norm, normalization = normalization, {}
+                for tn in self.task_names:
+                    normalization[tn] = None if self.name_to_task[tn] in self.classification_tasks else _norm
+            if "*" in normalization.keys(): # for the lazy, we can put {"*": "standardization", "depth": "min_max"}
+                value = normalization.pop("*")
+                for missing_task in set(self.task_names).difference(normalization.keys()):
+                    normalization[missing_task] = value
+            assert all(n in ("min_max", "standardization") or n is None for n in normalization.values()), normalization
+            assert all(k in task_names for k in normalization.keys()), set(normalization).difference(task_names)
+        self.normalization: dict[str, str] | None = normalization
 
     # Public methods and properties
 
@@ -113,7 +115,7 @@ class MultiTaskDataset(Dataset):
         if self._statistics is None:
             self._statistics = compute_statistics(self)
         for task_name, task in self.name_to_task.items():
-            if isinstance(task, NormedRepresentationMixin) and task.normalization is None:
+            if not hasattr(task, "classes") and task.normalization is None: # TODO: used NormedRepresentationMixin
                 task.set_normalization(self.normalization[task_name], self._statistics[task_name])
         return self._statistics
 
@@ -178,12 +180,16 @@ class MultiTaskDataset(Dataset):
             assert all(t.name == t_n for t, t_n in zip(self._tasks, self.task_names)), (self.task_names, self._tasks)
         return self._tasks
 
+    @property
+    def classification_tasks(self) -> list[Repr]:
+        """Returns a list of only the classification tasks"""
+        return [task for task in self.tasks if task.is_classification]
+
     def collate_fn(self, items: list[MultiTaskItem]) -> MultiTaskItem:
         """
         given a list of items (i.e. from a reader[n:n+k] call), return the item batched on 1st dimension.
         Nones (missing data points) are turned into nans as per the data shape of that dim.
         """
-        assert all(item[2] == self.task_names for item in items), ([item[2] for item in items], self.task_names)
         items_name = [item[1] for item in items]
         res = {k: tr.zeros(len(items), *self.data_shape[k]).float() for k in self.task_names} # float32 always
         for i in range(len(items)):
@@ -193,7 +199,7 @@ class MultiTaskDataset(Dataset):
                 except Exception as e:
                     print(k, items)
                     raise e
-        return res, items_name, self.task_names
+        return res, items_name
 
     def add_task(self, task: Repr, overwrite: bool=False):
         """Safely adds a task to this reader. Most likely can be optimized"""
@@ -217,6 +223,31 @@ class MultiTaskDataset(Dataset):
         self._tasks = None
         self.files_per_repr, self.file_names = self._build_dataset(self.task_types, self.task_names)
 
+    def get_one_item(self, index: int, subset_tasks: list[str] | None = None) -> MultiTaskItem:
+        """getitem implementation for a single index. Supports a subset of tasks as well"""
+        assert isinstance(index, int), type(index)
+        assert isinstance(subset_tasks, (list, type(None))), type(subset_tasks)
+        subset_tasks = self.task_names if subset_tasks is None else subset_tasks
+        assert len(subset_tasks) > 0, subset_tasks
+        res: dict[str, tr.Tensor] = {}
+        for task_name in subset_tasks:
+            assert task_name in self.name_to_task, (task_name, list(self.name_to_task))
+            task = self.name_to_task[task_name]
+            file_path = self.files_per_repr[task_name][index]
+            if file_path is None:
+                res[task_name] = self.default_vals[task_name]
+            else:
+                if isinstance(task, TaskMapper) and task.dependencies[0] != task:
+                    np_memory_data = task.compute_from_dependencies_paths(file_path)
+                else: # can also be TaskMapper here too, but with deps[0] == task (pre-computed)
+                    np_memory_data = task.disk_to_memory_fmt(task.load_from_disk(file_path))
+
+                if self.statistics is not None and not hasattr(task, "classes"): # TODO: use NormedRepresentationMixin
+                    assert isinstance(task, NormedRepresentationMixin), task
+                    np_memory_data = task.normalize(np_memory_data)
+                res[task_name] = tr.from_numpy(np_memory_data)
+        return res, self.file_names[index]
+
     # Private methods
 
     def _get_all_npz_files(self) -> dict[str, list[Path]]:
@@ -238,6 +269,13 @@ class MultiTaskDataset(Dataset):
         return in_files
 
     def _build_dataset(self, task_types: dict[str, Repr], task_names: list[str]) -> BuildDatasetTuple:
+        """
+        Builds the dataset from the disk. Returns two items:
+        - A dict: files_per_repr = {task: [list of disk data]} where files_per_repr["rgb"][0] -> /path/to/0.npz
+           - Additionally, if a representation is a TaskMapper, it'll return [/path/to/dep1/0.npz, /path/to/depn/0.npz]
+        - A list of all names (without prefix paths), i.e. [0.npz, 1.npz, ..., n.npz]. It supports non numeric frame
+          numbers as well, even though VRE doesn't output anything else than a numeric frame number out of the box.
+        """
         logger.debug(f"Building dataset from: '{self.path}'")
         all_npz_files = self._get_all_npz_files()
         all_files: dict[str, dict[str, Path]] = {k: {_v.name: _v for _v in v} for k, v in all_npz_files.items()}
@@ -288,27 +326,6 @@ class MultiTaskDataset(Dataset):
                     files_per_task[task].append(paths if len(deps) > 1 else paths[0])
         return files_per_task, all_names
 
-    def _get_one_item(self, index: int) -> MultiTaskItem:
-        assert isinstance(index, int), type(index)
-        res: dict[str, tr.Tensor] = {}
-        for task_name in self.task_names:
-            task = [t for t in self.tasks if t.name == task_name][0]
-            file_path = self.files_per_repr[task_name][index]
-            if file_path is None:
-                res[task_name] = self.default_vals[task_name]
-            else:
-                if isinstance(task, TaskMapper) and task.dependencies[0] != task:
-                    np_memory_data = task.compute_from_dependencies_paths(file_path)
-                else: # can also be TaskMapper here too, but with deps[0] == task (pre-computed)
-                    np_memory_data = task.disk_to_memory_fmt(task.load_from_disk(file_path))
-
-                if self.statistics is not None and not hasattr(task, "classes"): # TODO: use NormedRepresentation
-                    assert isinstance(task, NormedRepresentationMixin), task
-                    np_memory_data = task.normalize(np_memory_data)
-                res[task_name] = tr.from_numpy(np_memory_data)
-        # TODO: why is self.task_names require here. It's already in res.keys().
-        return (res, self.file_names[index], self.task_names)
-
     # Python magic methods (pretty printing the reader object, reader[0], len(reader) etc.)
     def __getitem__(self, index: int | str | slice | list[int, str] | tuple[int, str]) -> MultiTaskItem:
         """Read the data all the desired nodes"""
@@ -320,7 +337,7 @@ class MultiTaskDataset(Dataset):
             return self.collate_fn([self.__getitem__(ix) for ix in index])
         if isinstance(index, str):
             return self.__getitem__(self.file_names.index(index))
-        return self._get_one_item(index)
+        return self.get_one_item(index)
 
     def __len__(self) -> int:
         return len(self.files_per_repr[self.task_names[0]]) # all of them have the same number (filled with None or not)
@@ -329,6 +346,7 @@ class MultiTaskDataset(Dataset):
         f_str = f"[{str(type(self)).rsplit('.', maxsplit=1)[-1][0:-2]}]"
         f_str += f"\n - Path: '{self.path}'"
         f_str += f"\n - Tasks ({len(self.tasks)}): {self.tasks}"
+        f_str += f"\n - Classification tasks ({len(self.classification_tasks)}): {self.classification_tasks}"
         f_str += f"\n - Length: {len(self)}"
         f_str += f"\n - Handle missing data mode: '{self.handle_missing_data}'"
         f_str += f"\n - Normalization: '{self.normalization}'"
