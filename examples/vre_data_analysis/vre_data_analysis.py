@@ -49,10 +49,11 @@ def histogram_from_classification_task(reader: MultiTaskDataset, classif: Semant
     counts = np.zeros(len(classif.classes), dtype=np.uint64)
     ixs = np.arange(len(reader)) if mode == "sequential" else np.random.permutation(len(reader))
     ixs = ixs[0:n] if n is not None and n < len(reader) else ixs
+    assert getattr(classif, "load_mode", "binary") == "binary"
     for i in ixs:
         item = reader.get_one_item(i.item(), subset_tasks=[classif.name])
         data_cnts = item[0][classif.name].unique(return_counts=True)
-        item_classes, item_counts = data_cnts[0].numpy(), data_cnts[1].numpy().astype(int)
+        item_classes, item_counts = data_cnts[0].numpy().astype(int), data_cnts[1].numpy().astype(int)
         counts[item_classes] = counts[item_classes] + item_counts
 
     df = pd.DataFrame({"Labels": classif.classes, "Values": counts})
