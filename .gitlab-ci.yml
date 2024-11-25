@@ -33,7 +33,7 @@ e2e_imgur:
 
 e2e_task_mapped:
   script:
-    - bash test/end_to_end/task_mapper_representations/run.sh
+    - bash test/end_to_end/task_mapped_representations/run.sh
 
 unit_tests:
   script:
