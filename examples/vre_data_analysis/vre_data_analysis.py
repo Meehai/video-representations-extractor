@@ -44,8 +44,8 @@ def save_html(html_imgs: list[str], description: str, out_path: str):
     print(f"Written html at '{out_path}'")
 
 def histogram_from_classification_task(reader: MultiTaskDataset, classif: SemanticRepresentation,
-                                       n: int | None = None, mode: str = "sequential") -> plt.Figure:
-    fig = plt.Figure(figsize=(12, 6))
+                                       n: int | None = None, mode: str = "sequential", **figkwargs) -> plt.Figure:
+    fig = plt.Figure(**figkwargs)
     counts = np.zeros(len(classif.classes), dtype=np.uint64)
     ixs = np.arange(len(reader)) if mode == "sequential" else np.random.permutation(len(reader))
     ixs = ixs[0:n] if n is not None and n < len(reader) else ixs
@@ -57,12 +57,12 @@ def histogram_from_classification_task(reader: MultiTaskDataset, classif: Semant
         counts[item_classes] = counts[item_classes] + item_counts
 
     df = pd.DataFrame({"Labels": classif.classes, "Values": counts})
-    df["Values"] = df["Values"] / df["Values"].max()
+    df["Values"] = df["Values"] / df["Values"].sum()
     df = df.sort_values("Values", ascending=True)
     df = df[df["Values"] > 0.01]
-    df.plot(x="Labels", y="Values", kind="barh", legend=False, color="skyblue",
-            figsize=(12, 6), ax=fig.gca(), title=classif.name)
-    fig.gca().set_ylabel("Values")
+    df.plot(x="Labels", y="Values", kind="barh", legend=False, color="skyblue", ax=fig.gca(), title=classif.name)
+    fig.gca().set_xlim(0, 1)
+    # fig.gca().set_ylabel("Values")
     fig.tight_layout()
     plt.close()
     return fig
