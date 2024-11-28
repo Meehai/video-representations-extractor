@@ -10,6 +10,7 @@ import io
 import base64
 import bs4
 from PIL import Image
+import seaborn as sns
 
 def extract_pil_from_b64_image(base64_buf: str) -> Image:
     return Image.open(io.BytesIO(base64.b64decode(base64_buf)))
@@ -43,6 +44,7 @@ def save_html(html_imgs: list[str], description: str, out_path: str):
     open(out_path, "w").write(str(html))
     print(f"Written html at '{out_path}'")
 
+
 def histogram_from_classification_task(reader: MultiTaskDataset, classif: SemanticRepresentation,
                                        n: int | None = None, mode: str = "sequential", **figkwargs) -> plt.Figure:
     fig = plt.Figure(**figkwargs)
@@ -59,10 +61,17 @@ def histogram_from_classification_task(reader: MultiTaskDataset, classif: Semant
     df = pd.DataFrame({"Labels": classif.classes, "Values": counts})
     df["Values"] = df["Values"] / df["Values"].sum()
     df = df.sort_values("Values", ascending=True)
-    df = df[df["Values"] > 0.01]
-    df.plot(x="Labels", y="Values", kind="barh", legend=False, color="skyblue", ax=fig.gca(), title=classif.name)
+    df = df[df["Values"] > 0.005]
+
+    ax = fig.gca()
+    sns.barplot(data=df, y="Labels", x="Values", palette="viridis", legend=True, ax=ax, width=1)
+
+    # Adjust y-axis tick positions and spacing
+    ax.set_title(classif.name, fontsize=14, fontweight='bold')
+    ax.set_ylabel("Labels", fontsize=12)
+
+    fig.set_size_inches(8, 2 if len(df) <= 2 else len(df) * 0.5)
     fig.gca().set_xlim(0, 1)
-    # fig.gca().set_ylabel("Values")
     fig.tight_layout()
     plt.close()
     return fig
@@ -76,6 +85,8 @@ def gaussian_from_statistics(reader: MultiTaskDataset, regression_task: Represen
     for i in range(n_ch):
         ax[i].plot(x[:, i], y[:, i])
     fig.suptitle(regression_task.name)
+    fig.gca().set_xlabel("Mean")
+    fig.gca().set_xlabel("Std")
     return fig
 
 if __name__ == "__main__":
