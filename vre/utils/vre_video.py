@@ -68,9 +68,9 @@ class FFmpegVideo(VREVideo):
         self.stream_info = next((stream for stream in self.probe["streams"] if stream["codec_type"] == "video"), None)
         self.width = int(self.stream_info["width"])
         self.height = int(self.stream_info["height"])
-        self.total_frames = int(float(self.stream_info["nb_frames"])) if "nb_frames" in self.stream_info else None
         self.frame_shape = (self.height, self.width, 3)
-        self._fps: float | None = None
+        self._fps = eval(self.stream_info["avg_frame_rate"]) # pylint: disable=eval-used
+        self.total_frames = self._build_total_frames()
 
         self.cache = []
         self.cache_max_len = cache_len
@@ -86,9 +86,19 @@ class FFmpegVideo(VREVideo):
     @property
     @overrides
     def fps(self) -> float:
-        if self._fps is None:
-            self._fps = eval(self.stream_info["avg_frame_rate"]) # pylint: disable=eval-used
         return self._fps
+
+    def _build_total_frames(self) -> int:
+        """returns the number of frames of the vifdeo"""
+        if "nb_frames" in self.stream_info:
+            return int(float(self.stream_info["nb_frames"]))
+        if "codec_name" in self.stream_info and self.stream_info["codec_name"] == "h264":
+            if "tags" in self.stream_info and "DURATION" in self.stream_info["tags"]:
+                duration_str = self.stream_info["tags"]["DURATION"]
+                h, m, s = [float(x) for x in duration_str.split(":")]
+                duration_s = h * 60 * 60 + m * 60 + s
+                return int(duration_s * self.fps)
+        raise ValueError(f"Unknown video format. Stream info from ffmpeg: {self.stream_info}")
 
     def _start_ffmpeg_process(self, start_time):
         """
