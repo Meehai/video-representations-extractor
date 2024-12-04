@@ -34,6 +34,7 @@ def image_read(path: Path, library: str = "cv2") -> np.ndarray:
     return {"cv2": cv2_image_read, "PIL": pil_image_read}[library](path)
 
 def _get_rows_cols(n_imgs: int, rows_cols: tuple[int | None, int | None] | None) -> tuple[int, int]:
+    assert isinstance(n_imgs, int) and n_imgs > 0, n_imgs
     if rows_cols is None:
         rows_cols = get_closest_square(n_imgs)
         logger.debug2(f"row_cols was not set. Setting automatically to {rows_cols} based on number of images")
@@ -45,6 +46,7 @@ def _get_rows_cols(n_imgs: int, rows_cols: tuple[int | None, int | None] | None)
         rows_cols[0] = n_imgs // rows_cols[1] + (n_imgs % rows_cols[1] != 0)
     if rows_cols[1] == -1:
         rows_cols[1] = n_imgs // rows_cols[0] + (n_imgs % rows_cols[0] != 0)
+    assert rows_cols[0] * rows_cols[1] >= n_imgs, (rows_cols, n_imgs)
     return rows_cols[0], rows_cols[1]
 
 def collage_fn(images: list[np.ndarray], rows_cols: tuple[int, int] = None, pad_bottom: int = 0,
