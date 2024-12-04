@@ -33,6 +33,20 @@ def image_read(path: Path, library: str = "cv2") -> np.ndarray:
     """Read an image from a path. Return uint8 [0:255] ndarray"""
     return {"cv2": cv2_image_read, "PIL": pil_image_read}[library](path)
 
+def _get_rows_cols(n_imgs: int, rows_cols: tuple[int | None, int | None] | None) -> tuple[int, int]:
+    if rows_cols is None:
+        rows_cols = get_closest_square(n_imgs)
+        logger.debug2(f"row_cols was not set. Setting automatically to {rows_cols} based on number of images")
+        return rows_cols
+    assert len(rows_cols) == 2, f"rows_cols must be a tuple with 2 numbers, got: {rows_cols}"
+    rows_cols = [rows_cols[0] or -1, rows_cols[1] or -1]
+    assert (rows_cols[0] == -1) + (rows_cols[1] == -1) <= 1, f"Only one can be set to None or -1: {rows_cols}"
+    if rows_cols[0] == -1:
+        rows_cols[0] = n_imgs // rows_cols[1] + (n_imgs % rows_cols[1] != 0)
+    if rows_cols[1] == -1:
+        rows_cols[1] = n_imgs // rows_cols[0] + (n_imgs % rows_cols[0] != 0)
+    return rows_cols[0], rows_cols[1]
+
 def collage_fn(images: list[np.ndarray], rows_cols: tuple[int, int] = None, pad_bottom: int = 0,
                pad_right: int = 0, titles: list[str] = None, pad_to_max: bool = False, **title_kwargs) -> np.ndarray:
     """
@@ -64,10 +78,7 @@ def collage_fn(images: list[np.ndarray], rows_cols: tuple[int, int] = None, pad_
         return res
 
     assert len(images) > 1, "Must give at least two images to the collage"
-    if rows_cols is None:
-        rows_cols = get_closest_square(len(images))
-        logger.debug2(f"row_cols was not set. Setting automatically to {rows_cols} based on number of images")
-    assert len(rows_cols) == 2, f"rows_cols must be a tuple with 2 numbers, got: {rows_cols}"
+    rows_cols = _get_rows_cols(len(images), rows_cols)
     if np.prod(rows_cols) > len(images):
         logger.debug2(f"rows_cols: {rows_cols} greater than n images: {len(images)}. Padding with black images!")
     assert not all(x is None for x in images), "All images are None"
