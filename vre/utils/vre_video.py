@@ -1,12 +1,17 @@
 """VREVideo module"""
 from abc import ABC, abstractmethod
 from pathlib import Path
+from typing import Iterable
 from overrides import overrides
+from tqdm import trange
 import numpy as np
 import ffmpeg
 
-class VREVideo(ABC):
+class VREVideo(Iterable, ABC):
     """VREVideo -- A generic wrapper on top of a Video container"""
+    def __init__(self):
+        self.write_process = None
+
     @property
     @abstractmethod
     def shape(self) -> tuple[int, int, int, int]:
@@ -17,6 +22,38 @@ class VREVideo(ABC):
     def fps(self) -> float:
         """The frame rate of the video"""
 
+    def write(self, out_path: Path, start_frame: int = 0, end_frame: int | None = None):
+        """writes the video to the path"""
+        out_path = Path(out_path)
+        assert self.write_process is None, self.write_process
+        assert out_path.suffix == ".mp4", out_path
+        assert isinstance(start_frame, int) and start_frame >= 0, start_frame
+
+        self.write_process = (
+            ffmpeg
+            .input("pipe:0", format="rawvideo", pix_fmt="rgb24", s=f"{self.shape[2]}x{self.shape[1]}", r=self.fps)
+            .output(str(out_path), pix_fmt="yuv420p", vcodec="libx264")
+            .overwrite_output()
+            .run_async(pipe_stdin=True, pipe_stderr=-3, pipe_stdout=-3) # -3 = subprocess.DEVNULL
+        )
+
+        try:
+            for frame_ix in trange(start_frame, end_frame or len(self)):
+                self.write_process.stdin.write(self[frame_ix].tobytes())
+        finally:
+            self.write_process.stdin.close()
+            self.write_process.wait()
+            self.write_process = None
+
+    def __iter__(self):
+        index = 0
+        try:
+            while True:
+                yield self[index]
+                index += 1
+        except IndexError:
+            pass
+
 class FakeVideo(VREVideo):
     """
     FakeVideo -- class used to test representations with a given numpy array.
@@ -24,6 +61,7 @@ class FakeVideo(VREVideo):
     This can be used to create a FakeVideo out of a directory with files: [1.png, 10.png, 100.png]
     """
     def __init__(self, data: np.ndarray, fps: float, frames: list[int] | None = None):
+        super().__init__()
         assert len(data) > 0, "No data provided"
         self.data = data
         self._fps = fps
@@ -62,6 +100,7 @@ class FakeVideo(VREVideo):
 class FFmpegVideo(VREVideo):
     """FFmpegVideo -- reads data from a video using ffmpeg"""
     def __init__(self, path: Path, cache_len: int = 30):
+        super().__init__()
         self.path = Path(path)
         assert self.path.exists(), f"Video '{self.path}' doesn't exist"
         self.probe = ffmpeg.probe(self.path)

@@ -1,6 +1,8 @@
 from vre.utils.vre_video import FakeVideo
+from tempfile import NamedTemporaryFile
 import numpy as np
 import pytest
+from pathlib import Path
 
 def test_FakeVideo_ctor():
     fake_video = FakeVideo(data := np.random.randint(0, 256, size=(10, 20, 30, 3), dtype=np.uint8), fps=1)
@@ -18,3 +20,9 @@ def test_FakeVideo_frames():
     assert np.allclose(data[0], fake_video[2])
     assert np.allclose(data[1], fake_video[5])
     assert np.allclose(data[2], fake_video[50])
+
+def test_FakeVideo_write():
+    fake_video = FakeVideo(np.random.randint(0, 256, size=(10, 20, 30, 3), dtype=np.uint8), fps=1)
+    with NamedTemporaryFile("w", suffix=".mp4") as f:
+        fake_video.write(f.name)
+        assert Path(f.name).exists(), f.name
