@@ -1,11 +1,9 @@
 """Computer Vision stored representations"""
 from __future__ import annotations
 import numpy as np
-import flow_vis
 from overrides import overrides
-from matplotlib.cm import Spectral # pylint: disable=no-name-in-module
 
-from vre.utils import colorize_semantic_segmentation, VREVideo
+from vre.utils import colorize_semantic_segmentation, VREVideo, colorize_optical_flow, colorize_depth
 from .np_io_representation import NpIORepresentation, DiskData, MemoryData
 from .normed_representation_mixin import NormedRepresentationMixin
 from .representation import Representation
@@ -94,12 +92,11 @@ class DepthRepresentation(ExternalRepresentation, NpIORepresentation):
         x = self.data.output.clip(0, 1)
         x = x[..., 0] if x.shape[-1] == 1 else x
         _min, _max = np.percentile(x, [1, 95])
-        x = np.nan_to_num((x - _min) / (_max - _min), False, 0, 0, 0).clip(0, 1)
-        y: np.ndarray = Spectral(x)[..., 0:3] * 255
-        return y.astype(np.uint8)
+        y_spectral = colorize_depth(x, _min, _max)
+        return (y_spectral * 255).astype(np.uint8)
 
 class OpticalFlowRepresentation(ExternalRepresentation, NpIORepresentation):
-    """OpticalFlowRepresentation. Implements flow task-specific stuff, like using flow_vis."""
+    """OpticalFlowRepresentation. Implements flow task-specific stuff."""
     def __init__(self, *args, **kwargs):
         ExternalRepresentation.__init__(self, *args, **kwargs)
         NpIORepresentation.__init__(self)
@@ -113,7 +110,7 @@ class OpticalFlowRepresentation(ExternalRepresentation, NpIORepresentation):
     def make_images(self) -> np.ndarray:
         _min, _max = self.data.output.min(0).min(0), self.data.output.max(0).max(0)
         y = np.nan_to_num(((self.data.output - _min) / (_max - _min)), False, 0, 0, 0).astype(np.float32)
-        return np.array([flow_vis.flow_to_color(_y) for _y in y])
+        return colorize_optical_flow(y)
 
 class SemanticRepresentation(Representation, ComputeRepresentationMixin, NpIORepresentation):
     """SemanticRepresentation. Implements semantic task-specific stuff, like argmaxing if needed"""

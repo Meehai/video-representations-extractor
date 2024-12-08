@@ -19,11 +19,11 @@ def test_i_mask2former(variant):
     # Sanity checks
     rtol = 1e-2
     if args.model_id == "47429163_0" and args.input_image.name == "demo1.jpg":
-        assert np.allclose(mean := semantic_result.mean(), 129.41, rtol=rtol), (mean, semantic_result.std())
-        assert np.allclose(std := semantic_result.std(), 53.33, rtol=rtol), std
+        assert np.allclose(mean := semantic_result.mean(), 0.0084324, rtol=rtol), (mean, semantic_result.std())
+        assert np.allclose(std := semantic_result.std(), 0.087728, rtol=rtol), std
     elif args.model_id == "49189528_1" and args.input_image.name == "demo1.jpg":
-        assert np.allclose(mean := semantic_result.mean(), 125.23, rtol=rtol), (mean, semantic_result.std())
-        assert np.allclose(std := semantic_result.std(), 48.89, rtol=rtol), std
+        assert np.allclose(mean := semantic_result.mean(), 0.0161621, rtol=rtol), (mean, semantic_result.std())
+        assert np.allclose(std := semantic_result.std(), 0.118579, rtol=rtol), std
     elif args.model_id == "49189528_0" and args.input_image.name == "demo1.jpg":
-        assert np.allclose(mean := semantic_result.mean(), 118.47, rtol=rtol), (mean, semantic_result.std())
-        assert np.allclose(std := semantic_result.std(), 52.08, rtol=rtol), std
+        assert np.allclose(mean := semantic_result.mean(), 0.0049801, rtol=rtol), (mean, semantic_result.std())
+        assert np.allclose(std := semantic_result.std(), 0.063540, rtol=rtol), std

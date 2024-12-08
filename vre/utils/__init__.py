@@ -1,5 +1,5 @@
 """init file"""
-from .utils import (get_project_root, parsed_str_type, is_dir_empty, get_closest_square, str_maxk,
+from .utils import (get_project_root, parsed_str_type, is_dir_empty, get_closest_square, str_maxk, array_blend,
                     now_fmt, is_git_lfs, semantic_mapper, FixedSizeOrderedDict, abs_path, reorder_dict)
 from .vre_video import FakeVideo, VREVideo, FFmpegVideo
 from .topological_sort import topological_sort

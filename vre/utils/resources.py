@@ -5,7 +5,7 @@ from pprint import pformat
 import os
 import torch as tr
 
-from ..logger import vre_logger as logger
+from vre.logger import vre_logger as logger
 from .utils import get_project_root, is_git_lfs, DownloadProgressBar
 
 REPO_URL = "https://gitlab.com/video-representations-extractor/video-representations-extractor"

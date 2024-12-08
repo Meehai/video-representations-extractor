@@ -115,7 +115,7 @@ def main(args: Namespace):
     semantic_result: np.ndarray = m2f.make_images()[0]
     image_write(semantic_result, args.output_path)
     logger.info(f"Written prediction to '{args.output_path}'")
-    return semantic_result # for integration tests
+    return m2f.data.output # for integration tests
 
 if __name__ == "__main__":
     main(get_args())

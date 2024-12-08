@@ -1,7 +1,6 @@
 """Canny edge detector representation."""
 import numpy as np
 from overrides import overrides
-from matplotlib.cm import gray # pylint: disable=no-name-in-module
 
 from vre.representations import (Representation, ReprOut, ComputeRepresentationMixin,
                                  NpIORepresentation, NormedRepresentationMixin)
@@ -29,7 +28,7 @@ class Canny(Representation, ComputeRepresentationMixin, NpIORepresentation, Norm
     @overrides
     def make_images(self) -> np.ndarray:
         assert self.data is not None, f"[{self}] data must be first computed using compute()"
-        return (255 * gray(self.data.output)[..., 0:3]).astype(np.uint8)
+        return (255 * self.data.output[..., None].repeat(3, axis=-1)).astype(np.uint8)
 
     @property
     @overrides

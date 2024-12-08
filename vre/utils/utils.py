@@ -5,6 +5,7 @@ from datetime import datetime, timezone as tz
 from collections import OrderedDict
 from tqdm import tqdm
 import numpy as np
+from vre.logger import vre_logger as logger
 
 class DownloadProgressBar(tqdm):
     """requests + tqdm"""
@@ -98,3 +99,15 @@ def reorder_dict(data: dict[str, Any], keys: list[str]) -> dict[str, Any]:
 def str_maxk(s: str, k: int) -> str:
     """returns the string if it is smaller than k, otherwise returns the first k-2 and last 5"""
     return f"{s[0:k-7]}..{s[-5:]}" if len(s) > k else s
+
+def array_blend(x: np.ndarray, y: np.ndarray, alpha: float | np.ndarray) -> np.ndarray:
+    """Blends two arrays of the same shape with an alpha: number of array"""
+    alpha_arr = np.asarray(alpha)
+    assert x.shape == y.shape, (x.shape, y.shape)
+    assert np.issubdtype(x.dtype, np.floating) and np.issubdtype(y.dtype, np.floating), (x.dtype, y.dtype)
+    assert (alpha_arr >= 0).all() and (alpha_arr <= 1).all(), (alpha_arr.min(), alpha_arr.max())
+    try:
+        return (1 - alpha_arr) * x + alpha_arr * y # the actual blend :)
+    except Exception as e:
+        logger.info(f"Exception thrown: {e}.\nShapes: {x.shape=} {y.shape=} {alpha_arr.shape=}")
+        raise e

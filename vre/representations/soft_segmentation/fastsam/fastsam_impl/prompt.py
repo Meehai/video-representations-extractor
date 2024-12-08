@@ -6,7 +6,7 @@ from PIL import Image
 
 from vre.utils.cv2_utils import (cv2_findContours, cv2_boundingRect, cv2_drawContours, cv2_RETR_TREE,
                                  cv2_CHAIN_APPROX_SIMPLE, cv2_RETR_EXTERNAL, cv2_COLOR_BGR2RGB, cv2_cvtColor)
-from vre.utils import image_resize, image_blend
+from vre.utils import image_resize, array_blend
 
 class FastSAMPrompt:
     def __init__(self, image, results, device='cuda'):
@@ -100,7 +100,7 @@ class FastSAMPrompt:
             target_height=original_h,
             target_width=original_w,
         )
-        res = image_blend(image, mask)
+        res = array_blend(image, mask[..., 0:3], mask[..., 3:4])
 
         if withContours:
             contour_all = []
@@ -118,7 +118,7 @@ class FastSAMPrompt:
             cv2_drawContours(temp, contour_all, -1, (255, 255, 255), 2)
             color = np.array([0 / 255, 0 / 255, 255 / 255, 0.8])
             contour_mask = temp / 255 * color.reshape(1, 1, -1)
-            res = image_blend(res, contour_mask)
+            res = array_blend(res, contour_mask[..., 0:3], contour_mask[..., 3:4])
         return (res * 255).astype(np.uint8)
 
     def fast_show_mask(

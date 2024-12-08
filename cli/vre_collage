@@ -27,10 +27,12 @@ def plot_one(data: dict[str, tr.Tensor], file_name: str, dataset_path: Path,
         stem = Path(file_name).stem
         task = name_to_task[k]
         extra = None
-        rgb = data["rgb"] # must be here
+        rgb = data["rgb"].cpu().numpy()
+        assert np.issubdtype(rgb.dtype, np.floating), data
+        rgb = (rgb * 255).astype(np.uint8)
         if (extra_path := (dataset_path/k/"npz"/f"{stem}_extra.npz")).exists():
             extra = np.load(extra_path, allow_pickle=True)["arr_0"].item()
-        task.data = ReprOut(rgb.cpu().numpy()[None], MemoryData(v.cpu().numpy()[None]), key=[stem], extra=[extra])
+        task.data = ReprOut(rgb[None], MemoryData(v.cpu().numpy()[None]), key=[stem], extra=[extra])
         img_data[k] = task.make_images()[0]
     return img_data
 
@@ -78,20 +80,20 @@ def main(args: Namespace):
         shutil.rmtree(args.output_path)
     args.output_path.mkdir(parents=True, exist_ok=False)
 
-    names = []
+    out_png_names = []
     for ix in trange(len(reader), desc="collage"):
         data, name = reader[ix] # get a random item
         img_data = reorder_dict(plot_one(data, name, reader.path, name_to_task=reader.name_to_task), ["rgb"])
         titles = [title if len(title) < 40 else f"{title[0:19]}..{title[-19:]}" for title in img_data.keys()]
         collage = collage_fn(list(img_data.values()), titles=titles, size_px=40)
-        image_write(collage, out_name := args.output_path / f"{'.'.join(name.split('.')[0:-1])}.png")
-        names.append(str(out_name))
+        image_write(collage, out_png_name := args.output_path / f"{'.'.join(name.split('.')[0:-1])}.png")
+        out_png_names.append(str(out_png_name))
     logger.info(f"Collage written at '{args.output_path}'")
 
     if args.video:
         data = []
-        for name in names:
-            data.extend([f"file '{name}'", f"duration {1 / args.fps:.3f}"])
+        for out_png_name in out_png_names:
+            data.extend([f"file '{out_png_name}'", f"duration {1 / args.fps:.3f}"])
         open(fname := NamedTemporaryFile(suffix=".txt").name, "w").write("\n".join(data))
         (
             ffmpeg
