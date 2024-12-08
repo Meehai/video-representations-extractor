@@ -4,6 +4,7 @@ from __future__ import annotations
 import os
 from pathlib import Path
 from typing import Iterable
+from pprint import pformat
 from copy import deepcopy
 from natsort import natsorted
 import torch as tr
@@ -290,7 +291,7 @@ class MultiTaskDataset(Dataset):
                 task_types[task_name].dependencies = [task_types[task_name]]
             relevant_tasks_for_files.update(task_types[task_name].dep_names)
         if (diff := relevant_tasks_for_files.difference(all_files)) != set():
-            raise FileNotFoundError(f"Missing files for {diff}.\nFound on disk: {[*all_files]}")
+            raise FileNotFoundError(f"Missing files for {diff}.\nFound on disk: {[*all_files]}\n{pformat(task_types)}")
 
         names_to_tasks: dict[str, list[str]] = {} # {name: [task]}
         for task_name in relevant_tasks_for_files: # just the relevant tasks
@@ -323,6 +324,7 @@ class MultiTaskDataset(Dataset):
                     files_per_task[task].append(None) # if any of the deps don't exist for this task, skip it.
                 else:
                     paths = [all_files[dep][name] for dep in deps]
+                    assert len(paths) > 0, f"'{task}' most likely has no data or dependencies to compute it from"
                     files_per_task[task].append(paths if len(deps) > 1 else paths[0])
         return files_per_task, all_names
 
