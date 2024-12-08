@@ -1,5 +1,5 @@
 import pytest
-from vre.utils.image import _get_rows_cols, collage_fn
+from vre.utils.image import _get_rows_cols, collage_fn, image_blend
 import numpy as np
 
 def test_get_rows_cols():
@@ -63,3 +63,12 @@ def test_collage_fn_pad_to_max():
 
     collage = collage_fn(images, pad_to_max=True, rows_cols=(3, 3))
     assert collage.shape == (420 * 3, 420 * 3, 3)
+
+def test_image_blend():
+    with pytest.raises(AssertionError):
+        image_blend(np.random.randn(100, 200, 3), np.random.randn(100, 200, 3), 0.5)
+
+    x = np.full(shape=(100, 100, 1), fill_value=0, dtype=np.uint8)
+    y = np.full(shape=(100, 100, 1), fill_value=100, dtype=np.uint8)
+    assert (image_blend(x, y, 0.4) == 40).all()
+    assert (image_blend(x, y, np.full((100, 100, 1), 0.6)) == 60).all()

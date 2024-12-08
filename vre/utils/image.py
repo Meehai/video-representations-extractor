@@ -3,7 +3,7 @@ from pathlib import Path
 import numpy as np
 
 from ..logger import vre_logger as logger
-from .utils import get_closest_square
+from .utils import get_closest_square, array_blend
 from .repr_memory_layout import MemoryData
 from .cv2_utils import cv2_image_resize, cv2_image_write, cv2_image_read
 from .pil_utils import pil_image_resize, pil_image_add_title, pil_image_read, pil_image_write
@@ -164,9 +164,11 @@ def image_add_border(image: np.ndarray, color: tuple[int, int, int] | int, thicc
     new_image[:, -thicc:] = color
     return new_image
 
-def image_blend(x: np.ndarray, y: np.ndarray) -> np.ndarray:
-    """blends two [0:1] images with the 2 one having an alpha channel too. Returns a non-alpha image"""
-    assert np.issubdtype(x.dtype, np.floating) and np.issubdtype(y.dtype, np.floating), (x.dtype, y.dtype)
-    assert x.shape[-1] == 3 and y.shape[-1] == 4, (x.shape, y.shape)
-    y_rgb, alpha = y[..., 0:3], y[..., 3:4]
-    return (1 - alpha) * x + alpha * y_rgb
+def image_blend(x: np.ndarray, y: np.ndarray, alpha: float | np.ndarray) -> np.ndarray:
+    """Blends two [0:255] RGB images given an alpha array or float value in [0:1]."""
+    assert (dt := x.dtype) == y.dtype == np.uint8, (dt, y.dtype)
+    assert len(x.shape) == len(y.shape) == 3, (x.shape, y.shape)
+    x = x.astype(np.float32) / 255
+    y = y.astype(np.float32) / 255
+    res_float = array_blend(x, y, alpha)
+    return (res_float * 255).astype(np.uint8)

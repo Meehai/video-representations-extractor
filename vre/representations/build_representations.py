@@ -3,8 +3,8 @@ from typing import Type
 from pathlib import Path
 import imp # pylint: disable=deprecated-module
 from omegaconf import DictConfig, OmegaConf
+from vre.logger import vre_logger as logger
 
-from ..logger import vre_logger as logger
 from ..utils import topological_sort
 from .representation import Representation
 from .learned_representation_mixin import LearnedRepresentationMixin
