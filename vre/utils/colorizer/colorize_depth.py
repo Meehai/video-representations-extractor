@@ -4,15 +4,15 @@ import numpy as np
 def colorize_depth(depth_map: np.ndarray, min_max_depth: tuple[float, float] | None = None,
                    percentiles: tuple[int, int] | None = None) -> np.ndarray:
     """Colorize depth maps. Returns a [0:1] (H, W, 3) float image. Batched."""
-    assert len(depth_map.shape) == 3, depth_map.shape
+    assert len(depth_map.shape) == 4 and depth_map.shape[-1] == 1, depth_map.shape
     assert isinstance(depth_map, np.ndarray), depth_map
     assert (min_max_depth is not None and percentiles is None) or min_max_depth is None, (min_max_depth, percentiles)
-    dm_no_nan = np.nan_to_num(depth_map, True, 0, 0, 0)
+    dm_no_nan = np.nan_to_num(depth_map[..., 0], True, 0, 0, 0)
     percentiles = [0, 100] if percentiles is None else percentiles
     min_depth, max_depth = np.percentile(dm_no_nan, percentiles)
     if min_depth == max_depth:
-        return (dm_no_nan * 0)[..., None].repeat(3, axis=-1)
-    dm_min_max = (depth_map - min_depth) / (max_depth - min_depth)
+        return (dm_no_nan[..., None] * 0).repeat(3, axis=-1)
+    dm_min_max = (dm_no_nan - min_depth) / (max_depth - min_depth)
     return _spectral(dm_min_max.clip(0, 1))
 
 def _spectral(grayscale_array: np.ndarray):

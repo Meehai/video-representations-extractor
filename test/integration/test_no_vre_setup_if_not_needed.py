@@ -22,7 +22,8 @@ class MyRepresentation(Representation, LearnedRepresentationMixin, ComputeRepres
         self.make_called = False
     def compute(self, video, ixs):
         self.make_called = True
-        self.data = ReprOut(frames := video[ixs], output=frames, key=ixs)
+        breakpoint()
+        self.data = ReprOut(frames := video[ixs], output=frames[..., 0:1], key=ixs)
     def make_images(self):
         return self.data.output
     def vre_setup(self, load_weights = True):
@@ -30,6 +31,7 @@ class MyRepresentation(Representation, LearnedRepresentationMixin, ComputeRepres
     def vre_free(self):
         self.vre_free_called = True
         self.setup_called = False
+    @property
     def n_channels(self):
         return 1
 
@@ -42,6 +44,7 @@ class MyDependentRepresentation(Representation, ComputeRepresentationMixin, NpIO
         self.data = ReprOut(frames=video[ixs], output=self.dependencies[0].data.output, key=ixs)
     def make_images(self):
         return self.data.output
+    @property
     def n_channels(self):
         return 1
 
@@ -50,7 +53,7 @@ def test_no_vre_setup_if_not_needed():
     (tmp_dir / "r1/npz").mkdir(parents=True, exist_ok=False)
     video = FakeVideo(np.random.randint(0, 255, size=(10, 20, 20, 3)).astype(np.uint8), fps=30)
     for i in range(len(video)):
-        np.savez(f"{tmp_dir}/r1/npz/{i}.npz", video[i])
+        np.savez(f"{tmp_dir}/r1/npz/{i}.npz", video[i][..., 0:1])
     r1 = MyRepresentation("r1", [])
     r2 = MyDependentRepresentation("r2", [r1])
     vre = VRE(video, {"r1": r1, "r2": r2}) \
