@@ -12,7 +12,8 @@ def lo(x: np.ndarray | tr.Tensor | None) -> str:
     def _dt(x: tr.dtype | np.dtype) -> str:
         y = str(x).removeprefix("torch.") if str(x).startswith("torch.") else str(x)
         return y if y == "bool" else (f"{y[0]}{y[-1]}" if y[-1] == "8" else f"{y[0]}{y[-2:]}")
+    _r = lambda x: round(x.item(), 2) # pylint: disable=unnecessary-lambda-assignment
     arr_type = "arr" if isinstance(x, np.ndarray) else "tr"
     if x is None:
         return x
-    return f"{arr_type}{[*x.shape]} {_dt(x.dtype)} x∈[{round(x.min().item(), 2)}, {round(x.max().item(), 2)}]"
+    return f"{arr_type}{[*x.shape]} {_dt(x.dtype)} x∈[{_r(x.min())}, {_r(x.max())}], μ={_r(x.mean())}, σ={_r(x.std())}"

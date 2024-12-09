@@ -28,8 +28,8 @@ class NormedRepresentationMixin:
         """Given a normalized representation using either self.normalize or self.standardize, turn it back"""
         assert self.stats is not None, "stats must be called before task.unnormalize(x) via task.set_normalization()"
         if self.normalization == "min_max":
-            return x * (self.max - self.min) + self.min
-        return x * self.std + self.mean
+            return np.nan_to_num(x * (self.max - self.min) + self.min, False, 0, 0, 0)
+        return np.nan_to_num(x * self.std + self.mean, False, 0, 0, 0)
 
     def min_max(self, x: np.ndarray) -> np.ndarray:
         """normalizes a data point read with self.load_from_disk(path) using external min/max information"""

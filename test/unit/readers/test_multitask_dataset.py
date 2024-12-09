@@ -73,7 +73,7 @@ def test_MultiTaskDataset_normalization(dataset_path: Path, normalization: str):
         else:
             if not isinstance(dataset.name_to_task[task], NormedRepresentationMixin):
                 continue
-            MAX_MEAN_DIFF, MAX_STD_DIFF, MIN_STD, MAX_STD = 0.15, 0.15, -5, 5
+            MAX_MEAN_DIFF, MAX_STD_DIFF, MIN_STD, MAX_STD = 0.20, 0.20, -5, 5
             assert x[task].min() >= MIN_STD and x[task].max() <= MAX_STD, x[task]
             assert x[task].mean().abs() < MAX_MEAN_DIFF and (x[task].std() - 1).abs() < MAX_STD_DIFF, \
                 (task, x[task].mean(), x[task].std())

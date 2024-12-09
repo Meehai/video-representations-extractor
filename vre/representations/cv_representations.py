@@ -89,11 +89,8 @@ class DepthRepresentation(ExternalRepresentation, NpIORepresentation):
 
     @overrides
     def make_images(self) -> np.ndarray:
-        x = self.data.output.clip(0, 1)
-        x = x[..., 0] if x.shape[-1] == 1 else x
-        _min, _max = np.percentile(x, [1, 95])
-        y_spectral = colorize_depth(x, _min, _max)
-        return (y_spectral * 255).astype(np.uint8)
+        assert self.data is not None, f"[{self}] data must be first computed using compute()"
+        return (colorize_depth(self.data.output, percentiles=[1, 95]) * 255).astype(np.uint8)
 
 class OpticalFlowRepresentation(ExternalRepresentation, NpIORepresentation):
     """OpticalFlowRepresentation. Implements flow task-specific stuff."""

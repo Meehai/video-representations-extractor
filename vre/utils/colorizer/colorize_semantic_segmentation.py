@@ -3,14 +3,26 @@ import pycocotools.mask as mask_util
 from skimage.draw import polygon # pylint: disable=no-name-in-module
 from PIL import Image, ImageDraw
 import numpy as np
-from .pil_utils import _get_default_font, _pil_image_draw_textsize
-from .image import image_blend
-from .cv2_utils import cv2_findContours, cv2_RETR_CCOMP, cv2_CHAIN_APPROX_NONE, cv2_connectedComponentsWithStats
+
+from ..pil_utils import _get_default_font, _pil_image_draw_textsize
+from ..image import image_blend
+from ..cv2_utils import cv2_findContours, cv2_RETR_CCOMP, cv2_CHAIN_APPROX_NONE, cv2_connectedComponentsWithStats
 
 _AREA_THRESHOLD = 10
 _LINE_WIDTH = 1.2
 _LARGE_MASK_AREA_THRESH = 120_000
 _WHITE = (255, 255, 255)
+
+def colorize_semantic_segmentation(semantic_map: np.ndarray, classes: list[str], color_map: list[tuple[int, int, int]],
+                                   rgb: np.ndarray | None = None, alpha: float = 0.8):
+    """Colorize asemantic segmentation maps. Must be argmaxed (H, W). Can paint over the original RGB frame or not."""
+    assert np.issubdtype(semantic_map.dtype, np.integer), semantic_map.dtype
+    assert (max_class := semantic_map.max()) <= len(color_map), (max_class, len(color_map))
+    assert len(shp := semantic_map.shape) == 3, shp
+    assert rgb is None or (rgb.shape[0:-1] == shp), (rgb.shape, shp)
+    alpha = alpha if rgb is not None else 1
+    rgb = rgb if rgb is not None else np.zeros((*semantic_map.shape, 3), dtype=np.uint8)
+    return np.array([_colorize_sem_seg(_s, _r, classes, color_map, alpha) for _r, _s in zip(rgb, semantic_map)])
 
 class _GenericMask:
     """
@@ -121,8 +133,8 @@ def _draw_polygon(vertices, shape, linewidth=1):
     binary_array[rr, cc] = 1
     return binary_array
 
-def colorize_sem_seg(sema: np.ndarray, rgb: np.ndarray | None, classes: list[str],
-                     color_map: list[tuple[int, int, int]], alpha: float=0.8) -> np.ndarray:
+def _colorize_sem_seg(sema: np.ndarray, rgb: np.ndarray | None, classes: list[str],
+                      color_map: list[tuple[int, int, int]], alpha: float=0.8) -> np.ndarray:
     """colorize semantic segmentation -- based on Mask2Former's approach but without MPL"""
     classes = list(map(str, classes)) if all(isinstance(x, int) for x in classes) else classes
     assert all(isinstance(x, str) for x in classes), classes

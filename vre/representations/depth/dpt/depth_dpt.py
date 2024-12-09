@@ -35,7 +35,7 @@ class DepthDpt(Representation, LearnedRepresentationMixin, ComputeRepresentation
     @overrides
     def make_images(self) -> np.ndarray:
         assert self.data is not None, f"[{self}] data must be first computed using compute()"
-        return (colorize_depth(self.data.output, min_depth=0, max_depth=1) * 255).astype(np.uint8)
+        return (colorize_depth(self.data.output, percentiles=[1, 95]) * 255).astype(np.uint8)
 
     @overrides
     def vre_setup(self, load_weights: bool = True):
