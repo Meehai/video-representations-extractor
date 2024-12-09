@@ -42,8 +42,8 @@ class DepthNormalsSVD(Representation, ComputeRepresentationMixin, NpIORepresenta
         assert self.data is None, f"[{self}] data must not be computed before calling this"
         assert (A := self.dependencies[0].data) is not None and self.dependencies[0].data.key == ixs, (A.key, ixs)
         depths = self.dependencies[0].data.output
-        assert len(depths.shape) == 3, f"Expected (T, H, W) got: {depths.shape}"
-        res = MemoryData([self._make_one_normal(depth) for depth in depths])
+        assert len(depths.shape) == 4 and depths.shape[-1] == 1, f"Expected (B, H, W, 1) got: {depths.shape}"
+        res = MemoryData([self._make_one_normal(depth[..., 0]) for depth in depths])
         self.data = ReprOut(frames=video[ixs], output=res, key=ixs)
 
     @overrides
