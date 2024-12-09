@@ -136,6 +136,8 @@ class VideoRepresentationsExtractor:
                 tr.cuda.empty_cache() # might empty some unused memory, not 100% if needed.
                 self._compute_one_representation_batch(rep=rep, batch=batch, output_dir=data_writer.output_dir)
                 assert rep.data is not None, (rep, batch)
+                if not rep.is_classification and rep.name.find("fastsam") == -1: # TODO: MemoryData of M2F is binary...
+                    assert rep.data.output.shape[-1] == rep.n_channels, (rep, rep.data.output, rep.n_channels)
                 rep.data.output_images = rep.make_images() if rep.export_image else None
                 data_storer(rep.data)
             except Exception:

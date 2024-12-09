@@ -28,7 +28,7 @@ class Canny(Representation, ComputeRepresentationMixin, NpIORepresentation, Norm
     @overrides
     def make_images(self) -> np.ndarray:
         assert self.data is not None, f"[{self}] data must be first computed using compute()"
-        return (255 * self.data.output[..., None].repeat(3, axis=-1)).astype(np.uint8)
+        return (255 * self.data.output.repeat(3, axis=-1)).astype(np.uint8)
 
     @property
     @overrides
@@ -39,4 +39,4 @@ class Canny(Representation, ComputeRepresentationMixin, NpIORepresentation, Norm
         res = cv2_Canny(x, threshold1=self.threshold1, threshold2=self.threshold2,
                         apertureSize=self.aperture_size, L2gradient=self.l2_gradient)
         res = np.float32(res) / 255
-        return res
+        return res[..., None]

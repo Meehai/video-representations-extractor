@@ -42,7 +42,9 @@ def cv2_image_resize(data: np.ndarray, height: int, width: int, interpolation: s
     interpolation = {"nearest": cv2.INTER_NEAREST, "bilinear": cv2.INTER_LINEAR, "area": cv2.INTER_AREA,
                      "bicubic": cv2.INTER_CUBIC, "lanczos": cv2.INTER_LANCZOS4}[interpolation]
     _data = data if data.dtype == np.uint8 else data.astype(np.float32)
-    return cv2.resize(_data, dsize=(width, height), interpolation=interpolation, **kwargs).astype(data.dtype)
+    res = cv2.resize(_data, dsize=(width, height), interpolation=interpolation, **kwargs).astype(data.dtype)
+    res = res[..., None] if data.shape[-1] == 1 else res
+    return res
 
 def cv2_connectedComponents(*args, **kwargs):
     """Wrapper on top of cv2"""

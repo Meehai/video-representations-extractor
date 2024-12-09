@@ -33,7 +33,7 @@ class DexiNed(Representation, LearnedRepresentationMixin, ComputeRepresentationM
     @overrides
     def make_images(self) -> np.ndarray:
         assert self.data is not None, f"[{self}] data must be first computed using compute()"
-        x = np.repeat(np.expand_dims(self.data.output, axis=-1), 3, axis=-1)
+        x = self.data.output.repeat(3, axis=-1)
         return (x * 255).astype(np.uint8)
 
     @overrides
@@ -79,4 +79,4 @@ class DexiNed(Representation, LearnedRepresentationMixin, ComputeRepresentationM
         B = y_s.max(dim=-1, keepdims=True)[0].max(dim=-2, keepdims=True)[0]
         y_s_normed: tr.Tensor = 1 - (y_s - A) * (B - A)
         y_s_final = y_s_normed.mean(dim=1).cpu().numpy().astype(np.float32)
-        return y_s_final
+        return y_s_final[..., None]
