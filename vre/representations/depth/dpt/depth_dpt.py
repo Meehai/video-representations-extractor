@@ -71,4 +71,4 @@ class DepthDpt(Representation, LearnedRepresentationMixin, ComputeRepresentation
         return tr_frames_norm
 
     def _postprocess(self, y: tr.Tensor) -> np.ndarray:
-        return (1 / y).clip(0, 1).cpu().numpy()
+        return (1 / y).clip(0, 1).cpu().numpy()[..., None]

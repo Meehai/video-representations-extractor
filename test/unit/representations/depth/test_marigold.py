@@ -12,15 +12,15 @@ def test_marigold():
     assert marigold_repr.device == "cpu" # default from LearnedRepresentationMixin
 
     marigold_repr.compute(video, ixs=[0])
-    assert marigold_repr.data.output.shape == (1, 8, 24), marigold_repr.data.output.shape
+    assert marigold_repr.data.output.shape == (1, 8, 24, 1), marigold_repr.data.output.shape
 
     y_dpt_images = marigold_repr.make_images()
     assert y_dpt_images.shape == (1, 8, 24, 3), y_dpt_images.shape
     assert y_dpt_images.dtype == np.uint8, y_dpt_images.dtype
 
-    assert marigold_repr.size == (1, 8, 24)
+    assert marigold_repr.size == (1, 8, 24, 1)
     marigold_repr.data = marigold_repr.resize(marigold_repr.data, (64, 128)) # we can resize it though
-    assert marigold_repr.size == (1, 64, 128)
+    assert marigold_repr.size == (1, 64, 128, 1)
     assert marigold_repr.make_images().shape == (1, 64, 128, 3)
 
 if __name__ == "__main__":

@@ -87,8 +87,9 @@ class Marigold(Representation, LearnedRepresentationMixin, ComputeRepresentation
         if self.seed is not None:
             generator = tr.Generator(self.device)
             generator.manual_seed(self.seed)
-        return self.model(tr_rgb, denoising_steps=self.denoising_steps, ensemble_size=self.ensemble_size,
-                          processing_res=self.processing_resolution, generator=generator)[0]
+        y_model = self.model(tr_rgb, denoising_steps=self.denoising_steps, ensemble_size=self.ensemble_size,
+                             processing_res=self.processing_resolution, generator=generator)
+        return y_model[0][..., None]
 
     def _get_ddim_cfg(self) -> dict:
         return {
