@@ -68,7 +68,7 @@ class Marigold(Representation, LearnedRepresentationMixin, ComputeRepresentation
     @overrides
     def make_images(self) -> np.ndarray:
         assert self.data is not None, f"[{self}] data must be first computed using compute()"
-        return (colorize_depth(self.data.output, 0, 1) * 255).astype(np.uint8)
+        return (colorize_depth(self.data.output, percentiles=[1, 95]) * 255).astype(np.uint8)
 
     @overrides
     def vre_free(self):

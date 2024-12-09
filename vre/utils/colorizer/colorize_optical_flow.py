@@ -1,30 +1,10 @@
 """common visualizing functions for standard representations, like depth, semantic, optical flow etc. Batched!"""
 import numpy as np
-from .colorize_sem_seg import colorize_sem_seg
-
-def colorize_depth(depth_map: np.ndarray, min_depth: float, max_depth: float) -> np.ndarray:
-    """Colorize depth maps. Returns a [0:1] (H, W, 3) float image. Batched."""
-    depth_map = depth_map[..., 0:3] if depth_map.shape[-1] == 4 else depth_map
-    assert len(depth_map.shape) == 3, depth_map.shape
-    assert isinstance(depth_map, np.ndarray), depth_map
-    depth = ((depth_map - min_depth) / (max_depth - min_depth)).clip(0, 1)
-    return _spectral(depth)
 
 def colorize_optical_flow(flow_map: np.ndarray) -> np.ndarray:
     """Colorize optical flow maps. returns a [0:255] (H, W, 3) uint8 image. Batched"""
     assert len(flow_map.shape) == 4 and flow_map.shape[-1] == 2, flow_map.shape
     return np.array([_flow_to_color(_pred) for _pred in flow_map])
-
-def colorize_semantic_segmentation(semantic_map: np.ndarray, classes: list[str], color_map: list[tuple[int, int, int]],
-                                   rgb: np.ndarray | None = None, alpha: float = 0.8):
-    """Colorize asemantic segmentation maps. Must be argmaxed (H, W). Can paint over the original RGB frame or not."""
-    assert np.issubdtype(semantic_map.dtype, np.integer), semantic_map.dtype
-    assert (max_class := semantic_map.max()) <= len(color_map), (max_class, len(color_map))
-    assert len(shp := semantic_map.shape) == 3, shp
-    assert rgb is None or (rgb.shape[0:-1] == shp), (rgb.shape, shp)
-    alpha = alpha if rgb is not None else 1
-    rgb = rgb if rgb is not None else np.zeros((*semantic_map.shape, 3), dtype=np.uint8)
-    return np.array([colorize_sem_seg(_s, _r, classes, color_map, alpha) for _r, _s in zip(rgb, semantic_map)])
 
 # pylint: disable=invalid-name
 def _make_colorwheel():
@@ -140,39 +120,3 @@ def _flow_to_color(flow_uv, clip_flow=None, convert_to_bgr=False):
     u = u / (rad_max + epsilon)
     v = v / (rad_max + epsilon)
     return _flow_uv_to_colors(u, v, convert_to_bgr)
-
-
-def _spectral(grayscale_array: np.ndarray):
-    """
-    Maps a grayscale array (values between 0 and 1) to the spectral colormap without using Matplotlib.
-    Args:
-        grayscale_array (np.ndarray): Input array with values in the range [0, 1].
-    Returns:
-        np.ndarray: RGB array with values in the range [0, 1], shape (H, W, 3).
-    """
-    assert np.issubsctype(grayscale_array, np.floating), grayscale_array.dtype
-    assert (_min := grayscale_array.min()) >= 0 and grayscale_array.max() <= 1, (_min, grayscale_array.max())
-    spectral_colors = np.array([
-        [158/255,   1/255,  66/255],  # Dark Red
-        [213/255,  62/255,  79/255],  # Red
-        [244/255, 109/255,  67/255],  # Orange
-        [253/255, 174/255,  97/255],  # Light Orange
-        [254/255, 224/255, 139/255],  # Yellow
-        [230/255, 245/255, 152/255],  # Light Green
-        [171/255, 221/255, 164/255],  # Green
-        [102/255, 194/255, 165/255],  # Cyan
-        [ 50/255, 136/255, 189/255],  # Blue
-        [ 94/255,  79/255, 162/255]   # Purple
-    ])
-
-    # Corresponding grayscale positions for the colormap
-    spectral_positions = np.linspace(0, 1, len(spectral_colors))
-
-    # Interpolate each color channel separately
-    red = np.interp(grayscale_array, spectral_positions, spectral_colors[:, 0])
-    green = np.interp(grayscale_array, spectral_positions, spectral_colors[:, 1])
-    blue = np.interp(grayscale_array, spectral_positions, spectral_colors[:, 2])
-
-    # Stack the interpolated channels to form the RGB array
-    rgb_array = np.stack([red, green, blue], axis=-1)
-    return rgb_array.astype(np.float32)
