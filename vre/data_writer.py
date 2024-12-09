@@ -40,9 +40,9 @@ class DataWriter:
         # TODO: this should be in ReprOut setter
         if self.rep.export_image:
             assert y_repr.output_images is not None, (self.rep, y_repr)
-            assert len(y_repr.output_images) == len(y_repr.key)
+            assert len(y_repr.output_images) == len(y_repr.key), (len(y_repr.output_images), len(y_repr.key))
         if y_repr.extra is not None:
-            assert len(y_repr.extra) == len(y_repr.key)
+            assert len(y_repr.extra) == len(y_repr.key), (len(y_repr.extra), len(y_repr.extra))
 
         if isinstance(self.rep.output_size, tuple):
             y_repr = self.rep.resize(y_repr, self.rep.output_size)
