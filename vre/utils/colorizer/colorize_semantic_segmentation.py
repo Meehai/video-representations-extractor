@@ -1,6 +1,5 @@
 """colorize semantic segmentation module -- based on the original M2F implementation but without matplotlib"""
 import pycocotools.mask as mask_util
-from skimage.draw import polygon # pylint: disable=no-name-in-module
 from PIL import Image, ImageDraw
 import numpy as np
 
@@ -98,7 +97,7 @@ def _draw_text_in_mask(res: np.ndarray, binary_mask: np.ndarray, text: str, colo
             res = _add_text_with_background(res, text, center, font_size_px, color)
     return res
 
-def _draw_polygon(vertices, shape, linewidth=1):
+def _draw_polygon(vertices: list[tuple[int, int]], shape: tuple[int, int], linewidth: int=1):
     """
     Draw a filled polygon with specified edge linewidth into a binary NumPy array, avoiding loops.
 
@@ -108,9 +107,11 @@ def _draw_polygon(vertices, shape, linewidth=1):
     :return: A binary NumPy array with the polygon drawn with filled interior and specified edge width.
     """
     vertices = np.array(vertices, dtype=np.float32)
-
-    # Normalize linewidth as a radius
-    radius = linewidth / 2.0
+    # expand both to fllor and ceil because we get values between 2 pixels. This is the easiest way to do a polygon
+    # without "rasterizing" between the pixels. We also know that the vertices are of correct shape, so no need to
+    # resize them.
+    vertices = np.concatenate([np.floor(vertices), np.ceil(vertices)]).astype(float)
+    radius = linewidth / 4.0 # / 4, not / 2 because of the +/-1 above
 
     # Calculate offsets for edge thickening
     edges = np.concatenate([vertices, vertices[:1]])  # Close the polygon
@@ -126,11 +127,13 @@ def _draw_polygon(vertices, shape, linewidth=1):
         expanded_vertices.append(edges[:-1] + offset)
 
     expanded_vertices = np.concatenate(expanded_vertices, axis=0)
+    expanded_vertices[:, 0] = expanded_vertices[:, 0].clip(0, shape[1] - 1)
+    expanded_vertices[:, 1] = expanded_vertices[:, 1].clip(0, shape[0] - 1)
+    expanded_vertices = np.round(expanded_vertices).astype(int)
 
     # Rasterize expanded polygon
-    rr, cc = polygon(expanded_vertices[:, 1], expanded_vertices[:, 0], shape)
     binary_array = np.zeros(shape, dtype=bool)
-    binary_array[rr, cc] = 1
+    binary_array[expanded_vertices[:, 1], expanded_vertices[:, 0]] = 1
     return binary_array
 
 def _colorize_sem_seg(sema: np.ndarray, rgb: np.ndarray | None, classes: list[str],
