@@ -150,8 +150,8 @@ def image_add_border(image: np.ndarray, color: tuple[int, int, int] | int, thicc
         thicc = max(1, min(7, h // 33)) if h >= w else max(1, min(7, w // 33)) # heuristic, to be changed if it's bad.
 
     idx = np.linspace(0, 1, max(h, w))
-    x = np.arange(w) if h >= w else np.round(idx * (w - 1)).astype(int)
-    y = np.arange(h) if w >= h else np.round(idx * (h - 1)).astype(int)
+    x = np.arange(w) if w >= h else np.round(idx * (w - 1)).astype(int)
+    y = np.round(idx * (h - 1)).astype(int) if w >= h else np.arange(h)
 
     new_image = image if inplace else image.copy()
     if add_x:
