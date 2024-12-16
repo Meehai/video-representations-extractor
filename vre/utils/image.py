@@ -12,8 +12,7 @@ def image_resize(data: np.ndarray, height: int | None, width: int | None, interp
                  library: str = "cv2", **kwargs) -> np.ndarray:
     """image resize. Allows 2 libraries: PIL and cv2 (to alleviate potential pre-trained issues)"""
     assert ((width is None) or width == -1) + ((height is None) or height == -1) <= 1, "At least one must be set"
-    def _scale(a: int, b: int, c: int) -> int:
-        return int(a / b * c)
+    _scale = lambda a, b, c: int(b / a * c) # pylint: disable=unnecessary-lambda-assignment
     width = _scale(data.shape[0], height, data.shape[1]) if (width is None or width == -1) else width
     height = _scale(data.shape[1], width, data.shape[0]) if (height is None or height == -1) else height
     assert isinstance(height, int) and isinstance(width, int), (type(height), type(width))
