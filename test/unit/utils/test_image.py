@@ -1,5 +1,5 @@
 import pytest
-from vre.utils.image import _get_rows_cols, collage_fn, image_blend
+from vre.utils.image import _get_rows_cols, collage_fn, image_blend, image_resize
 import numpy as np
 
 def test_get_rows_cols():
@@ -72,3 +72,6 @@ def test_image_blend():
     y = np.full(shape=(100, 100, 1), fill_value=100, dtype=np.uint8)
     assert (image_blend(x, y, 0.4) == 40).all()
     assert (image_blend(x, y, np.full((100, 100, 1), 0.6)) == 60).all()
+
+def test_image_resize_width_None():
+    assert image_resize(np.random.randint(0, 255, size=(100, 200, 3)), height=200, width=None).shape == (200, 400, 3)
