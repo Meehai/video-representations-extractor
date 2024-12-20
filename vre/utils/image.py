@@ -105,6 +105,7 @@ def collage_fn(images: list[np.ndarray], rows_cols: tuple[int, int] = None, pad_
         shapes = [x.shape for x in images]
 
     if titles is not None:
+        assert len(titles) == len(images), f"{len(titles)=}, {len(images)=}"
         images = [image_add_title(image, title, **title_kwargs) for (image, title) in zip(images, titles)]
         shapes = [x.shape for x in images]
 
