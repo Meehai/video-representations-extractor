@@ -36,5 +36,5 @@ class ReprOut:
         assert self.frames is None or len(self.frames) == len(self.output), (len(self.frames), len(self.output))
 
     def __repr__(self):
-        return (f"[ReprOut](key={self.key}, output={lo(self.output)}, output_images={lo(self.output_images)} "
+        return (f"[ReprOut](key={self.key}, output={lo(self.output)}, output_images={lo(self.output_images)}, "
                 f"extra set={self.extra is not None}, frames={lo(self.frames)})")
