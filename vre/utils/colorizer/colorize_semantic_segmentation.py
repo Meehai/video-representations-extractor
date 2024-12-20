@@ -11,9 +11,10 @@ _AREA_THRESHOLD = 10
 _LINE_WIDTH = 1.2
 _LARGE_MASK_AREA_THRESH = 120_000
 _WHITE = (255, 255, 255)
+COLOR = tuple[int, int, int]
 
 def colorize_semantic_segmentation(semantic_map: np.ndarray, classes: list[str], color_map: list[tuple[int, int, int]],
-                                   rgb: np.ndarray | None = None, alpha: float = 0.8):
+                                   rgb: np.ndarray | None = None, alpha: float = 0.8, size_px: int | None = None):
     """Colorize asemantic segmentation maps. Must be argmaxed (H, W). Can paint over the original RGB frame or not."""
     assert np.issubdtype(semantic_map.dtype, np.integer), semantic_map.dtype
     assert (max_class := semantic_map.max()) <= len(color_map), (max_class, len(color_map))
@@ -21,7 +22,9 @@ def colorize_semantic_segmentation(semantic_map: np.ndarray, classes: list[str],
     assert rgb is None or (rgb.shape[0:-1] == shp), (rgb.shape, shp)
     alpha = alpha if rgb is not None else 1
     rgb = rgb if rgb is not None else np.zeros((*semantic_map.shape, 3), dtype=np.uint8)
-    return np.array([_colorize_sem_seg(_s, _r, classes, color_map, alpha) for _r, _s in zip(rgb, semantic_map)])
+    return np.array([_colorize_sem_seg(sema=_s, rgb=_r, classes=classes, color_map=color_map,
+                                       alpha=alpha, size_px=size_px)
+                     for _r, _s in zip(rgb, semantic_map)])
 
 class _GenericMask:
     """
@@ -78,9 +81,10 @@ def _add_text_with_background(image_array, text, position, font_size, color):
     return np.array(image)
 
 def _font_size_from_shape(shp) -> int:
-    return max(13, min(20, min(*shp) // 20))
+    return max(13, min(20, min(*shp) // 20)) # heuristic of the year
 
-def _draw_text_in_mask(res: np.ndarray, binary_mask: np.ndarray, text: str, color: tuple[int, int, int]) -> np.ndarray:
+def _draw_text_in_mask(res: np.ndarray, binary_mask: np.ndarray, text: str, color: tuple[int, int, int],
+                       size_px: int | None = None) -> np.ndarray:
     """
     Find proper places to draw text given a binary mask.
     """
@@ -90,7 +94,7 @@ def _draw_text_in_mask(res: np.ndarray, binary_mask: np.ndarray, text: str, colo
     largest_component_id = np.argmax(stats[1:, -1]) + 1
 
     # draw text on the largest component, as well as other very large components.
-    font_size_px =_font_size_from_shape(binary_mask.shape)
+    font_size_px =_font_size_from_shape(binary_mask.shape) if size_px is None else size_px
     for cid in range(1, _num_cc):
         if cid == largest_component_id or stats[cid, -1] > _LARGE_MASK_AREA_THRESH:
             center = np.median((cc_labels == cid).nonzero(), axis=1)[::-1] # position based on median
@@ -137,7 +141,8 @@ def _draw_polygon(vertices: list[tuple[int, int]], shape: tuple[int, int], linew
     return binary_array
 
 def _colorize_sem_seg(sema: np.ndarray, rgb: np.ndarray | None, classes: list[str],
-                      color_map: list[tuple[int, int, int]], alpha: float=0.8) -> np.ndarray:
+                      color_map: list[tuple[int, int, int]], alpha: float=0.8,
+                      size_px: int | None = None) -> np.ndarray:
     """colorize semantic segmentation -- based on Mask2Former's approach but without MPL"""
     classes = list(map(str, classes)) if all(isinstance(x, int) for x in classes) else classes
     assert all(isinstance(x, str) for x in classes), classes
@@ -149,7 +154,7 @@ def _colorize_sem_seg(sema: np.ndarray, rgb: np.ndarray | None, classes: list[st
     masks: list[_GenericMask] = []
     alpha_all_masks = np.full((*rgb.shape[0:2], 1), 0).astype(np.float32) # an array jost for alphas per mask
     polys = np.zeros(rgb.shape[0:2], dtype=bool) # polygons binary mask that is added at the end
-    texts_data = [] # a list of all texts based on the class labels (if shown)
+    texts_data: list[tuple[np.ndarray, str, COLOR]] = [] # a list of all texts based on the class labels (if shown)
     for ix in sorted_idxs:
         masks.append(_GenericMask(sema == labels[ix], *sema.shape[0:2]))
 
@@ -173,5 +178,5 @@ def _colorize_sem_seg(sema: np.ndarray, rgb: np.ndarray | None, classes: list[st
         res = image_blend(res, rgb, alpha_all_masks)
     res[polys] = _WHITE
     for text_data in texts_data: # TODO: if texts overlap, show just the one with highest area maybe
-        res = _draw_text_in_mask(res, *text_data)
+        res = _draw_text_in_mask(res, binary_mask=text_data[0], text=text_data[1], color=text_data[2], size_px=size_px)
     return res
