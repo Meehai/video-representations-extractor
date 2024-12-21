@@ -10,7 +10,7 @@ import numpy as np
 
 from vre.logger import vre_logger as logger
 from vre.utils import (image_resize_batch, fetch_weights, image_read, image_write,
-                       vre_load_weights, colorize_semantic_segmentation, VREVideo, FakeVideo, MemoryData)
+                       vre_load_weights, colorize_semantic_segmentation, VREVideo, FakeVideo, MemoryData, DiskData)
 from vre.representations import (
     Representation, ReprOut, LearnedRepresentationMixin, ComputeRepresentationMixin, NpIORepresentation)
 from vre.representations.semantic_segmentation.mask2former.mask2former_impl import MaskFormer, CfgNode, get_output_shape
@@ -83,6 +83,11 @@ class Mask2Former(Representation, LearnedRepresentationMixin, ComputeRepresentat
             tr.cuda.empty_cache()
         self.model = None
         self.setup_called = False
+
+    @overrides
+    def disk_to_memory_fmt(self, disk_data: DiskData) -> MemoryData:
+        assert disk_data.dtype in (np.uint8, np.uint16), disk_data.dtype
+        return MemoryData(np.eye(len(self.classes))[disk_data].astype(np.float32))
 
     def _get_metadata(self, model_id: str) -> tuple[list[str], list[tuple[int, int, int]], dict[str, int]]:
         metadata = None

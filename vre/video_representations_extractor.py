@@ -1,4 +1,4 @@
-"""Video Representations Extractor module"""
+"""Video Repentations Extractor module"""
 from __future__ import annotations
 from pathlib import Path
 from datetime import datetime

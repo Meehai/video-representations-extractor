@@ -146,7 +146,7 @@ def build_representations_from_cfg(cfg: Path | str | DictConfig | dict) -> list[
         tsr.append(obj)
     return tsr
 
-def add_external_representations(representations: dict[str, Representation], external_path: str,
+def add_external_representations(representations: list[Representation], external_path: str,
                                  cfg: DictConfig) -> list[Representation]:
     """adds external representations from an provided path in the format: /path/to/script.py:fn_name"""
     path, fn = external_path.split(":")
@@ -161,9 +161,15 @@ def add_external_representations(representations: dict[str, Representation], ext
         if isinstance(repr, LearnedRepresentationMixin):
             repr.set_learned_parameters(**cfg.get("default_learned_parameters", {}))
 
-    breakpoint()
-    # check for clashes and 
     assert (clash := set(external_representations.keys()).intersection(representations)) == set(), clash
+    name_to_repr = {r.name: r for r in representations}
+    # update clashes in dependencies
+    for external_repr in external_representations.values():
+        for i, external_dep in enumerate(external_repr.dependencies):
+            if external_dep.name in name_to_repr and id(external_dep) != id(existing := name_to_repr[external_dep.name]):
+                logger.warning(f"[{external_repr.name}] Dependency {external_dep} is different than existing {existing}. "
+                               "Replacing the dependency. This may yield in wrong results!")
+                external_repr.dependencies[i] = existing
 
     new_representations = [*representations, *list(external_representations.values())]
     dep_graph = {r.name: [_r.name for _r in r.dependencies] for r in new_representations}
