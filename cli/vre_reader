@@ -35,9 +35,10 @@ def main(args: Namespace):
         for external_path in args.external_representations:
             representations = add_external_representations(representations, external_path, cfg)
 
-    reader = MultiTaskDataset(args.dataset_path, task_names=list(representations.keys()),
-                              task_types=representations, handle_missing_data=args.handle_missing_data,
-                              normalization="min_max", cache_task_stats=True)
+    reader = MultiTaskDataset(args.dataset_path, task_names=[r.name for r in representations],
+                              task_types={r.name: r for r in representations},
+                              handle_missing_data=args.handle_missing_data, normalization="min_max",
+                              cache_task_stats=True)
     logger.info(reader)
     logger.info("== Shapes ==")
     logger.info(pformat(reader.data_shape))
