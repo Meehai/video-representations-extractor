@@ -1,4 +1,3 @@
-# TODO: what about multiple deps?
 import sys
 import numpy as np
 import pytest

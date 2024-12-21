@@ -1,5 +1,5 @@
 """Init file"""
-# pylint: disable=reimported, wrong-import-position, too-many-positional-arguments
+# pylint: disable=reimported, wrong-import-position
 import warnings
 from diffusers.utils.logging import disable_progress_bar
 from .video_representations_extractor import VideoRepresentationsExtractor, VideoRepresentationsExtractor as VRE

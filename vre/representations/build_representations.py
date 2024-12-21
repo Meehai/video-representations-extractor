@@ -166,10 +166,10 @@ def add_external_representations(representations: list[Representation], external
     # update clashes in dependencies
     for external_repr in external_representations.values():
         for i, external_dep in enumerate(external_repr.dependencies):
-            if external_dep.name in name_to_repr and id(external_dep) != id(existing := name_to_repr[external_dep.name]):
-                logger.warning(f"[{external_repr.name}] Dependency {external_dep} is different than existing {existing}. "
+            if external_dep.name in name_to_repr and id(external_dep) != id(curr := name_to_repr[external_dep.name]):
+                logger.warning(f"[{external_repr.name}] Dependency {external_dep} is different than existing {curr}. "
                                "Replacing the dependency. This may yield in wrong results!")
-                external_repr.dependencies[i] = existing
+                external_repr.dependencies[i] = curr
 
     new_representations = [*representations, *list(external_representations.values())]
     dep_graph = {r.name: [_r.name for _r in r.dependencies] for r in new_representations}
