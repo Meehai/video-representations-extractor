@@ -111,3 +111,13 @@ def array_blend(x: np.ndarray, y: np.ndarray, alpha: float | np.ndarray) -> np.n
     except Exception as e:
         logger.info(f"Exception thrown: {e}.\nShapes: {x.shape=} {y.shape=} {alpha_arr.shape=}")
         raise e
+
+def make_batches(frames: list[int], batch_size: int) -> list[int]:
+    """return 1D array [start_frame, start_frame+bs, start_frame+2*bs... end_frame]"""
+    if batch_size > len(frames):
+        logger.warning(f"batch size {batch_size} is larger than #frames to process {len(frames)}.")
+        batch_size = len(frames)
+    batches, n_batches = [], len(frames) // batch_size + (len(frames) % batch_size > 0)
+    for i in range(n_batches):
+        batches.append(frames[i * batch_size: (i + 1) * batch_size])
+    return batches

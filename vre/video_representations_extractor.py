@@ -13,32 +13,22 @@ from .vre_runtime_args import VRERuntimeArgs
 from .data_writer import DataWriter
 from .data_storer import DataStorer
 from .metadata import Metadata
-from .utils import VREVideo, now_fmt
+from .utils import VREVideo, now_fmt, make_batches, vre_topo_sort
 from .logger import vre_logger as logger
-
-def _make_batches(frames: list[int], batch_size: int) -> list[int]:
-    """return 1D array [start_frame, start_frame+bs, start_frame+2*bs... end_frame]"""
-    if batch_size > len(frames):
-        logger.warning(f"batch size {batch_size} is larger than #frames to process {len(frames)}.")
-        batch_size = len(frames)
-    batches, n_batches = [], len(frames) // batch_size + (len(frames) % batch_size > 0)
-    for i in range(n_batches):
-        batches.append(frames[i * batch_size: (i + 1) * batch_size])
-    return batches
 
 class VideoRepresentationsExtractor:
     """Video Representations Extractor class"""
 
-    def __init__(self, video: VREVideo, representations: dict[str, Representation]):
+    def __init__(self, video: VREVideo, representations: list[Representation]):
         """
         Parameters:
         - video The video we are performing VRE one
-        - representations The dict of instantiated and topo sorted representations (or callable to instantiate them)
+        - representations The list instantiated representations. Must be topo-sortable based on name and deps.
         """
         assert len(representations) > 0, "At least one representation must be provided"
-        assert all(lambda x: isinstance(x, Representation) for x in representations.values()), representations
+        assert all(isinstance(x, Representation) for x in representations), [(x.name, type(x)) for x in representations]
         self.video = video
-        self.representations: dict[str, Representation] = representations
+        self.representations: dict[str, Representation] = vre_topo_sort(representations)
         self.repr_names = [r.name for r in representations.values()]
         self._logs_file: Path | None = None
         self._metadata: Metadata | None = None
@@ -120,7 +110,7 @@ class VideoRepresentationsExtractor:
         self._metadata.metadata["data_writers"][rep.name] = data_writer.to_dict()
         rep.output_size = self.video.frame_shape[0:2] if rep.output_size == "video_shape" else rep.output_size
 
-        batches = _make_batches(runtime_args.frames, rep.batch_size)
+        batches = make_batches(runtime_args.frames, rep.batch_size)
         pbar = tqdm(total=runtime_args.n_frames, desc=f"[VRE] {rep.name} bs={rep.batch_size}")
         for i, batch in enumerate(batches):
             if i % runtime_args.store_metadata_every_n_iters == 0:
