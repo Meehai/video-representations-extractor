@@ -147,7 +147,7 @@ def build_representations_from_cfg(cfg: Path | str | DictConfig | dict) -> list[
     return tsr
 
 def add_external_representations(representations: dict[str, Representation], external_path: str,
-                                 cfg: DictConfig) -> dict[str, Representation]:
+                                 cfg: DictConfig) -> list[Representation]:
     """adds external representations from an provided path in the format: /path/to/script.py:fn_name"""
     path, fn = external_path.split(":")
     external_representations: dict[str, Representation] = getattr(imp.load_source("external", path), fn)()
@@ -161,7 +161,7 @@ def add_external_representations(representations: dict[str, Representation], ext
         repr.set_io_params(**cfg.get("default_io_parameters", {}))
         if isinstance(repr, LearnedRepresentationMixin):
             repr.set_learned_parameters(**cfg.get("default_learned_parameters", {}))
-    representations = {**representations, **external_representations}
-    tsr = topological_sort({r.name: [_r.name for _r in r.dependencies] for r in representations.values()})
-    representations = {k: representations[k] for k in tsr}
-    return representations
+    new_representations = [*representations, *list(external_representations.values())]
+    dep_graph = {r.name: [_r.name for _r in r.dependencies] for r in new_representations}
+    name_to_repr = {r.name: r for r in new_representations}
+    return [name_to_repr[r] for r in topological_sort(dep_graph)]
