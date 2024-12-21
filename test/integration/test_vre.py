@@ -15,19 +15,20 @@ def video() -> FakeVideo:
 
 def test_vre_ctor(video: FakeVideo):
     with pytest.raises(AssertionError) as e:
-        _ = VRE(video=video, representations={})
+        _ = VRE(video=video, representations=[])
     assert "At least one representation must be provided" in str(e)
-    vre = VRE(video=video, representations={"rgb": RGB("rgb")})
+    vre = VRE(video=video, representations=[RGB("rgb")])
     assert vre is not None and len(vre.representations) == 1, vre
 
 def test_vre_run(video: FakeVideo):
-    vre = VRE(video=video, representations={"rgb": RGB("rgb")})
+    vre = VRE(video=video, representations=[RGB("rgb")])
     vre.set_io_parameters(binary_format="npz", image_format="not-set")
     res = vre.run(Path(TemporaryDirectory().name))
     assert len(res.run_stats["rgb"]) == 2, res
 
 def test_vre_run_with_dep(video: FakeVideo):
     vre = VRE(video=video, representations={"rgb": (rgb := RGB("rgb")), "hsv": HSV("hsv", dependencies=[rgb])})
+    vre = VRE(video=video, representations=[rgb := RGB("rgb"), HSV("hsv", dependencies=[rgb])])
     vre.set_io_parameters(binary_format="npz", image_format="not-set")
     res = vre.run(X := Path(TemporaryDirectory().name))
     assert len(res.run_stats["rgb"]) == 2, res

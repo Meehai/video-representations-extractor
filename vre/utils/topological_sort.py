@@ -36,9 +36,8 @@ def topological_sort(dependency_graph: dict[T, list[T]]) -> list[T]:
         assert in_nodes_graph[key] == 0, "Graph has cycles. Cannot do topological sort."
     return L
 
-def vre_topo_sort(representations: list["Representation"]):
+def vre_topo_sort(representations: list["Representation"]) -> list["Representation"]:
     """does a topological sort of a list of representations. They must have .name and .deps"""
-
     dep_graph = {r.name: [_r.name for _r in r.dependencies] for r in representations}
     tsr = topological_sort(dep_graph)
 
@@ -55,4 +54,5 @@ def vre_topo_sort(representations: list["Representation"]):
         else:
             repr_to_id[r.name] = id(r)
 
-    return tsr
+    name_to_repr = {r.name: r for r in representations}
+    return [name_to_repr[r_name] for r_name in tsr]

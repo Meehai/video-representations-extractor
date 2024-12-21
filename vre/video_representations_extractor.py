@@ -29,19 +29,19 @@ class VideoRepresentationsExtractor:
         assert all(isinstance(x, Representation) for x in representations), [(x.name, type(x)) for x in representations]
         self.video = video
         self.representations: dict[str, Representation] = vre_topo_sort(representations)
-        self.repr_names = [r.name for r in representations.values()]
+        self.repr_names = [r.name for r in representations]
         self._logs_file: Path | None = None
         self._metadata: Metadata | None = None
 
     def set_compute_params(self, **kwargs: Any) -> VideoRepresentationsExtractor:
         """Set the required params for all representations of ComputeRepresentationMixin type"""
-        for r in [_r for _r in self.representations.values() if isinstance(_r, ComputeRepresentationMixin)]:
+        for r in [_r for _r in self.representations if isinstance(_r, ComputeRepresentationMixin)]:
             r.set_compute_params(**kwargs)
         return self
 
     def set_io_parameters(self, **kwargs) -> VideoRepresentationsExtractor:
         """Set the required params for all representations of IORepresentationMixin type"""
-        for r in [_r for _r in self.representations.values() if isinstance(_r, IORepresentationMixin)]:
+        for r in [_r for _r in self.representations if isinstance(_r, IORepresentationMixin)]:
             r.set_io_params(**kwargs)
         return self
 
@@ -158,7 +158,7 @@ class VideoRepresentationsExtractor:
 
     def _get_output_representations(self) -> list[IORepresentationMixin]:
         """given all the representations, keep those that actually export something. At least one is needed"""
-        crs = [_r for _r in list(self.representations.values()) if isinstance(_r, IORepresentationMixin)]
+        crs = [_r for _r in self.representations if isinstance(_r, IORepresentationMixin)]
         assert len(crs) > 0, f"No I/O Representation found in {self.repr_names}"
         out_r = [r for r in crs if r.export_binary or r.export_image]
         assert len(out_r) > 0, f"No output format set for any I/O Representation: {', '.join([r.name for r in crs])}"
@@ -170,7 +170,7 @@ class VideoRepresentationsExtractor:
     def __str__(self) -> str:
         return f"""\n[VRE]
 - Video: {self.video}
-- Representations ({len(self.representations)}): [{", ".join([str(v) for v in self.representations.values()])}]"""
+- Representations ({len(self.representations)}): [{", ".join(self.repr_names)}]"""
 
     def __repr__(self) -> str:
         return str(self)
