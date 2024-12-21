@@ -154,13 +154,17 @@ def add_external_representations(representations: dict[str, Representation], ext
     assert all(isinstance(v, IORepresentationMixin) for v in external_representations.values())
     assert all(isinstance(v, ComputeRepresentationMixin) for v in external_representations.values())
     assert all(isinstance(v, Representation) for v in external_representations.values())
-    assert (clash := set(external_representations.keys()).intersection(representations)) == set(), clash
     logger.info(f"Adding {list(external_representations)} from {path}")
     for repr in external_representations.values():
         repr.set_compute_params(**cfg.get("default_compute_parameters", {}))
         repr.set_io_params(**cfg.get("default_io_parameters", {}))
         if isinstance(repr, LearnedRepresentationMixin):
             repr.set_learned_parameters(**cfg.get("default_learned_parameters", {}))
+
+    breakpoint()
+    # check for clashes and 
+    assert (clash := set(external_representations.keys()).intersection(representations)) == set(), clash
+
     new_representations = [*representations, *list(external_representations.values())]
     dep_graph = {r.name: [_r.name for _r in r.dependencies] for r in new_representations}
     name_to_repr = {r.name: r for r in new_representations}
