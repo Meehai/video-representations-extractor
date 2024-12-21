@@ -72,7 +72,7 @@ def _validate_repr_cfg(repr_cfg: dict, name: str):
     assert isinstance(repr_cfg["parameters"], dict), type(repr_cfg["parameters"])
     assert name.find("/") == -1, "No '/' allowed in the representation name. Got '{name}'"
 
-def build_representation_from_cfg(repr_cfg: dict, name: str, built_so_far: dict[str, Representation],
+def build_representation_from_cfg(repr_cfg: dict, name: str, built_so_far: list[Representation],
                                   compute_representations_defaults: dict | None = None,
                                   learned_representations_defaults: dict | None = None,
                                   io_representations_defaults: dict | None = None) -> Representation:
@@ -80,7 +80,8 @@ def build_representation_from_cfg(repr_cfg: dict, name: str, built_so_far: dict[
     _validate_repr_cfg(repr_cfg, name)
     logger.info(f"Building '{repr_cfg['type']}' (vre name: {name})")
     obj_type = build_representation_type(repr_cfg["type"])
-    dependencies = [built_so_far[dep] for dep in repr_cfg["dependencies"]]
+    built_so_far_dict = {r.name: r for r in built_so_far}
+    dependencies = [built_so_far_dict[dep] for dep in repr_cfg["dependencies"]]
     obj: Representation = obj_type(name=name, dependencies=dependencies, **repr_cfg["parameters"])
 
     if isinstance(obj, LearnedRepresentationMixin):
@@ -123,26 +124,26 @@ def build_representation_from_cfg(repr_cfg: dict, name: str, built_so_far: dict[
         assert "io_parameters" not in repr_cfg, f"I/O parameters not allowed for {name}"
     return obj
 
-def build_representations_from_cfg(cfg: Path | str | DictConfig | dict) -> dict[str, Representation]:
+def build_representations_from_cfg(cfg: Path | str | DictConfig | dict) -> list[Representation]:
     """builds a dict of representations given a dict config (yaml file)"""
     assert isinstance(cfg, (Path, str, DictConfig, dict)), type(cfg)
     cfg = OmegaConf.load(cfg) if isinstance(cfg, (Path, str)) else cfg
     cfg: dict = OmegaConf.to_container(cfg, resolve=True) if isinstance(cfg, DictConfig) else cfg
     assert len(repr_cfg := cfg["representations"]) > 0 and isinstance(repr_cfg, dict), repr_cfg
 
-    tsr: dict[str, Representation] = {}
-    logger.debug("Doing topological sort...")
     dep_graph = {}
     for repr_name, repr_cfg_values in repr_cfg.items():
         _validate_repr_cfg(repr_cfg_values, repr_name)
         assert isinstance(repr_cfg_values, dict), f"{repr_name} not a dict cfg: {type(repr_cfg_values)}"
         dep_graph[repr_name] = repr_cfg_values["dependencies"]
-    topo_sorted = {k: repr_cfg[k] for k in topological_sort(dep_graph)}
 
+    logger.debug("Doing topological sort...")
+    topo_sorted = {k: repr_cfg[k] for k in topological_sort(dep_graph)}
+    tsr: list[Representation] = []
     for name, repr_cfg in topo_sorted.items():
         obj = build_representation_from_cfg(repr_cfg, name, tsr, cfg.get("default_compute_parameters"),
                                             cfg.get("default_learned_parameters"), cfg.get("default_io_parameters"))
-        tsr[name] = obj
+        tsr.append(obj)
     return tsr
 
 def add_external_representations(representations: dict[str, Representation], external_path: str,
