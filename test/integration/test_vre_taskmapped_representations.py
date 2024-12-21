@@ -60,7 +60,7 @@ def test_vre_stored_representation():
     rgb = RGB("rgb")
     sema1 = SemanticRepresentation("sema1", classes=8, color_map=[[i, i, i] for i in range(8)])
     sema2 = SemanticRepresentation("sema2", classes=8, color_map=[[i, i, i] for i in range(8)])
-    representations = {"rgb": rgb, "buildings": Buildings("buildings", [sema1, sema2]), "hsv": HSV("hsv", [rgb])}
+    representations = [rgb, Buildings("buildings", [sema1, sema2]), HSV("hsv", [rgb]), sema1, sema2]
     vre = VRE(video, representations).set_io_parameters(binary_format="npz", image_format="png")
     print(vre)
 

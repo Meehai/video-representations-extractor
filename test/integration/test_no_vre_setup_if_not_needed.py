@@ -56,7 +56,7 @@ def test_no_vre_setup_if_not_needed():
         np.savez(f"{tmp_dir}/r1/npz/{i}.npz", video[i][..., 0:1])
     r1 = MyRepresentation("r1", [])
     r2 = MyDependentRepresentation("r2", [r1])
-    vre = VRE(video, {"r1": r1, "r2": r2}) \
+    vre = VRE(video, [r1, r2]) \
         .set_compute_params(output_size="native", output_dtype="uint8") \
         .set_io_parameters(binary_format="npz")
     vre.run(tmp_dir, frames=list(range(0, len(video))), output_dir_exists_mode="skip_computed")
