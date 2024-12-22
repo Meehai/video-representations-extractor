@@ -1,7 +1,7 @@
 import sys
 from vre.readers import MultiTaskDataset
 from vre.representations import build_representations_from_cfg, Representation
-from vre.representations.cv_representations import SemanticRepresentation
+from vre.representations.semantic_segmentation import SemanticRepresentation
 from vre.logger import vre_logger as logger
 import matplotlib.pyplot as plt
 import numpy as np

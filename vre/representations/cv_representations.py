@@ -3,8 +3,7 @@ from __future__ import annotations
 import numpy as np
 from overrides import overrides
 
-from vre.utils import (
-    colorize_semantic_segmentation, VREVideo, colorize_optical_flow, colorize_depth, image_resize_batch)
+from vre.utils import VREVideo, colorize_optical_flow, colorize_depth
 from .np_io_representation import NpIORepresentation, DiskData, MemoryData
 from .normed_representation_mixin import NormedRepresentationMixin
 from .representation import Representation
