@@ -10,9 +10,9 @@ import numpy as np
 
 from vre.logger import vre_logger as logger
 from vre.utils import (image_resize_batch, fetch_weights, image_read, image_write,
-                       vre_load_weights, colorize_semantic_segmentation, VREVideo, FakeVideo, MemoryData, DiskData)
+                       vre_load_weights, VREVideo, FakeVideo, MemoryData)
 from vre.representations import ReprOut, LearnedRepresentationMixin, ComputeRepresentationMixin, NpIORepresentation
-from vre.representations.cv_representations import SemanticRepresentation
+from vre.representations.semantic_segmentation import SemanticRepresentation
 from vre.representations.semantic_segmentation.mask2former.mask2former_impl import MaskFormer, CfgNode, get_output_shape
 
 class Mask2Former(SemanticRepresentation, LearnedRepresentationMixin, ComputeRepresentationMixin, NpIORepresentation):
