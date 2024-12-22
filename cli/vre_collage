@@ -66,7 +66,7 @@ def main(args: Namespace):
         for external_path in args.external_representations:
             representations = add_external_representations(representations, external_path, cfg)
     assert "rgb" in [r.name for r in representations], "RGB(rgb) is needed for collage plot"
-    logger.debug(pformat(representations))
+    logger.debug(f"Representations:\n{pformat(representations)}")
     reader = MultiTaskDataset(args.vre_export_dir, task_names=[r.name for r in representations],
                               task_types={r.name: r for r in representations}, handle_missing_data="fill_nan",
                               normalization="min_max", cache_task_stats=True, batch_size_stats=100)

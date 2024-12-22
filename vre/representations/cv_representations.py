@@ -3,7 +3,8 @@ from __future__ import annotations
 import numpy as np
 from overrides import overrides
 
-from vre.utils import colorize_semantic_segmentation, VREVideo, colorize_optical_flow, colorize_depth
+from vre.utils import (
+    colorize_semantic_segmentation, VREVideo, colorize_optical_flow, colorize_depth, image_resize_batch)
 from .np_io_representation import NpIORepresentation, DiskData, MemoryData
 from .normed_representation_mixin import NormedRepresentationMixin
 from .representation import Representation
@@ -109,15 +110,16 @@ class OpticalFlowRepresentation(ExternalRepresentation, NpIORepresentation):
         y = np.nan_to_num(((self.data.output - _min) / (_max - _min)), False, 0, 0, 0).astype(np.float32)
         return colorize_optical_flow(y)
 
-class SemanticRepresentation(Representation, ComputeRepresentationMixin, NpIORepresentation):
+class SemanticRepresentation(Representation, NpIORepresentation):
     """SemanticRepresentation. Implements semantic task-specific stuff, like argmaxing if needed"""
-    def __init__(self, *args, classes: int | list[str], color_map: list[tuple[int, int, int]], **kwargs):
+    def __init__(self, *args, classes: int | list[str], color_map: list[tuple[int, int, int]],
+                 semantic_argmax_only: bool = False, **kwargs):
         self.n_classes = len(list(range(classes)) if isinstance(classes, int) else classes)
         Representation.__init__(self, *args, **kwargs)
-        ComputeRepresentationMixin.__init__(self)
         NpIORepresentation.__init__(self)
         self.classes = list(range(classes)) if isinstance(classes, int) else classes
         self.color_map = color_map
+        self.semantic_argmax_only = semantic_argmax_only
         assert len(color_map) == self.n_classes and self.n_classes > 1, (color_map, self.n_classes)
 
     @property
@@ -128,12 +130,19 @@ class SemanticRepresentation(Representation, ComputeRepresentationMixin, NpIORep
     @overrides
     def disk_to_memory_fmt(self, disk_data: DiskData) -> MemoryData:
         assert disk_data.dtype in (np.uint8, np.uint16), disk_data.dtype
-        return MemoryData(np.eye(self.n_classes)[disk_data].astype(np.float32))
+        if self.semantic_argmax_only:
+            return MemoryData(disk_data)
+        return MemoryData(np.eye(len(self.classes))[disk_data].astype(np.float32))
 
     @overrides
     def make_images(self) -> np.ndarray:
-        return colorize_semantic_segmentation(self.data.output.argmax(-1), self.classes, self.color_map)
+        assert self.data is not None, f"[{self}] data must be first computed using compute()"
+        frames_rsz = None
+        if self.data.frames is not None:
+            frames_rsz = image_resize_batch(self.data.frames, *self.data.output.shape[1:3])
+        preds = self.to_argmaxed_representation(self.data.output)
+        return colorize_semantic_segmentation(preds, self.classes, self.color_map, rgb=frames_rsz)
 
-    @overrides
-    def compute(self, video: VREVideo, ixs: list[int]):
-        raise NotImplementedError(f"{self} supposed to be used only as external representation")
+    def to_argmaxed_representation(self, memory_data: MemoryData) -> MemoryData:
+        """returns the argmaxed representation"""
+        return memory_data if self.semantic_argmax_only else memory_data.argmax(-1)
