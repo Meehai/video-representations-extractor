@@ -1,6 +1,5 @@
 """semantic_representation.py -- helper class for all semantic segmentation representations"""
 from overrides import overrides
-from abc import ABC
 import numpy as np
 from vre.representations import Representation, NpIORepresentation
 from vre.utils import DiskData, MemoryData, image_resize_batch, colorize_semantic_segmentation
