@@ -3,6 +3,7 @@ from __future__ import annotations
 import numpy as np
 from overrides import overrides
 
+from vre.logger import vre_logger as logger
 from vre.utils import VREVideo, MemoryData
 from vre.representations import Representation, ReprOut, ComputeRepresentationMixin, NpIORepresentation
 
@@ -12,7 +13,8 @@ class FakeRepresentation(Representation, ComputeRepresentationMixin, NpIOReprese
         Representation.__init__(self, *args, **kwargs)
         ComputeRepresentationMixin.__init__(self)
         NpIORepresentation.__init__(self)
-        assert len(self.dependencies) == 0, self.dependencies
+        if self.dependencies != 0:
+            logger.warning(f"{self} has {len(self.dependencies)} dependencies. Usually it's supposed to be 0")
 
     @overrides
     def compute(self, video: VREVideo, ixs: list[int]):

@@ -10,22 +10,23 @@ import numpy as np
 
 from vre.logger import vre_logger as logger
 from vre.utils import (image_resize_batch, fetch_weights, image_read, image_write,
-                       vre_load_weights, colorize_semantic_segmentation, VREVideo, FakeVideo, MemoryData)
-from vre.representations import (
-    Representation, ReprOut, LearnedRepresentationMixin, ComputeRepresentationMixin, NpIORepresentation)
+                       vre_load_weights, VREVideo, FakeVideo, MemoryData)
+from vre.representations import ReprOut, LearnedRepresentationMixin, ComputeRepresentationMixin, NpIORepresentation
+from vre.representations.semantic_segmentation import SemanticRepresentation
 from vre.representations.semantic_segmentation.mask2former.mask2former_impl import MaskFormer, CfgNode, get_output_shape
 
-class Mask2Former(Representation, LearnedRepresentationMixin, ComputeRepresentationMixin, NpIORepresentation):
+class Mask2Former(SemanticRepresentation, LearnedRepresentationMixin, ComputeRepresentationMixin, NpIORepresentation):
     """Mask2Former representation implementation. Note: only semantic segmentation (not panoptic/instance) enabled."""
-    def __init__(self, model_id: str, semantic_argmax_only: bool, **kwargs):
-        Representation.__init__(self, **kwargs)
+    def __init__(self, model_id: str, semantic_argmax_only: bool = False, **kwargs):
         LearnedRepresentationMixin.__init__(self)
         ComputeRepresentationMixin.__init__(self)
         NpIORepresentation.__init__(self)
         assert isinstance(model_id, str) and model_id in {"47429163_0", "49189528_1", "49189528_0"}, model_id
         self._m2f_resources = Path(__file__).parent / "mask2former_impl/resources"
-        self.classes, self.color_map, self.thing_dataset_id_to_contiguous_id = self._get_metadata(model_id)
+        classes, color_map, self.thing_dataset_id_to_contiguous_id = self._get_metadata(model_id)
         self.semantic_argmax_only = semantic_argmax_only
+        SemanticRepresentation.__init__(self, classes=classes, color_map=color_map,
+                                        semantic_argmax_only=semantic_argmax_only, **kwargs)
         self.model_id = model_id
         self.model: MaskFormer | None = None
         self.cfg: CfgNode | None = None
@@ -50,14 +51,6 @@ class Mask2Former(Representation, LearnedRepresentationMixin, ComputeRepresentat
             _pred = pred.argmax(dim=0) if self.semantic_argmax_only else pred.permute(1, 2, 0)
             res.append(_pred.to("cpu").numpy())
         self.data = ReprOut(frames=video[ixs], output=MemoryData(res), key=ixs)
-
-    @overrides
-    def make_images(self) -> np.ndarray:
-        assert self.data is not None, f"[{self}] data must be first computed using compute()"
-        assert self.data.frames is not None and self.data.output is not None, self.data
-        frames_rsz = image_resize_batch(self.data.frames, *self.data.output.shape[1:3])
-        preds = self.data.output if self.semantic_argmax_only else self.data.output.argmax(-1)
-        return colorize_semantic_segmentation(preds, self.classes, self.color_map, rgb=frames_rsz)
 
     @overrides
     def vre_setup(self, load_weights = True):

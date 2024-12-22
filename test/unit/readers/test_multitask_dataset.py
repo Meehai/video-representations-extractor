@@ -1,8 +1,9 @@
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from vre.readers import MultiTaskDataset
-from vre.representations.cv_representations import ColorRepresentation, DepthRepresentation, SemanticRepresentation
 from vre.representations import NormedRepresentationMixin
+from vre.representations.semantic_segmentation import SemanticRepresentation
+from vre.representations.cv_representations import ColorRepresentation, DepthRepresentation
 from torch.utils.data import DataLoader
 import numpy as np
 import torch as tr

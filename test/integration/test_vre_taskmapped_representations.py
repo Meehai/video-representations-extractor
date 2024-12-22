@@ -5,9 +5,17 @@ import shutil
 import numpy as np
 from vre import VRE
 from vre.utils import FakeVideo, colorize_semantic_segmentation, semantic_mapper, DiskData, MemoryData
-from vre.representations import Representation, TaskMapper, NpIORepresentation
+from vre.representations import Representation, TaskMapper, NpIORepresentation, ComputeRepresentationMixin
 from vre.representations.color import RGB, HSV
-from vre.representations.cv_representations import SemanticRepresentation
+from vre.representations.semantic_segmentation import SemanticRepresentation
+
+class SemaCompute(SemanticRepresentation, ComputeRepresentationMixin): # this is for batch_size, output_dtype etc.
+    def __init__(self, *args, **kwargs):
+        SemanticRepresentation.__init__(self, *args, **kwargs)
+        ComputeRepresentationMixin.__init__(self)
+
+    def compute(self, video, ixs):
+        raise NotImplementedError
 
 class Buildings(TaskMapper, NpIORepresentation):
     def __init__(self, name: str, dependencies: list[Representation]):
@@ -58,9 +66,9 @@ def test_vre_stored_representation():
     video = FakeVideo(np.array(raw_data, dtype=np.uint8), fps=1)
 
     rgb = RGB("rgb")
-    sema1 = SemanticRepresentation("sema1", classes=8, color_map=[[i, i, i] for i in range(8)])
-    sema2 = SemanticRepresentation("sema2", classes=8, color_map=[[i, i, i] for i in range(8)])
-    representations = {"rgb": rgb, "buildings": Buildings("buildings", [sema1, sema2]), "hsv": HSV("hsv", [rgb])}
+    sema1 = SemaCompute("sema1", classes=8, color_map=[[i, i, i] for i in range(8)])
+    sema2 = SemaCompute("sema2", classes=8, color_map=[[i, i, i] for i in range(8)])
+    representations = [rgb, Buildings("buildings", [sema1, sema2]), HSV("hsv", [rgb]), sema1, sema2]
     vre = VRE(video, representations).set_io_parameters(binary_format="npz", image_format="png")
     print(vre)
 

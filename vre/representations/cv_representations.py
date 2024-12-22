@@ -3,7 +3,7 @@ from __future__ import annotations
 import numpy as np
 from overrides import overrides
 
-from vre.utils import colorize_semantic_segmentation, VREVideo, colorize_optical_flow, colorize_depth
+from vre.utils import VREVideo, colorize_optical_flow, colorize_depth
 from .np_io_representation import NpIORepresentation, DiskData, MemoryData
 from .normed_representation_mixin import NormedRepresentationMixin
 from .representation import Representation
@@ -108,32 +108,3 @@ class OpticalFlowRepresentation(ExternalRepresentation, NpIORepresentation):
         _min, _max = self.data.output.min(0).min(0), self.data.output.max(0).max(0)
         y = np.nan_to_num(((self.data.output - _min) / (_max - _min)), False, 0, 0, 0).astype(np.float32)
         return colorize_optical_flow(y)
-
-class SemanticRepresentation(Representation, ComputeRepresentationMixin, NpIORepresentation):
-    """SemanticRepresentation. Implements semantic task-specific stuff, like argmaxing if needed"""
-    def __init__(self, *args, classes: int | list[str], color_map: list[tuple[int, int, int]], **kwargs):
-        self.n_classes = len(list(range(classes)) if isinstance(classes, int) else classes)
-        Representation.__init__(self, *args, **kwargs)
-        ComputeRepresentationMixin.__init__(self)
-        NpIORepresentation.__init__(self)
-        self.classes = list(range(classes)) if isinstance(classes, int) else classes
-        self.color_map = color_map
-        assert len(color_map) == self.n_classes and self.n_classes > 1, (color_map, self.n_classes)
-
-    @property
-    @overrides
-    def n_channels(self) -> int:
-        return self.n_classes
-
-    @overrides
-    def disk_to_memory_fmt(self, disk_data: DiskData) -> MemoryData:
-        assert disk_data.dtype in (np.uint8, np.uint16), disk_data.dtype
-        return MemoryData(np.eye(self.n_classes)[disk_data].astype(np.float32))
-
-    @overrides
-    def make_images(self) -> np.ndarray:
-        return colorize_semantic_segmentation(self.data.output.argmax(-1), self.classes, self.color_map)
-
-    @overrides
-    def compute(self, video: VREVideo, ixs: list[int]):
-        raise NotImplementedError(f"{self} supposed to be used only as external representation")

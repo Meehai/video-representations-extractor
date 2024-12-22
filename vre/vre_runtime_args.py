@@ -18,10 +18,9 @@ class VRERuntimeArgs:
         - 'stop_execution' (default) Will stop the execution of VRE
     - n_threads_data_storer The number of threads used by the DataStorer
     """
-    def __init__(self, video: VREVideo, representations: dict[str, Representation],
-                 frames: list[str] | None, exception_mode: str,
-                 n_threads_data_storer: int, store_metadata_every_n_iters: int = 10):
-        assert all(isinstance(r, Representation) for r in representations.values()), representations
+    def __init__(self, video: VREVideo, representations: list[Representation], frames: list[str] | None,
+                 exception_mode: str, n_threads_data_storer: int, store_metadata_every_n_iters: int = 10):
+        assert all(isinstance(r, Representation) for r in representations), representations
         assert exception_mode in ("stop_execution", "skip_representation"), exception_mode
         frames = sorted(list(range(len(video))) if frames is None else frames)
         assert all(isinstance(x, int) for x in frames), frames
@@ -31,6 +30,7 @@ class VRERuntimeArgs:
         self.frames = frames
         self.exception_mode = exception_mode
         self.representations = representations
+        self.representation_names = [r.name for r in representations]
         self.n_threads_data_storer = n_threads_data_storer
         self.store_metadata_every_n_iters = store_metadata_every_n_iters
 
@@ -44,7 +44,7 @@ class VRERuntimeArgs:
         return {
             "video_path": str(getattr(self.video, "file", "")), "video_shape": f"{self.video.shape}",
             "video_fps": f"{self.video.fps:.2f}",
-            "representations": [r.name for r in self.representations.values()],
+            "representations": self.representation_names,
             "frames": self.frames,
             "exception_mode": self.exception_mode,
             "n_threads_data_storer": self.n_threads_data_storer,
@@ -53,7 +53,7 @@ class VRERuntimeArgs:
     def __repr__(self):
         return f"""[{parsed_str_type(self)}]
 - Video path: '{getattr(self.video, "file", "")}'
-- Representations ({len(self.representations)}): {", ".join(x for x in self.representations.keys())}
+- Representations ({len(self.representations)}): {", ".join(x for x in self.representation_names)}
 - Video shape: {self.video.shape} (FPS: {self.video.fps:.2f})
 - Output frames ({self.n_frames}): [{self.frames[0]} : {self.frames[-1]}]
 - Exception mode: '{self.exception_mode}'
