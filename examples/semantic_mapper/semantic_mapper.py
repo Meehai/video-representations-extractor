@@ -11,7 +11,8 @@ from vre.utils import (semantic_mapper, colorize_semantic_segmentation, DiskData
                        collage_fn, image_add_title)
 from vre.readers.multitask_dataset import MultiTaskDataset, MultiTaskItem
 from vre.representations import TaskMapper, NpIORepresentation, Representation, build_representations_from_cfg
-from vre.representations.cv_representations import DepthRepresentation, NormalsRepresentation, SemanticRepresentation
+from vre.representations.semantic_segmentation import SemanticRepresentation
+from vre.representations.cv_representations import DepthRepresentation, NormalsRepresentation
 
 def plot_one(data: MultiTaskItem, title: str, order: list[str] | None,
              name_to_task: dict[str, Representation]) -> np.ndarray:
