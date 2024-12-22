@@ -35,3 +35,24 @@ def topological_sort(dependency_graph: dict[T, list[T]]) -> list[T]:
     for key in in_nodes_graph.keys():
         assert in_nodes_graph[key] == 0, "Graph has cycles. Cannot do topological sort."
     return L
+
+def vre_topo_sort(representations: list["Representation"]) -> list["Representation"]:
+    """does a topological sort of a list of representations. They must have .name and .deps"""
+    dep_graph = {r.name: [_r.name for _r in r.dependencies] for r in representations}
+    tsr = topological_sort(dep_graph)
+
+    # do a DFS to ensure that all the representations of the same are the same object!
+    # guaranteed to have no cycles due to the topo sort above
+    repr_to_id = {r.name: id(r) for r in representations}
+    to_process = [*representations]
+    while len(to_process) > 0:
+        r = to_process.pop()
+        if r.name in repr_to_id:
+            if (id1 := id(r)) != (id2 := repr_to_id[r.name]):
+                raise ValueError(f"Representation '{r}' has a different id: {id1} than previously provided: {id2}")
+            to_process.extend(r.dependencies)
+        else:
+            repr_to_id[r.name] = id(r)
+
+    name_to_repr = {r.name: r for r in representations}
+    return [name_to_repr[r_name] for r_name in tsr]

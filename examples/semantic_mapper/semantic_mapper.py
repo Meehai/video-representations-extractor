@@ -11,7 +11,8 @@ from vre.utils import (semantic_mapper, colorize_semantic_segmentation, DiskData
                        collage_fn, image_add_title)
 from vre.readers.multitask_dataset import MultiTaskDataset, MultiTaskItem
 from vre.representations import TaskMapper, NpIORepresentation, Representation, build_representations_from_cfg
-from vre.representations.cv_representations import DepthRepresentation, NormalsRepresentation, SemanticRepresentation
+from vre.representations.semantic_segmentation import SemanticRepresentation
+from vre.representations.cv_representations import DepthRepresentation, NormalsRepresentation
 
 def plot_one(data: MultiTaskItem, title: str, order: list[str] | None,
              name_to_task: dict[str, Representation]) -> np.ndarray:
@@ -95,6 +96,7 @@ normals_svd_marigold = NormalsRepresentation("normals_svd(depth_marigold)")
 
 class SemanticMask2FormerMapillaryConvertedPaper(TaskMapper, NpIORepresentation):
     def __init__(self, name: str, dependencies: list[Representation]):
+        assert len(dependencies) == 1 and isinstance(dependencies[0], SemanticRepresentation), dependencies
         TaskMapper.__init__(self, name=name, n_channels=8, dependencies=dependencies)
         NpIORepresentation.__init__(self)
         self.mapping = {
@@ -133,7 +135,7 @@ class SemanticMask2FormerMapillaryConvertedPaper(TaskMapper, NpIORepresentation)
 
     @overrides
     def merge_fn(self, dep_data: list[MemoryData]) -> MemoryData:
-        m2f_mapillary = dep_data[0].argmax(-1)
+        m2f_mapillary = self.dependencies[0].to_argmaxed_representation(dep_data[0])
         m2f_mapillary_converted = semantic_mapper(m2f_mapillary, self.mapping, self.original_classes)
         return self.disk_to_memory_fmt(m2f_mapillary_converted)
 
@@ -146,7 +148,8 @@ class SemanticMask2FormerMapillaryConvertedPaper(TaskMapper, NpIORepresentation)
         return MemoryData(np.eye(self.n_classes)[disk_data.astype(int)])
 
 class SemanticMask2FormerCOCOConverted(TaskMapper, NpIORepresentation):
-    def __init__(self, name: str, dependencies: list[Representation]):
+    def __init__(self, name: str, dependencies: list[SemanticRepresentation]):
+        assert len(dependencies) == 1 and isinstance(dependencies[0], SemanticRepresentation), dependencies
         TaskMapper.__init__(self, name=name, n_channels=8, dependencies=dependencies)
         NpIORepresentation.__init__(self)
         self.mapping = {
@@ -192,7 +195,7 @@ class SemanticMask2FormerCOCOConverted(TaskMapper, NpIORepresentation):
 
     @overrides
     def merge_fn(self, dep_data: list[MemoryData]) -> MemoryData:
-        m2f_mapillary = dep_data[0].argmax(-1)
+        m2f_mapillary = self.dependencies[0].to_argmaxed_representation(dep_data[0])
         m2f_mapillary_converted = semantic_mapper(m2f_mapillary, self.mapping, self.original_classes)
         res = self.disk_to_memory_fmt(m2f_mapillary_converted)
         return res
@@ -245,8 +248,12 @@ class BinaryMapper(TaskMapper, NpIORepresentation):
 
     @overrides
     def merge_fn(self, dep_data: list[MemoryData]) -> MemoryData:
-        dep_data_converted = [semantic_mapper(x.argmax(-1), mapping, oc)
-                              for x, mapping, oc in zip(dep_data, self.mapping, self.original_classes)]
+        dep_data_argmaxed = []
+        for dep, data in zip(self.dependencies, dep_data):
+            assert isinstance(dep, SemanticRepresentation), type(dep)
+            dep_data_argmaxed.append(dep.to_argmaxed_representation(data))
+        dep_data_converted = [semantic_mapper(x, mapping, oc)
+                              for x, mapping, oc in zip(dep_data_argmaxed, self.mapping, self.original_classes)]
         res_argmax = sum(dep_data_converted) > (0 if self.mode == "all_agree" else 1)
         return self.disk_to_memory_fmt(res_argmax)
 
@@ -264,6 +271,7 @@ class BuildingsFromM2FDepth(BinaryMapper, NpIORepresentation):
         ]
 
         dependencies = [m2f_mapillary, m2f_coco, marigold]
+        assert isinstance(m2f_mapillary, SemanticRepresentation) and isinstance(m2f_coco, SemanticRepresentation)
         TaskMapper.__init__(self, name=name, dependencies=dependencies, n_channels=2)
         NpIORepresentation.__init__(self)
         self.color_map = [[255, 255, 255], [0, 0, 0]]
@@ -274,7 +282,8 @@ class BuildingsFromM2FDepth(BinaryMapper, NpIORepresentation):
         self.load_mode = load_mode
 
     def merge_fn(self, dep_data: list[MemoryData]) -> MemoryData:
-        m2f_mapillary, m2f_coco = dep_data[0].argmax(-1), dep_data[1].argmax(-1)
+        m2f_mapillary = self.dependencies[0].to_argmaxed_representation(dep_data[0])
+        m2f_coco = self.dependencies[1].to_argmaxed_representation(dep_data[1])
         depth = dep_data[2].squeeze()
         m2f_mapillary_converted = semantic_mapper(m2f_mapillary, self.mapping[0], self.original_classes[0])
         m2f_coco_converted = semantic_mapper(m2f_coco, self.mapping[1], self.original_classes[1])

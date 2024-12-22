@@ -129,9 +129,12 @@ representations:
 
     all_representations = build_representations_from_cfg(all_representations_dict)
     np.random.seed(0)
-    chosen = np.random.choice(list(all_representations.keys()), size=2, replace=False)
-    representations = {k: v for k, v in all_representations.items() if k in chosen}
-    logger.info(f"Kept representations: {representations}")
+    chosen = list(np.random.choice(all_representations, size=2, replace=False))
+    for item in chosen:
+        chosen.extend(item.dependencies)
+    chosen = list(set(chosen))
+    # representations = {k: v for k, v in all_representations.items() if k in chosen}
+    logger.info(f"Kept representations: {chosen}")
 
     tmp_dir = Path("here1" if __name__ == "__main__" else TemporaryDirectory().name)
     tmp_dir_bs = Path("here2" if __name__ == "__main__" else TemporaryDirectory().name)
@@ -142,9 +145,9 @@ representations:
     end_frame = start_frame + 2
     batch_size = 2 # BS=2 is enough to test this. In examples/ we have a benchmark that tries more values
 
-    vre = VRE(video, representations)
+    vre = VRE(video, chosen)
     vre.set_compute_params(batch_size=1).set_io_parameters(binary_format="npz", image_format="png", compress=True)
-    took1 = vre(tmp_dir_bs, frames=list(range(start_frame, end_frame)), output_dir_exists_mode="raise")
+    took1 = vre.run(tmp_dir_bs, frames=list(range(start_frame, end_frame)), output_dir_exists_mode="raise")
     vre.set_compute_params(batch_size=batch_size)
     took_bs = vre(tmp_dir, frames=list(range(start_frame, end_frame)), output_dir_exists_mode="raise")
 
@@ -156,11 +159,11 @@ representations:
         logger.info(f"{k}: {u:.2f} vs {b:.2f} ({u / b:.2f})")
     logger.info(f"Total: {total_u:.2f} vs {total_b:.2f} ({total_u / total_b:.2f})")
 
-    for representation in vre.representations.keys():
+    for r_name in vre.repr_names:
         for t in range(start_frame, end_frame):
-            a = np.load(tmp_dir / representation / "npz/" / f"{t}.npz")["arr_0"]
-            b = np.load(tmp_dir_bs / representation / "npz/" / f"{t}.npz")["arr_0"]
-            assert np.abs(a - b).mean() < 1e-2, (representation, t)
+            a = np.load(tmp_dir / r_name / "npz/" / f"{t}.npz")["arr_0"]
+            b = np.load(tmp_dir_bs / r_name / "npz/" / f"{t}.npz")["arr_0"]
+            assert np.abs(a - b).mean() < 1e-2, (r_name, t)
 
 if __name__ == "__main__":
     test_vre_batched()

@@ -72,7 +72,7 @@ def _validate_repr_cfg(repr_cfg: dict, name: str):
     assert isinstance(repr_cfg["parameters"], dict), type(repr_cfg["parameters"])
     assert name.find("/") == -1, "No '/' allowed in the representation name. Got '{name}'"
 
-def build_representation_from_cfg(repr_cfg: dict, name: str, built_so_far: dict[str, Representation],
+def build_representation_from_cfg(repr_cfg: dict, name: str, built_so_far: list[Representation],
                                   compute_representations_defaults: dict | None = None,
                                   learned_representations_defaults: dict | None = None,
                                   io_representations_defaults: dict | None = None) -> Representation:
@@ -80,7 +80,8 @@ def build_representation_from_cfg(repr_cfg: dict, name: str, built_so_far: dict[
     _validate_repr_cfg(repr_cfg, name)
     logger.info(f"Building '{repr_cfg['type']}' (vre name: {name})")
     obj_type = build_representation_type(repr_cfg["type"])
-    dependencies = [built_so_far[dep] for dep in repr_cfg["dependencies"]]
+    built_so_far_dict = {r.name: r for r in built_so_far}
+    dependencies = [built_so_far_dict[dep] for dep in repr_cfg["dependencies"]]
     obj: Representation = obj_type(name=name, dependencies=dependencies, **repr_cfg["parameters"])
 
     if isinstance(obj, LearnedRepresentationMixin):
@@ -123,44 +124,54 @@ def build_representation_from_cfg(repr_cfg: dict, name: str, built_so_far: dict[
         assert "io_parameters" not in repr_cfg, f"I/O parameters not allowed for {name}"
     return obj
 
-def build_representations_from_cfg(cfg: Path | str | DictConfig | dict) -> dict[str, Representation]:
+def build_representations_from_cfg(cfg: Path | str | DictConfig | dict) -> list[Representation]:
     """builds a dict of representations given a dict config (yaml file)"""
     assert isinstance(cfg, (Path, str, DictConfig, dict)), type(cfg)
     cfg = OmegaConf.load(cfg) if isinstance(cfg, (Path, str)) else cfg
     cfg: dict = OmegaConf.to_container(cfg, resolve=True) if isinstance(cfg, DictConfig) else cfg
     assert len(repr_cfg := cfg["representations"]) > 0 and isinstance(repr_cfg, dict), repr_cfg
 
-    tsr: dict[str, Representation] = {}
-    logger.debug("Doing topological sort...")
     dep_graph = {}
     for repr_name, repr_cfg_values in repr_cfg.items():
         _validate_repr_cfg(repr_cfg_values, repr_name)
         assert isinstance(repr_cfg_values, dict), f"{repr_name} not a dict cfg: {type(repr_cfg_values)}"
         dep_graph[repr_name] = repr_cfg_values["dependencies"]
-    topo_sorted = {k: repr_cfg[k] for k in topological_sort(dep_graph)}
 
+    logger.debug("Doing topological sort...")
+    topo_sorted = {k: repr_cfg[k] for k in topological_sort(dep_graph)}
+    tsr: list[Representation] = []
     for name, repr_cfg in topo_sorted.items():
         obj = build_representation_from_cfg(repr_cfg, name, tsr, cfg.get("default_compute_parameters"),
                                             cfg.get("default_learned_parameters"), cfg.get("default_io_parameters"))
-        tsr[name] = obj
+        tsr.append(obj)
     return tsr
 
-def add_external_representations(representations: dict[str, Representation], external_path: str,
-                                 cfg: DictConfig) -> dict[str, Representation]:
+def add_external_representations(representations: list[Representation], external_path: str,
+                                 cfg: DictConfig) -> list[Representation]:
     """adds external representations from an provided path in the format: /path/to/script.py:fn_name"""
     path, fn = external_path.split(":")
     external_representations: dict[str, Representation] = getattr(imp.load_source("external", path), fn)()
     assert all(isinstance(v, IORepresentationMixin) for v in external_representations.values())
     assert all(isinstance(v, ComputeRepresentationMixin) for v in external_representations.values())
     assert all(isinstance(v, Representation) for v in external_representations.values())
-    assert (clash := set(external_representations.keys()).intersection(representations)) == set(), clash
     logger.info(f"Adding {list(external_representations)} from {path}")
     for repr in external_representations.values():
         repr.set_compute_params(**cfg.get("default_compute_parameters", {}))
         repr.set_io_params(**cfg.get("default_io_parameters", {}))
         if isinstance(repr, LearnedRepresentationMixin):
             repr.set_learned_parameters(**cfg.get("default_learned_parameters", {}))
-    representations = {**representations, **external_representations}
-    tsr = topological_sort({r.name: [_r.name for _r in r.dependencies] for r in representations.values()})
-    representations = {k: representations[k] for k in tsr}
-    return representations
+
+    assert (clash := set(external_representations.keys()).intersection(representations)) == set(), clash
+    name_to_repr = {r.name: r for r in representations}
+    # update clashes in dependencies
+    for external_repr in external_representations.values():
+        for i, external_dep in enumerate(external_repr.dependencies):
+            if external_dep.name in name_to_repr and id(external_dep) != id(curr := name_to_repr[external_dep.name]):
+                logger.warning(f"[{external_repr.name}] Dependency {external_dep} is different than existing {curr}. "
+                               "Replacing the dependency. This may yield in wrong results!")
+                external_repr.dependencies[i] = curr
+
+    new_representations = [*representations, *list(external_representations.values())]
+    dep_graph = {r.name: [_r.name for _r in r.dependencies] for r in new_representations}
+    name_to_repr = {r.name: r for r in new_representations}
+    return [name_to_repr[r] for r in topological_sort(dep_graph)]

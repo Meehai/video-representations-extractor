@@ -15,19 +15,19 @@ def video() -> FakeVideo:
 
 def test_vre_ctor(video: FakeVideo):
     with pytest.raises(AssertionError) as e:
-        _ = VRE(video=video, representations={})
+        _ = VRE(video=video, representations=[])
     assert "At least one representation must be provided" in str(e)
-    vre = VRE(video=video, representations={"rgb": RGB("rgb")})
+    vre = VRE(video=video, representations=[RGB("rgb")])
     assert vre is not None and len(vre.representations) == 1, vre
 
 def test_vre_run(video: FakeVideo):
-    vre = VRE(video=video, representations={"rgb": RGB("rgb")})
+    vre = VRE(video=video, representations=[RGB("rgb")])
     vre.set_io_parameters(binary_format="npz", image_format="not-set")
     res = vre.run(Path(TemporaryDirectory().name))
     assert len(res.run_stats["rgb"]) == 2, res
 
 def test_vre_run_with_dep(video: FakeVideo):
-    vre = VRE(video=video, representations={"rgb": (rgb := RGB("rgb")), "hsv": HSV("hsv", dependencies=[rgb])})
+    vre = VRE(video=video, representations=[rgb := RGB("rgb"), HSV("hsv", dependencies=[rgb])])
     vre.set_io_parameters(binary_format="npz", image_format="not-set")
     res = vre.run(X := Path(TemporaryDirectory().name))
     assert len(res.run_stats["rgb"]) == 2, res
@@ -35,7 +35,7 @@ def test_vre_run_with_dep(video: FakeVideo):
 
 def test_vre_output_dir_exists_mode():
     video = FakeVideo(np.random.randint(0, 255, size=(2, 128, 128, 3), dtype=np.uint8), fps=30)
-    vre = VRE(video=video, representations={"rgb": RGB("rgb")})
+    vre = VRE(video=video, representations=[RGB("rgb")])
     vre.set_io_parameters(binary_format="npz", image_format="not-set")
     _ = vre(tmp_dir := Path(TemporaryDirectory().name))
     creation_time1 = (tmp_dir / "rgb/npz").stat().st_ctime
@@ -65,8 +65,7 @@ def test_vre_output_shape():
                                 output=MemoryData(image_resize_batch(self.data.output, *self.shape)), key=ixs)
 
     video = FakeVideo(np.random.randint(0, 255, size=(2, 128, 128, 3), dtype=np.uint8), fps=30)
-    representations = {"rgb": RGBWithShape((64, 64), "rgb")}
-    vre = VRE(video, representations)
+    vre = VRE(video=video, representations=[RGBWithShape((64, 64), "rgb")])
 
     vre.set_compute_params(output_size="video_shape").set_io_parameters(binary_format="npz", image_format="not-set")
     _ = vre.run(tmp_dir := Path(TemporaryDirectory().name))
@@ -82,16 +81,16 @@ def test_vre_output_shape():
 
 def test_vre_simple_representations():
     video = FFmpegVideo(fetch_resource("test_video.mp4"))
-    representations = {"rgb": RGB(name="rgb")}
     tmp_dir = Path(TemporaryDirectory().name)
-    vre = VRE(video, representations).set_io_parameters(binary_format="npz", image_format="jpg")
+    vre = VRE(video, [RGB("rgb")])
+    vre.set_io_parameters(binary_format="npz", image_format="jpg")
     vre(tmp_dir, frames=[1000])
     assert Path(f"{tmp_dir}/rgb/npz/1000.npz").exists()
     assert Path(f"{tmp_dir}/rgb/jpg/1000.jpg").exists()
 
 def test_vre_metadata():
     video = FakeVideo(np.random.randint(0, 255, size=(2, 128, 128, 3), dtype=np.uint8), fps=30)
-    vre = VRE(video=video, representations={"rgb": RGB("rgb")})
+    vre = VRE(video=video, representations=[RGB("rgb")])
     vre.set_io_parameters(binary_format="npz", image_format="not-set")
     res = vre.run(output_dir=Path(TemporaryDirectory().name))
     assert res.run_stats.keys() == {"rgb"}
@@ -99,10 +98,9 @@ def test_vre_metadata():
 
 def test_vre_dep_data_not_saved():
     video = FFmpegVideo(fetch_resource("test_video.mp4"))
-    reprs = {"dpt": (dpt := DepthDpt(name="dpt", dependencies=[])),
-             "normals_svd(depth_dpt)": (svd :=  DepthNormalsSVD(name="normals_svd(depth_dpt)", sensor_fov=75,
-                                                                sensor_width=1080, sensor_height=720, window_size=11,
-                                                                dependencies=[dpt]))}
+    reprs = [dpt := DepthDpt(name="dpt", dependencies=[]),
+             svd := DepthNormalsSVD(name="normals_svd(depth_dpt)", sensor_fov=75,
+                                    sensor_width=1080, sensor_height=720, window_size=11, dependencies=[dpt])]
     svd.binary_format = "npz"
     tmp_dir = Path(TemporaryDirectory().name)
     VRE(video, reprs).run(tmp_dir, frames=[1000])
