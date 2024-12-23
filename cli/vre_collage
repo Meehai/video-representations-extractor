@@ -11,7 +11,7 @@ from tqdm import trange
 import numpy as np
 import torch as tr
 
-from vre.utils import image_write, collage_fn, abs_path, reorder_dict, MemoryData
+from vre.utils import image_write, collage_fn, abs_path, reorder_dict, MemoryData, image_resize
 from vre.representations import build_representations_from_cfg, add_external_representations, Representation, ReprOut
 from vre.readers.multitask_dataset import MultiTaskDataset
 from vre.logger import vre_logger as logger
@@ -28,16 +28,17 @@ def plot_one(data: dict[str, tr.Tensor], file_name: str, dataset_path: Path,
         task = name_to_task[k]
         extra = None
         rgb = data["rgb"].cpu().numpy()
-        assert np.issubdtype(rgb.dtype, np.floating), data
-        rgb = (rgb * 255).astype(np.uint8)
+        if np.issubdtype(rgb.dtype, np.floating):
+            rgb = (rgb * 255).astype(np.uint8)
+        assert np.issubdtype(rgb.dtype, np.uint8), rgb
         if (extra_path := (dataset_path/k/"npz"/f"{stem}_extra.npz")).exists():
             extra = np.load(extra_path, allow_pickle=True)["arr_0"].item()
         task.data = ReprOut(rgb[None], MemoryData(v.cpu().numpy()[None]), key=[stem], extra=[extra])
         img_data[k] = task.make_images()[0]
     return img_data
 
-def get_args():
-    """Cli args"""
+def get_args() -> Namespace:
+    """CLI args"""
     parser = ArgumentParser()
     parser.add_argument("vre_export_dir", type=lambda p: Path(p).absolute(), help="Path to the dir where VRE exported")
     parser.add_argument("--config_path", required=True, type=abs_path, help="Path to the config for representations")
@@ -48,6 +49,7 @@ def get_args():
     parser.add_argument("--video", action="store_true")
     parser.add_argument("--fps", type=float)
     parser.add_argument("--output_resolution", type=int, nargs=2)
+    parser.add_argument("--normalization")
     args = parser.parse_args()
     assert not args.output_path.exists() or args.overwrite, f"Output path '{args.output_path}' exists. Use --overwrite."
     assert args.video is False or args.fps is not None and args.fps > 0, "If video is set, --fps must also be set."
@@ -69,7 +71,7 @@ def main(args: Namespace):
     logger.debug(f"Representations:\n{pformat(representations)}")
     reader = MultiTaskDataset(args.vre_export_dir, task_names=[r.name for r in representations],
                               task_types={r.name: r for r in representations}, handle_missing_data="fill_nan",
-                              normalization="min_max", cache_task_stats=True, batch_size_stats=100)
+                              normalization=args.normalization, cache_task_stats=True, batch_size_stats=100)
     # Make sure all the data is on disk and won't be comptued on the fly in vre_collage. This is vre's job.
     assert all(isinstance(reader.files_per_repr[task][0], Path) for task in reader.task_names)
 
@@ -81,11 +83,13 @@ def main(args: Namespace):
     args.output_path.mkdir(parents=True, exist_ok=False)
 
     out_png_names = []
+    # for ix in tqdm([0, 100, 1000, 2000, 3000, len(reader) - 100, len(reader) - 1]):
     for ix in trange(len(reader), desc="collage"):
         data, name = reader[ix] # get a random item
         img_data = reorder_dict(plot_one(data, name, reader.path, name_to_task=reader.name_to_task), ["rgb"])
         titles = [title if len(title) < 40 else f"{title[0:19]}..{title[-19:]}" for title in img_data.keys()]
         collage = collage_fn(list(img_data.values()), titles=titles, size_px=40)
+        collage = collage if args.output_resolution is None else image_resize(collage, *args.output_resolution)
         image_write(collage, out_png_name := args.output_path / f"{'.'.join(name.split('.')[0:-1])}.png")
         out_png_names.append(str(out_png_name))
     logger.info(f"Collage written at '{args.output_path}'")
