@@ -67,7 +67,7 @@ class FakeVideo(VREVideo):
         self._fps = fps
         self.frames = list(range(len(data))) if frames is None else frames
         self.frame_shape = data.shape[1:]
-        self.file = f"FakeVideo {self.data.shape}"
+        self.path = f"FakeVideo {self.data.shape}"
         assert 0 < len(self.frames) <= 1_000_000 # max 1M frames to keep it tight
         assert len(self.frames) == len(self.data), (self.frames, self.data)
         assert all(isinstance(frame, int) for frame in self.frames), self.frames
