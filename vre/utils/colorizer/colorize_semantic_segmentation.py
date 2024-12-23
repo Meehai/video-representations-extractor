@@ -80,8 +80,12 @@ def _add_text_with_background(image_array, text, position, font_size, color):
     draw.text((x, y), text, fill=color, font=font) # add the text
     return np.array(image)
 
+def _clip(a, left, right):
+    assert left < right, (left, right)
+    return max(left, min(right, a))
+
 def _font_size_from_shape(shp) -> int:
-    return max(13, min(20, min(*shp) // 20)) # heuristic of the year
+    return _clip(min(*shp) // 15, 15, 30) # heuristic of the year
 
 def _draw_text_in_mask(res: np.ndarray, binary_mask: np.ndarray, text: str, color: tuple[int, int, int],
                        size_px: int | None = None) -> np.ndarray:
