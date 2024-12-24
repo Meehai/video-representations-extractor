@@ -5,11 +5,10 @@ import torch as tr
 from torch import nn
 from torch.nn import functional as F
 
-from vre.utils import (
-    image_resize_batch, fetch_weights, vre_load_weights, colorize_semantic_segmentation, VREVideo, MemoryData)
+from vre.utils import fetch_weights, vre_load_weights, VREVideo, MemoryData
 from vre.logger import vre_logger as logger
-from vre.representations import (
-    Representation, ReprOut, LearnedRepresentationMixin, ComputeRepresentationMixin, NpIORepresentation)
+from vre.representations import ReprOut, LearnedRepresentationMixin, ComputeRepresentationMixin, NpIORepresentation
+from vre.representations.semantic_segmentation import SemanticRepresentation
 from vre.representations.semantic_segmentation.safeuav.Map2Map import EncoderMap2Map, DecoderMap2Map
 
 class _SafeUavWrapper(nn.Module):
@@ -26,22 +25,19 @@ class _SafeUavWrapper(nn.Module):
         y_decoder = self.decoder(y_encoder)
         return y_decoder
 
-class SafeUAV(Representation, LearnedRepresentationMixin, ComputeRepresentationMixin, NpIORepresentation):
+class SafeUAV(SemanticRepresentation, LearnedRepresentationMixin, ComputeRepresentationMixin, NpIORepresentation):
     """SafeUAV semantic segmentation representation"""
     def __init__(self, num_classes: int, train_height: int, train_width: int, color_map: list[tuple[int, int, int]],
                  semantic_argmax_only: bool, weights_file: str | None = None, **kwargs):
-        Representation.__init__(self, **kwargs)
+        # Representation.__init__(self, **kwargs)
         LearnedRepresentationMixin.__init__(self)
         ComputeRepresentationMixin.__init__(self)
         NpIORepresentation.__init__(self)
-        self.num_classes = num_classes
-        assert len(color_map) == num_classes, f"{color_map} ({len(color_map)}) vs {num_classes}"
-        self.color_map = color_map
+        SemanticRepresentation.__init__(self, classes=list(range(num_classes)), color_map=color_map,
+                                        semantic_argmax_only=semantic_argmax_only, **kwargs)
         self.train_height = train_height
         self.train_width = train_width
-        self.semantic_argmax_only = semantic_argmax_only
         self.weights_file = weights_file
-        self.classes = list(range(num_classes))
         self.model: _SafeUavWrapper | None = None
         self.output_dtype = "uint8" if semantic_argmax_only else "float16"
 
@@ -63,16 +59,9 @@ class SafeUAV(Representation, LearnedRepresentationMixin, ComputeRepresentationM
         self.data = ReprOut(frames=video[ixs], output=MemoryData(y_out), key=ixs)
 
     @overrides
-    def make_images(self) -> np.ndarray:
-        assert self.data is not None, f"[{self}] data must be first computed using compute()"
-        frames_rsz = image_resize_batch(self.data.frames, *self.data.output.shape[1:3])
-        preds = self.data.output if self.semantic_argmax_only else self.data.output.argmax(-1)
-        return colorize_semantic_segmentation(preds, self.classes, self.color_map, rgb=frames_rsz)
-
-    @overrides
     def vre_setup(self, load_weights: bool = True):
         assert self.setup_called is False
-        self.model = _SafeUavWrapper(ch_in=3, ch_out=self.num_classes)
+        self.model = _SafeUavWrapper(ch_in=3, ch_out=self.n_classes)
 
         if load_weights:
             if self.weights_file is None:

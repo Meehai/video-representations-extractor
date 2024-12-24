@@ -31,7 +31,7 @@ class DexiNed(Representation, LearnedRepresentationMixin, ComputeRepresentationM
         self.data = ReprOut(frames=video[ixs], output=MemoryData(outs), key=ixs)
 
     @overrides
-    def make_images(self) -> np.ndarray:
+    def make_images(self, data: ReprOut) -> np.ndarray:
         assert self.data is not None, f"[{self}] data must be first computed using compute()"
         x = self.data.output.repeat(3, axis=-1)
         return (x * 255).astype(np.uint8)

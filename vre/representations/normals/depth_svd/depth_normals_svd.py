@@ -47,7 +47,7 @@ class DepthNormalsSVD(Representation, ComputeRepresentationMixin, NpIORepresenta
         self.data = ReprOut(frames=video[ixs], output=res, key=ixs)
 
     @overrides
-    def make_images(self) -> np.ndarray:
+    def make_images(self, data: ReprOut) -> np.ndarray:
         assert self.data is not None, f"[{self}] data must be first computed using compute()"
         return (self.data.output * 255).astype(np.uint8)
 

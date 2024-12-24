@@ -9,17 +9,16 @@ def test_generalized_boundaries():
     assert gb_repr.name == "gb"
     assert gb_repr.compress is True # default
 
-    frames = video[0:1]
     gb_repr.compute(video, [0])
     assert gb_repr.data.output.shape == (1, 64, 128, 3), gb_repr.data.output.shape
-    y_gb_images = gb_repr.make_images()
+    y_gb_images = gb_repr.make_images(gb_repr.data)
     assert y_gb_images.shape == (1, 64, 128, 3), y_gb_images.shape
     assert y_gb_images.dtype == np.uint8, y_gb_images.dtype
 
     assert gb_repr.size == (1, 64, 128, 3)
     gb_repr.data = gb_repr.resize(gb_repr.data, (32, 64))
     assert gb_repr.size == (1, 32, 64, 3)
-    assert gb_repr.make_images().shape == (1, 32, 64, 3)
+    assert gb_repr.make_images(gb_repr.data).shape == (1, 32, 64, 3)
 
 if __name__ == "__main__":
     test_generalized_boundaries()

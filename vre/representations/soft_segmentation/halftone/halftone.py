@@ -46,7 +46,7 @@ class Halftone(Representation, ComputeRepresentationMixin, NpIORepresentation, N
                             output=MemoryData([self._make_one_image(frame) for frame in video[ixs]]))
 
     @overrides
-    def make_images(self) -> np.ndarray:
+    def make_images(self, data: ReprOut) -> np.ndarray:
         assert self.data is not None, f"[{self}] data must be first computed using compute()"
         return (self.data.output * 255).astype(np.uint8)
 

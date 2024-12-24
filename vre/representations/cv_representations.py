@@ -3,7 +3,7 @@ from __future__ import annotations
 import numpy as np
 from overrides import overrides
 
-from vre.utils import VREVideo, colorize_optical_flow, colorize_depth
+from vre.utils import VREVideo, colorize_optical_flow, colorize_depth, ReprOut
 from .np_io_representation import NpIORepresentation, DiskData, MemoryData
 from .normed_representation_mixin import NormedRepresentationMixin
 from .representation import Representation
@@ -33,15 +33,15 @@ class ColorRepresentation(ExternalRepresentation, NpIORepresentation):
         return 3
 
     @overrides
-    def make_images(self) -> np.ndarray:
-        y = self.unnormalize(self.data.output) if self.normalization is not None else self.data.output
+    def make_images(self, data: ReprOut) -> np.ndarray:
+        y = self.unnormalize(data.output) if self.normalization is not None else self.data.output
         return y.astype(np.uint8)
 
 class NormalsRepresentation(ColorRepresentation):
     """NormalsRepresentation -- CV representation for world and camera normals"""
     @overrides
-    def make_images(self) -> np.ndarray:
-        y = self.unnormalize(self.data.output) if self.normalization is not None else self.data.output
+    def make_images(self, data: ReprOut) -> np.ndarray:
+        y = self.unnormalize(data.output) if self.normalization is not None else self.data.output
         return (y * 255).astype(np.uint8)
 
 class HSVRepresentation(ColorRepresentation):
@@ -51,8 +51,8 @@ class HSVRepresentation(ColorRepresentation):
         return MemoryData(rgb2hsv(disk_data))
 
     @overrides
-    def make_images(self) -> np.ndarray:
-        y = self.unnormalize(self.data.output) if self.normalization is not None else self.data.output
+    def make_images(self, data: ReprOut) -> np.ndarray:
+        y = self.unnormalize(data.output) if self.normalization is not None else self.data.output
         return (y * 255).astype(np.uint8)
 
 class EdgesRepresentation(ExternalRepresentation, NpIORepresentation):
@@ -66,8 +66,8 @@ class EdgesRepresentation(ExternalRepresentation, NpIORepresentation):
     def n_channels(self) -> int:
         return 1
 
-    def make_images(self) -> np.ndarray:
-        y = self.unnormalize(self.data.output) if self.normalization is not None else self.data.output
+    def make_images(self, data: ReprOut) -> np.ndarray:
+        y = self.unnormalize(data.output) if self.normalization is not None else self.data.output
         return (np.repeat(y, 3, axis=-1) * 255).astype(np.uint8)
 
 class DepthRepresentation(ExternalRepresentation, NpIORepresentation):
@@ -88,7 +88,7 @@ class DepthRepresentation(ExternalRepresentation, NpIORepresentation):
         return MemoryData(disk_data.clip(self.min_depth, self.max_depth))
 
     @overrides
-    def make_images(self) -> np.ndarray:
+    def make_images(self, data: ReprOut) -> np.ndarray:
         assert self.data is not None, f"[{self}] data must be first computed using compute()"
         return (colorize_depth(self.data.output, percentiles=[1, 95]) * 255).astype(np.uint8)
 
@@ -104,7 +104,7 @@ class OpticalFlowRepresentation(ExternalRepresentation, NpIORepresentation):
         return 2
 
     @overrides
-    def make_images(self) -> np.ndarray:
+    def make_images(self, data: ReprOut) -> np.ndarray:
         _min, _max = self.data.output.min(0).min(0), self.data.output.max(0).max(0)
         y = np.nan_to_num(((self.data.output - _min) / (_max - _min)), False, 0, 0, 0).astype(np.float32)
         return colorize_optical_flow(y)

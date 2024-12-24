@@ -17,10 +17,10 @@ def test_depth_normals_svd_dpt():
     normals_svd_repr.compute(video, ixs=[0])
     assert normals_svd_repr.data.output.shape == (*dpt_repr.data.output.shape[0:-1], 3)
 
-    y_normals_img = normals_svd_repr.make_images()
+    y_normals_img = normals_svd_repr.make_images(normals_svd_repr.data)
     assert y_normals_img.shape == (1, 384, 384, 3), y_normals_img.shape
 
     assert normals_svd_repr.size == (1, 384, 384, 3)
     normals_svd_repr.data = normals_svd_repr.resize(normals_svd_repr.data, (64, 128)) # we can resize it though
     assert normals_svd_repr.size == (1, 64, 128, 3)
-    assert normals_svd_repr.make_images().shape == (1, 64, 128, 3)
+    assert normals_svd_repr.make_images(normals_svd_repr.data).shape == (1, 64, 128, 3)

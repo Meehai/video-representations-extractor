@@ -2,7 +2,7 @@
 from overrides import overrides
 import numpy as np
 from vre.representations import Representation, NpIORepresentation
-from vre.utils import DiskData, MemoryData, image_resize_batch, colorize_semantic_segmentation
+from vre.utils import DiskData, MemoryData, image_resize_batch, colorize_semantic_segmentation, ReprOut
 
 class SemanticRepresentation(Representation, NpIORepresentation):
     """SemanticRepresentation. Implements semantic task-specific stuff, like argmaxing if needed"""
@@ -15,6 +15,7 @@ class SemanticRepresentation(Representation, NpIORepresentation):
         self.color_map = color_map
         self.semantic_argmax_only = semantic_argmax_only
         assert len(color_map) == self.n_classes and self.n_classes > 1, (color_map, self.n_classes)
+        self.output_dtype = "uint8" if semantic_argmax_only else "float16"
 
     @property
     @overrides
@@ -29,12 +30,12 @@ class SemanticRepresentation(Representation, NpIORepresentation):
         return MemoryData(np.eye(len(self.classes))[disk_data].astype(np.float32))
 
     @overrides
-    def make_images(self) -> np.ndarray:
-        assert self.data is not None, f"[{self}] data must be first computed using compute()"
+    def make_images(self, data: ReprOut) -> np.ndarray:
+        assert data is not None, f"[{self}] data must be first computed using compute()"
         frames_rsz = None
-        if self.data.frames is not None:
-            frames_rsz = image_resize_batch(self.data.frames, *self.data.output.shape[1:3])
-        preds = self.to_argmaxed_representation(self.data.output)
+        if data.frames is not None:
+            frames_rsz = image_resize_batch(data.frames, *data.output.shape[1:3])
+        preds = self.to_argmaxed_representation(data.output)
         return colorize_semantic_segmentation(preds, self.classes, self.color_map, rgb=frames_rsz)
 
     def to_argmaxed_representation(self, memory_data: MemoryData) -> MemoryData:

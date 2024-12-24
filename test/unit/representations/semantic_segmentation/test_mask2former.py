@@ -13,14 +13,14 @@ def test_mask2former():
     m2f_repr.compute(video, [0])
     assert m2f_repr.data.output.shape == (1, 64, 128)
 
-    y_m2f_rgb = m2f_repr.make_images()
+    y_m2f_rgb = m2f_repr.make_images(m2f_repr.data)
     assert y_m2f_rgb.shape == (1, 64, 128, 3)
     assert y_m2f_rgb.dtype == np.uint8, y_m2f_rgb.dtype
 
     assert m2f_repr.size == (1, 64, 128)
     m2f_repr.data = m2f_repr.resize(m2f_repr.data, (32, 64)) # we can resize it though
     assert m2f_repr.size == (1, 32, 64)
-    assert m2f_repr.make_images().shape == (1, 32, 64, 3)
+    assert m2f_repr.make_images(m2f_repr.data).shape == (1, 32, 64, 3)
 
 if __name__ == "__main__":
     test_mask2former()

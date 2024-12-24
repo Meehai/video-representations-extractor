@@ -4,7 +4,7 @@ from natsort import natsorted
 import shutil
 import numpy as np
 from vre import VRE
-from vre.utils import FakeVideo, colorize_semantic_segmentation, semantic_mapper, DiskData, MemoryData
+from vre.utils import FakeVideo, colorize_semantic_segmentation, semantic_mapper, DiskData, MemoryData, ReprOut
 from vre.representations import Representation, TaskMapper, NpIORepresentation, ComputeRepresentationMixin
 from vre.representations.color import RGB, HSV
 from vre.representations.semantic_segmentation import SemanticRepresentation
@@ -43,8 +43,8 @@ class Buildings(TaskMapper, NpIORepresentation):
         res = self.disk_to_memory_fmt(sum(dep_data_converted) > 0)
         return res
 
-    def make_images(self) -> np.ndarray:
-        return colorize_semantic_segmentation(self.data.output.argmax(-1), self.classes, self.color_map)
+    def make_images(self, data: ReprOut) -> np.ndarray:
+        return colorize_semantic_segmentation(data.output.argmax(-1), self.classes, self.color_map)
 
 def _generate_random_data(n: int) -> Path:
     tmp_dir = Path(__file__).parent / "data" if __name__ == "__main__" else Path(TemporaryDirectory().name)

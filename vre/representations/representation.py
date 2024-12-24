@@ -17,7 +17,7 @@ class Representation(ABC):
 
     ## Abstract methods ##
     @abstractmethod
-    def make_images(self) -> np.ndarray:
+    def make_images(self, data: ReprOut) -> np.ndarray:
         """Given the output of self.compute(video, ixs) of type ReprOut, return a [0:255] image for each frame"""
 
     @property

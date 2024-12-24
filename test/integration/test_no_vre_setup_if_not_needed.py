@@ -21,11 +21,11 @@ class MyRepresentation(Representation, LearnedRepresentationMixin, ComputeRepres
         self.vre_free_called = False
         self.make_called = False
     def compute(self, video, ixs):
+        raise NotImplementedError("TODO")
         self.make_called = True
-        breakpoint()
         self.data = ReprOut(frames := video[ixs], output=frames[..., 0:1], key=ixs)
-    def make_images(self):
-        return self.data.output
+    def make_images(self, data: ReprOut):
+        return data.output
     def vre_setup(self, load_weights = True):
         self.vre_setup_called = True
     def vre_free(self):
@@ -42,8 +42,8 @@ class MyDependentRepresentation(Representation, ComputeRepresentationMixin, NpIO
         NpIORepresentation.__init__(self)
     def compute(self, video, ixs):
         self.data = ReprOut(frames=video[ixs], output=self.dependencies[0].data.output, key=ixs)
-    def make_images(self):
-        return self.data.output
+    def make_images(self, data: ReprOut) -> np.ndarray:
+        return data.output
     @property
     def n_channels(self):
         return 1

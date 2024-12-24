@@ -22,9 +22,9 @@ class FakeRepresentation(Representation, ComputeRepresentationMixin, NpIOReprese
         self.data = ReprOut(frames=video[ixs], output=MemoryData(video[ixs]), key=ixs)
 
     @overrides
-    def make_images(self) -> np.ndarray:
-        assert self.data is not None, f"[{self}] data must be first computed using compute()"
-        return self.data.output
+    def make_images(self, data: ReprOut) -> np.ndarray:
+        assert data.output is not None, f"[{self}] data must be first computed using compute(), got {data}"
+        return data.output
 
     @property
     @overrides

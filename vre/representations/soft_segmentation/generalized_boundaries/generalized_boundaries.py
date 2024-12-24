@@ -41,6 +41,6 @@ class GeneralizedBoundaries(Representation, ComputeRepresentationMixin, NpIORepr
         self.data = ReprOut(frames=video[ixs], output=MemoryData(y), key=ixs)
 
     @overrides
-    def make_images(self) -> np.ndarray:
+    def make_images(self, data: ReprOut) -> np.ndarray:
         assert self.data is not None, f"[{self}] data must be first computed using compute()"
         return (self.data.output * 255).astype(np.uint8)
