@@ -19,7 +19,7 @@ def test_fastsam():
     assert fastsam_repr.data.extra[0]["inference_size"] == (32, 64), fastsam_repr.data.extra[0]["inference_size"]
     assert fastsam_repr.data.extra[0]["image_size"] == (64, 128), fastsam_repr.data.extra[0]["image_size"]
 
-    y_fastsam_rgb = fastsam_repr.make_images()
+    y_fastsam_rgb = fastsam_repr.make_images(fastsam_repr.data)
     assert y_fastsam_rgb.shape == (1, 64, 128, 3) # no guarantee about the raw inference output
     assert y_fastsam_rgb.dtype == np.uint8, y_fastsam_rgb.dtype
     assert fastsam_repr.size == (1, 64, 128, 3)

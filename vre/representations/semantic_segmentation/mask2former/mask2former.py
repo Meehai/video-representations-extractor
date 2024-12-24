@@ -105,7 +105,7 @@ def main(args: Namespace):
     now = datetime.now()
     m2f.compute(FakeVideo(img[None], 1), [0])
     logger.info(f"Pred took: {datetime.now() - now}")
-    semantic_result: np.ndarray = m2f.make_images()[0]
+    semantic_result: np.ndarray = m2f.make_images(m2f.data)[0]
     image_write(semantic_result, args.output_path)
     logger.info(f"Written prediction to '{args.output_path}'")
     return m2f.data.output # for integration tests

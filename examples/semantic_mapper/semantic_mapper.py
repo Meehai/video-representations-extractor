@@ -19,7 +19,7 @@ def plot_one(data: MultiTaskItem, title: str, order: list[str] | None,
     """simple plot function: plot_one(reader[0][0], reader[0][1], None, reader.name_to_task)"""
     def vre_plot_fn(rgb: tr.Tensor, x: tr.Tensor, node: Representation) -> np.ndarray:
         node.data = ReprOut(rgb.cpu().detach().numpy()[None], MemoryData(x.cpu().detach().numpy()[None]), [0])
-        return node.make_images()[0]
+        return node.make_images(node.data)[0]
     img_data = {k: vre_plot_fn(data["rgb"], v, name_to_task[k]) for k, v in data.items()}
     img_data = reorder_dict(img_data, order) if order is not None else img_data
     titles = [title if len(title) < 40 else f"{title[0:19]}..{title[-19:]}" for title in img_data]
@@ -130,8 +130,8 @@ class SemanticMask2FormerMapillaryConvertedPaper(TaskMapper, NpIORepresentation)
         return self.n_classes
 
     @overrides
-    def make_images(self) -> np.ndarray:
-        return colorize_semantic_segmentation(self.data.output.argmax(-1), self.classes, self.color_map)
+    def make_images(self, data: ReprOut) -> np.ndarray:
+        return colorize_semantic_segmentation(data.output.argmax(-1), self.classes, self.color_map)
 
     @overrides
     def merge_fn(self, dep_data: list[MemoryData]) -> MemoryData:
@@ -190,8 +190,8 @@ class SemanticMask2FormerCOCOConverted(TaskMapper, NpIORepresentation):
         return self.n_classes
 
     @overrides
-    def make_images(self) -> np.ndarray:
-        return colorize_semantic_segmentation(self.data.output.argmax(-1), self.classes, self.color_map)
+    def make_images(self, data: ReprOut) -> np.ndarray:
+        return colorize_semantic_segmentation(data.output.argmax(-1), self.classes, self.color_map)
 
     @overrides
     def merge_fn(self, dep_data: list[MemoryData]) -> MemoryData:
@@ -232,8 +232,8 @@ class BinaryMapper(TaskMapper, NpIORepresentation):
         self.output_dtype = "bool"
 
     @overrides
-    def make_images(self) -> np.ndarray:
-        x = self.data.output.argmax(-1) if self.load_mode == "one_hot" else (self.data.output > 0.5).astype(int)
+    def make_images(self, data: ReprOut) -> np.ndarray:
+        x = data.output.argmax(-1) if self.load_mode == "one_hot" else (data.output > 0.5).astype(int)
         x = x[..., 0] if x.shape[-1] == 1 else x
         return colorize_semantic_segmentation(x, self.classes, self.color_map)
 

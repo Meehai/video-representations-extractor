@@ -66,7 +66,7 @@ class Marigold(Representation, LearnedRepresentationMixin, ComputeRepresentation
                             output=MemoryData([self._make_one_frame(frame) for frame in video[ixs]]))
 
     @overrides
-    def make_images(self) -> np.ndarray:
+    def make_images(self, data: ReprOut) -> np.ndarray:
         assert self.data is not None, f"[{self}] data must be first computed using compute()"
         return (colorize_depth(self.data.output, percentiles=[1, 95]) * 255).astype(np.uint8)
 
@@ -195,7 +195,7 @@ def main():
                 print(e)
 
         marigold.data = marigold.resize(marigold.data, rgb.shape[0:2])
-        depth_img = marigold.make_images()[0]
+        depth_img = marigold.make_images(marigold.data)[0]
         image_write(depth_img, output_dir / "png" / f"{rgb_path.stem}_pred.png")
 
 if __name__ == "__main__":

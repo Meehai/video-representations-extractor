@@ -67,8 +67,8 @@ class HSV(Representation, ComputeRepresentationMixin, NpIORepresentation, Normed
         self.data = ReprOut(frames=video[ixs], output=rgb2hsv(rgb).astype(np.float32), key=ixs)
 
     @overrides
-    def make_images(self) -> np.ndarray:
-        y = self.unnormalize(self.data.output) if self.normalization is not None else self.data.output
+    def make_images(self, data: ReprOut) -> np.ndarray:
+        y = self.unnormalize(data.output) if self.normalization is not None else self.data.output
         return (y * 255).astype(np.uint8)
 
     @property

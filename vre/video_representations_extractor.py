@@ -131,7 +131,7 @@ class VideoRepresentationsExtractor:
                 assert rep.data is not None, (rep, batch)
                 if not rep.is_classification and rep.name.find("fastsam") == -1: # TODO: MemoryData of M2F is binary...
                     assert rep.data.output.shape[-1] == rep.n_channels, (rep, rep.data.output, rep.n_channels)
-                rep.data.output_images = rep.make_images() if rep.export_image else None
+                rep.data.output_images = rep.make_images(rep.data) if rep.export_image else None
                 data_storer(rep.data)
             except Exception:
                 self._log_error(f"\n[{rep.name} {rep.batch_size=} {batch=}] {traceback.format_exc()}\n")

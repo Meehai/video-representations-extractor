@@ -49,7 +49,7 @@ class FastSam(Representation, LearnedRepresentationMixin, ComputeRepresentationM
         self.data = ReprOut(frames=frames, output=MemoryData(tr_y[1][-1].to("cpu").numpy()), extra=extra, key=ixs)
 
     @overrides(check_signature=False)
-    def make_images(self) -> np.ndarray:
+    def make_images(self, data: ReprOut) -> np.ndarray:
         y_fastsam, extra = self.data.output, self.data.extra # len(y_fastsam) == len(extra) == len(ixs)
         assert all((inf_size := e["inference_size"]) == extra[0]["inference_size"] for e in extra), extra
         assert all((img_size := e["image_size"]) == extra[0]["image_size"] for e in extra), extra
@@ -174,7 +174,7 @@ def main(args: Namespace):
     now = datetime.now()
     fastsam.compute(FakeVideo(img[None], 1), [0])
     logger.info(f"Pred took: {datetime.now() - now}")
-    semantic_result = fastsam.make_images()[0]
+    semantic_result = fastsam.make_images(fastsam.data)[0]
     image_write(semantic_result, args.output_path)
     logger.info(f"Written result to '{args.output_path}'")
 
@@ -182,7 +182,7 @@ def main(args: Namespace):
     pred = deepcopy(fastsam.data)
     fastsam.data = fastsam.resize(fastsam.data, (300, 1024))
     pred_rsz = fastsam.data
-    semantic_result_rsz = fastsam.make_images()[0]
+    semantic_result_rsz = fastsam.make_images(fastsam.data)[0]
     image_write(semantic_result_rsz, output_path_rsz)
     logger.info(f"Written resized result to '{output_path_rsz}'")
 

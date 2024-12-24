@@ -42,9 +42,9 @@ class FlowRife(Representation, LearnedRepresentationMixin, ComputeRepresentation
         self.data = ReprOut(frames=video[ixs], output=MemoryData(flow), key=ixs)
 
     @overrides
-    def make_images(self) -> np.ndarray:
+    def make_images(self, data: ReprOut) -> np.ndarray:
         assert self.data is not None, f"[{self}] data must be first computed using compute()"
-        y = self.unnormalize(self.data.output) if self.normalization is not None else self.data.output
+        y = self.unnormalize(data.output) if self.normalization is not None else self.data.output
         return colorize_optical_flow(y)
 
     @overrides

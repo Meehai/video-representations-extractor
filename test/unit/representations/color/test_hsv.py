@@ -12,7 +12,7 @@ def test_hsv_compute():
     hsv_repr.compute(video, [0])
     assert hsv_repr.data.output.shape == (1, 64, 128, 3), hsv_repr.data.output.shape
 
-    y_hsv_images = hsv_repr.make_images()
+    y_hsv_images = hsv_repr.make_images(hsv_repr.data)
     assert y_hsv_images.shape == (1, 64, 128, 3), y_hsv_images.shape
     assert y_hsv_images.dtype == np.uint8, y_hsv_images.dtype
 
@@ -27,5 +27,5 @@ def test_hsv_resize():
     hsv_repr.data = hsv_repr.resize(hsv_repr.data, (32, 64))
     assert hsv_repr.size == (1, 32, 64, 3), hsv_repr.size
 
-    y_hsv_images_resized = hsv_repr.make_images()
+    y_hsv_images_resized = hsv_repr.make_images(hsv_repr.data)
     assert y_hsv_images_resized.shape == (1, 32, 64, 3) and y_hsv_images_resized.dtype == np.uint8

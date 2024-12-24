@@ -33,7 +33,7 @@ class DepthDpt(Representation, LearnedRepresentationMixin, ComputeRepresentation
         self.data = ReprOut(frames=video[ixs], output=MemoryData(res), key=ixs)
 
     @overrides
-    def make_images(self) -> np.ndarray:
+    def make_images(self, data: ReprOut) -> np.ndarray:
         assert self.data is not None, f"[{self}] data must be first computed using compute()"
         return (colorize_depth(self.data.output, percentiles=[1, 95]) * 255).astype(np.uint8)
 

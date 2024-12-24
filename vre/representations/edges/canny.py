@@ -26,7 +26,7 @@ class Canny(Representation, ComputeRepresentationMixin, NpIORepresentation, Norm
                             output=MemoryData([self._make_one(frame) for frame in video[ixs]]))
 
     @overrides
-    def make_images(self) -> np.ndarray:
+    def make_images(self, data: ReprOut) -> np.ndarray:
         assert self.data is not None, f"[{self}] data must be first computed using compute()"
         return (255 * self.data.output.repeat(3, axis=-1)).astype(np.uint8)
 

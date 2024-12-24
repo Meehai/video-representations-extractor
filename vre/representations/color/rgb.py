@@ -23,8 +23,8 @@ class RGB(Representation, ComputeRepresentationMixin, NpIORepresentation, Normed
         self.data = ReprOut(frames=video[ixs], output=MemoryData(video[ixs]), key=ixs) # video[ixs] is cached
 
     @overrides
-    def make_images(self) -> np.ndarray:
-        y = self.unnormalize(self.data.output) if self.normalization is not None else self.data.output
+    def make_images(self, data: ReprOut) -> np.ndarray:
+        y = self.unnormalize(data.output) if self.normalization is not None else self.data.output
         return y.astype(np.uint8)
 
     @property
