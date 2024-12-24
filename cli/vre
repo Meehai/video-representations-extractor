@@ -58,20 +58,17 @@ def main(args: Namespace):
     else:
         video = FFmpegVideo(args.video_path)
 
-    frames = args.frames if args.start_frame is None else range(args.start_frame or 0, args.end_frame or len(video))
 
     representations = build_representations_from_cfg(cfg=cfg)
     if len(args.external_representations) > 0:
         for external_path in args.external_representations:
             representations = add_external_representations(representations, external_path, cfg)
-
-    if args.representations is not None:
-        logger.info(f"--representation is set from the CLI. Keeping only {args.representations}")
-        representations = {k: representations[k] for k in args.representations}
-
     vre = VRE(video, representations)
+
+    frames = args.frames if args.start_frame is None else range(args.start_frame or 0, args.end_frame or len(video))
     vre_metadata = vre.run(args.output_path, frames=frames, output_dir_exists_mode=args.output_dir_exists_mode,
-                           n_threads_data_storer=args.n_threads_data_storer, exception_mode=args.exception_mode)
+                           n_threads_data_storer=args.n_threads_data_storer, exception_mode=args.exception_mode,
+                           exported_representations=args.representations)
     print(vre_metadata.pretty_format())
 
     if args.make_video_collage:

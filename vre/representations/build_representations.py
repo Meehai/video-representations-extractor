@@ -125,7 +125,7 @@ def build_representation_from_cfg(repr_cfg: dict, name: str, built_so_far: list[
     return obj
 
 def build_representations_from_cfg(cfg: Path | str | DictConfig | dict) -> list[Representation]:
-    """builds a dict of representations given a dict config (yaml file)"""
+    """builds a list of representations given a dict config (yaml file)"""
     assert isinstance(cfg, (Path, str, DictConfig, dict)), type(cfg)
     cfg = OmegaConf.load(cfg) if isinstance(cfg, (Path, str)) else cfg
     cfg: dict = OmegaConf.to_container(cfg, resolve=True) if isinstance(cfg, DictConfig) else cfg

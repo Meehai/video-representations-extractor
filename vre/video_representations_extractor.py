@@ -46,7 +46,8 @@ class VideoRepresentationsExtractor:
         return self
 
     def run(self, output_dir: Path, frames: list[int] | None = None, output_dir_exists_mode: str = "raise",
-            exception_mode: str = "stop_execution", n_threads_data_storer: int = 0) -> Metadata:
+            exception_mode: str = "stop_execution", n_threads_data_storer: int = 0,
+            exported_representations: list[str] | None = None) -> Metadata:
         """
         The main loop of the VRE. This will run all the representations on the video and store results in the output_dir
         Parameters:
@@ -56,6 +57,8 @@ class VideoRepresentationsExtractor:
           - 'skip_representation' Will stop the run of the current representation and start the next one
           - 'stop_execution' (default) Will stop the execution of VRE
         - n_threads_data_storer The number of threads used by the DataStorer
+        - exported_representations If set, only this subset of representations are exported, otherwise all of them
+            based on these provided to the VRE constructor.
         Returns:
         - A dataframe with the run statistics for each representation
         """
@@ -63,7 +66,7 @@ class VideoRepresentationsExtractor:
         runtime_args = VRERuntimeArgs(self.video, self.representations, frames, exception_mode, n_threads_data_storer)
         logger.info(runtime_args)
         self._metadata = Metadata(self.repr_names, runtime_args, self._logs_file.parent / f"run_metadata-{now}.json")
-        for vre_repr in self._get_output_representations():
+        for vre_repr in self._get_output_representations(exported_representations):
             assert isinstance(vre_repr, Representation), vre_repr
             assert isinstance(vre_repr, IORepresentationMixin), vre_repr
             assert vre_repr.binary_format is not None or vre_repr.image_format is not None, vre_repr
@@ -156,11 +159,14 @@ class VideoRepresentationsExtractor:
         self._metadata.store_on_disk()
         logger.info(f"Stored vre run log file at '{self._metadata.disk_location}")
 
-    def _get_output_representations(self) -> list[IORepresentationMixin]:
+    def _get_output_representations(self, exported_representations: list[str]) -> list[IORepresentationMixin]:
         """given all the representations, keep those that actually export something. At least one is needed"""
-        crs = [_r for _r in self.representations if isinstance(_r, IORepresentationMixin)]
+        crs: list[IORepresentationMixin] = [_r for _r in self.representations if isinstance(_r, IORepresentationMixin)]
         assert len(crs) > 0, f"No I/O Representation found in {self.repr_names}"
-        out_r = [r for r in crs if r.export_binary or r.export_image]
+        out_r: list[Representation] = [r for r in crs if r.export_binary or r.export_image]
+        if exported_representations:
+            logger.info(f"Explicit subset providewd: {exported_representations}. Exporting only these.")
+            out_r = [r for r in out_r if r.name in exported_representations]
         assert len(out_r) > 0, f"No output format set for any I/O Representation: {', '.join([r.name for r in crs])}"
         return out_r
 

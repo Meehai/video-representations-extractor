@@ -69,7 +69,7 @@ class MultiTaskDataset(Dataset):
         assert Path(path).exists(), f"Provided path '{path}' doesn't exist!"
         assert handle_missing_data in ("drop", "fill_none", "fill_zero", "fill_nan", "raise"), \
             f"Invalid handle_missing_data mode: {handle_missing_data}"
-        assert isinstance(task_names, Iterable), type(task_names)
+        assert isinstance(task_names, Iterable) and isinstance(task_types, dict), (type(task_names), type(task_types))
         self.path = Path(path).absolute()
         self.handle_missing_data = handle_missing_data
         self.suffix = files_suffix
