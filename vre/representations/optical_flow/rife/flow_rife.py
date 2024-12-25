@@ -4,31 +4,22 @@ import torch as tr
 import torch.nn.functional as F
 from overrides import overrides
 
-from vre.utils import fetch_weights, VREVideo, colorize_optical_flow, MemoryData
-from vre.representations import (Representation, ReprOut, LearnedRepresentationMixin,
-                                 ComputeRepresentationMixin, NpIORepresentation, NormedRepresentationMixin)
+from vre.utils import fetch_weights, VREVideo, MemoryData
+from vre.representations import ReprOut, LearnedRepresentationMixin
+from vre.representations.optical_flow import OpticalFlowRepresentation
 from vre.representations.optical_flow.rife.rife_impl import Model
 
-class FlowRife(Representation, LearnedRepresentationMixin, ComputeRepresentationMixin,
-               NpIORepresentation, NormedRepresentationMixin):
+class FlowRife(OpticalFlowRepresentation, LearnedRepresentationMixin):
     """FlowRife representation"""
     def __init__(self, compute_backward_flow: bool, uhd: bool, flow_delta_frames: int = 1, **kwargs):
-        Representation.__init__(self, **kwargs)
+        OpticalFlowRepresentation.__init__(self, **kwargs)
         LearnedRepresentationMixin.__init__(self)
-        ComputeRepresentationMixin.__init__(self)
-        NpIORepresentation.__init__(self)
-        NormedRepresentationMixin.__init__(self)
         tr.manual_seed(42)
         self.uhd = uhd
         self.flow_delta_frames = flow_delta_frames
         assert compute_backward_flow is False, "Not supported"
         self.no_backward_flow = True if compute_backward_flow is None else not compute_backward_flow
         self.model: Model | None = None
-
-    @property
-    @overrides
-    def n_channels(self) -> int:
-        return 2
 
     @overrides
     def compute(self, video: VREVideo, ixs: list[int]):
@@ -40,12 +31,6 @@ class FlowRife(Representation, LearnedRepresentationMixin, ComputeRepresentation
             prediction = self.model.inference(x_s, x_t, self.uhd, self.no_backward_flow)
         flow = self._postprocess(prediction, padding)
         self.data = ReprOut(frames=video[ixs], output=MemoryData(flow), key=ixs)
-
-    @overrides
-    def make_images(self, data: ReprOut) -> np.ndarray:
-        assert self.data is not None, f"[{self}] data must be first computed using compute()"
-        y = self.unnormalize(data.output) if self.normalization is not None else self.data.output
-        return colorize_optical_flow(y)
 
     @overrides
     def vre_setup(self, load_weights: bool = True):

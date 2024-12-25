@@ -7,7 +7,7 @@ from torch.nn import functional as F
 
 from vre.utils import fetch_weights, vre_load_weights, VREVideo, MemoryData
 from vre.logger import vre_logger as logger
-from vre.representations import ReprOut, LearnedRepresentationMixin, ComputeRepresentationMixin, NpIORepresentation
+from vre.representations import ReprOut, LearnedRepresentationMixin, NpIORepresentation
 from vre.representations.semantic_segmentation import SemanticRepresentation
 from vre.representations.semantic_segmentation.safeuav.Map2Map import EncoderMap2Map, DecoderMap2Map
 
@@ -25,13 +25,11 @@ class _SafeUavWrapper(nn.Module):
         y_decoder = self.decoder(y_encoder)
         return y_decoder
 
-class SafeUAV(SemanticRepresentation, LearnedRepresentationMixin, ComputeRepresentationMixin, NpIORepresentation):
+class SafeUAV(SemanticRepresentation, LearnedRepresentationMixin, NpIORepresentation):
     """SafeUAV semantic segmentation representation"""
     def __init__(self, num_classes: int, train_height: int, train_width: int, color_map: list[tuple[int, int, int]],
                  semantic_argmax_only: bool, weights_file: str | None = None, **kwargs):
-        # Representation.__init__(self, **kwargs)
         LearnedRepresentationMixin.__init__(self)
-        ComputeRepresentationMixin.__init__(self)
         NpIORepresentation.__init__(self)
         SemanticRepresentation.__init__(self, classes=list(range(num_classes)), color_map=color_map,
                                         semantic_argmax_only=semantic_argmax_only, **kwargs)

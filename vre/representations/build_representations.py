@@ -150,28 +150,29 @@ def add_external_representations(representations: list[Representation], external
                                  cfg: DictConfig) -> list[Representation]:
     """adds external representations from an provided path in the format: /path/to/script.py:fn_name"""
     path, fn = external_path.split(":")
-    external_representations: dict[str, Representation] = getattr(imp.load_source("external", path), fn)()
-    assert all(isinstance(v, IORepresentationMixin) for v in external_representations.values())
-    assert all(isinstance(v, ComputeRepresentationMixin) for v in external_representations.values())
-    assert all(isinstance(v, Representation) for v in external_representations.values())
-    logger.info(f"Adding {list(external_representations)} from {path}")
-    for repr in external_representations.values():
-        repr.set_compute_params(**cfg.get("default_compute_parameters", {}))
+    external_reprs: dict[str, Representation] = getattr(imp.load_source("external", path), fn)()
+    assert all(isinstance(v, IORepresentationMixin) for v in external_reprs.values()), external_reprs
+    # assert all(isinstance(v, ComputeRepresentationMixin) for v in external_reprs.values()), external_reprs
+    assert all(isinstance(v, Representation) for v in external_reprs.values()), external_reprs
+    logger.info(f"Adding {list(external_reprs)} from {path}")
+    for repr in external_reprs.values():
+        if isinstance(repr, ComputeRepresentationMixin):
+            repr.set_compute_params(**cfg.get("default_compute_parameters", {}))
         repr.set_io_params(**cfg.get("default_io_parameters", {}))
         if isinstance(repr, LearnedRepresentationMixin):
             repr.set_learned_parameters(**cfg.get("default_learned_parameters", {}))
 
-    assert (clash := set(external_representations.keys()).intersection(representations)) == set(), clash
+    assert (clash := set(external_reprs.keys()).intersection(representations)) == set(), clash
     name_to_repr = {r.name: r for r in representations}
     # update clashes in dependencies
-    for external_repr in external_representations.values():
+    for external_repr in external_reprs.values():
         for i, external_dep in enumerate(external_repr.dependencies):
             if external_dep.name in name_to_repr and id(external_dep) != id(curr := name_to_repr[external_dep.name]):
                 logger.warning(f"[{external_repr.name}] Dependency {external_dep} is different than existing {curr}. "
                                "Replacing the dependency. This may yield in wrong results!")
                 external_repr.dependencies[i] = curr
 
-    new_representations = [*representations, *list(external_representations.values())]
+    new_representations = [*representations, *list(external_reprs.values())]
     dep_graph = {r.name: [_r.name for _r in r.dependencies] for r in new_representations}
     name_to_repr = {r.name: r for r in new_representations}
     return [name_to_repr[r] for r in topological_sort(dep_graph)]

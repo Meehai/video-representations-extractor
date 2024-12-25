@@ -2,13 +2,12 @@
 from overrides import overrides
 import numpy as np
 
-from vre.utils import VREVideo, MemoryData
-from vre.representations import (
-    Representation, ReprOut, ComputeRepresentationMixin, NpIORepresentation, NormedRepresentationMixin)
+from vre.utils import VREVideo, MemoryData, ReprOut
+from vre.representations.normals import NormalsRepresentation
 from vre.representations.normals.depth_svd.depth_svd_impl import (
     fov_diag_to_intrinsic, get_sampling_grid, get_normalized_coords, depth_to_normals)
 
-class DepthNormalsSVD(Representation, ComputeRepresentationMixin, NpIORepresentation, NormedRepresentationMixin):
+class DepthNormalsSVD(NormalsRepresentation):
     """
     General method for estimating normals from a depth map (+ intrinsics): a 2D window centered on each pixel is
     projected into 3D and then a plane is fitted on the 3D pointcloud using SVD.
@@ -16,10 +15,7 @@ class DepthNormalsSVD(Representation, ComputeRepresentationMixin, NpIORepresenta
     def __init__(self, sensor_fov: int, sensor_width: int, sensor_height: int, window_size: int,
                  input_downsample_step: int = None, stride: int = None, max_distance: float = None,
                  min_valid_count: int = None, **kwargs):
-        Representation.__init__(self, **kwargs)
-        ComputeRepresentationMixin.__init__(self)
-        NpIORepresentation.__init__(self)
-        NormedRepresentationMixin.__init__(self)
+        NormalsRepresentation.__init__(self, **kwargs)
         assert window_size % 2 == 1, f"Expected odd window size. Got: {window_size}"
         self.sensor_fov = sensor_fov
         self.sensor_width = sensor_width
@@ -32,11 +28,6 @@ class DepthNormalsSVD(Representation, ComputeRepresentationMixin, NpIORepresenta
         assert len(self.dependencies) == 1, f"Expected exactly one depth method, got: {self.dependencies}"
         self._grid_cache = {}
 
-    @property
-    @overrides
-    def n_channels(self) -> int:
-        return 3
-
     @overrides
     def compute(self, video: VREVideo, ixs: list[int]):
         assert self.data is None, f"[{self}] data must not be computed before calling this"
@@ -45,11 +36,6 @@ class DepthNormalsSVD(Representation, ComputeRepresentationMixin, NpIORepresenta
         assert len(depths.shape) == 4 and depths.shape[-1] == 1, f"Expected (B, H, W, 1) got: {depths.shape}"
         res = MemoryData([self._make_one_normal(depth[..., 0]) for depth in depths])
         self.data = ReprOut(frames=video[ixs], output=res, key=ixs)
-
-    @overrides
-    def make_images(self, data: ReprOut) -> np.ndarray:
-        assert self.data is not None, f"[{self}] data must be first computed using compute()"
-        return (self.data.output * 255).astype(np.uint8)
 
     def _make_one_normal(self, depth: np.ndarray) -> np.ndarray:
         # TODO: batch vectorize this if possible

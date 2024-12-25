@@ -4,20 +4,16 @@ import torch as tr
 import torch.nn.functional as F
 from overrides import overrides
 
-from vre.utils import VREVideo, fetch_weights, colorize_depth, vre_load_weights, MemoryData
-from vre.representations import (Representation, ReprOut, LearnedRepresentationMixin,
-                                 ComputeRepresentationMixin, NpIORepresentation, NormedRepresentationMixin)
+from vre.utils import VREVideo, fetch_weights, vre_load_weights, MemoryData
+from vre.representations import ReprOut, LearnedRepresentationMixin
 from vre.representations.depth.dpt.dpt_impl import DPTDepthModel, get_size
+from vre.representations.depth import DepthRepresentation
 
-class DepthDpt(Representation, LearnedRepresentationMixin, ComputeRepresentationMixin,
-               NpIORepresentation, NormedRepresentationMixin):
+class DepthDpt(DepthRepresentation, LearnedRepresentationMixin):
     """DPT Depth Estimation representation"""
     def __init__(self, **kwargs):
-        Representation.__init__(self, **kwargs)
         LearnedRepresentationMixin.__init__(self)
-        ComputeRepresentationMixin.__init__(self)
-        NpIORepresentation.__init__(self)
-        NormedRepresentationMixin.__init__(self)
+        DepthRepresentation.__init__(self, min_depth=0, max_depth=1, **kwargs)
         self.net_w, self.net_h = 384, 384
         self.multiple_of = 32
         tr.manual_seed(42)
@@ -31,11 +27,6 @@ class DepthDpt(Representation, LearnedRepresentationMixin, ComputeRepresentation
             predictions = self.model(tr_frames)
         res = self._postprocess(predictions)
         self.data = ReprOut(frames=video[ixs], output=MemoryData(res), key=ixs)
-
-    @overrides
-    def make_images(self, data: ReprOut) -> np.ndarray:
-        assert self.data is not None, f"[{self}] data must be first computed using compute()"
-        return (colorize_depth(self.data.output, percentiles=[1, 95]) * 255).astype(np.uint8)
 
     @overrides
     def vre_setup(self, load_weights: bool = True):
@@ -55,11 +46,6 @@ class DepthDpt(Representation, LearnedRepresentationMixin, ComputeRepresentation
             tr.cuda.empty_cache()
         self.model = None
         self.setup_called = False
-
-    @property
-    @overrides
-    def n_channels(self) -> int:
-        return 1
 
     def _preprocess(self, x: np.ndarray) -> tr.Tensor:
         tr_frames = tr.from_numpy(x).to(self.device)
