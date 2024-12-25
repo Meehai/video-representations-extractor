@@ -11,21 +11,17 @@ from overrides import overrides
 from tqdm.auto import tqdm
 from diffusers import AutoencoderKL, DDIMScheduler, LCMScheduler, UNet2DConditionModel
 
-from vre.utils import image_read, colorize_depth, image_write, fetch_weights, vre_load_weights, VREVideo, MemoryData
-from vre.representations import (Representation, ReprOut, LearnedRepresentationMixin, ComputeRepresentationMixin,
-                                 NpIORepresentation, NormedRepresentationMixin)
+from vre.utils import image_read, image_write, fetch_weights, vre_load_weights, VREVideo, MemoryData
+from vre.representations import ReprOut, LearnedRepresentationMixin
+from vre.representations.depth import DepthRepresentation
 from vre.representations.depth.marigold.marigold_impl import MarigoldPipeline
 
-class Marigold(Representation, LearnedRepresentationMixin, ComputeRepresentationMixin,
-               NpIORepresentation, NormedRepresentationMixin):
+class Marigold(DepthRepresentation, LearnedRepresentationMixin):
     """Marigold VRE implementation"""
     def __init__(self, variant: str, denoising_steps: int, ensemble_size: int, processing_resolution: int,
                  seed: int | None = None, **kwargs):
-        Representation.__init__(self, **kwargs)
+        DepthRepresentation.__init__(self, min_depth=0, max_depth=1, **kwargs)
         LearnedRepresentationMixin.__init__(self)
-        ComputeRepresentationMixin.__init__(self)
-        NpIORepresentation.__init__(self)
-        NormedRepresentationMixin.__init__(self)
         assert variant in ("marigold-v1-0", "marigold-lcm-v1-0", "testing"), variant
         self.variant = variant
         self.denoising_steps = denoising_steps
@@ -33,11 +29,6 @@ class Marigold(Representation, LearnedRepresentationMixin, ComputeRepresentation
         self.processing_resolution = processing_resolution
         self.model: MarigoldPipeline | None = None
         self.seed = seed
-
-    @property
-    @overrides
-    def n_channels(self) -> int:
-        return 1
 
     @overrides
     def vre_setup(self, load_weights: bool=True):
@@ -64,11 +55,6 @@ class Marigold(Representation, LearnedRepresentationMixin, ComputeRepresentation
         assert self.data is None, f"[{self}] data must not be computed before calling this"
         self.data = ReprOut(frames=video[ixs], key=ixs,
                             output=MemoryData([self._make_one_frame(frame) for frame in video[ixs]]))
-
-    @overrides
-    def make_images(self, data: ReprOut) -> np.ndarray:
-        assert self.data is not None, f"[{self}] data must be first computed using compute()"
-        return (colorize_depth(self.data.output, percentiles=[1, 95]) * 255).astype(np.uint8)
 
     @overrides
     def vre_free(self):

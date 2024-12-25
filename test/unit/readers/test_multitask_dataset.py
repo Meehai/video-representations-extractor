@@ -3,7 +3,8 @@ from tempfile import TemporaryDirectory
 from vre.readers import MultiTaskDataset
 from vre.representations import NormedRepresentationMixin
 from vre.representations.semantic_segmentation import SemanticRepresentation
-from vre.representations.cv_representations import ColorRepresentation, DepthRepresentation
+from vre.representations.depth import DepthRepresentation
+from vre.representations.color import ColorRepresentation
 from torch.utils.data import DataLoader
 import numpy as np
 import torch as tr

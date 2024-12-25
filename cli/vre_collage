@@ -37,7 +37,12 @@ def plot_one(data: dict[str, tr.Tensor], file_name: str, dataset_path: Path,
         if (extra_path := (dataset_path/k/"npz"/f"{stem}_extra.npz")).exists():
             extra = np.load(extra_path, allow_pickle=True)["arr_0"].item()
         task.data = ReprOut(rgb[None], MemoryData(v.cpu().numpy()[None]), key=[stem], extra=[extra])
-        img_data[k] = task.make_images(task.data)[0]
+        try:
+            img_data[k] = task.make_images(task.data)[0]
+        except Exception as e:
+            breakpoint()
+            logger.info(f"[{task}] Failed {dataset_path=}, {file_name=}")
+            raise e
     return img_data
 
 def do_one(ix: int, reader: MultiTaskDataset, output_path: Path, output_resolution: tuple[int, int] | None):

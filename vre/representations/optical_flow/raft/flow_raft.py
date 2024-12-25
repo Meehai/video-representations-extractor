@@ -4,22 +4,18 @@ import numpy as np
 import torch as tr
 from torch.nn import functional as F
 
-from vre.utils import fetch_weights, vre_load_weights, VREVideo, colorize_optical_flow, MemoryData
+from vre.utils import fetch_weights, vre_load_weights, VREVideo, MemoryData
 from vre.logger import vre_logger as logger
-from vre.representations import (Representation, ReprOut, LearnedRepresentationMixin,
-                                 ComputeRepresentationMixin, NpIORepresentation, NormedRepresentationMixin)
+from vre.representations import ReprOut, LearnedRepresentationMixin
+from vre.representations.optical_flow import OpticalFlowRepresentation
 from vre.representations.optical_flow.raft.raft_impl import RAFT, InputPadder
 
-class FlowRaft(Representation, LearnedRepresentationMixin, ComputeRepresentationMixin,
-               NpIORepresentation, NormedRepresentationMixin):
+class FlowRaft(OpticalFlowRepresentation, LearnedRepresentationMixin):
     """FlowRaft representation"""
     def __init__(self, inference_height: int, inference_width: int, iters: int, small: bool,
                  seed: int | None = None, flow_delta_frames: int = 1, **kwargs):
-        Representation.__init__(self, **kwargs)
+        OpticalFlowRepresentation.__init__(self, **kwargs)
         LearnedRepresentationMixin.__init__(self)
-        ComputeRepresentationMixin.__init__(self)
-        NpIORepresentation.__init__(self)
-        NormedRepresentationMixin.__init__(self)
         assert inference_height >= 128 and inference_width >= 128, f"This flow doesn't work with small " \
             f"videos. At least 128x128 is required, but got {inference_height}x{inference_width}"
         self.mixed_precision = False
@@ -45,12 +41,6 @@ class FlowRaft(Representation, LearnedRepresentationMixin, ComputeRepresentation
         self.data = ReprOut(frames=video[ixs], output=MemoryData(flow), key=ixs)
 
     @overrides
-    def make_images(self, data: ReprOut) -> np.ndarray:
-        assert self.data is not None, f"[{self}] data must be first computed using compute()"
-        y = self.unnormalize(data.output) if self.normalization is not None else self.data.output
-        return colorize_optical_flow(y)
-
-    @overrides
     def vre_setup(self, load_weights: bool = True):
         assert self.setup_called is False
         tr.manual_seed(self.seed) if self.seed is not None else None
@@ -72,11 +62,6 @@ class FlowRaft(Representation, LearnedRepresentationMixin, ComputeRepresentation
             tr.cuda.empty_cache()
         self.model = None
         self.setup_called = False
-
-    @property
-    @overrides
-    def n_channels(self) -> int:
-        return 2
 
     def _check_frames_resolution_requirements(self, frames: np.ndarray):
         assert frames.shape[1] >= 128 and frames.shape[2] >= 128, \

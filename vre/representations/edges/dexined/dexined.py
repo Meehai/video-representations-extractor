@@ -5,19 +5,15 @@ from overrides import overrides
 
 from vre.logger import vre_logger as logger
 from vre.utils import image_resize_batch, fetch_weights, vre_load_weights, VREVideo, MemoryData
-from vre.representations import (Representation, ReprOut, LearnedRepresentationMixin,
-                                 ComputeRepresentationMixin, NpIORepresentation, NormedRepresentationMixin)
+from vre.representations import ReprOut, LearnedRepresentationMixin
+from vre.representations.edges import EdgesRepresentation
 from vre.representations.edges.dexined.model_dexined import DexiNed as Model
 
-class DexiNed(Representation, LearnedRepresentationMixin, ComputeRepresentationMixin,
-              NpIORepresentation, NormedRepresentationMixin):
+class DexiNed(EdgesRepresentation, LearnedRepresentationMixin):
     """Dexined representation."""
     def __init__(self, **kwargs):
-        Representation.__init__(self, **kwargs)
+        EdgesRepresentation.__init__(self, **kwargs)
         LearnedRepresentationMixin.__init__(self)
-        ComputeRepresentationMixin.__init__(self)
-        NpIORepresentation.__init__(self)
-        NormedRepresentationMixin.__init__(self)
         self.model: Model | None = None
         self.inference_height, self.inference_width = 512, 512 # fixed for this model
 
@@ -29,12 +25,6 @@ class DexiNed(Representation, LearnedRepresentationMixin, ComputeRepresentationM
             y = self.model.forward(tr_frames)
         outs = self._postprocess(y)
         self.data = ReprOut(frames=video[ixs], output=MemoryData(outs), key=ixs)
-
-    @overrides
-    def make_images(self, data: ReprOut) -> np.ndarray:
-        assert self.data is not None, f"[{self}] data must be first computed using compute()"
-        x = self.data.output.repeat(3, axis=-1)
-        return (x * 255).astype(np.uint8)
 
     @overrides
     def vre_setup(self, load_weights: bool = True):
@@ -53,11 +43,6 @@ class DexiNed(Representation, LearnedRepresentationMixin, ComputeRepresentationM
             tr.cuda.empty_cache()
         self.model = None
         self.setup_called = False
-
-    @property
-    @overrides
-    def n_channels(self) -> int:
-        return 1
 
     def _preprocess(self, images: np.ndarray, height: int, width: int) -> tr.Tensor:
         assert len(images.shape) == 4, images.shape

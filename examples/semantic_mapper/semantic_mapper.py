@@ -8,19 +8,28 @@ import numpy as np
 import torch as tr
 
 from vre.utils import (semantic_mapper, colorize_semantic_segmentation, DiskData, MemoryData, ReprOut, reorder_dict,
-                       collage_fn, image_add_title)
+                       collage_fn, image_add_title, lo)
+from vre.logger import vre_logger as logger
 from vre.readers.multitask_dataset import MultiTaskDataset, MultiTaskItem
 from vre.representations import TaskMapper, NpIORepresentation, Representation, build_representations_from_cfg
+from vre.representations.depth import DepthRepresentation
+from vre.representations.normals import NormalsRepresentation
 from vre.representations.semantic_segmentation import SemanticRepresentation
-from vre.representations.cv_representations import DepthRepresentation, NormalsRepresentation
 
 def plot_one(data: MultiTaskItem, title: str, order: list[str] | None,
              name_to_task: dict[str, Representation]) -> np.ndarray:
     """simple plot function: plot_one(reader[0][0], reader[0][1], None, reader.name_to_task)"""
-    def vre_plot_fn(rgb: tr.Tensor, x: tr.Tensor, node: Representation) -> np.ndarray:
-        node.data = ReprOut(rgb.cpu().detach().numpy()[None], MemoryData(x.cpu().detach().numpy()[None]), [0])
-        return node.make_images(node.data)[0]
-    img_data = {k: vre_plot_fn(data["rgb"], v, name_to_task[k]) for k, v in data.items()}
+    def vre_plot_fn(rgb_img: np.ndarray, x: tr.Tensor, task: Representation) -> np.ndarray:
+        task.data = ReprOut(frames=rgb_img, output=MemoryData(x.cpu().detach().numpy()[None]), key=[0])
+        try:
+            res = task.make_images(task.data)[0]
+        except Exception as e:
+            logger.debug(f"Failed task '{task}': {task.data}")
+            raise e
+        return res
+    name_to_task["rgb"].data = ReprOut(frames=None, output=MemoryData(data["rgb"].detach().numpy())[None], key=[0])
+    rgb_img = name_to_task["rgb"].make_images(name_to_task["rgb"].data)
+    img_data = {k: vre_plot_fn(rgb_img, v, name_to_task[k]) for k, v in data.items()}
     img_data = reorder_dict(img_data, order) if order is not None else img_data
     titles = [title if len(title) < 40 else f"{title[0:19]}..{title[-19:]}" for title in img_data]
     collage = collage_fn(list(img_data.values()), titles=titles, size_px=40)
@@ -88,15 +97,16 @@ mapillary_color_map = [[165, 42, 42], [0, 192, 0], [196, 196, 196], [190, 153, 1
                        [0, 0, 70], [0, 0, 192], [32, 32, 32], [120, 10, 10]]
 
 m2f_coco = SemanticRepresentation("semantic_mask2former_coco_47429163_0", classes=coco_classes,
-                                    color_map=coco_color_map)
+                                  color_map=coco_color_map)
 m2f_mapillary = SemanticRepresentation("semantic_mask2former_mapillary_49189528_0", classes=mapillary_classes,
-                                        color_map=mapillary_color_map)
+                                       color_map=mapillary_color_map)
+m2f_r50_mapillary = SemanticRepresentation("semantic_mask2former_mapillary_49189528_1", classes=mapillary_classes,
+                                           color_map=mapillary_color_map)
 marigold = DepthRepresentation("depth_marigold", min_depth=0, max_depth=1)
 normals_svd_marigold = NormalsRepresentation("normals_svd(depth_marigold)")
 
 class SemanticMask2FormerMapillaryConvertedPaper(TaskMapper, NpIORepresentation):
     def __init__(self, name: str, dependencies: list[Representation]):
-        assert len(dependencies) == 1 and isinstance(dependencies[0], SemanticRepresentation), dependencies
         TaskMapper.__init__(self, name=name, n_channels=8, dependencies=dependencies)
         NpIORepresentation.__init__(self)
         self.mapping = {
@@ -148,8 +158,7 @@ class SemanticMask2FormerMapillaryConvertedPaper(TaskMapper, NpIORepresentation)
         return MemoryData(np.eye(self.n_classes)[disk_data.astype(int)])
 
 class SemanticMask2FormerCOCOConverted(TaskMapper, NpIORepresentation):
-    def __init__(self, name: str, dependencies: list[SemanticRepresentation]):
-        assert len(dependencies) == 1 and isinstance(dependencies[0], SemanticRepresentation), dependencies
+    def __init__(self, name: str, dependencies: list[Representation]):
         TaskMapper.__init__(self, name=name, n_channels=8, dependencies=dependencies)
         NpIORepresentation.__init__(self)
         self.mapping = {
@@ -214,21 +223,21 @@ class BinaryMapper(TaskMapper, NpIORepresentation):
     TaskMapper is the only high level interface that makes sense, so we should focus on keeping that generic and easy.
     """
     def __init__(self, name: str, dependencies: list[Representation], mapping: list[dict[str, list]],
-                 mode: str = "all_agree", load_mode: str = "binary"):
+                 mode: str, load_mode: str = "binary"):
         TaskMapper.__init__(self, name=name, dependencies=dependencies, n_channels=2)
         NpIORepresentation.__init__(self)
-        assert mode in ("all_agree", "at_least_one"), mode
-        assert load_mode in ("one_hot", "binary")
-        assert len(mapping[0]) == 2, mapping
-        assert len(mapping) == len(dependencies), (len(mapping), len(dependencies))
-        assert all(mapping[0].keys() == m.keys() for m in mapping), [m.keys() for m in mapping]
-        self.original_classes = [dep.classes for dep in dependencies]
+        assert mode in ("all_agree", "at_least_one", "majority"), (name, mode)
+        assert load_mode in ("one_hot", "binary"), (name, load_mode)
+        assert len(mapping[0]) == 2, (name, mapping)
+        assert len(mapping) == len(dependencies), (name, len(mapping), len(dependencies))
+        assert all(mapping[0].keys() == m.keys() for m in mapping), (name, [m.keys() for m in mapping])
+        self.original_classes: list[list[str]] = [dep.classes for dep in dependencies]
         self.mapping = mapping
         self.mode = mode
         self.load_mode = load_mode
         self.classes = list(mapping[0].keys())
         self.n_classes = len(self.classes)
-        self.color_map = [[255, 255, 255], [0, 0, 0]]
+        self.color_map = [[0, 0, 0], [255, 255, 255]]
         self.output_dtype = "bool"
 
     @overrides
@@ -239,6 +248,7 @@ class BinaryMapper(TaskMapper, NpIORepresentation):
 
     @overrides
     def disk_to_memory_fmt(self, disk_data: DiskData) -> MemoryData:
+        assert len(disk_data.shape) == 2 and disk_data.dtype == bool, f"{self.name}: {lo(disk_data)}"
         y = np.eye(2)[disk_data.astype(int)] if self.load_mode == "one_hot" else disk_data
         return MemoryData(y.astype(np.float32))
 
@@ -254,166 +264,232 @@ class BinaryMapper(TaskMapper, NpIORepresentation):
             dep_data_argmaxed.append(dep.to_argmaxed_representation(data))
         dep_data_converted = [semantic_mapper(x, mapping, oc)
                               for x, mapping, oc in zip(dep_data_argmaxed, self.mapping, self.original_classes)]
-        res_argmax = sum(dep_data_converted) > (0 if self.mode == "all_agree" else 1)
+
+        if self.mode == "all_agree":
+            res_argmax = sum(dep_data_converted) == len(self.dependencies)
+        elif self.mode == "at_least_one":
+            res_argmax = sum(dep_data_converted) > 0
+        else:
+            res_argmax = sum(dep_data_converted) > len(dep_data_converted) // 2
         return self.disk_to_memory_fmt(res_argmax)
 
 class BuildingsFromM2FDepth(BinaryMapper, NpIORepresentation):
-    def __init__(self, name: str, original_classes: tuple[list[str], list[str]], load_mode: str = "binary"):
-        buildings_mapping = [
-            {
-                "buildings": (cls := ["Building", "Utility Pole", "Pole", "Fence", "Wall"]),
-                "others": [x for x in mapillary_classes if x not in cls],
-            },
-            {
-                "buildings": (cls := ["building-other-merged", "house", "roof"]),
-                "others": [x for x in coco_classes if x not in cls]
-            }
-        ]
-
-        dependencies = [m2f_mapillary, m2f_coco, marigold]
-        assert isinstance(m2f_mapillary, SemanticRepresentation) and isinstance(m2f_coco, SemanticRepresentation)
-        TaskMapper.__init__(self, name=name, dependencies=dependencies, n_channels=2)
+    def __init__(self, name: str, dependencies: list[Representation], buildings: BinaryMapper, mode: str,
+                 load_mode: str = "binary"):
+        assert len(dependencies) == 1, dependencies
+        BinaryMapper.__init__(self, name=name, dependencies=buildings.dependencies,
+                              mapping=buildings.mapping, mode=mode, load_mode=load_mode)
         NpIORepresentation.__init__(self)
-        self.color_map = [[255, 255, 255], [0, 0, 0]]
-        self.original_classes = original_classes
-        self.mapping = buildings_mapping
-        self.classes = list(buildings_mapping[0].keys())
-        self.n_classes = len(self.classes)
-        self.load_mode = load_mode
+        self.dependencies = [*buildings.dependencies, dependencies[0]]
+        self.classes = ["others", name]
 
     def merge_fn(self, dep_data: list[MemoryData]) -> MemoryData:
-        m2f_mapillary = self.dependencies[0].to_argmaxed_representation(dep_data[0])
-        m2f_coco = self.dependencies[1].to_argmaxed_representation(dep_data[1])
-        depth = dep_data[2].squeeze()
-        m2f_mapillary_converted = semantic_mapper(m2f_mapillary, self.mapping[0], self.original_classes[0])
-        m2f_coco_converted = semantic_mapper(m2f_coco, self.mapping[1], self.original_classes[1])
+        buildings = super().merge_fn(dep_data[0:-1])
+        depth = dep_data[-1] if len(dep_data[-1].shape) == 2 else dep_data[-1][..., 0]
         thr = 0.3 # np.percentile(depth.numpy(), 0.8)
-        combined = (m2f_mapillary_converted + m2f_coco_converted + (depth > thr)) != 0
-        return self.disk_to_memory_fmt(combined)
+        buildings_depth = buildings * (depth <= thr)
+        return self.disk_to_memory_fmt(buildings_depth.astype(bool))
 
-class SafeLandingAreas(BinaryMapper, NpIORepresentation):
-    def __init__(self, name: str, original_classes: tuple[list[str], list[str]], include_semantics: bool = False,
-                 sky_water: BinaryMapper | None = None, load_mode: str = "binary"):
-        self.include_semantics = include_semantics
-        dependencies = [m2f_mapillary, m2f_coco, marigold, normals_svd_marigold]
-        TaskMapper.__init__(self, name, dependencies=dependencies, n_channels=2)
+class SemanticMedian(TaskMapper, NpIORepresentation):
+    def __init__(self, name: str, deps: list[TaskMapper]):
+        assert all(dep.n_channels == deps[0].n_channels for dep in deps), [(dep.name, dep.n_channels) for dep in deps]
+        TaskMapper.__init__(self, name, n_channels=deps[0].n_channels, dependencies=deps)
         NpIORepresentation.__init__(self)
-        self.color_map = [[0, 255, 0], [255, 0, 0]]
-        self.original_classes = original_classes
-        self.classes = ["safe-landing", "unsafe-landing"]
+        self.classes = list(deps[0].classes)
         self.n_classes = len(self.classes)
-        self.sky_water = sky_water
-        self.load_mode = load_mode
+        self.output_dtype = "uint8"
+        self.color_map = deps[0].color_map
 
     @overrides
     def merge_fn(self, dep_data: list[MemoryData]) -> MemoryData:
-        normals, depth = dep_data[3], dep_data[2].squeeze()
+        return MemoryData(np.eye(self.n_classes)[sum(dep_data).argmax(-1)].astype(np.uint8))
+
+    @overrides
+    def make_images(self, data: ReprOut) -> np.ndarray:
+        data_output = data.output.argmax(-1) if np.issubdtype(data.output.dtype, np.floating) else data.output
+        return colorize_semantic_segmentation(data_output, self.classes, self.color_map)
+
+class SafeLandingAreas(BinaryMapper, NpIORepresentation):
+    def __init__(self, name: str, depth: DepthRepresentation, camera_normals: NormalsRepresentation,
+                 include_semantics: bool, original_classes: tuple[list[str], list[str]] | None = None,
+                 semantics: list[SemanticRepresentation] | None = None, load_mode: str = "binary"):
+        dependencies = [depth, camera_normals]
+        if include_semantics:
+            assert len(original_classes) == 3
+            assert len(semantics) == 3
+            dependencies = [*dependencies, *semantics]
+        TaskMapper.__init__(self, name, dependencies=dependencies, n_channels=2)
+        NpIORepresentation.__init__(self)
+        self.color_map = [[255, 0, 0], [0, 255, 0]]
+        self.original_classes = original_classes
+        self.classes = ["unsafe-landing", "safe-landing"]
+        self.n_classes = len(self.classes)
+        self.semantics = semantics
+        self.load_mode = load_mode
+        self.include_semantics = include_semantics
+        self.output_dtype = "bool"
+
+        safe_coco_classes = ["grass-merged", "dirt-merged", "sand", "gravel", "flower", "playingfield", "snow", "road",
+                             "platform", "railroad", "pavement-merged", "mountain-merged", "roof", "tree-merged",
+                             "rock-merged"]
+        safe_mapillary_classes = ["Terrain", "Sand", "Snow", "Road", "Lane Marking - General", "Sidewalk", "Bridge",
+                                  "Pothole", "Catch Basin", "Tunnel", "Parking", "Service Lane", "Pedestrian Area",
+                                  "Lane Marking - Crosswalk", "On Rails", "Bike Lane", "Crosswalk - Plain", "Mountain",
+                                  "Vegetation"]
+
+        self.safe_coco_ix, self.safe_mapillary_ix = None, None
+        if include_semantics:
+            assert all(X := [c in original_classes[1] for c in safe_coco_classes]), list(zip(coco_classes, X))
+            assert all(X := [c in original_classes[0] for c in safe_mapillary_classes]), \
+                list(zip(safe_mapillary_classes, X))
+            self.safe_coco_ix = [coco_classes.index(ix) for ix in safe_coco_classes]
+            self.safe_mapillary_ix = [mapillary_classes.index(ix) for ix in safe_mapillary_classes]
+
+    @overrides
+    def merge_fn(self, dep_data: list[MemoryData]) -> MemoryData:
+        depth, normals = dep_data[0] if len(dep_data[0].shape) == 2 else dep_data[0][..., 0], dep_data[1]
         v1, v2, v3 = normals.transpose(2, 0, 1)
-        where_safe = (v2 > 0.8) * ((v1 + v3) < 1.2)
+        where_safe = (v2 > 0.8) * ((v1 + v3) < 1.2) * (depth <= 0.9)
         if self.include_semantics:
-            sw = self.sky_water.merge_fn(dep_data)
-            sw = sw.argmax(-1) if self.sky_water.load_mode == "one_hot" else sw
-            where_safe = (where_safe * sw * (depth < 0.9)).astype(bool)
-        return self.disk_to_memory_fmt(~where_safe)
+            mapi1 = self.dependencies[2].to_argmaxed_representation(dep_data[2])
+            coco = self.dependencies[3].to_argmaxed_representation(dep_data[3])
+            mapi2 = self.dependencies[4].to_argmaxed_representation(dep_data[4])
+            conv1 = np.isin(mapi1, self.safe_mapillary_ix).astype(int)
+            conv2 = np.isin(coco, self.safe_coco_ix).astype(int)
+            conv3 = np.isin(mapi2, self.safe_mapillary_ix).astype(int)
+            sema_safe = (conv1 + conv2 + conv3) >= 2
+            where_safe = sema_safe * where_safe
+        return self.disk_to_memory_fmt(where_safe)
 
 def get_new_semantic_mapped_tasks(tasks_subset: list[str] | None = None) -> dict[str, TaskMapper]:
     """The exported function for VRE!"""
     buildings_mapping = [
         {
-            "buildings": (cls := ["Building", "Utility Pole", "Pole", "Fence", "Wall"]),
-            "others": [x for x in mapillary_classes if x not in cls],
+            "others": [x for x in mapillary_classes if x not in
+                       (cls := ["Building", "Utility Pole", "Pole", "Fence", "Wall"])],
+            "buildings": cls,
         },
         {
-            "buildings": (cls := ["building-other-merged", "house", "roof"]),
-            "others": [x for x in coco_classes if x not in cls]
-        }
-    ]
-
-    living_mapping = [
-        {
-            "living": (cls := ["Person", "Bicyclist", "Motorcyclist", "Other Rider", "Bird", "Ground Animal"]),
-            "others": [c for c in mapillary_classes if c not in cls],
+            "others": [x for x in coco_classes if x not in (cls := ["building-other-merged", "house", "roof"])],
+            "buildings": cls,
         },
         {
-            "living": (cls := ["person", "bird", "cat", "dog", "horse", "sheep", "cow",
-                            "elephant", "bear", "zebra", "giraffe"]),
-            "others": [c for c in coco_classes if c not in cls],
-        }
+            "others": [x for x in mapillary_classes if x not in
+                       (cls := ["Building", "Utility Pole", "Pole", "Fence", "Wall"])],
+            "buildings": cls,
+        },
     ]
 
     sky_and_water_mapping = [
         {
-            "sky-and-water": (cls := ["Sky", "Water"]),
-            "others": [c for c in mapillary_classes if c not in cls],
+            "others": [c for c in mapillary_classes if c not in (cls := ["Sky", "Water"])],
+            "sky-and-water": cls,
         },
         {
-            "sky-and-water": (cls := ["sky-other-merged", "water-other"]),
-            "others": [c for c in coco_classes if c not in cls],
+            "others": [c for c in coco_classes if c not in
+                       (cls := ["sky-other-merged", "water-other", "sea", "river"])],
+            "sky-and-water": cls,
+        },
+        {
+            "others": [c for c in mapillary_classes if c not in (cls := ["Sky", "Water"])],
+            "sky-and-water": cls,
         },
     ]
 
     transportation_mapping = [
         {
-            "transportation": (cls := ["Bike Lane", "Crosswalk - Plain", "Curb Cut", "Parking", "Rail Track",
-                                       "Road", "Service Lane", "Sidewalk", "Bridge", "Tunnel", "Bicyclist",
-                                       "Motorcyclist",
-                                       "Other Rider", "Lane Marking - Crosswalk", "Lane Marking - General",
-                                       "Traffic Light",
-                                       "Traffic Sign (Back)", "Traffic Sign (Front)", "Bicycle", "Boat", "Bus", "Car",
-                                       "Caravan", "Motorcycle", "On Rails", "Other Vehicle", "Trailer", "Truck",
-                                       "Wheeled Slow", "Car Mount", "Ego Vehicle"]),
-            "others": [c for c in mapillary_classes if c not in cls]
+            "others": [c for c in mapillary_classes if c not in
+                       (cls := ["Bike Lane", "Crosswalk - Plain", "Curb Cut", "Parking", "Rail Track", "Road",
+                                "Service Lane", "Sidewalk", "Bridge", "Tunnel", "Bicyclist", "Motorcyclist",
+                                "Other Rider", "Lane Marking - Crosswalk", "Lane Marking - General", "Traffic Light",
+                                "Traffic Sign (Back)", "Traffic Sign (Front)", "Bicycle", "Boat", "Bus", "Car",
+                                "Caravan", "Motorcycle", "On Rails", "Other Vehicle", "Trailer", "Truck",
+                                "Wheeled Slow", "Car Mount", "Ego Vehicle"])],
+            "transportation": cls,
         },
         {
-            "transportation": (cls := ["bicycle", "car", "motorcycle", "airplane", "bus", "train", "truck", "boat"]),
-            "others": [c for c in coco_classes if c not in cls]
-        }
+            "others": [c for c in coco_classes if c not in
+                       (cls := ["bicycle", "car", "motorcycle", "airplane", "bus", "train", "truck", "boat",
+                                "road", "railroad", "pavement-merged"])],
+            "transportation": cls,
+        },
+        {
+            "others": [c for c in mapillary_classes if c not in
+                       (cls := ["Bike Lane", "Crosswalk - Plain", "Curb Cut", "Parking", "Rail Track", "Road",
+                                "Service Lane", "Sidewalk", "Bridge", "Tunnel", "Bicyclist", "Motorcyclist",
+                                "Other Rider", "Lane Marking - Crosswalk", "Lane Marking - General", "Traffic Light",
+                                "Traffic Sign (Back)", "Traffic Sign (Front)", "Bicycle", "Boat", "Bus", "Car",
+                                "Caravan", "Motorcycle", "On Rails", "Other Vehicle", "Trailer", "Truck",
+                                "Wheeled Slow", "Car Mount", "Ego Vehicle"])],
+            "transportation": cls,
+        },
     ]
 
     containing_mapping = [
         {
-            "containing": (cls := [
-                "Terrain", "Sand", "Mountain", "Road", "Sidewalk", "Pedestrian Area", "Rail Track", "Parking",
-                "Service Lane", "Bridge", "Water", "Vegetation", "Curb", "Fence", "Wall", "Guard Rail",
-                "Barrier", "Curb Cut", "Snow"
-            ]),
-            "contained": [c for c in mapillary_classes if c not in cls],  # Buildings and constructions will be here
+            "contained": [c for c in mapillary_classes if c not in
+                          (cls := ["Terrain", "Sand", "Mountain", "Road", "Sidewalk", "Pedestrian Area", "Rail Track",
+                                   "Parking", "Service Lane", "Bridge", "Water", "Curb", "Fence", "Wall",
+                                   "Guard Rail", "Barrier", "Curb Cut", "Snow"])],
+            "containing": cls,
         },
         {
-            "containing": (cls := [
-                "floor-wood", "floor-other-merged", "pavement-merged", "mountain-merged", "sand", "road",
-                "sea", "river", "railroad", "platform", "grass-merged", "snow", "stairs", "tent"
-            ]),
-            "contained": [c for c in coco_classes if c not in cls],  # Buildings and constructions will be here
-        }
+            "contained": [c for c in coco_classes if c not in
+                          (cls := ["floor-wood", "floor-other-merged", "pavement-merged", "mountain-merged", "platform",
+                                   "sand", "road", "sea", "river", "railroad", "grass-merged", "snow", "stairs",
+                                   "tent"])],
+            "containing": cls,
+        },
+        {
+            "contained": [c for c in mapillary_classes if c not in
+                          (cls := ["Terrain", "Sand", "Mountain", "Road", "Sidewalk", "Pedestrian Area", "Rail Track",
+                                   "Parking", "Service Lane", "Bridge", "Water", "Curb", "Fence", "Wall",
+                                   "Guard Rail", "Barrier", "Curb Cut", "Snow"])],
+            "containing": cls,
+        },
     ]
 
     vegetation_mapping = [
         {
-            "vegetation": (cls := ["Mountain", "Sand", "Sky", "Snow", "Terrain", "Vegetation"]),
-            "others": [x for x in mapillary_classes if x not in cls],
+            "others": [x for x in mapillary_classes if x not in
+                       (cls := ["Mountain", "Sand", "Snow", "Terrain", "Vegetation"])],
+            "vegetation": cls,
         },
         {
-            "vegetation": (cls := ["tree-merged", "grass-merged", "dirt-merged", "flower", "potted plant", "river",
-                                "sea", "water-other", "mountain-merged", "rock-merged"]),
-            "others": [x for x in coco_classes if x not in cls],
-        }
+            "others": [x for x in coco_classes if x not in
+                       (cls := ["tree-merged", "grass-merged", "dirt-merged", "flower", "potted plant", "river",
+                                "sea", "water-other", "mountain-merged", "rock-merged"])],
+            "vegetation": cls,
+        },
+        {
+            "others": [x for x in mapillary_classes if x not in
+                       (cls := ["Mountain", "Sand", "Snow", "Terrain", "Vegetation"])],
+            "vegetation": cls,
+        },
     ]
 
     available_tasks: list[TaskMapper] = [
-        SemanticMask2FormerMapillaryConvertedPaper("semantic_mask2former_swin_mapillary_converted", [m2f_mapillary]),
-        SemanticMask2FormerCOCOConverted("semantic_mask2former_swin_coco_converted", [m2f_coco]),
-        BinaryMapper("buildings", [m2f_mapillary, m2f_coco], buildings_mapping),
-        BinaryMapper("living-vs-non-living", [m2f_mapillary, m2f_coco], living_mapping),
-        sky_water := BinaryMapper("sky-and-water", [m2f_mapillary, m2f_coco], sky_and_water_mapping,
-                                  mode="at_least_one"),
-        BinaryMapper("transportation", [m2f_mapillary, m2f_coco], transportation_mapping, mode="at_least_one"),
-        BinaryMapper("containing", [m2f_mapillary, m2f_coco], containing_mapping),
-        BinaryMapper("vegetation", [m2f_mapillary, m2f_coco], vegetation_mapping),
-        BuildingsFromM2FDepth("buildings(nearby)", [mapillary_classes, coco_classes]),
-        SafeLandingAreas("safe-landing-no-sseg", [mapillary_classes, coco_classes]),
-        SafeLandingAreas("safe-landing-semantics", [mapillary_classes, coco_classes],
-                         include_semantics=True, sky_water=sky_water),
+        # m2f_swin_mapillary_converted := SemanticMask2FormerMapillaryConvertedPaper(
+        #     "semantic_mask2former_swin_mapillary_converted", [m2f_mapillary]),
+        # m2f_r50_mapillary_converted := SemanticMask2FormerMapillaryConvertedPaper(
+        #     "semantic_mask2former_r50_mapillary_converted", [m2f_r50_mapillary]),
+        # m2f_swin_coco_converted := SemanticMask2FormerCOCOConverted(
+        #     "semantic_mask2former_swin_coco_converted", [m2f_coco]),
+        # SemanticMedian("semantic_output", [m2f_swin_mapillary_converted, m2f_r50_mapillary_converted,
+        #                                    m2f_swin_coco_converted]),
+        buildings := BinaryMapper("buildings", [m2f_mapillary, m2f_coco, m2f_r50_mapillary],
+                                  buildings_mapping, mode="majority"),
+        BinaryMapper("sky-and-water", [m2f_mapillary, m2f_coco, m2f_r50_mapillary],
+                     sky_and_water_mapping, mode="majority"),
+        BinaryMapper("transportation", [m2f_mapillary, m2f_coco, m2f_r50_mapillary],
+                     transportation_mapping, mode="majority"),
+        BinaryMapper("containing", [m2f_mapillary, m2f_coco, m2f_r50_mapillary], containing_mapping, mode="majority"),
+        BinaryMapper("vegetation", [m2f_mapillary, m2f_coco, m2f_r50_mapillary], vegetation_mapping, mode="majority"),
+        BuildingsFromM2FDepth("buildings(nearby)", [marigold], buildings, mode="majority"),
+        SafeLandingAreas("safe-landing-no-sseg", marigold, normals_svd_marigold, include_semantics=False),
+        SafeLandingAreas("safe-landing-semantics", marigold, normals_svd_marigold, include_semantics=True,
+                         original_classes=[mapillary_classes, coco_classes, mapillary_classes],
+                         semantics=[m2f_mapillary, m2f_coco, m2f_r50_mapillary]),
     ]
     if tasks_subset is None:
         return {t.name: t for t in available_tasks}
@@ -424,15 +500,15 @@ if __name__ == "__main__":
     data_path = Path.cwd() / "data"
     vre_dir = data_path
 
-    task_names = ["rgb", "depth_marigold", "normals_svd(depth_marigold)", "opticalflow_rife",
-                "semantic_mask2former_coco_47429163_0", "semantic_mask2former_mapillary_49189528_0"]
+    task_names = ["rgb", "depth_marigold", "normals_svd(depth_marigold)",
+                  "semantic_mask2former_coco_47429163_0", "semantic_mask2former_mapillary_49189528_0"]
     order = ["rgb", "semantic_mask2former_mapillary_49189528_0", "semantic_mask2former_coco_47429163_0",
-                "depth_marigold", "normals_svd(depth_marigold)"]
+             "depth_marigold", "normals_svd(depth_marigold)"]
 
-    representations = build_representations_from_cfg(cfg_path)
-    reader = MultiTaskDataset(vre_dir, task_names=task_names,
-                            task_types=representations, handle_missing_data="fill_nan",
-                            normalization="min_max", cache_task_stats=True, batch_size_stats=100)
+    task_types = {r.name: r for r in build_representations_from_cfg(cfg_path) if r.name in task_names}
+    reader = MultiTaskDataset(vre_dir, task_names=task_names, task_types=task_types,
+                              handle_missing_data="fill_nan", normalization=None,
+                              cache_task_stats=True, batch_size_stats=100)
     orig_task_names = list(reader.task_types.keys())
 
     new_tasks = get_new_semantic_mapped_tasks()
