@@ -40,7 +40,6 @@ def plot_one(data: dict[str, tr.Tensor], file_name: str, dataset_path: Path,
         try:
             img_data[k] = task.make_images(task.data)[0]
         except Exception as e:
-            breakpoint()
             logger.info(f"[{task}] Failed {dataset_path=}, {file_name=}")
             raise e
     return img_data
