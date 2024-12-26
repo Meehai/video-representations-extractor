@@ -79,7 +79,7 @@ class VideoRepresentationsExtractor:
         self._setup_logger(output_dir, now := now_fmt())
         try:
             self.to_graphviz().render(pth := f"{output_dir}/.logs/graph-{now}", format="png", cleanup=True)
-            logger.info(f"Stored graphviz representation at: '{pth}'")
+            logger.info(f"Stored graphviz representation at: '{pth}.png'")
         except ImportError:
             pass
 
