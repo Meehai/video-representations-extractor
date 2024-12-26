@@ -47,7 +47,7 @@ class VideoRepresentationsExtractor:
 
     def to_graphviz(self, **kwargs) -> "Digraph":
         """Returns a graphviz object from this graph. Used for plotting the graph. Best for smaller graphs."""
-        from graphviz import Digraph
+        from graphviz import Digraph # pylint: disable=import-outside-toplevel
         g = Digraph()
         for k, v in kwargs.items():
             g.attr(**{k: v})
