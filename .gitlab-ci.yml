@@ -13,7 +13,7 @@ workflow:
 
 before_script:
   - apt-get update
-  - apt-get install -y ffmpeg fonts-open-sans
+  - apt-get install -y ffmpeg fonts-open-sans graphviz
   - export VRE_ROOT=`pwd`
   - export VRE_WEIGHTS_DIR=$VRE_ROOT/weights
   - export VRE_LOGLEVEL=3
