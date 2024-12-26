@@ -28,7 +28,7 @@ class VideoRepresentationsExtractor:
         assert len(representations) > 0, "At least one representation must be provided"
         assert all(isinstance(x, Representation) for x in representations), [(x.name, type(x)) for x in representations]
         self.video = video
-        self.representations: dict[str, Representation] = vre_topo_sort(representations)
+        self.representations: list[Representation] = vre_topo_sort(representations)
         self.repr_names = [r.name for r in representations]
         self._logs_file: Path | None = None
         self._metadata: Metadata | None = None
@@ -44,6 +44,20 @@ class VideoRepresentationsExtractor:
         for r in [_r for _r in self.representations if isinstance(_r, IORepresentationMixin)]:
             r.set_io_params(**kwargs)
         return self
+
+    def to_graphviz(self, **kwargs) -> "Digraph":
+        """Returns a graphviz object from this graph. Used for plotting the graph. Best for smaller graphs."""
+        from graphviz import Digraph # pylint: disable=import-outside-toplevel
+        g = Digraph()
+        for k, v in kwargs.items():
+            g.attr(**{k: v})
+        g.attr(rankdir="LR")
+        for node in self.representations:
+            g.node(name=f"{node.name}", shape="oval")
+        edges: list[tuple[str, str]] = [(r.name, dep.name) for r in self.representations for dep in r.dependencies]
+        for l, r in edges:
+            g.edge(r, l) # reverse?
+        return g
 
     def run(self, output_dir: Path, frames: list[int] | None = None, output_dir_exists_mode: str = "raise",
             exception_mode: str = "stop_execution", n_threads_data_storer: int = 0,
@@ -63,6 +77,12 @@ class VideoRepresentationsExtractor:
         - A dataframe with the run statistics for each representation
         """
         self._setup_logger(output_dir, now := now_fmt())
+        try:
+            self.to_graphviz().render(pth := f"{output_dir}/.logs/graph-{now}", format="png", cleanup=True)
+            logger.info(f"Stored graphviz representation at: '{pth}.png'")
+        except ImportError:
+            pass
+
         runtime_args = VRERuntimeArgs(self.video, self.representations, frames, exception_mode, n_threads_data_storer)
         logger.info(runtime_args)
         self._metadata = Metadata(self.repr_names, runtime_args, self._logs_file.parent / f"run_metadata-{now}.json")
@@ -95,7 +115,7 @@ class VideoRepresentationsExtractor:
 
         assert isinstance(rep, ComputeRepresentationMixin), rep
         rep.vre_setup() if isinstance(rep, LearnedRepresentationMixin) and not rep.setup_called else None
-        for dep in rep.dependencies: # Note: hopefully toposorted...
+        for dep in rep.dependencies:
             dep.data = None # TODO: make unit test with this (lingering .data from previous computation)
             load_from_disk_if_possible(dep, self.video, batch, output_dir)
             if dep.data is None:
