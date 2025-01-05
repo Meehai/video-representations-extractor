@@ -87,7 +87,7 @@ representations:
     dependencies: []
     parameters:
       model_id: "49189528_1"
-      semantic_argmax_only: True
+      disk_data_argmax: True
 
   depth_dpt:
     type: depth/dpt

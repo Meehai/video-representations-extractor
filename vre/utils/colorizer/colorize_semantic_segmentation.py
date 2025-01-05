@@ -3,6 +3,7 @@ import pycocotools.mask as mask_util
 from PIL import Image, ImageDraw
 import numpy as np
 
+from ..lovely import lo
 from ..pil_utils import _get_default_font, _pil_image_draw_textsize
 from ..image import image_blend
 from ..cv2_utils import cv2_findContours, cv2_RETR_CCOMP, cv2_CHAIN_APPROX_NONE, cv2_connectedComponentsWithStats
@@ -179,6 +180,7 @@ def _colorize_sem_seg(sema: np.ndarray, rgb: np.ndarray | None, classes: list[st
 
     # apply all the extra transformations: rgb+alpha overlap -> white polygons -> texts on top of the masks
     if rgb is not None:
+        assert rgb.dtype == np.uint8, lo(rgb)
         res = image_blend(res, rgb, alpha_all_masks)
     res[polys] = _WHITE
     for text_data in texts_data: # TODO: if texts overlap, show just the one with highest area maybe

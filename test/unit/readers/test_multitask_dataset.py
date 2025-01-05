@@ -15,7 +15,8 @@ color_map_8classes = [[0, 255, 0], [0, 127, 0], [255, 255, 0], [255, 255, 255],
 fake_dronescapes_task_types = {
     "rgb": ColorRepresentation("rgb"),
     "depth_sfm_manual202204": DepthRepresentation("depth_sfm_manual202204", min_depth=0, max_depth=300),
-    "semantic_segprop8": SemanticRepresentation("semantic_segprop8", classes=8, color_map=color_map_8classes),
+    "semantic_segprop8": SemanticRepresentation("semantic_segprop8", classes=8,
+                                                color_map=color_map_8classes, disk_data_argmax=True),
 }
 
 def _dataset_path() -> Path:

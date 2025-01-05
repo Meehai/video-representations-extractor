@@ -41,14 +41,14 @@ representations:
     dependencies: []
     parameters:
       model_id: "49189528_0"
-      semantic_argmax_only: True
+      disk_data_argmax: True
 
   semantic_mask2former_coco_47429163_0:
     type: semantic-segmentation/mask2former
     dependencies: []
     parameters:
       model_id: "47429163_0"
-      semantic_argmax_only: True
+      disk_data_argmax: True
 
   depth_marigold:
     type: depth/marigold

@@ -93,7 +93,7 @@ representations:
     dependencies: []
     parameters:
       model_id: "49189528_1"
-      semantic_argmax_only: False
+      disk_data_argmax: False
     learned_parameters:
       device: {device}
 
@@ -122,7 +122,7 @@ representations:
       num_classes: 8
       color_map: [[0, 255, 0], [0, 127, 0], [255, 255, 0], [255, 255, 255],
                   [255, 0, 0], [0, 0, 255], [0, 255, 255], [127, 127, 63]]
-      semantic_argmax_only: True
+      disk_data_argmax: True
     learned_parameters:
       device: {device}
 """)
