@@ -28,16 +28,16 @@ class _SafeUavWrapper(nn.Module):
 class SafeUAV(SemanticRepresentation, LearnedRepresentationMixin, NpIORepresentation):
     """SafeUAV semantic segmentation representation"""
     def __init__(self, num_classes: int, train_height: int, train_width: int, color_map: list[tuple[int, int, int]],
-                 semantic_argmax_only: bool, weights_file: str | None = None, **kwargs):
+                 disk_data_argmax: bool, weights_file: str | None = None, **kwargs):
         LearnedRepresentationMixin.__init__(self)
         NpIORepresentation.__init__(self)
         SemanticRepresentation.__init__(self, classes=list(range(num_classes)), color_map=color_map,
-                                        semantic_argmax_only=semantic_argmax_only, **kwargs)
+                                        disk_data_argmax=disk_data_argmax, **kwargs)
         self.train_height = train_height
         self.train_width = train_width
         self.weights_file = weights_file
         self.model: _SafeUavWrapper | None = None
-        self.output_dtype = "uint8" if semantic_argmax_only else "float16"
+        self.output_dtype = "uint8" if disk_data_argmax else "float16"
 
     @property
     @overrides
@@ -53,8 +53,7 @@ class SafeUAV(SemanticRepresentation, LearnedRepresentationMixin, NpIORepresenta
         with tr.no_grad():
             prediction = self.model.forward(frames_resized)
         np_pred = prediction.permute(0, 2, 3, 1).cpu().numpy().astype(np.float32)
-        y_out = np.argmax(np_pred, axis=-1).astype(np.uint8) if self.semantic_argmax_only else np_pred
-        self.data = ReprOut(frames=video[ixs], output=MemoryData(y_out), key=ixs)
+        self.data = ReprOut(frames=video[ixs], output=MemoryData(np_pred), key=ixs)
 
     @overrides
     def vre_setup(self, load_weights: bool = True):

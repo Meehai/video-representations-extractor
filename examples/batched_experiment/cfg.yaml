@@ -91,14 +91,14 @@ representations:
     dependencies: []
     parameters:
       model_id: "49189528_1"
-      semantic_argmax_only: True
+      disk_data_argmax: True
 
   mask2former(swin_coco):
     type: semantic-segmentation/mask2former
     dependencies: []
     parameters:
       model_id: "47429163_0"
-      semantic_argmax_only: True
+      disk_data_argmax: True
 
   depth_dpt:
     type: depth/dpt

@@ -4,6 +4,7 @@ import numpy as np
 
 from ..logger import vre_logger as logger
 from .utils import get_closest_square, array_blend
+from .lovely import lo
 from .repr_memory_layout import MemoryData
 from .cv2_utils import cv2_image_resize, cv2_image_write, cv2_image_read
 from .pil_utils import pil_image_resize, pil_image_add_title, pil_image_read, pil_image_write
@@ -166,7 +167,7 @@ def image_add_border(image: np.ndarray, color: tuple[int, int, int] | int, thicc
 
 def image_blend(x: np.ndarray, y: np.ndarray, alpha: float | np.ndarray) -> np.ndarray:
     """Blends two [0:255] RGB images given an alpha array or float value in [0:1]."""
-    assert (dt := x.dtype) == y.dtype == np.uint8, (dt, y.dtype)
+    assert x.dtype == y.dtype == np.uint8, f"{lo(x)=}, {lo(y)=}"
     assert len(x.shape) == len(y.shape) == 3, (x.shape, y.shape)
     x = x.astype(np.float32) / 255
     y = y.astype(np.float32) / 255

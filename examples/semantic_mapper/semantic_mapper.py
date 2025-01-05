@@ -97,11 +97,11 @@ mapillary_color_map = [[165, 42, 42], [0, 192, 0], [196, 196, 196], [190, 153, 1
                        [0, 0, 70], [0, 0, 192], [32, 32, 32], [120, 10, 10]]
 
 m2f_coco = SemanticRepresentation("semantic_mask2former_coco_47429163_0", classes=coco_classes,
-                                  color_map=coco_color_map)
+                                  color_map=coco_color_map, disk_data_argmax=True)
 m2f_mapillary = SemanticRepresentation("semantic_mask2former_mapillary_49189528_0", classes=mapillary_classes,
-                                       color_map=mapillary_color_map)
+                                       color_map=mapillary_color_map, disk_data_argmax=True)
 m2f_r50_mapillary = SemanticRepresentation("semantic_mask2former_mapillary_49189528_1", classes=mapillary_classes,
-                                           color_map=mapillary_color_map)
+                                           color_map=mapillary_color_map, disk_data_argmax=True)
 marigold = DepthRepresentation("depth_marigold", min_depth=0, max_depth=1)
 normals_svd_marigold = NormalsRepresentation("normals_svd(depth_marigold)")
 
@@ -145,8 +145,7 @@ class SemanticMask2FormerMapillaryConvertedPaper(TaskMapper, NpIORepresentation)
 
     @overrides
     def merge_fn(self, dep_data: list[MemoryData]) -> MemoryData:
-        m2f_mapillary = self.dependencies[0].to_argmaxed_representation(dep_data[0])
-        m2f_mapillary_converted = semantic_mapper(m2f_mapillary, self.mapping, self.original_classes)
+        m2f_mapillary_converted = semantic_mapper(dep_data[0].argmax(-1), self.mapping, self.original_classes)
         return self.disk_to_memory_fmt(m2f_mapillary_converted)
 
     @overrides
@@ -204,8 +203,7 @@ class SemanticMask2FormerCOCOConverted(TaskMapper, NpIORepresentation):
 
     @overrides
     def merge_fn(self, dep_data: list[MemoryData]) -> MemoryData:
-        m2f_mapillary = self.dependencies[0].to_argmaxed_representation(dep_data[0])
-        m2f_mapillary_converted = semantic_mapper(m2f_mapillary, self.mapping, self.original_classes)
+        m2f_mapillary_converted = semantic_mapper(dep_data[0].argmax(-1), self.mapping, self.original_classes)
         res = self.disk_to_memory_fmt(m2f_mapillary_converted)
         return res
 
@@ -258,10 +256,7 @@ class BinaryMapper(TaskMapper, NpIORepresentation):
 
     @overrides
     def merge_fn(self, dep_data: list[MemoryData]) -> MemoryData:
-        dep_data_argmaxed = []
-        for dep, data in zip(self.dependencies, dep_data):
-            assert isinstance(dep, SemanticRepresentation), type(dep)
-            dep_data_argmaxed.append(dep.to_argmaxed_representation(data))
+        dep_data_argmaxed = [data.argmax(-1) for data in dep_data]
         dep_data_converted = [semantic_mapper(x, mapping, oc)
                               for x, mapping, oc in zip(dep_data_argmaxed, self.mapping, self.original_classes)]
 
@@ -351,12 +346,9 @@ class SafeLandingAreas(BinaryMapper, NpIORepresentation):
         v1, v2, v3 = normals.transpose(2, 0, 1)
         where_safe = (v2 > 0.8) * ((v1 + v3) < 1.2) * (depth <= 0.9)
         if self.include_semantics:
-            mapi1 = self.dependencies[2].to_argmaxed_representation(dep_data[2])
-            coco = self.dependencies[3].to_argmaxed_representation(dep_data[3])
-            mapi2 = self.dependencies[4].to_argmaxed_representation(dep_data[4])
-            conv1 = np.isin(mapi1, self.safe_mapillary_ix).astype(int)
-            conv2 = np.isin(coco, self.safe_coco_ix).astype(int)
-            conv3 = np.isin(mapi2, self.safe_mapillary_ix).astype(int)
+            conv1 = np.isin(dep_data[2].argmax(-1), self.safe_mapillary_ix).astype(int)
+            conv2 = np.isin(dep_data[3].argmax(-1), self.safe_coco_ix).astype(int)
+            conv3 = np.isin(dep_data[4].argmax(-1), self.safe_mapillary_ix).astype(int)
             sema_safe = (conv1 + conv2 + conv3) >= 2
             where_safe = sema_safe * where_safe
         return self.disk_to_memory_fmt(where_safe)

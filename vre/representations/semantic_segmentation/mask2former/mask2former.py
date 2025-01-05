@@ -17,19 +17,19 @@ from vre.representations.semantic_segmentation.mask2former.mask2former_impl impo
 
 class Mask2Former(SemanticRepresentation, LearnedRepresentationMixin, NpIORepresentation):
     """Mask2Former representation implementation. Note: only semantic segmentation (not panoptic/instance) enabled."""
-    def __init__(self, model_id: str, semantic_argmax_only: bool = False, **kwargs):
+    def __init__(self, model_id: str, disk_data_argmax: bool = False, **kwargs):
         LearnedRepresentationMixin.__init__(self)
         NpIORepresentation.__init__(self)
         assert isinstance(model_id, str) and model_id in {"47429163_0", "49189528_1", "49189528_0"}, model_id
         self._m2f_resources = Path(__file__).parent / "mask2former_impl/resources"
         classes, color_map, self.thing_dataset_id_to_contiguous_id = self._get_metadata(model_id)
-        self.semantic_argmax_only = semantic_argmax_only
+        self.disk_data_argmax = disk_data_argmax
         SemanticRepresentation.__init__(self, classes=classes, color_map=color_map,
-                                        semantic_argmax_only=semantic_argmax_only, **kwargs)
+                                        disk_data_argmax=disk_data_argmax, **kwargs)
         self.model_id = model_id
         self.model: MaskFormer | None = None
         self.cfg: CfgNode | None = None
-        self.output_dtype = "uint8" if semantic_argmax_only else "float16"
+        self.output_dtype = "uint8" if disk_data_argmax else "float16"
 
     @property
     @overrides
@@ -47,8 +47,7 @@ class Mask2Former(SemanticRepresentation, LearnedRepresentationMixin, NpIORepres
         predictions: list[tr.Tensor] = [x["sem_seg"] for x in self.model(inputs)]
         res = []
         for pred in predictions:
-            _pred = pred.argmax(dim=0) if self.semantic_argmax_only else pred.permute(1, 2, 0)
-            res.append(_pred.to("cpu").numpy())
+            res.append(pred.permute(1, 2, 0).to("cpu").numpy())
         self.data = ReprOut(frames=video[ixs], output=MemoryData(res), key=ixs)
 
     @overrides
@@ -98,7 +97,7 @@ def main(args: Namespace):
     """main fn. Usage: python mask2former.py 49189528_1/47429163_0/49189528_0 demo1.jpg output1.jpg"""
     img = image_read(args.input_image)
 
-    m2f = Mask2Former(args.model_id, semantic_argmax_only=False, name="m2f", dependencies=[])
+    m2f = Mask2Former(args.model_id, disk_data_argmax=False, name="m2f", dependencies=[])
     m2f.device = "cuda" if tr.cuda.is_available() else "cpu"
     m2f.vre_setup()
     now = datetime.now()
