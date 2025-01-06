@@ -15,9 +15,10 @@ import numpy as np
 import torch as tr
 
 from vre.utils import image_write, collage_fn, abs_path, reorder_dict, MemoryData, image_resize
-from vre.representations import build_representations_from_cfg, add_external_representations, Representation, ReprOut
+from vre.representations import build_representations_from_cfg, add_external_repositories, Representation, ReprOut
 from vre.readers.multitask_dataset import MultiTaskDataset
 from vre.logger import vre_logger as logger
+from vre_repository import get_vre_repository
 
 def plot_one(data: dict[str, tr.Tensor], file_name: str, dataset_path: Path,
              name_to_task: dict[str, Representation]) -> dict[str, np.ndarray]:
@@ -60,7 +61,9 @@ def get_args() -> Namespace:
     parser.add_argument("vre_export_dir", type=lambda p: Path(p).absolute(), help="Path to the dir where VRE exported")
     parser.add_argument("--config_path", required=True, type=abs_path, help="Path to the config for representations")
     parser.add_argument("--external_representations", "-I", nargs="+", default=[],
-                        help="Path to external reprs. Format: /path/to/file.py:fn_name. fn -> {str: Representation}")
+                        help="Path to external reprs. Format: /path/to/file.py:fn_name. fn -> [Representation]")
+    parser.add_argument("--external_repositories", "-J", nargs="+", default=[],
+                        help="Path to external reprs. Format: /path/to/file.py:fn_name. fn -> {str: Type[Repr]}")
     parser.add_argument("--output_path", "-o", required=True, type=abs_path, help="Path to the collage is stored")
     parser.add_argument("--overwrite", action="store_true")
     parser.add_argument("--video", action="store_true")
@@ -81,10 +84,10 @@ def main(args: Namespace):
         logger.info(f"Export video: '{args.output_path / 'collage.mp4'}'")
 
     cfg = OmegaConf.to_container(OmegaConf.load(args.config_path), resolve=True)
-    representations = build_representations_from_cfg(cfg=cfg)
-    if len(args.external_representations) > 0:
-        for external_path in args.external_representations:
-            representations = add_external_representations(representations, external_path, cfg)
+    representation_types = add_external_repositories(args.external_repositories, get_vre_repository())
+    representations = build_representations_from_cfg(cfg=cfg, representation_types=representation_types,
+                                                     external_representations=args.external_representations)
+
     assert "rgb" in [r.name for r in representations], "RGB(rgb) is needed for collage plot"
     logger.debug(f"Representations:\n{pformat(representations)}")
     reader = MultiTaskDataset(args.vre_export_dir, task_names=[r.name for r in representations],

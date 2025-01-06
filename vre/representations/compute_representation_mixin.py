@@ -61,7 +61,11 @@ class ComputeRepresentationMixin(ABC):
     def set_compute_params(self, **kwargs):
         """set the compute parameters for the representation"""
         attributes = ["output_size", "batch_size", "output_dtype"]
+        res = ""
         assert set(kwargs).issubset(attributes), (list(kwargs), attributes)
         for attr in attributes:
             if attr in kwargs:
                 setattr(self, attr, kwargs[attr])
+                res += f"\n-{attr}: {kwargs[attr]}"
+        if len(res) > 0:
+            logger.debug(f"[{self}] Set node specific 'Compute' params: {res}")

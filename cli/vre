@@ -6,8 +6,9 @@ import imp
 import numpy as np
 from vre import VRE
 from vre.utils import FFmpegVideo, FakeVideo, image_read, abs_path
-from vre.representations import build_representations_from_cfg, add_external_representations
+from vre.representations import build_representations_from_cfg, add_external_repositories
 from vre.logger import vre_logger as logger
+from vre_repository import get_vre_repository
 from omegaconf import OmegaConf
 
 def _get_raw_data(video_path: Path) -> dict[str, np.ndarray | list[str]]:
@@ -36,7 +37,9 @@ def get_args() -> Namespace:
                         default="stop_execution")
     parser.add_argument("--n_threads_data_storer", type=int, default=0)
     parser.add_argument("--external_representations", "-I", nargs="+", default=[],
-                        help="Path to external reprs. Format: /path/to/file.py:fn_name. fn -> {str: Representation}")
+                        help="Path to external reprs. Format: /path/to/file.py:fn_name. fn -> [Representation]")
+    parser.add_argument("--external_repositories", "-J", nargs="+", default=[],
+                        help="Path to external reprs. Format: /path/to/file.py:fn_name. fn -> {str: Type[Repr]}")
     # collage parameters (calls vre_collage)
     parser.add_argument("--make_video_collage", action="store_true", help="if set, calls vre_collage on the output")
     parser.add_argument("--collage_fps", type=float, help="Required by --make_video_collage for the collage output")
@@ -44,10 +47,11 @@ def get_args() -> Namespace:
     args = parser.parse_args()
     if args.make_video_collage:
         assert args.collage_fps is not None and args.collage_fps > 0, args.collage_fps
-    assert len(args.frames) > 0, f"No frames provided, cannot run VRE"
-    if args.frames == 1 and args.frames[0].find("..") != -1:
-        args.frames = list(range(*map(int, args.frames[0].split(".."))))
-    args.frames = list(map(int, args.frames))
+    if args.frames is not None:
+        assert len(args.frames) > 0, f"No frames provided, cannot run VRE"
+        if args.frames == 1 and args.frames[0].find("..") != -1:
+            args.frames = list(range(*map(int, args.frames[0].split(".."))))
+        args.frames = list(map(int, args.frames))
     return args
 
 def main(args: Namespace):
@@ -59,13 +63,13 @@ def main(args: Namespace):
     else:
         video = FFmpegVideo(args.video_path)
 
-    representations = build_representations_from_cfg(cfg=cfg)
-    if len(args.external_representations) > 0:
-        for external_path in args.external_representations:
-            representations = add_external_representations(representations, external_path, cfg)
-    vre = VRE(video, representations)
+    representation_types = add_external_repositories(args.external_repositories, get_vre_repository())
+    representations = build_representations_from_cfg(cfg=cfg, representation_types=representation_types,
+                                                     external_representations=args.external_representations)
 
-    vre_metadata = vre.run(args.output_path, frames=args.frames, output_dir_exists_mode=args.output_dir_exists_mode,
+    vre = VRE(video, representations)
+    vre_metadata = vre.run(args.output_path, frames=args.frames or range(len(video)),
+                           output_dir_exists_mode=args.output_dir_exists_mode,
                            n_threads_data_storer=args.n_threads_data_storer, exception_mode=args.exception_mode,
                            exported_representations=args.representations)
     print(vre_metadata.pretty_format())

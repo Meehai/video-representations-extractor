@@ -8,14 +8,14 @@ default_io_parameters:
 
 representations:
   rgb:
-    type: default/rgb
+    type: color/rgb
     dependencies: []
     parameters: {}
     compute_parameters:
       batch_size: 5
 
   hsv:
-    type: default/hsv
+    type: color/hsv
     dependencies: [rgb]
     parameters: {}
 
@@ -40,7 +40,7 @@ representations:
       l2_gradient: True
 
   softseg_gb:
-    type: soft-segmentation/generalized_boundaries
+    type: soft-segmentation/generalized-boundaries
     dependencies: []
     parameters:
       use_median_filtering: True

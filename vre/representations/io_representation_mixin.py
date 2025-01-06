@@ -104,10 +104,14 @@ class IORepresentationMixin(ABC):
     def set_io_params(self, **kwargs):
         """set the IO parameters for the representation"""
         attributes = ["binary_format", "image_format", "compress"]
+        res = ""
         assert set(kwargs).issubset(attributes), (list(kwargs), attributes)
         for attr in attributes:
             if attr in kwargs:
                 setattr(self, attr, kwargs[attr])
+                res += f"\n-{attr}: {kwargs[attr]}"
+        if len(res) > 0:
+            logger.debug(f"[{self}] Set node specific 'IO' params: {res}")
 
     def resize(self, data: ReprOut, new_size: tuple[int, int]):
         """resizes the data. size is provided in (h, w)"""

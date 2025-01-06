@@ -8,7 +8,7 @@ default_learned_parameters:
 
 representations:
   rgb:
-    type: default/rgb
+    type: color/rgb
     dependencies: []
     parameters: {}
 

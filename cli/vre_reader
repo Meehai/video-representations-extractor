@@ -3,9 +3,10 @@
 from argparse import ArgumentParser, Namespace
 import sys
 from vre.readers import MultiTaskDataset
-from vre.representations import build_representations_from_cfg, add_external_representations
+from vre.representations import build_representations_from_cfg, add_external_repositories
 from vre.utils import abs_path, lo
 from vre.logger import vre_logger as logger
+from vre_repository import get_vre_repository
 from omegaconf import OmegaConf
 from pprint import pformat
 from torch.utils.data import DataLoader
@@ -20,7 +21,9 @@ def get_args() -> Namespace:
     parser.add_argument("--config_path", type=abs_path, required=True)
     parser.add_argument("--mode", choices=["read_one_batch", "iterate_all_data"], default="read_one_batch")
     parser.add_argument("--external_representations", "-I", nargs="+", default=[],
-                        help="Path to external reprs. Format: /path/to/file.py:fn_name. fn -> {str: Representation}")
+                        help="Path to external reprs. Format: /path/to/file.py:fn_name. fn -> [Representation]")
+    parser.add_argument("--external_repositories", "-J", nargs="+", default=[],
+                        help="Path to external reprs. Format: /path/to/file.py:fn_name. fn -> {str: Type[Repr]}")
     parser.add_argument("--batch_size", type=int, default=5)
     parser.add_argument("--num_workers", default=0, type=int)
     parser.add_argument("--handle_missing_data", default="raise")
@@ -31,10 +34,9 @@ def get_args() -> Namespace:
 def main(args: Namespace):
     """main fn"""
     cfg = OmegaConf.to_container(OmegaConf.load(args.config_path), resolve=True)
-    representations = build_representations_from_cfg(cfg=cfg)
-    if len(args.external_representations) > 0:
-        for external_path in args.external_representations:
-            representations = add_external_representations(representations, external_path, cfg)
+    representation_types = add_external_repositories(args.external_repositories, get_vre_repository())
+    representations = build_representations_from_cfg(cfg=cfg, representation_types=representation_types,
+                                                     external_representations=args.external_representations)
 
     reader = MultiTaskDataset(args.dataset_path, task_names=[r.name for r in representations],
                               task_types={r.name: r for r in representations},
