@@ -27,18 +27,22 @@ pylint:
   script:
     - python -m pylint --rcfile=.pylintrc $(git ls-files "*.py" | grep -v "test/\|examples/")
 
-e2e_imgur:
+vre_unit_integration:
   script:
-    - bash test/end_to_end/imgur/run.sh
+    - python3 -m pytest test/vre
 
-e2e_task_mapped:
+vre_repository_unit:
   script:
-    - bash test/end_to_end/task_mapped_representations/run.sh
+    - python3 -m pytest test/vre_repository/unit
 
-unit_tests:
+vre_repository_integration:
   script:
-    - python3 -m pytest test/unit
+    - python3 -m pytest test/vre_repository/integration
 
-integration_tests:
+vre_repository_e2e_imgur:
   script:
-    - python3 -m pytest test/integration
+    - bash test/vre_repository/end_to_end/imgur/run.sh
+
+vre_repository_e2e_task_mapped:
+  script:
+    - bash test/vre_repository/end_to_end/task_mapped_representations/run.sh

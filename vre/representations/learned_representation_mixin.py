@@ -43,6 +43,11 @@ class LearnedRepresentationMixin(ABC):
     def set_learned_params(self, **kwargs):
         """set the learned parameters for the representation"""
         attributes = ["device"]
+        res = ""
         for attr in attributes:
             if attr in kwargs:
                 setattr(self, attr, kwargs[attr])
+                res += f"\n-{attr}: {kwargs[attr]}"
+
+        if len(res) > 0:
+            logger.debug(f"[{self}] Set node specific 'Learned' params: {res}")

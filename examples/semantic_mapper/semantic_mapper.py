@@ -12,9 +12,10 @@ from vre.utils import (semantic_mapper, colorize_semantic_segmentation, DiskData
 from vre.logger import vre_logger as logger
 from vre.readers.multitask_dataset import MultiTaskDataset, MultiTaskItem
 from vre.representations import TaskMapper, NpIORepresentation, Representation, build_representations_from_cfg
-from vre.representations.depth import DepthRepresentation
-from vre.representations.normals import NormalsRepresentation
-from vre.representations.semantic_segmentation import SemanticRepresentation
+from vre_repository import get_vre_repository
+from vre_repository.depth import DepthRepresentation
+from vre_repository.normals import NormalsRepresentation
+from vre_repository.semantic_segmentation import SemanticRepresentation
 
 def plot_one(data: MultiTaskItem, title: str, order: list[str] | None,
              name_to_task: dict[str, Representation]) -> np.ndarray:
@@ -497,7 +498,8 @@ if __name__ == "__main__":
     order = ["rgb", "semantic_mask2former_mapillary_49189528_0", "semantic_mask2former_coco_47429163_0",
              "depth_marigold", "normals_svd(depth_marigold)"]
 
-    task_types = {r.name: r for r in build_representations_from_cfg(cfg_path) if r.name in task_names}
+    repr_types = get_vre_repository()
+    task_types = {r.name: r for r in build_representations_from_cfg(cfg_path, repr_types) if r.name in task_names}
     reader = MultiTaskDataset(vre_dir, task_names=task_names, task_types=task_types,
                               handle_missing_data="fill_nan", normalization=None,
                               cache_task_stats=True, batch_size_stats=100)

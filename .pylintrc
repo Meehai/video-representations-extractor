@@ -230,6 +230,7 @@ disable = logging-fstring-interpolation,
           consider-using-enumerate,
           use-maxsplit-arg,
           expression-not-assigned,
+          unnecessary-dunder-call,
 
 [FORMAT]
 

@@ -1,7 +1,10 @@
 """Init file"""
 # pylint: disable=reimported, wrong-import-position
 import warnings
+import sys
+from pathlib import Path
 from diffusers.utils.logging import disable_progress_bar
+
 from .video_representations_extractor import VideoRepresentationsExtractor, VideoRepresentationsExtractor as VRE
 from .representations import Representation, ReprOut
 from .utils.vre_video import FFmpegVideo
