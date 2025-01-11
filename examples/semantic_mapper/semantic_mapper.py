@@ -7,8 +7,8 @@ from pprint import pprint
 import numpy as np
 import torch as tr
 
-from vre.utils import (semantic_mapper, colorize_semantic_segmentation, DiskData, MemoryData, ReprOut, reorder_dict,
-                       collage_fn, image_add_title, lo)
+from vre.utils import (semantic_mapper, colorize_semantic_segmentation, DiskData, MemoryData,
+                       ReprOut, reorder_dict, collage_fn, image_add_title, lo)
 from vre.logger import vre_logger as logger
 from vre.readers.multitask_dataset import MultiTaskDataset, MultiTaskItem
 from vre.representations import TaskMapper, NpIORepresentation, Representation, build_representations_from_cfg
@@ -106,10 +106,9 @@ m2f_r50_mapillary = SemanticRepresentation("semantic_mask2former_mapillary_49189
 marigold = DepthRepresentation("depth_marigold", min_depth=0, max_depth=1)
 normals_svd_marigold = NormalsRepresentation("normals_svd(depth_marigold)")
 
-class SemanticMask2FormerMapillaryConvertedPaper(TaskMapper, NpIORepresentation):
-    def __init__(self, name: str, dependencies: list[Representation]):
+class SemanticMask2FormerMapillaryConvertedPaper(TaskMapper, SemanticRepresentation):
+    def __init__(self, name: str, dependencies: list[SemanticRepresentation]):
         TaskMapper.__init__(self, name=name, n_channels=8, dependencies=dependencies)
-        NpIORepresentation.__init__(self)
         self.mapping = {
             "land": ["Terrain", "Sand", "Snow"],
             "forest": ["Vegetation"],
@@ -127,40 +126,21 @@ class SemanticMask2FormerMapillaryConvertedPaper(TaskMapper, NpIORepresentation)
             "sky": ["Sky"],
             "hill": ["Mountain"]
         }
-        self.color_map = [[0, 255, 0], [0, 127, 0], [255, 255, 0], [255, 255, 255],
-                          [255, 0, 0], [0, 0, 255], [0, 255, 255], [127, 127, 63]]
+        color_map = [[0, 255, 0], [0, 127, 0], [255, 255, 0], [255, 255, 255],
+                     [255, 0, 0], [0, 0, 255], [0, 255, 255], [127, 127, 63]]
+        SemanticRepresentation.__init__(self, name, dependencies=dependencies, classes=list(self.mapping),
+                                        color_map=color_map, disk_data_argmax=True)
         self.original_classes = dependencies[0].classes
         assert set(reduce(lambda x, y: x + y, self.mapping.values(), [])) == set(self.original_classes)
-        self.classes = list(self.mapping.keys())
-        self.n_classes = len(self.classes)
-        self.output_dtype = "uint8"
-
-    @property
-    @overrides
-    def n_channels(self) -> int:
-        return self.n_classes
-
-    @overrides
-    def make_images(self, data: ReprOut) -> np.ndarray:
-        return colorize_semantic_segmentation(data.output.argmax(-1), self.classes, self.color_map)
 
     @overrides
     def merge_fn(self, dep_data: list[MemoryData]) -> MemoryData:
         m2f_mapillary_converted = semantic_mapper(dep_data[0].argmax(-1), self.mapping, self.original_classes)
         return self.disk_to_memory_fmt(m2f_mapillary_converted)
 
-    @overrides
-    def memory_to_disk_fmt(self, memory_data: MemoryData) -> DiskData:
-        return memory_data.argmax(-1).astype(np.uint8)
-
-    @overrides
-    def disk_to_memory_fmt(self, disk_data: DiskData) -> MemoryData:
-        return MemoryData(np.eye(self.n_classes)[disk_data.astype(int)])
-
-class SemanticMask2FormerCOCOConverted(TaskMapper, NpIORepresentation):
+class SemanticMask2FormerCOCOConverted(TaskMapper, SemanticRepresentation):
     def __init__(self, name: str, dependencies: list[Representation]):
         TaskMapper.__init__(self, name=name, n_channels=8, dependencies=dependencies)
-        NpIORepresentation.__init__(self)
         self.mapping = {
             "land": ["grass-merged", "dirt-merged", "sand", "gravel", "flower", "playingfield", "snow", "platform"],
             "forest": ["tree-merged"],
@@ -185,36 +165,17 @@ class SemanticMask2FormerCOCOConverted(TaskMapper, NpIORepresentation):
             "sky": ["sky-other-merged"],
             "hill": ["mountain-merged"]
         }
-        self.color_map = [[0, 255, 0], [0, 127, 0], [255, 255, 0], [255, 255, 255],
-                          [255, 0, 0], [0, 0, 255], [0, 255, 255], [127, 127, 63]]
+        color_map = [[0, 255, 0], [0, 127, 0], [255, 255, 0], [255, 255, 255],
+                     [255, 0, 0], [0, 0, 255], [0, 255, 255], [127, 127, 63]]
+        SemanticRepresentation.__init__(self, name, dependencies=dependencies, classes=list(self.mapping),
+                                        color_map=color_map, disk_data_argmax=True)
         self.original_classes = dependencies[0].classes
-        assert set(reduce(lambda x, y: x + y, self.mapping.values(), [])) == set(self.original_classes)
-        self.classes = list(self.mapping.keys())
-        self.n_classes = len(self.classes)
-        self.output_dtype = "uint8"
-
-    @property
-    @overrides
-    def n_channels(self) -> int:
-        return self.n_classes
-
-    @overrides
-    def make_images(self, data: ReprOut) -> np.ndarray:
-        return colorize_semantic_segmentation(data.output.argmax(-1), self.classes, self.color_map)
 
     @overrides
     def merge_fn(self, dep_data: list[MemoryData]) -> MemoryData:
         m2f_mapillary_converted = semantic_mapper(dep_data[0].argmax(-1), self.mapping, self.original_classes)
         res = self.disk_to_memory_fmt(m2f_mapillary_converted)
         return res
-
-    @overrides
-    def memory_to_disk_fmt(self, memory_data: MemoryData) -> DiskData:
-        return memory_data.argmax(-1).astype(np.uint8)
-
-    @overrides
-    def disk_to_memory_fmt(self, disk_data: DiskData) -> MemoryData:
-        return MemoryData(np.eye(self.n_classes)[disk_data.astype(int)])
 
 class BinaryMapper(TaskMapper, NpIORepresentation):
     """
@@ -269,13 +230,12 @@ class BinaryMapper(TaskMapper, NpIORepresentation):
             res_argmax = sum(dep_data_converted) > len(dep_data_converted) // 2
         return self.disk_to_memory_fmt(res_argmax)
 
-class BuildingsFromM2FDepth(BinaryMapper, NpIORepresentation):
+class BuildingsFromM2FDepth(BinaryMapper):
     def __init__(self, name: str, dependencies: list[Representation], buildings: BinaryMapper, mode: str,
                  load_mode: str = "binary"):
         assert len(dependencies) == 1, dependencies
         BinaryMapper.__init__(self, name=name, dependencies=buildings.dependencies,
                               mapping=buildings.mapping, mode=mode, load_mode=load_mode)
-        NpIORepresentation.__init__(self)
         self.dependencies = [*buildings.dependencies, dependencies[0]]
         self.classes = ["others", name]
 
@@ -286,26 +246,18 @@ class BuildingsFromM2FDepth(BinaryMapper, NpIORepresentation):
         buildings_depth = buildings * (depth <= thr)
         return self.disk_to_memory_fmt(buildings_depth.astype(bool))
 
-class SemanticMedian(TaskMapper, NpIORepresentation):
-    def __init__(self, name: str, deps: list[TaskMapper]):
+class SemanticMedian(TaskMapper, SemanticRepresentation):
+    def __init__(self, name: str, deps: list[TaskMapper | SemanticRepresentation]):
         assert all(dep.n_channels == deps[0].n_channels for dep in deps), [(dep.name, dep.n_channels) for dep in deps]
         TaskMapper.__init__(self, name, n_channels=deps[0].n_channels, dependencies=deps)
-        NpIORepresentation.__init__(self)
-        self.classes = list(deps[0].classes)
-        self.n_classes = len(self.classes)
-        self.output_dtype = "uint8"
-        self.color_map = deps[0].color_map
+        SemanticRepresentation.__init__(self, name, dependencies=deps, classes=deps[0].classes,
+                                        color_map=deps[0].color_map, disk_data_argmax=True)
 
     @overrides
     def merge_fn(self, dep_data: list[MemoryData]) -> MemoryData:
-        return MemoryData(np.eye(self.n_classes)[sum(dep_data).argmax(-1)].astype(np.uint8))
+        return MemoryData(np.eye(self.n_classes)[sum(dep_data).argmax(-1)].astype(np.float32))
 
-    @overrides
-    def make_images(self, data: ReprOut) -> np.ndarray:
-        data_output = data.output.argmax(-1) if np.issubdtype(data.output.dtype, np.floating) else data.output
-        return colorize_semantic_segmentation(data_output, self.classes, self.color_map)
-
-class SafeLandingAreas(BinaryMapper, NpIORepresentation):
+class SafeLandingAreas(BinaryMapper):
     def __init__(self, name: str, depth: DepthRepresentation, camera_normals: NormalsRepresentation,
                  include_semantics: bool, original_classes: tuple[list[str], list[str]] | None = None,
                  semantics: list[SemanticRepresentation] | None = None, load_mode: str = "binary"):
@@ -315,7 +267,6 @@ class SafeLandingAreas(BinaryMapper, NpIORepresentation):
             assert len(semantics) == 3
             dependencies = [*dependencies, *semantics]
         TaskMapper.__init__(self, name, dependencies=dependencies, n_channels=2)
-        NpIORepresentation.__init__(self)
         self.color_map = [[255, 0, 0], [0, 255, 0]]
         self.original_classes = original_classes
         self.classes = ["unsafe-landing", "safe-landing"]
@@ -462,14 +413,14 @@ def get_new_semantic_mapped_tasks(tasks_subset: list[str] | None = None) -> dict
     ]
 
     available_tasks: list[TaskMapper] = [
-        # m2f_swin_mapillary_converted := SemanticMask2FormerMapillaryConvertedPaper(
-        #     "semantic_mask2former_swin_mapillary_converted", [m2f_mapillary]),
-        # m2f_r50_mapillary_converted := SemanticMask2FormerMapillaryConvertedPaper(
-        #     "semantic_mask2former_r50_mapillary_converted", [m2f_r50_mapillary]),
-        # m2f_swin_coco_converted := SemanticMask2FormerCOCOConverted(
-        #     "semantic_mask2former_swin_coco_converted", [m2f_coco]),
-        # SemanticMedian("semantic_output", [m2f_swin_mapillary_converted, m2f_r50_mapillary_converted,
-        #                                    m2f_swin_coco_converted]),
+        m2f_swin_mapillary_converted := SemanticMask2FormerMapillaryConvertedPaper(
+            "semantic_mask2former_swin_mapillary_converted", [m2f_mapillary]),
+        m2f_r50_mapillary_converted := SemanticMask2FormerMapillaryConvertedPaper(
+            "semantic_mask2former_r50_mapillary_converted", [m2f_r50_mapillary]),
+        m2f_swin_coco_converted := SemanticMask2FormerCOCOConverted(
+            "semantic_mask2former_swin_coco_converted", [m2f_coco]),
+        SemanticMedian("semantic_output", [m2f_swin_mapillary_converted, m2f_r50_mapillary_converted,
+                                           m2f_swin_coco_converted]),
         buildings := BinaryMapper("buildings", [m2f_mapillary, m2f_coco, m2f_r50_mapillary],
                                   buildings_mapping, mode="majority"),
         BinaryMapper("sky-and-water", [m2f_mapillary, m2f_coco, m2f_r50_mapillary],

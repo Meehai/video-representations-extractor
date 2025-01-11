@@ -6,8 +6,8 @@ from pathlib import Path
 import numpy as np
 
 from vre.logger import vre_logger as logger
-from vre.utils import VREVideo, image_resize_batch, MemoryData, DiskData
-from .representation import Representation, ReprOut
+from vre.utils import image_resize_batch, MemoryData, DiskData
+from .representation import ReprOut
 
 class BinaryFormat(Enum):
     """types of binary outputs from a representation"""
@@ -34,6 +34,8 @@ class IORepresentationMixin(ABC):
         self._binary_format: BinaryFormat | None = None
         self._image_format: ImageFormat | None = None
         self._compress: bool | None = None
+        self._output_size: tuple[int, int] | str | None = None
+        self._output_dtype: str | np.dtype | None = None
 
     @abstractmethod
     def load_from_disk(self, path: Path) -> DiskData:
@@ -101,9 +103,38 @@ class IORepresentationMixin(ABC):
     def compress(self, c: bool):
         self._compress = c
 
+    @property
+    def output_size(self) -> str | tuple[int, int]:
+        """Returns the output size as a tuple/string or None if it's not explicitly set"""
+        if self._output_size is None:
+            logger.warning(f"[{self}] No output_size set, returning 'video_shape'. Call set_compute_params")
+            return "video_shape"
+        return self._output_size
+
+    @output_size.setter
+    def output_size(self, os: str | tuple[int, int]):
+        assert isinstance(os, (str, tuple, list)), os
+        if isinstance(os, (tuple, list)):
+            assert len(os) == 2 and all(isinstance(x, int) and x > 0 for x in os), os
+        if isinstance(os, str):
+            assert os in ("native", "video_shape"), os
+        self._output_size = os if isinstance(os, str) else tuple(os)
+
+    @property
+    def output_dtype(self) -> np.dtype:
+        """the output dtype of the representation"""
+        if self._output_dtype is None:
+            return np.float32
+        return self._output_dtype
+
+    @output_dtype.setter
+    def output_dtype(self, dtype: str | np.dtype):
+        assert isinstance(dtype, (str, np.dtype)), dtype
+        self._output_dtype = np.dtype(dtype)
+
     def set_io_params(self, **kwargs):
         """set the IO parameters for the representation"""
-        attributes = ["binary_format", "image_format", "compress"]
+        attributes = ["binary_format", "image_format", "compress", "output_size", "output_dtype"]
         res = ""
         assert set(kwargs).issubset(attributes), (list(kwargs), attributes)
         for attr in attributes:
@@ -122,20 +153,3 @@ class IORepresentationMixin(ABC):
             output_images = image_resize_batch(data.output_images, *new_size, interpolation="nearest")
         return ReprOut(frames=data.frames, key=data.key, extra=data.extra, output_images=output_images,
                        output=image_resize_batch(data.output, *new_size, interpolation=interpolation))
-
-def load_from_disk_if_possible(rep: Representation | IORepresentationMixin, video: VREVideo,
-                               ixs: list[int], output_dir: Path):
-    """loads (batched) data from disk if possible. Used in VRE main loop. TODO: integrate better in the class"""
-    # TODO: see vre_with_stored_representations.py -- this needs to deepwalk if needed.
-    assert isinstance(ixs, list) and all(isinstance(ix, int) for ix in ixs), (type(ixs), [type(ix) for ix in ixs])
-    assert output_dir is not None and output_dir.exists(), output_dir
-    npz_paths: list[Path] = [output_dir / rep.name / f"npz/{ix}.npz" for ix in ixs]
-    extra_paths: list[Path] = [output_dir / rep.name / f"npz/{ix}_extra.npz" for ix in ixs]
-    if any(not x.exists() for x in npz_paths): # partial batches are considered 'not existing' and overwritten
-        return
-    extras_exist = [x.exists() for x in extra_paths]
-    assert (ee := sum(extras_exist)) in (0, (ep := len(extra_paths))), f"Found {ee}. Expected either 0 or {ep}"
-    disk_data: DiskData = np.array([rep.load_from_disk(x) for x in npz_paths])
-    extra = [np.load(x, allow_pickle=True)["arr_0"].item() for x in extra_paths] if ee == ep else None
-    logger.debug2(f"[{rep}] Slice: [{ixs[0]}:{ixs[-1]}]. All data found on disk and loaded")
-    rep.data = ReprOut(frames=video[ixs], output=rep.disk_to_memory_fmt(disk_data), extra=extra, key=ixs)

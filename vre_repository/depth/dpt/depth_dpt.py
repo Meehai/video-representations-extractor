@@ -5,15 +5,16 @@ import torch.nn.functional as F
 from overrides import overrides
 
 from vre.utils import VREVideo, fetch_weights, vre_load_weights, MemoryData
-from vre.representations import ReprOut, LearnedRepresentationMixin
-
+from vre.representations import ReprOut, LearnedRepresentationMixin, ComputeRepresentationMixin
 from vre_repository.depth import DepthRepresentation
+
 from .dpt_impl import DPTDepthModel, get_size
 
-class DepthDpt(DepthRepresentation, LearnedRepresentationMixin):
+class DepthDpt(DepthRepresentation, LearnedRepresentationMixin, ComputeRepresentationMixin):
     """DPT Depth Estimation representation"""
     def __init__(self, **kwargs):
         LearnedRepresentationMixin.__init__(self)
+        ComputeRepresentationMixin.__init__(self)
         DepthRepresentation.__init__(self, min_depth=0, max_depth=1, **kwargs)
         self.net_w, self.net_h = 384, 384
         self.multiple_of = 32

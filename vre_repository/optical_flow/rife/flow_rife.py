@@ -5,17 +5,17 @@ import torch.nn.functional as F
 from overrides import overrides
 
 from vre.utils import fetch_weights, VREVideo, MemoryData
-from vre.representations import ReprOut, LearnedRepresentationMixin
+from vre.representations import ReprOut, LearnedRepresentationMixin, ComputeRepresentationMixin
 from vre_repository.optical_flow import OpticalFlowRepresentation
 
 from .rife_impl import Model
 
-class FlowRife(OpticalFlowRepresentation, LearnedRepresentationMixin):
+class FlowRife(OpticalFlowRepresentation, LearnedRepresentationMixin, ComputeRepresentationMixin):
     """FlowRife representation"""
     def __init__(self, compute_backward_flow: bool, uhd: bool, flow_delta_frames: int = 1, **kwargs):
         OpticalFlowRepresentation.__init__(self, **kwargs)
         LearnedRepresentationMixin.__init__(self)
-        tr.manual_seed(42)
+        ComputeRepresentationMixin.__init__(self)
         self.uhd = uhd
         self.flow_delta_frames = flow_delta_frames
         assert compute_backward_flow is False, "Not supported"

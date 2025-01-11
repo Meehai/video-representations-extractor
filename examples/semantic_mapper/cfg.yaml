@@ -1,11 +1,11 @@
 default_compute_parameters:
-  output_size: [540, 960]
   batch_size: 10
 
 default_io_parameters:
   binary_format: npz
   image_format: not-set
   compress: True
+  output_size: [540, 960]
 
 default_learned_parameters:
   device: ${oc.env:VRE_DEVICE,cpu}
@@ -33,7 +33,7 @@ representations:
       sensor_width: 3840
       sensor_height: 2160
       window_size: 11
-    compute_parameters:
+    io_parameters:
       output_dtype: float16
 
   semantic_mask2former_mapillary_49189528_0:

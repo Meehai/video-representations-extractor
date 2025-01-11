@@ -3,7 +3,7 @@ from pathlib import Path
 from setuptools import setup, find_packages
 
 NAME = "video-representations-extractor"
-VERSION = "1.9.0"
+VERSION = "1.9.1"
 DESCRIPTION = "Video Representations Extractor (VRE) for computing algorithmic or neural representations of each frame."
 URL = "https://gitlab.com/video-representations-extractor/video-representations-extractor"
 
@@ -27,6 +27,7 @@ REQUIRED = [
     "pycocotools==2.0.7",
     "timm==1.0.9",
     "diffusers==0.30.3",
+    "graphviz==0.20.3",
 ]
 
 package_data = {

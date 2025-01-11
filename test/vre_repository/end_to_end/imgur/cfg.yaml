@@ -1,8 +1,8 @@
 default_compute_parameters:
-  output_size: [400, 600]
   batch_size: 1
 
 default_io_parameters:
+  output_size: [400, 600]
   binary_format: npz
   image_format: png
   compress: True
@@ -71,7 +71,7 @@ representations:
       sensor_width: 3840
       sensor_height: 2160
       window_size: 11
-    compute_parameters:
+    io_parameters:
       output_dtype: float16
 
   fastsam(s):
