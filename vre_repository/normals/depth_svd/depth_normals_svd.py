@@ -3,11 +3,12 @@ from overrides import overrides
 import numpy as np
 
 from vre.utils import VREVideo, MemoryData, ReprOut
+from vre.representations import ComputeRepresentationMixin
 from vre_repository.normals import NormalsRepresentation
 
 from .depth_svd_impl import fov_diag_to_intrinsic, get_sampling_grid, get_normalized_coords, depth_to_normals
 
-class DepthNormalsSVD(NormalsRepresentation):
+class DepthNormalsSVD(NormalsRepresentation, ComputeRepresentationMixin):
     """
     General method for estimating normals from a depth map (+ intrinsics): a 2D window centered on each pixel is
     projected into 3D and then a plane is fitted on the 3D pointcloud using SVD.
@@ -16,6 +17,7 @@ class DepthNormalsSVD(NormalsRepresentation):
                  input_downsample_step: int = None, stride: int = None, max_distance: float = None,
                  min_valid_count: int = None, **kwargs):
         NormalsRepresentation.__init__(self, **kwargs)
+        ComputeRepresentationMixin.__init__(self)
         assert window_size % 2 == 1, f"Expected odd window size. Got: {window_size}"
         self.sensor_fov = sensor_fov
         self.sensor_width = sensor_width

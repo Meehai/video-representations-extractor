@@ -11,7 +11,7 @@ import numpy as np
 from vre.logger import vre_logger as logger
 from vre.utils import (image_resize_batch, fetch_weights, image_read, image_write,
                        vre_load_weights, VREVideo, FakeVideo, MemoryData)
-from vre.representations import ReprOut, LearnedRepresentationMixin, NpIORepresentation
+from vre.representations import ReprOut, LearnedRepresentationMixin, ComputeRepresentationMixin
 
 from vre_repository.semantic_segmentation import SemanticRepresentation
 try:
@@ -19,11 +19,11 @@ try:
 except ImportError:
     from vre_repository.semantic_segmentation.mask2former.mask2former_impl import MaskFormer, CfgNode, get_output_shape
 
-class Mask2Former(SemanticRepresentation, LearnedRepresentationMixin, NpIORepresentation):
+class Mask2Former(SemanticRepresentation, LearnedRepresentationMixin, ComputeRepresentationMixin):
     """Mask2Former representation implementation. Note: only semantic segmentation (not panoptic/instance) enabled."""
     def __init__(self, model_id: str, disk_data_argmax: bool = False, **kwargs):
         LearnedRepresentationMixin.__init__(self)
-        NpIORepresentation.__init__(self)
+        ComputeRepresentationMixin.__init__(self)
         assert isinstance(model_id, str) and model_id in {"47429163_0", "49189528_1", "49189528_0"}, model_id
         self._m2f_resources = Path(__file__).parent / "mask2former_impl/resources"
         classes, color_map, self.thing_dataset_id_to_contiguous_id = self._get_metadata(model_id)

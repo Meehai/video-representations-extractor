@@ -60,7 +60,7 @@ def build_representation_from_cfg(repr_cfg: dict, name: str, representation_type
         logger.debug(f"[{obj}] Setting node specific 'Compute' params: {compute_params}")
     if "io_parameters" in repr_cfg:
         assert isinstance(obj, IORepresentationMixin), obj
-        io_params = {**io_params, **repr_cfg["compute_parameters"]}
+        io_params = {**io_params, **repr_cfg["io_parameters"]}
         logger.debug(f"[{obj}] Setting node specific 'IO' params: {io_params}")
 
     if isinstance(obj, ComputeRepresentationMixin):

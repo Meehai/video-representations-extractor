@@ -1,17 +1,16 @@
 """semantic_representation.py -- helper class for all semantic segmentation representations"""
 from overrides import overrides
 import numpy as np
-from vre.representations import Representation, NpIORepresentation, ComputeRepresentationMixin
-from vre.utils import DiskData, MemoryData, image_resize_batch, colorize_semantic_segmentation, ReprOut, VREVideo
+from vre.representations import Representation, NpIORepresentation
+from vre.utils import DiskData, MemoryData, image_resize_batch, colorize_semantic_segmentation, ReprOut
 
-class SemanticRepresentation(Representation, NpIORepresentation, ComputeRepresentationMixin):
+class SemanticRepresentation(Representation, NpIORepresentation):
     """SemanticRepresentation. Implements semantic task-specific stuff, like argmaxing if needed"""
     def __init__(self, *args, classes: int | list[str], color_map: list[tuple[int, int, int]],
                  disk_data_argmax: bool, **kwargs):
         self.n_classes = len(list(range(classes)) if isinstance(classes, int) else classes)
         Representation.__init__(self, *args, **kwargs)
         NpIORepresentation.__init__(self)
-        ComputeRepresentationMixin.__init__(self)
         self.classes = list(range(classes)) if isinstance(classes, int) else classes
         self.color_map = color_map
         self.disk_data_argmax = disk_data_argmax
@@ -22,10 +21,6 @@ class SemanticRepresentation(Representation, NpIORepresentation, ComputeRepresen
     @overrides
     def n_channels(self) -> int:
         return self.n_classes
-
-    @overrides
-    def compute(self, video: VREVideo, ixs: list[int]):
-        raise NotImplementedError(f"[{self}] compute() must be overriden. We inherit it for output_dtype/size etc.")
 
     @overrides
     def disk_to_memory_fmt(self, disk_data: DiskData) -> MemoryData:
