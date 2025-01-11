@@ -89,8 +89,8 @@ class FastSam(Representation, LearnedRepresentationMixin, ComputeRepresentationM
         output_images = None
         if data.output_images is not None:
             output_images = image_resize_batch(data.output_images, *new_size, interpolation="nearest")
-        return ReprOut(frames=self.data.frames, output=self.data.output, extra=new_extra, key=self.data.key,
-                       output_images=output_images)
+        return ReprOut(frames=data.frames, output=data.output, extra=new_extra,
+                       key=data.key, output_images=output_images)
 
     @overrides
     def vre_setup(self, load_weights: bool = True):
