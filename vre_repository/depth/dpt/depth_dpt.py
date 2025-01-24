@@ -6,7 +6,7 @@ from overrides import overrides
 
 from vre.utils import VREVideo, MemoryData
 from vre.representations import ReprOut, LearnedRepresentationMixin, ComputeRepresentationMixin
-from vre_repository.weights_repository import fetch_weights, vre_load_weights
+from vre_repository.weights_repository import fetch_weights
 from vre_repository.depth import DepthRepresentation
 
 from .dpt_impl import DPTDepthModel, get_size
@@ -31,13 +31,18 @@ class DepthDpt(DepthRepresentation, LearnedRepresentationMixin, ComputeRepresent
         res = self._postprocess(predictions)
         self.data = ReprOut(frames=video[ixs], output=MemoryData(res), key=ixs)
 
+    @staticmethod
+    @overrides
+    def weights_repository_links(**kwargs) -> list[str]:
+        return ["depth/dpt/depth_dpt_midas.pth"]
+
     @overrides
     def vre_setup(self, load_weights: bool = True):
         assert self.setup_called is False
         self.model = DPTDepthModel(backbone="vitl16_384", non_negative=True).to("cpu")
         if load_weights:
-            weights_file = fetch_weights(__file__) / "depth_dpt_midas.pth"
-            self.model.load_state_dict(vre_load_weights(weights_file))
+            path = fetch_weights(DepthDpt.weights_repository_links())[0]
+            self.model.load_state_dict(tr.load(path, map_location="cpu"))
         self.model = self.model.eval().to(self.device)
         self.setup_called = True
 

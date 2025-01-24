@@ -8,7 +8,7 @@ from vre.utils import VREVideo, MemoryData
 from vre.logger import vre_logger as logger
 from vre.representations import ReprOut, LearnedRepresentationMixin, ComputeRepresentationMixin
 from vre_repository.optical_flow import OpticalFlowRepresentation
-from vre_repository.weights_repository import fetch_weights, vre_load_weights
+from vre_repository.weights_repository import fetch_weights
 
 from .raft_impl import RAFT, InputPadder
 
@@ -43,6 +43,11 @@ class FlowRaft(OpticalFlowRepresentation, LearnedRepresentationMixin, ComputeRep
         flow = self._postporcess(predictions)
         self.data = ReprOut(frames=video[ixs], output=MemoryData(flow), key=ixs)
 
+    @staticmethod
+    @overrides
+    def weights_repository_links(**kwargs) -> list[str]:
+        return ["optical_flow/raft/raft-things.ckpt"]
+
     @overrides
     def vre_setup(self, load_weights: bool = True):
         assert self.setup_called is False
@@ -52,8 +57,8 @@ class FlowRaft(OpticalFlowRepresentation, LearnedRepresentationMixin, ComputeRep
             def convert(data: dict[str, tr.Tensor]) -> dict[str, tr.Tensor]:
                 logger.warning("REMOVE THIS WHEN THERE'S TIME")
                 return {k.replace("module.", ""): v for k, v in data.items()}
-            raft_things_path = fetch_weights(__file__) / "raft-things.ckpt"
-            self.model.load_state_dict(convert(vre_load_weights(raft_things_path)))
+            path = fetch_weights(FlowRaft.weights_repository_links())[0]
+            self.model.load_state_dict(convert(tr.load(path, map_location="cpu")))
         self.model = self.model.eval().to(self.device)
         self.setup_called = True
 

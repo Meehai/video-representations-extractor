@@ -22,6 +22,9 @@ class MyRepresentation(Representation, LearnedRepresentationMixin, ComputeRepres
         self.make_called = False
     def compute(self, video, ixs):
         raise NotImplementedError("should not be called")
+    @staticmethod
+    def weights_repository_links(**kwargs):
+        raise NotImplementedError("should not be called")
     def make_images(self, data: ReprOut):
         return data.output
     def vre_setup(self, load_weights = True):

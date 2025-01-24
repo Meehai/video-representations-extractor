@@ -27,6 +27,11 @@ class LearnedRepresentationMixin(ABC):
     def vre_free(self):
         """Needed to deallocate stuff from cuda mostly. After this, you need to run vre_setup() again."""
 
+    @staticmethod
+    @abstractmethod
+    def weights_repository_links(**kwargs) -> list[str]:
+        """Returns a name and a list of links to the weightss. The names are first checked in the local resources dir"""
+
     @property
     def device(self) -> VREDevice:
         """Returns the device of the representation"""

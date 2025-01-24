@@ -11,10 +11,10 @@ from overrides import overrides
 from tqdm.auto import tqdm
 from diffusers import AutoencoderKL, DDIMScheduler, LCMScheduler, UNet2DConditionModel
 
-from vre.utils import image_read, image_write, VREVideo, MemoryData
+from vre.utils import image_read, image_write, VREVideo, MemoryData, vre_load_weights
 from vre.representations import ReprOut, LearnedRepresentationMixin, ComputeRepresentationMixin
 from vre_repository.depth import DepthRepresentation
-from vre_repository.weights_repository import fetch_weights, vre_load_weights
+from vre_repository.weights_repository import fetch_weights
 
 try:
     from .marigold_impl import MarigoldPipeline
@@ -36,6 +36,15 @@ class Marigold(DepthRepresentation, LearnedRepresentationMixin, ComputeRepresent
         self.model: MarigoldPipeline | None = None
         self.seed = seed
 
+    @staticmethod
+    @overrides
+    def weights_repository_links(**kwargs) -> list[str]:
+        return [
+            "depth/marigold/vae.pt",
+            ["depth/marigold/marigold-lcm-v1-0_unet.pt/0000.pt", "depth/marigold/marigold-lcm-v1-0_unet.pt/0001.pt",
+             "depth/marigold/marigold-lcm-v1-0_unet.pt/0002.pt", "depth/marigold/marigold-lcm-v1-0_unet.pt/0003.pt"],
+        ]
+
     @overrides
     def vre_setup(self, load_weights: bool=True):
         assert self.setup_called is False
@@ -43,8 +52,9 @@ class Marigold(DepthRepresentation, LearnedRepresentationMixin, ComputeRepresent
         vae = AutoencoderKL(**self._get_vae_cfg())
         if load_weights:
             assert self.variant != "testing"
-            vae.load_state_dict(vre_load_weights(fetch_weights(__file__) / "vae.pt")) # VAE is common for both variants
-            unet.load_state_dict(vre_load_weights(fetch_weights(__file__) / f"{self.variant}_unet.pt"))
+            paths = fetch_weights(Marigold.weights_repository_links())
+            vae.load_state_dict(vre_load_weights(paths[0]))
+            unet.load_state_dict(vre_load_weights(paths[1]))
 
         if self.variant == "marigold-lcm-v1-0":
             lcm_scheduler_config = {**self._get_ddim_cfg(), "original_inference_steps": 50, "timestep_scaling": 10.0}

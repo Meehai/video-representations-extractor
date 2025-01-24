@@ -1,7 +1,6 @@
 from types import SimpleNamespace
 from tempfile import NamedTemporaryFile
 from pathlib import Path
-import random
 import numpy as np
 from vre_repository.semantic_segmentation.mask2former.mask2former import main as m2f_main
 from vre.utils import get_project_root
@@ -27,3 +26,6 @@ def test_i_mask2former(variant):
     elif args.model_id == "49189528_0" and args.input_image.name == "demo1.jpg":
         assert np.allclose(mean := semantic_result.mean(), 0.0049801, rtol=rtol), (mean, semantic_result.std())
         assert np.allclose(std := semantic_result.std(), 0.063540, rtol=rtol), std
+
+# if __name__ == "__main__":
+#     test_i_mask2former("47429163_0")

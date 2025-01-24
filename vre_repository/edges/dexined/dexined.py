@@ -4,9 +4,9 @@ import torch as tr
 from overrides import overrides
 
 from vre.logger import vre_logger as logger
-from vre.utils import image_resize_batch, VREVideo, MemoryData
+from vre.utils import image_resize_batch, VREVideo, MemoryData, vre_load_weights
 from vre.representations import ReprOut, LearnedRepresentationMixin
-from vre_repository.weights_repository import fetch_weights, vre_load_weights
+from vre_repository.weights_repository import fetch_weights
 from vre_repository.edges import EdgesRepresentation
 
 from .model_dexined import DexiNed as Model
@@ -28,12 +28,17 @@ class DexiNed(EdgesRepresentation, LearnedRepresentationMixin):
         outs = self._postprocess(y)
         self.data = ReprOut(frames=video[ixs], output=MemoryData(outs), key=ixs)
 
+    @staticmethod
+    @overrides
+    def weights_repository_links(**kwargs) -> list[str]:
+        return ["edges/dexined/dexined.pth"]
+
     @overrides
     def vre_setup(self, load_weights: bool = True):
         assert self.setup_called is False
         self.model = Model().eval()
         if load_weights:
-            self.model.load_state_dict(vre_load_weights(fetch_weights(__file__) / "dexined.pth"))
+            self.model.load_state_dict(vre_load_weights(fetch_weights(DexiNed.weights_repository_links())[0]))
         self.model = self.model.to(self.device)
         self.setup_called = True
 

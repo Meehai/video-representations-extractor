@@ -34,12 +34,22 @@ class FlowRife(OpticalFlowRepresentation, LearnedRepresentationMixin, ComputeRep
         flow = self._postprocess(prediction, padding)
         self.data = ReprOut(frames=video[ixs], output=MemoryData(flow), key=ixs)
 
+    @staticmethod
+    @overrides
+    def weights_repository_links(**kwargs) -> list[str]:
+        return [
+            "optical_flow/rife/contextnet.ckpt",
+            "optical_flow/rife/unet.ckpt",
+            "optical_flow/rife/flownet.ckpt"
+        ]
+
     @overrides
     def vre_setup(self, load_weights: bool = True):
         assert self.setup_called is False
         self.model: Model = Model().eval()
         if load_weights:
-            self.model.load_model(fetch_weights(__file__))
+            paths = fetch_weights(FlowRife.weights_repository_links())
+            self.model.load_model(paths[0].parent)
         self.model = self.model.to(self.device)
         self.setup_called = True
 
