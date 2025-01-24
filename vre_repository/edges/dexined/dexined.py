@@ -4,10 +4,11 @@ import torch as tr
 from overrides import overrides
 
 from vre.logger import vre_logger as logger
-from vre.utils import image_resize_batch, fetch_weights, vre_load_weights, VREVideo, MemoryData
+from vre.utils import image_resize_batch, VREVideo, MemoryData
 from vre.representations import ReprOut, LearnedRepresentationMixin
-
+from vre_repository.weights_repository import fetch_weights, vre_load_weights
 from vre_repository.edges import EdgesRepresentation
+
 from .model_dexined import DexiNed as Model
 
 class DexiNed(EdgesRepresentation, LearnedRepresentationMixin):

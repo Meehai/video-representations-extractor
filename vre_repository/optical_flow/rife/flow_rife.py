@@ -4,9 +4,10 @@ import torch as tr
 import torch.nn.functional as F
 from overrides import overrides
 
-from vre.utils import fetch_weights, VREVideo, MemoryData
+from vre.utils import VREVideo, MemoryData
 from vre.representations import ReprOut, LearnedRepresentationMixin, ComputeRepresentationMixin
 from vre_repository.optical_flow import OpticalFlowRepresentation
+from vre_repository.weights_repository import fetch_weights
 
 from .rife_impl import Model
 
