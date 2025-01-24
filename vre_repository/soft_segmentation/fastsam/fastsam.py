@@ -93,15 +93,22 @@ class FastSam(Representation, LearnedRepresentationMixin, ComputeRepresentationM
         return ReprOut(frames=data.frames, output=data.output, extra=new_extra,
                        key=data.key, output_images=output_images)
 
+    @staticmethod
+    @overrides
+    def weights_repository_links(**kwargs) -> list[str]:
+        match kwargs["variant"]:
+            case "fastsam-x": return ["soft_segmentation/fastsam/FastSAM-x.pt"]
+            case "fastsam-s": return ["soft_segmentation/fastsam/FastSAM-s.pt"]
+            case "testing": return []
+            case _: raise NotImplementedError(kwargs)
+
     @overrides
     def vre_setup(self, load_weights: bool = True):
         assert self.setup_called is False
         assert load_weights is False or (load_weights is True and self.variant != "testing"), "no weights for testing"
-        weights_file = {
-            "fastsam-s": lambda: fetch_weights(__file__) / "FastSAM-s.pt",
-            "fastsam-x": lambda: fetch_weights(__file__) / "FastSAM-x.pt",
-            "testing": lambda: "testing",
-        }[self.variant]()
+        weights_file = "testing"
+        if self.variant != "testing":
+            weights_file = fetch_weights(FastSam.weights_repository_links(variant=self.variant))[0]
         self._imgsz = 1024 if self.variant != "testing" else 64
         _overrides = {"task": "segment", "imgsz": self._imgsz, "single_cls": False, "model": str(weights_file),
                       "conf": self.conf, "device": "cpu", "retina_masks": False, "iou": self.iou,

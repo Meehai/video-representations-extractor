@@ -11,7 +11,7 @@ import numpy as np
 from vre.logger import vre_logger as logger
 from vre.utils import image_resize_batch, image_read, image_write, VREVideo, FakeVideo, MemoryData
 from vre.representations import ReprOut, LearnedRepresentationMixin, ComputeRepresentationMixin
-from vre_repository.weights_repository import fetch_weights, vre_load_weights
+from vre_repository.weights_repository import fetch_weights
 from vre_repository.semantic_segmentation import SemanticRepresentation
 
 try:
@@ -54,17 +54,25 @@ class Mask2Former(SemanticRepresentation, LearnedRepresentationMixin, ComputeRep
             res.append(pred.permute(1, 2, 0).to("cpu").numpy())
         self.data = ReprOut(frames=video[ixs], output=MemoryData(res), key=ixs)
 
+    @staticmethod
+    @overrides
+    def weights_repository_links(**kwargs) -> list[str]:
+        match kwargs["model_id"]:
+            case "49189528_0": return ["semantic_segmentation/mask2former/49189528_0.ckpt"]
+            case "49189528_1": return ["semantic_segmentation/mask2former/49189528_1.ckpt"]
+            case "47429163_0": return ["semantic_segmentation/mask2former/47429163_0.ckpt"]
+            case _: raise NotImplementedError(kwargs)
+
     @overrides
     def vre_setup(self, load_weights = True):
         assert self.setup_called is False
-        weights_path = fetch_weights(__file__) / f"{self.model_id}.ckpt"
-        assert isinstance(weights_path, Path), type(weights_path)
-        ckpt_data = vre_load_weights(weights_path)
         self.cfg = CfgNode(json.load(open(f"{self._m2f_resources}/{self.model_id}_cfg.json", "r")))
         params = MaskFormer.from_config(self.cfg)
         params["metadata"] = SimpleNamespace(thing_dataset_id_to_contiguous_id=self.thing_dataset_id_to_contiguous_id)
         self.model = MaskFormer(**{**params, "semantic_on": True, "panoptic_on": False, "instance_on": False})
         if load_weights:
+            ckpt_path = fetch_weights(Mask2Former.weights_repository_links(model_id=self.model_id))[0]
+            ckpt_data = tr.load(ckpt_path, map_location="cpu")
             res = self.model.load_state_dict(ckpt_data["state_dict"], strict=False) # inference only: remove criterion
             assert res.unexpected_keys in (["criterion.empty_weight"], []), res
         self.model = self.model.eval().to(self.device)

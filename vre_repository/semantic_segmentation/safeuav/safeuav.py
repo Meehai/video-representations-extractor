@@ -9,7 +9,6 @@ from vre.utils import VREVideo, MemoryData
 from vre.logger import vre_logger as logger
 from vre.representations import ReprOut, LearnedRepresentationMixin, ComputeRepresentationMixin
 from vre_repository.semantic_segmentation import SemanticRepresentation
-from vre_repository.weights_repository import fetch_weights, vre_load_weights
 
 from .Map2Map import EncoderMap2Map, DecoderMap2Map
 
@@ -57,6 +56,11 @@ class SafeUAV(SemanticRepresentation, LearnedRepresentationMixin, ComputeReprese
         np_pred = prediction.permute(0, 2, 3, 1).cpu().numpy().astype(np.float32)
         self.data = ReprOut(frames=video[ixs], output=MemoryData(np_pred), key=ixs)
 
+    @staticmethod
+    @overrides
+    def weights_repository_links(**kwargs) -> list[str]:
+        return ["semantic_segmentation/safeuav/safeuav_semantic_0956_pytorch.ckpt"]
+
     @overrides
     def vre_setup(self, load_weights: bool = True):
         assert self.setup_called is False
@@ -81,9 +85,10 @@ class SafeUAV(SemanticRepresentation, LearnedRepresentationMixin, ComputeReprese
                     new_data[other] = data[k]
                 return new_data
 
-            weights_file_abs = fetch_weights(__file__) / self.weights_file
-            data = _convert(vre_load_weights(weights_file_abs)["state_dict"])
-            self.model.load_state_dict(data)
+            raise ValueError
+            # weights_file_abs = fetch_weights(__file__) / self.weights_file
+            # data = _convert(tr.load(weights_file_abs, map_location="cpu")["state_dict"])
+            # self.model.load_state_dict(data)
         self.model = self.model.eval().to(self.device)
         self.setup_called = True
 
