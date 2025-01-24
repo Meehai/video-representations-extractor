@@ -11,8 +11,9 @@ from torch.nn import functional as F
 
 from vre.representations import (Representation, ReprOut, LearnedRepresentationMixin,
                                  ComputeRepresentationMixin, NpIORepresentation, NormedRepresentationMixin)
-from vre.utils import image_resize_batch, fetch_weights, image_read, image_write, VREVideo, FakeVideo, MemoryData
+from vre.utils import image_resize_batch, image_read, image_write, VREVideo, FakeVideo, MemoryData
 from vre.logger import vre_logger as logger
+from vre_repository.weights_repository import fetch_weights
 
 try:
     from .fastsam_impl import (

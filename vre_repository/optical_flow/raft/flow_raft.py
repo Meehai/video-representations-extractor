@@ -4,10 +4,11 @@ import numpy as np
 import torch as tr
 from torch.nn import functional as F
 
-from vre.utils import fetch_weights, vre_load_weights, VREVideo, MemoryData
+from vre.utils import VREVideo, MemoryData
 from vre.logger import vre_logger as logger
 from vre.representations import ReprOut, LearnedRepresentationMixin, ComputeRepresentationMixin
 from vre_repository.optical_flow import OpticalFlowRepresentation
+from vre_repository.weights_repository import fetch_weights, vre_load_weights
 
 from .raft_impl import RAFT, InputPadder
 

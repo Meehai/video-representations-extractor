@@ -9,11 +9,11 @@ import torch as tr
 import numpy as np
 
 from vre.logger import vre_logger as logger
-from vre.utils import (image_resize_batch, fetch_weights, image_read, image_write,
-                       vre_load_weights, VREVideo, FakeVideo, MemoryData)
+from vre.utils import image_resize_batch, image_read, image_write, VREVideo, FakeVideo, MemoryData
 from vre.representations import ReprOut, LearnedRepresentationMixin, ComputeRepresentationMixin
-
+from vre_repository.weights_repository import fetch_weights, vre_load_weights
 from vre_repository.semantic_segmentation import SemanticRepresentation
+
 try:
     from .mask2former_impl import MaskFormer, CfgNode, get_output_shape
 except ImportError:

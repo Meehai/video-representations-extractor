@@ -4,8 +4,9 @@ import torch as tr
 import torch.nn.functional as F
 from overrides import overrides
 
-from vre.utils import VREVideo, fetch_weights, vre_load_weights, MemoryData
+from vre.utils import VREVideo, MemoryData
 from vre.representations import ReprOut, LearnedRepresentationMixin, ComputeRepresentationMixin
+from vre_repository.weights_repository import fetch_weights, vre_load_weights
 from vre_repository.depth import DepthRepresentation
 
 from .dpt_impl import DPTDepthModel, get_size

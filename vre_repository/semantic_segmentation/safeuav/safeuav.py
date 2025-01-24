@@ -5,10 +5,11 @@ import torch as tr
 from torch import nn
 from torch.nn import functional as F
 
-from vre.utils import fetch_weights, vre_load_weights, VREVideo, MemoryData
+from vre.utils import VREVideo, MemoryData
 from vre.logger import vre_logger as logger
 from vre.representations import ReprOut, LearnedRepresentationMixin, ComputeRepresentationMixin
 from vre_repository.semantic_segmentation import SemanticRepresentation
+from vre_repository.weights_repository import fetch_weights, vre_load_weights
 
 from .Map2Map import EncoderMap2Map, DecoderMap2Map
 
