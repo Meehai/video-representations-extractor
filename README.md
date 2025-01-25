@@ -13,13 +13,17 @@ defined as ways of 'looking at the world'. One can watch at various levels of in
 For GitHub users: this is a mirror of the
 [gitlab repository](https://gitlab.com/video-representations-extractor/video-representations-extractor).
 
-<u>Supported representations</u>
+Documentation (WIP) at: [link](https://video-representations-extractor.gitlab.io/video-representations-extractor/).
 
-- See [here](vre/representations/build_representations.py) for a comprehensive list, since it updates faster
-than this README.
+### 1.1 VRE Repository
 
-Weights are stored in this directory using `git-lfs`: [weights dir](./resources/weights/). If you just want to download
-the code, without the weights resources, use `GIT_LFS_SKIP_SMUDGE=1 git clone ...`.
+VRE has a built-in representations repository of various ported algorithms and ML models. See
+[here](vre_repository/__init__.py) the list of these built-in representations.
+
+Weights are stored in this directory using `git-lfs`: [weights dir](./resources/weights/).
+
+Note: If you just want to clone the repo, without the weights resources, use `GIT_LFS_SKIP_SMUDGE=1 git clone ...`.
+See below other installation options, like pip (recommended) or docker.
 
 ## 2. Usage & Installation
 
