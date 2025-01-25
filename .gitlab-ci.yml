@@ -22,6 +22,18 @@ before_script:
   - cat requirements.txt | sed "s/torch==2.5.1/torch @ https:\/\/download.pytorch.org\/whl\/cpu\/torch-2.5.1%2Bcpu-cp311-cp311-linux_x86_64.whl/g" | sed "s/torchvision==0.20.1/torchvision @ https:\/\/download.pytorch.org\/whl\/cpu\/torchvision-0.20.1%2Bcpu-cp311-cp311-linux_x86_64.whl/g" > /tmp/requirements_ci.txt
   - pip install -r /tmp/requirements_ci.txt
   - pip install pylint==3.2.7 pytest
+  - pip install phinx sphinx_rtd_theme myst-parser
+
+pages:
+  script:
+    - bash docs/makedocs.sh
+  publish: docs/build/html
+  artifacts:
+    paths:
+      - docs/build/html
+    expire_in: 1 day
+  rules:
+    - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
 
 pylint:
   script:
