@@ -14,7 +14,7 @@ class SemanticRepresentation(Representation, NpIORepresentation):
         self.classes = list(range(classes)) if isinstance(classes, int) else classes
         self.color_map = color_map
         self.disk_data_argmax = disk_data_argmax
-        assert len(color_map) == self.n_classes and self.n_classes > 1, (color_map, self.n_classes)
+        assert len(color_map) == self.n_classes and self.n_classes > 1, (self.name, color_map, self.n_classes)
         self._output_dtype = "uint8" if disk_data_argmax else "float16"
 
     @property
@@ -26,14 +26,14 @@ class SemanticRepresentation(Representation, NpIORepresentation):
     def disk_to_memory_fmt(self, disk_data: DiskData) -> MemoryData:
         memory_data = MemoryData(disk_data)
         if self.disk_data_argmax:
-            assert disk_data.dtype in (np.uint8, np.uint16), disk_data.dtype
+            assert disk_data.dtype in (np.uint8, np.uint16), (self.name, disk_data.dtype)
             memory_data = MemoryData(np.eye(len(self.classes))[disk_data].astype(np.float32))
         assert memory_data.dtype == np.float32, memory_data.dtype
         return memory_data
 
     @overrides
     def memory_to_disk_fmt(self, memory_data: MemoryData) -> DiskData:
-        assert memory_data.shape[-1] == self.n_classes, (memory_data.shape, self.n_classes)
+        assert memory_data.shape[-1] == self.n_classes, (self.name, memory_data.shape, self.n_classes)
         return memory_data.argmax(-1) if self.disk_data_argmax else memory_data
 
     @overrides
