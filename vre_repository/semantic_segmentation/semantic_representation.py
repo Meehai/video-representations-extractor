@@ -3,6 +3,7 @@ from overrides import overrides
 import numpy as np
 from vre.representations import Representation, NpIORepresentation
 from vre.utils import DiskData, MemoryData, image_resize_batch, colorize_semantic_segmentation, ReprOut
+from vre.logger import vre_logger as logger
 
 class SemanticRepresentation(Representation, NpIORepresentation):
     """SemanticRepresentation. Implements semantic task-specific stuff, like argmaxing if needed"""
@@ -26,9 +27,13 @@ class SemanticRepresentation(Representation, NpIORepresentation):
     def disk_to_memory_fmt(self, disk_data: DiskData) -> MemoryData:
         memory_data = MemoryData(disk_data)
         if self.disk_data_argmax:
-            assert disk_data.dtype in (np.uint8, np.uint16), (self.name, disk_data.dtype)
-            memory_data = MemoryData(np.eye(len(self.classes))[disk_data].astype(np.float32))
-        assert memory_data.dtype == np.float32, memory_data.dtype
+            if disk_data.dtype not in (np.uint8, np.uint16):
+                # below case is for distillation where in some cases we need float32 (perhaps refactor someplace else?)
+                logger.debug2(f"[self.name]. {disk_data.dtype=} but self.disk_data_argmax is True")
+                memory_data = MemoryData(disk_data)
+            else:
+                memory_data = MemoryData(np.eye(len(self.classes))[disk_data].astype(np.float32))
+        assert memory_data.dtype == np.float32 and memory_data.shape[-1] == self.n_classes, (self.name, memory_data)
         return memory_data
 
     @overrides
