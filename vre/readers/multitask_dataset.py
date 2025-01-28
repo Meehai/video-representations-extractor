@@ -15,13 +15,12 @@ from vre.logger import vre_logger as logger
 
 from .statistics import compute_statistics, load_external_statistics, TaskStatistics
 
-BuildDatasetTuple = NamedTuple(files_per_task=dict[list[Path]], all_files=list[str])
+BuildDatasetTuple = NamedTuple("build_dataset_res", [("files_per_task", dict[list[Path]]), ("all_names", list[str])])
 """
 A tuple of two items:
-- A dict: files_per_repr = {task: [list of disk data]} where files_per_repr["rgb"][0] -> /path/to/0.npz
+- files_per_repr A dict {task: [list of disk data]} where files_per_repr["rgb"][0] -> /path/to/0.npz
     - Additionally, if a representation is a TaskMapper, it'll return [/path/to/dep1/0.npz, /path/to/depn/0.npz]
-- A list of all names (without prefix paths), i.e. [0.npz, 1.npz, ..., n.npz]. It supports non numeric frame
-    numbers as well, even though VRE doesn't output anything else than a numeric frame number out of the box.
+- all_names A list without prefix paths i.e. [0.npz, 1.npz, ..., n.npz]. It supports non numeric frame numbers as well.
 """
 
 MultiTaskItem = tuple[dict[str, tr.Tensor], str] # [{task: data}, stem(name) | list[stem(name)]]
