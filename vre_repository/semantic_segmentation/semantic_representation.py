@@ -33,7 +33,7 @@ class SemanticRepresentation(Representation, NpIORepresentation):
                 memory_data = MemoryData(disk_data)
             else:
                 memory_data = MemoryData(np.eye(len(self.classes))[disk_data].astype(np.float32))
-        assert disk_data.dtype == np.float32 and disk_data.shape[-1] == self.n_classes, (self.name, dt, disk_data.shape)
+        assert memory_data.dtype == np.float32 and memory_data.shape[-1] == self.n_classes, (self.name, memory_data)
         return memory_data
 
     @overrides
