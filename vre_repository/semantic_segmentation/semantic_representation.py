@@ -27,7 +27,7 @@ class SemanticRepresentation(Representation, NpIORepresentation):
     def disk_to_memory_fmt(self, disk_data: DiskData) -> MemoryData:
         memory_data = MemoryData(disk_data)
         if self.disk_data_argmax:
-            if (dt := disk_data.dtype) not in (np.uint8, np.uint16):
+            if disk_data.dtype not in (np.uint8, np.uint16):
                 # below case is for distillation where in some cases we need float32 (perhaps refactor someplace else?)
                 logger.debug2(f"[self.name]. {disk_data.dtype=} but self.disk_data_argmax is True")
                 memory_data = MemoryData(disk_data)
