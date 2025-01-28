@@ -3,7 +3,7 @@
 from __future__ import annotations
 import os
 from pathlib import Path
-from typing import Iterable
+from typing import Iterable, NamedTuple
 from pprint import pformat
 from copy import deepcopy
 from natsort import natsorted
@@ -15,7 +15,15 @@ from vre.logger import vre_logger as logger
 
 from .statistics import compute_statistics, load_external_statistics, TaskStatistics
 
-BuildDatasetTuple = tuple[dict[str, list[Path]]]
+BuildDatasetTuple = NamedTuple(files_per_task=dict[list[Path]], all_files=list[str])
+"""
+A tuple of two items:
+- A dict: files_per_repr = {task: [list of disk data]} where files_per_repr["rgb"][0] -> /path/to/0.npz
+    - Additionally, if a representation is a TaskMapper, it'll return [/path/to/dep1/0.npz, /path/to/depn/0.npz]
+- A list of all names (without prefix paths), i.e. [0.npz, 1.npz, ..., n.npz]. It supports non numeric frame
+    numbers as well, even though VRE doesn't output anything else than a numeric frame number out of the box.
+"""
+
 MultiTaskItem = tuple[dict[str, tr.Tensor], str] # [{task: data}, stem(name) | list[stem(name)]]
 Repr = Representation | IORepresentationMixin
 
@@ -73,7 +81,7 @@ class MultiTaskDataset(Dataset):
         self.path = Path(path).absolute()
         self.handle_missing_data = handle_missing_data
         self.suffix = files_suffix
-        self.files_per_repr, self.file_names = self._build_dataset(task_types, task_names) # + handle_missing_data
+        self.files_per_repr, self.file_names = self._build_dataset(deepcopy(task_types), task_names)
         self.cache_task_stats = cache_task_stats
         self.batch_size_stats = batch_size_stats
         self.num_workers_stats = num_workers_stats
@@ -270,13 +278,7 @@ class MultiTaskDataset(Dataset):
         return in_files
 
     def _build_dataset(self, task_types: dict[str, Repr], task_names: list[str]) -> BuildDatasetTuple:
-        """
-        Builds the dataset from the disk. Returns two items:
-        - A dict: files_per_repr = {task: [list of disk data]} where files_per_repr["rgb"][0] -> /path/to/0.npz
-           - Additionally, if a representation is a TaskMapper, it'll return [/path/to/dep1/0.npz, /path/to/depn/0.npz]
-        - A list of all names (without prefix paths), i.e. [0.npz, 1.npz, ..., n.npz]. It supports non numeric frame
-          numbers as well, even though VRE doesn't output anything else than a numeric frame number out of the box.
-        """
+        """Builds the dataset from the disk. Also handles missing data (i.e. looking at TaskMappings)."""
         logger.debug(f"Building dataset from: '{self.path}'")
         all_npz_files = self._get_all_npz_files()
         all_files: dict[str, dict[str, Path]] = {k: {_v.name: _v for _v in v} for k, v in all_npz_files.items()}
@@ -326,7 +328,7 @@ class MultiTaskDataset(Dataset):
                     paths = [all_files[dep][name] for dep in deps]
                     assert len(paths) > 0, f"'{task}' most likely has no data or dependencies to compute it from"
                     files_per_task[task].append(paths if len(deps) > 1 else paths[0])
-        return files_per_task, all_names
+        return BuildDatasetTuple(files_per_task=files_per_task, all_names=all_names)
 
     # Python magic methods (pretty printing the reader object, reader[0], len(reader) etc.)
     def __getitem__(self, index: int | str | slice | list[int, str] | tuple[int, str]) -> MultiTaskItem:
