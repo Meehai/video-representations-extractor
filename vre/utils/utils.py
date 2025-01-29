@@ -44,6 +44,8 @@ def is_dir_empty(dir_path: Path, pattern: str = "*") -> bool:
 
 def is_git_lfs(path: Path) -> bool:
     """Returns true if a path is a git lfs link"""
+    if path.is_dir():
+        return False
     with open(path, "rb") as fp:
         try:
             return fp.read(7).decode("utf-8") == "version"
