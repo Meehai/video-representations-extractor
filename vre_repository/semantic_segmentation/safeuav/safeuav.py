@@ -67,7 +67,28 @@ class SafeUAV(SemanticRepresentation, LearnedRepresentationMixin, ComputeReprese
     def vre_setup(self, load_weights: bool = True):
         assert self.setup_called is False
         if self.variant == "testing":
-            self.model = Model(in_channels=15, out_channels=8, num_filters=8)
+            self.model = Model(in_channels=15, out_channels=15, num_filters=8)
+            self.cfg = {
+                "model": {
+                    "hparams": {
+                        "data_shape": {
+                            "camera_normals_output": [3, 50, 50], "depth_output": [1, 50, 50],
+                            "rgb": [3, 50, 50], "semantic_output": [8, 50, 50]
+                        },
+                    }
+                },
+                "data": {
+                    "parameters": {
+                        "task_names": ['depth_output', 'camera_normals_output', 'rgb', 'semantic_output']
+                    }
+                }
+            }
+            self.statistics = {
+                "rgb": [[0.0, 0.0, 0.0],
+                        [255.0, 255.0, 255.0],
+                        [95.4980582891499, 103.0128696717979, 85.04794782640131],
+                        [55.569107621001216, 58.133399225741776, 61.12564370234619]],
+            }
         else:
             assert load_weights is True, load_weights
             ckpt = tr.load(fetch_weights(SafeUAV.weights_repository_links(variant=self.variant))[0])
