@@ -1,7 +1,7 @@
 """SafeUAV semanetic segmentation representation"""
 import sys
-from overrides import overrides
 from pathlib import Path
+from overrides import overrides
 import numpy as np
 import torch as tr
 from torch.nn import functional as F

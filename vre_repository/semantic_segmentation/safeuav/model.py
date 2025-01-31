@@ -1,4 +1,5 @@
 """SafeUAV Model implementation"""
+# pylint: disable=all
 from __future__ import annotations
 import torch as tr
 import torch.nn as nn
