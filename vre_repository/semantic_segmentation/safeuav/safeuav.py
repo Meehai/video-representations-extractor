@@ -91,7 +91,7 @@ class SafeUAV(SemanticRepresentation, LearnedRepresentationMixin, ComputeReprese
             }
         else:
             assert load_weights is True, load_weights
-            ckpt = tr.load(fetch_weights(SafeUAV.weights_repository_links(variant=self.variant))[0])
+            ckpt = tr.load(fetch_weights(SafeUAV.weights_repository_links(variant=self.variant))[0], map_location="cpu")
             self.cfg = ckpt["hyper_parameters"]["cfg"]
             self.statistics = ckpt["hyper_parameters"]["statistics"]
             self.model = Model(**self.cfg["model"]["parameters"])
