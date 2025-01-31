@@ -119,11 +119,7 @@ representations:
     type: semantic-segmentation/safeuav
     dependencies: []
     parameters:
-      train_height: 240
-      train_width: 428
-      num_classes: 8
-      color_map: [[0, 255, 0], [0, 127, 0], [255, 255, 0], [255, 255, 255],
-                  [255, 0, 0], [0, 0, 255], [0, 255, 255], [127, 127, 63]]
+      variant: model_1M
       disk_data_argmax: True
     learned_parameters:
       device: {device}

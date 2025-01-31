@@ -94,6 +94,13 @@ representations:
     dependencies: []
     parameters: {}
 
+  safeuav:
+    type: semantic-segmentation/safeuav
+    dependencies: []
+    parameters:
+      variant: model_1M
+      disk_data_argmax: True
+
   # # SUCKY BECAUSE SUPERSLOW. Adds like 2-3 mins in CI. Rife is good enough.
   # opticalflow raft:
   #   type: optical-flow/raft

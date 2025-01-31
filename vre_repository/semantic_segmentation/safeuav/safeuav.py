@@ -1,94 +1,102 @@
 """SafeUAV semanetic segmentation representation"""
+import sys
+from pathlib import Path
 from overrides import overrides
 import numpy as np
 import torch as tr
-from torch import nn
 from torch.nn import functional as F
 
-from vre.utils import VREVideo, MemoryData
 from vre.logger import vre_logger as logger
+from vre.utils import VREVideo, MemoryData, image_read, image_write
 from vre.representations import ReprOut, LearnedRepresentationMixin, ComputeRepresentationMixin
+from vre_repository.weights_repository import fetch_weights
 from vre_repository.semantic_segmentation import SemanticRepresentation
 
-from .Map2Map import EncoderMap2Map, DecoderMap2Map
-
-class _SafeUavWrapper(nn.Module):
-    """Wrapper. TODO: Replace with nn.Sequential"""
-    def __init__(self, ch_in: int, ch_out: int):
-        super().__init__()
-        tr.manual_seed(42)
-        self.encoder = EncoderMap2Map(ch_in)
-        self.decoder = DecoderMap2Map(ch_out)
-
-    def forward(self, x):
-        """forward function"""
-        y_encoder = self.encoder(x)
-        y_decoder = self.decoder(y_encoder)
-        return y_decoder
+try:
+    from .model import SafeUAV as Model
+except ImportError:
+    from model import SafeUAV as Model
 
 class SafeUAV(SemanticRepresentation, LearnedRepresentationMixin, ComputeRepresentationMixin):
     """SafeUAV semantic segmentation representation"""
-    def __init__(self, num_classes: int, train_height: int, train_width: int, color_map: list[tuple[int, int, int]],
-                 disk_data_argmax: bool, weights_file: str | None = None, **kwargs):
+    def __init__(self, disk_data_argmax: bool, variant: str, **kwargs):
         LearnedRepresentationMixin.__init__(self)
         ComputeRepresentationMixin.__init__(self)
-        SemanticRepresentation.__init__(self, classes=list(range(num_classes)), color_map=color_map,
+        self.variant = variant
+        assert variant in ("model_1M", "model_4M", "testing"), variant
+        color_map = [[0, 255, 0], [0, 127, 0], [255, 255, 0], [255, 255, 255],
+                     [255, 0, 0], [0, 0, 255], [0, 255, 255], [127, 127, 63]]
+        classes = ["land", "forest", "residential", "road", "little-objects", "water", "sky", "hill"]
+        SemanticRepresentation.__init__(self, classes=classes, color_map=color_map,
                                         disk_data_argmax=disk_data_argmax, **kwargs)
-        self.train_height = train_height
-        self.train_width = train_width
-        self.weights_file = weights_file
-        self.model: _SafeUavWrapper | None = None
+        self.model: Model | None = None
+        self.cfg: dict | None = None
+        self.statistics: dict[str, list[float]] | None = None
         self.output_dtype = "uint8" if disk_data_argmax else "float16"
 
     @property
     @overrides
     def n_channels(self) -> int:
-        raise len(self.classes)
+        return len(self.classes)
 
     @overrides
     def compute(self, video: VREVideo, ixs: list[int]):
         assert self.data is None, f"[{self}] data must not be computed before calling this"
-        tr_frames = tr.from_numpy(video[ixs]).to(self.device)
-        frames_norm = tr_frames.permute(0, 3, 1, 2) / 255
-        frames_resized = F.interpolate(frames_norm, (self.train_height, self.train_width), mode="bilinear")
+        h, w = self.cfg["model"]["hparams"]["data_shape"]["rgb"][1:3]
+        cumsum = [0, *np.cumsum([x[0] for x in self.cfg["model"]["hparams"]["data_shape"].values()])]
+        rgb_pos = self.cfg["data"]["parameters"]["task_names"].index("rgb")
+        x = tr.zeros(len(ixs), self.model.encoder.d_in, h, w, device=self.device)
+        tr_rgb = F.interpolate(tr.from_numpy(video[ixs]).permute(0, 3, 1, 2).to(self.device), size=(h, w))
+        mean, std = self.statistics["rgb"][2:4]
+        tr_rgb = (tr_rgb - tr.Tensor(mean).reshape(1, 3, 1, 1)) / tr.Tensor(std).reshape(1, 3, 1, 1)
+        x[:, cumsum[rgb_pos]: cumsum[rgb_pos+1] ] = tr_rgb
+
         with tr.no_grad():
-            prediction = self.model.forward(frames_resized)
-        np_pred = prediction.permute(0, 2, 3, 1).cpu().numpy().astype(np.float32)
-        self.data = ReprOut(frames=video[ixs], output=MemoryData(np_pred), key=ixs)
+            y = self.model.forward(x)
+        sema_pos = self.cfg["data"]["parameters"]["task_names"].index("semantic_output")
+        y_rgb = y[:, cumsum[sema_pos]: cumsum[sema_pos+1]].permute(0, 2, 3, 1).cpu().numpy()
+        self.data = ReprOut(frames=video[ixs], output=MemoryData(y_rgb), key=ixs)
 
     @staticmethod
     @overrides
-    def weights_repository_links(**kwargs) -> list[str]:
-        return ["semantic_segmentation/safeuav/safeuav_semantic_0956_pytorch.ckpt"]
+    def weights_repository_links(**kwargs: dict) -> list[str]:
+        assert (variant := kwargs["variant"]) != "testing", variant
+        return [f"semantic_segmentation/safeuav/{variant}.ckpt"]
 
     @overrides
     def vre_setup(self, load_weights: bool = True):
         assert self.setup_called is False
-        self.model = _SafeUavWrapper(ch_in=3, ch_out=self.n_classes)
+        if self.variant == "testing":
+            self.model = Model(in_channels=15, out_channels=15, num_filters=8)
+            self.cfg = {
+                "model": {
+                    "hparams": {
+                        "data_shape": {
+                            "camera_normals_output": [3, 50, 50], "depth_output": [1, 50, 50],
+                            "rgb": [3, 50, 50], "semantic_output": [8, 50, 50]
+                        },
+                    }
+                },
+                "data": {
+                    "parameters": {
+                        "task_names": ['depth_output', 'camera_normals_output', 'rgb', 'semantic_output']
+                    }
+                }
+            }
+            self.statistics = {
+                "rgb": [[0.0, 0.0, 0.0],
+                        [255.0, 255.0, 255.0],
+                        [95.4980582891499, 103.0128696717979, 85.04794782640131],
+                        [55.569107621001216, 58.133399225741776, 61.12564370234619]],
+            }
+        else:
+            assert load_weights is True, load_weights
+            ckpt = tr.load(fetch_weights(SafeUAV.weights_repository_links(variant=self.variant))[0], map_location="cpu")
+            self.cfg = ckpt["hyper_parameters"]["cfg"]
+            self.statistics = ckpt["hyper_parameters"]["statistics"]
+            self.model = Model(**self.cfg["model"]["parameters"])
+            self.model.load_state_dict(ckpt["state_dict"])
 
-        if load_weights:
-            if self.weights_file is None:
-                logger.warning("No weights file provided, using random weights.")
-                self.model = self.model.eval().to(self.device)
-                return
-
-            def _convert(data: dict[str, tr.Tensor]) -> dict[str, tr.Tensor]:
-                logger.warning("GET RID OF THIS WHEN THERE'S TIME")
-                new_data = {}
-                for k in data.keys():
-                    if k.startswith("model.0."):
-                        other = k.replace("model.0.", "encoder.")
-                    elif k.startswith("model.1."):
-                        other = k.replace("model.1.", "decoder.")
-                    else:
-                        assert False, k
-                    new_data[other] = data[k]
-                return new_data
-
-            raise ValueError
-            # weights_file_abs = fetch_weights(__file__) / self.weights_file
-            # data = _convert(tr.load(weights_file_abs, map_location="cpu")["state_dict"])
-            # self.model.load_state_dict(data)
         self.model = self.model.eval().to(self.device)
         self.setup_called = True
 
@@ -99,4 +107,18 @@ class SafeUAV(SemanticRepresentation, LearnedRepresentationMixin, ComputeReprese
             self.model.to("cpu")
             tr.cuda.empty_cache()
         self.model = None
+        self.cfg = None
+        self.statistics = None
         self.setup_called = False
+
+if __name__ == "__main__":
+    img = image_read(sys.argv[1])
+    assert len(sys.argv) == 3, "Usage: python safeuav.py /path/to/img.png [model_1M/model_4M]"
+    model = SafeUAV(name="safeuav", disk_data_argmax=True, variant=sys.argv[2])
+    model.vre_setup(load_weights=True)
+
+    model.compute(img[None], [0])
+    res_img = model.make_images(model.data)[0]
+    out_path = Path(__file__).parent / f"{Path(sys.argv[1]).stem}.png"
+    image_write(res_img, out_path)
+    logger.info(f"Stored prediction at '{out_path}'")
