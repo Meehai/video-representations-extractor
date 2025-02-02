@@ -1,4 +1,5 @@
 """FakeVideo module"""
+from pathlib import Path
 from overrides import overrides
 import numpy as np
 from .vre_video import VREVideo
@@ -32,6 +33,11 @@ class FakeVideo(VREVideo):
     @overrides
     def fps(self) -> float:
         return self._fps
+
+    @overrides
+    def write(self, out_path: Path, start_frame: int = 0, end_frame: int | None = None):
+        raise NotImplementedError("TODO")
+
 
     def __len__(self) -> int:
         return self.frames[-1] + 1

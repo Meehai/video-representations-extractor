@@ -3,6 +3,7 @@ from pathlib import Path
 import ffmpeg
 import numpy as np
 from overrides import overrides
+from tqdm import trange
 
 from .vre_video import VREVideo
 
@@ -36,6 +37,29 @@ class FFmpegVideo(VREVideo):
     def fps(self) -> float:
         return self._fps
 
+    @overrides
+    def write(self, out_path: Path, start_frame: int = 0, end_frame: int | None = None):
+        out_path = Path(out_path)
+        assert self.write_process is None, self.write_process
+        assert out_path.suffix == ".mp4", out_path
+        assert isinstance(start_frame, int) and start_frame >= 0, start_frame
+
+        self.write_process = (
+            ffmpeg
+            .input("pipe:0", format="rawvideo", pix_fmt="rgb24", s=f"{self.shape[2]}x{self.shape[1]}", r=self.fps)
+            .output(str(out_path), pix_fmt="yuv420p", vcodec="libx264")
+            .overwrite_output()
+            .run_async(pipe_stdin=True, pipe_stderr=-3, pipe_stdout=-3) # -3 = subprocess.DEVNULL
+        )
+
+        try:
+            for frame_ix in trange(start_frame, end_frame or len(self)):
+                self.write_process.stdin.write(self[frame_ix].tobytes())
+        finally:
+            self.write_process.stdin.close()
+            self.write_process.wait()
+            self.write_process = None
+
     def _build_total_frames(self) -> int:
         """returns the number of frames of the vifdeo"""
         if "nb_frames" in self.stream_info:
@@ -68,9 +92,7 @@ class FFmpegVideo(VREVideo):
         )
 
     def _cache_frames(self, start_frame: int):
-        """
-        Cache all frames between the current keyframe and the next keyframe, starting at start_frame.
-        """
+        """Cache all frames between the current keyframe and the next keyframe, starting at start_frame."""
         start_time = start_frame / self.fps
         self.cache = []
         self._start_ffmpeg_process(start_time)
@@ -94,7 +116,6 @@ class FFmpegVideo(VREVideo):
 
         # Load new cache if the requested frame is outside the current cache range
         if self.cache_start_frame is None or not self.cache_start_frame <= frame_number < self.cache_end_frame:
-            # keyframe_frame = int(frame_number - (frame_number % (1 / self.fps)))  # Nearest keyframe frame number
             self._cache_frames(frame_number)
 
         # Calculate the index within the cache
