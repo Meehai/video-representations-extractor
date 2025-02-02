@@ -76,8 +76,7 @@ representations:
     dependencies: [depth_dpt]
     parameters:
       sensor_fov: 75
-      sensor_width: 3840
-      sensor_height: 2160
+      sensor_size: [3840, 2160]
       window_size: 11
 
   fastsam(s):

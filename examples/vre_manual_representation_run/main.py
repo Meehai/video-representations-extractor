@@ -25,23 +25,17 @@ if __name__ == "__main__":
     depth = SimpleNamespace(data=ReprOut(frames=video[ixs], output=MemoryData(np.load("data.npz")["arr_0"]), key=ixs),
                             make_images=lambda data: (colorize_depth(data.output,
                                                                      percentiles=[1, 95]) * 255).astype(np.uint8))
-    normals1 = DepthNormalsSVD(name="normals1", dependencies=[depth], sensor_fov=75,
-                              sensor_size=(3840, 2160), window_size=11)
-    normals2 = DepthNormalsSVD(name="normals2", dependencies=[depth], sensor_fov=75,
-                               sensor_size=(3840, 2160), window_size=11, method="np_vector")
+    normals = DepthNormalsSVD(name="normals1", dependencies=[depth], sensor_fov=75,
+                             sensor_size=(3840, 2160), window_size=11)
 
-    normals1.data = normals2.data = None
+    normals.data = None
     # depth.data = ReprOut(frames=video[ixs], output=MemoryData(np.load("data.npz")["arr_0"]), key=ixs)
     # depth.compute(video, ixs)
-    normals1.compute(video, ixs)
-    normals2.compute(video, ixs)
-    assert (diff := np.fabs(normals1.data.output - normals2.data.output).sum()) < 1e-5, (normals1.data, normals2.data, diff)
+    normals.compute(video, ixs)
     y_depth_img = depth.make_images(depth.data)
-    y_normals_img = normals1.make_images(normals1.data)
-    y_normals2_img = normals2.make_images(normals2.data)
+    y_normals_img = normals.make_images(normals.data)
     for i in range(len(ixs)):
-        res = [image_resize(depth.data.frames[i], *y_depth_img[i].shape[0:2]),
-               y_depth_img[i], y_normals_img[i], y_normals2_img[i]]
+        res = [image_resize(depth.data.frames[i], *y_depth_img[i].shape[0:2]), y_depth_img[i], y_normals_img[i]]
         image_write(collage_fn(res, rows_cols=(1, -1)), f"res_{ixs[i]}.png")
     # depth.vre_free()
 

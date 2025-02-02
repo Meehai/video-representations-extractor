@@ -15,7 +15,7 @@ class DepthNormalsSVD(NormalsRepresentation, ComputeRepresentationMixin):
     projected into 3D and then a plane is fitted on the 3D pointcloud using SVD.
     """
     def __init__(self, sensor_fov: int, sensor_size: tuple[int, int], window_size: int,
-                 input_downsample_step: int = None, stride: int = None, method: str="np", **kwargs):
+                 input_downsample_step: int = None, stride: int = None, **kwargs):
         NormalsRepresentation.__init__(self, **kwargs)
         ComputeRepresentationMixin.__init__(self)
         assert window_size % 2 == 1, f"Expected odd window size. Got: {window_size}"
@@ -24,7 +24,6 @@ class DepthNormalsSVD(NormalsRepresentation, ComputeRepresentationMixin):
         self.window_size = window_size
         self.stride = stride or 1
         self.input_downsample_step = input_downsample_step or 1
-        self.method = method
         assert len(self.dependencies) == 1, f"Expected exactly one depth method, got: {self.dependencies}"
 
     @overrides
