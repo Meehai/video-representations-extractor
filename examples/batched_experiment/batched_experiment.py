@@ -7,9 +7,9 @@ import shutil
 import json
 import pandas as pd # must be installed by the user
 
-from vre import VRE
+from vre import VRE, FFmpegVideo
 from vre.representations import build_representations_from_cfg
-from vre.utils import get_project_root, FFmpegVideo
+from vre.utils import get_project_root
 
 def main():
     """main fn"""

@@ -5,9 +5,9 @@ import yaml
 import numpy as np
 import torch as tr
 
-from vre import VRE
+from vre import VRE, FFmpegVideo
 from vre.representations import build_representations_from_cfg
-from vre.utils import fetch_resource, FFmpegVideo
+from vre.utils import fetch_resource
 from vre.logger import vre_logger as logger
 
 from vre_repository import get_vre_repository

@@ -13,7 +13,8 @@ from .vre_runtime_args import VRERuntimeArgs
 from .data_writer import DataWriter
 from .data_storer import DataStorer
 from .metadata import Metadata
-from .utils import VREVideo, now_fmt, make_batches, vre_topo_sort, ReprOut, DiskData
+from .vre_video import VREVideo
+from .utils import now_fmt, make_batches, vre_topo_sort, ReprOut, DiskData
 from .logger import vre_logger as logger
 
 class VideoRepresentationsExtractor:

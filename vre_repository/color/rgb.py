@@ -2,7 +2,8 @@
 from __future__ import annotations
 from overrides import overrides
 
-from vre.utils import VREVideo, MemoryData, ReprOut
+from vre.utils import MemoryData, ReprOut
+from vre.vre_video import VREVideo
 from vre.representations import ComputeRepresentationMixin
 
 from .color_representation import ColorRepresentation

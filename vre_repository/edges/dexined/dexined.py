@@ -3,8 +3,9 @@ import numpy as np
 import torch as tr
 from overrides import overrides
 
+from vre.vre_video import VREVideo
 from vre.logger import vre_logger as logger
-from vre.utils import image_resize_batch, VREVideo, MemoryData, vre_load_weights
+from vre.utils import image_resize_batch, MemoryData, vre_load_weights
 from vre.representations import ReprOut, LearnedRepresentationMixin
 from vre_repository.weights_repository import fetch_weights
 from vre_repository.edges import EdgesRepresentation

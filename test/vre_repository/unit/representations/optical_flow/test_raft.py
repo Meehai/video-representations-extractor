@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 from vre_repository.optical_flow.raft import FlowRaft
-from vre.utils import FakeVideo
+from vre import FakeVideo
 
 @pytest.mark.parametrize(["iters", "small"], [(2, False), (2, True), (4, True)])
 def test_raft(iters: int, small: bool):

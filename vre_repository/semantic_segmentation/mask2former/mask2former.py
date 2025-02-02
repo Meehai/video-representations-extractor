@@ -8,8 +8,9 @@ from overrides import overrides
 import torch as tr
 import numpy as np
 
+from vre.vre_video import VREVideo, FakeVideo
 from vre.logger import vre_logger as logger
-from vre.utils import image_resize_batch, image_read, image_write, VREVideo, FakeVideo, MemoryData
+from vre.utils import image_resize_batch, image_read, image_write, MemoryData
 from vre.representations import ReprOut, LearnedRepresentationMixin, ComputeRepresentationMixin
 from vre_repository.weights_repository import fetch_weights
 from vre_repository.semantic_segmentation import SemanticRepresentation

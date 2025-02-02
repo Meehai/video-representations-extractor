@@ -9,7 +9,7 @@ import numpy as np
 from vre import VideoRepresentationsExtractor as VRE
 from vre.representations import (
     Representation, LearnedRepresentationMixin, ReprOut, ComputeRepresentationMixin, NpIORepresentation)
-from vre.utils import FakeVideo
+from vre import FakeVideo
 
 class MyRepresentation(Representation, LearnedRepresentationMixin, ComputeRepresentationMixin, NpIORepresentation):
     def __init__(self, *args, **kwargs):
