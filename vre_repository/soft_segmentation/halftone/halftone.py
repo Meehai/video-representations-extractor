@@ -9,9 +9,10 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageStat
 from overrides import overrides
 
+from vre.vre_video import VREVideo
 from vre.representations import (Representation, ReprOut, ComputeRepresentationMixin,
                                  NpIORepresentation, NormedRepresentationMixin)
-from vre.utils import image_resize, VREVideo, MemoryData
+from vre.utils import image_resize, MemoryData
 
 class Halftone(Representation, ComputeRepresentationMixin, NpIORepresentation, NormedRepresentationMixin):
     """

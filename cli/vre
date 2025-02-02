@@ -4,8 +4,8 @@ from pathlib import Path
 from natsort import natsorted
 import imp
 import numpy as np
-from vre import VRE
-from vre.utils import FFmpegVideo, FakeVideo, image_read, abs_path
+from vre import VRE, FFmpegVideo, FakeVideo
+from vre.utils import image_read, abs_path
 from vre.representations import build_representations_from_cfg, add_external_repositories
 from vre.logger import vre_logger as logger
 from vre_repository import get_vre_repository

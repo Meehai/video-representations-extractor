@@ -1,7 +1,7 @@
 """ComputeRepresentationMixin module"""
 from abc import ABC, abstractmethod
 
-from ..utils import VREVideo
+from ..vre_video import VREVideo
 from ..logger import vre_logger as logger
 
 class ComputeRepresentationMixin(ABC):

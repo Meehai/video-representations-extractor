@@ -4,8 +4,8 @@ from pathlib import Path
 import time
 import numpy as np
 import pytest
-from vre import VRE, ReprOut, MemoryData
-from vre.utils import FakeVideo, image_resize_batch, fetch_resource, VREVideo, FFmpegVideo, get_project_root
+from vre import VRE, ReprOut, MemoryData, FakeVideo, VREVideo, FFmpegVideo
+from vre.utils import image_resize_batch, fetch_resource, get_project_root
 
 sys.path.append(str(get_project_root() / "test/vre"))
 from fake_representation import FakeRepresentation

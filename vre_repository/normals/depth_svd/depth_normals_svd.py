@@ -2,7 +2,8 @@
 from overrides import overrides
 import numpy as np
 
-from vre.utils import VREVideo, MemoryData, ReprOut
+from vre.utils import MemoryData, ReprOut
+from vre.vre_video import VREVideo
 from vre.representations import ComputeRepresentationMixin
 from vre_repository.normals import NormalsRepresentation
 

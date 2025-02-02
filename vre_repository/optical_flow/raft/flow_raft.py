@@ -4,7 +4,8 @@ import numpy as np
 import torch as tr
 from torch.nn import functional as F
 
-from vre.utils import VREVideo, MemoryData
+from vre.vre_video import VREVideo
+from vre.utils import MemoryData
 from vre.logger import vre_logger as logger
 from vre.representations import ReprOut, LearnedRepresentationMixin, ComputeRepresentationMixin
 from vre_repository.optical_flow import OpticalFlowRepresentation
