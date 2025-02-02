@@ -1,18 +1,21 @@
 # pylint: disable=all
 import numpy as np
 from .cam import fov_diag_to_intrinsic
+from contexttimer import Timer
 
 _GRID_CACHE = {}
 
-def get_sampling_grid(width, height, window_size, stride):
+def get_sampling_grid(width: int, height: int, window_size: int, stride: int) -> np.ndarray:
+    if (key := (width, height, window_size, stride)) in _GRID_CACHE:
+        return _GRID_CACHE[key]
     window_x = np.arange(0, stride * window_size, stride) - window_size // 2 * stride
     window_y = window_x.copy()
-    window_y, window_x = np.meshgrid(window_y, window_x, indexing='ij')
+    window_y, window_x = np.meshgrid(window_y, window_x, indexing="ij")
     window_x = window_x.flatten()
     window_y = window_y.flatten()
     xs = np.arange(width)
     ys = np.arange(height)
-    ys, xs = np.meshgrid(ys, xs, indexing='ij')
+    ys, xs = np.meshgrid(ys, xs, indexing="ij")
     xs_windows = xs[:, :, None] + window_x[None, None, :]
     ys_windows = ys[:, :, None] + window_y[None, None, :]
     xs_windows[xs_windows >= width] = -1
@@ -22,8 +25,8 @@ def get_sampling_grid(width, height, window_size, stride):
     ys_windows[invalid] = 0
     window_coords = np.stack((window_y, window_x), axis=1)
     window_pixel_dist = np.linalg.norm(window_coords, axis=1)
+    _GRID_CACHE[key] = ys_windows, xs_windows, invalid, window_pixel_dist
     return ys_windows, xs_windows, invalid, window_pixel_dist
-
 
 def get_normalized_coords(width, height, K):
     us = np.arange(width)
@@ -35,27 +38,14 @@ def get_normalized_coords(width, height, K):
     z = np.ones_like(x)
     return np.stack((x, y, z), axis=2)
 
-def _get_grid(depth: np.ndarray, sensor_fov: int, window_size: int, stride: int,
-              sensor_size: tuple[int, int], input_downsample_step: int) -> tuple[np.ndarray, np.ndarray]:
-    height, width = depth.shape[:2]
-    if (height, width) in _GRID_CACHE:
-        return _GRID_CACHE[(height, width)]
-    if input_downsample_step is not None:
-        depth = depth[:: input_downsample_step, :: input_downsample_step]
-    depth_height, depth_width = depth.shape[:2]
-    sampling_grid = get_sampling_grid(depth_width, depth_height, window_size, stride)
-    K = fov_diag_to_intrinsic(sensor_fov, (sensor_size[0], sensor_size[1]), (depth_width, depth_height))
-    normalized_grid = get_normalized_coords(depth_width, depth_height, K)
-    _GRID_CACHE[(height, width)] = sampling_grid, normalized_grid
-    return sampling_grid, normalized_grid
-
-
 def depth_to_normals(depth: np.ndarray, sensor_fov: int, window_size: int, stride: int,
                      sensor_size: tuple[int, int], input_downsample_step: int) -> np.ndarray:
-    H, W = depth.shape[:2]
-    sampling_grid, normalized_grid = _get_grid(depth, sensor_fov, window_size, stride,
-                                               sensor_size, input_downsample_step)
-    from contexttimer import Timer
+    H, W = depth.shape[0], depth.shape[1]
+    H_down, W_down = H // input_downsample_step, W // input_downsample_step
+    K = fov_diag_to_intrinsic(sensor_fov, (sensor_size[0], sensor_size[1]), (W_down, H_down))
+    normalized_grid = get_normalized_coords(W_down, H_down, K)
+    with Timer(prefix="get_sampling_grid"):
+        sampling_grid = get_sampling_grid(W_down, H_down, window_size, stride)
 
     point_cloud = depth[:, :, None] * normalized_grid # depth_to_pointcloud(depth, normalized_coords=normalized_grid)
 
@@ -83,7 +73,7 @@ def depth_to_normals(depth: np.ndarray, sensor_fov: int, window_size: int, strid
     with Timer(prefix="covariance"):
         covariance = np.transpose(windows_3D, (0, 1, 3, 2)) @ windows_3D
     with Timer(prefix="svd"):
-        u, s, vh = np.linalg.svd(covariance)
+        _, _, vh = np.linalg.svd(covariance)
         normals = vh[:, :, -1]
 
     angle = np.sum(normalized_grid * normals, axis=-1)

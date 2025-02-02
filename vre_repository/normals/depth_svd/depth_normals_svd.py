@@ -41,10 +41,6 @@ class DepthNormalsSVD(NormalsRepresentation, ComputeRepresentationMixin):
         self.data = ReprOut(frames=video[ixs], output=res, key=ixs)
 
     def _make_one_normal(self, depth: np.ndarray) -> np.ndarray:
-        # TODO: batch vectorize this if possible
-        # sampling_grid, normalized_grid = self._get_grid(depth)
-        # if self.input_downsample_step is not None:
-        #     depth = depth[:: self.input_downsample_step, :: self.input_downsample_step]
         normals = depth_to_normals(depth, self.sensor_fov, self.window_size, self.stride,
                                    self.sensor_size, self.input_downsample_step)
         normals = (normals.astype(np.float32) + 1) / 2
