@@ -20,7 +20,7 @@ class VREVideo(Iterable, ABC):
 
     @abstractmethod
     def write(self, out_path: Path, start_frame: int = 0, end_frame: int | None = None):
-        """writes the video to the path"""
+        """writes the video to the path. TODO: add params to send to the underlying write impl (ffmpeg/image_write)"""
 
     def __iter__(self):
         index = 0

@@ -128,7 +128,9 @@ class FFmpegVideo(VREVideo):
     def __len__(self) -> int:
         return self.total_frames
 
-    def __getitem__(self, ix: int | list[int] | slice) -> np.ndarray:
+    def __getitem__(self, ix: int | list[int] | np.ndarray | slice) -> np.ndarray:
+        if isinstance(ix, np.ndarray):
+            return self[ix.tolist()]
         if isinstance(ix, list):
             return np.array([self[_ix] for _ix in ix])
         if isinstance(ix, slice):

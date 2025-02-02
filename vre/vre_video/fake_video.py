@@ -1,8 +1,11 @@
 """FakeVideo module"""
 from pathlib import Path
+import shutil
 from overrides import overrides
+from tqdm import trange
 import numpy as np
 from .vre_video import VREVideo
+from ..utils import image_write
 
 class FakeVideo(VREVideo):
     """
@@ -36,13 +39,19 @@ class FakeVideo(VREVideo):
 
     @overrides
     def write(self, out_path: Path, start_frame: int = 0, end_frame: int | None = None):
-        raise NotImplementedError("TODO")
-
+        if (pth := Path(out_path)).exists():
+            shutil.rmtree(out_path, ignore_errors=True)
+        pth.mkdir(parents=True)
+        for ix in trange((len(self) if end_frame is None else end_frame) - start_frame, desc=pth.name):
+            out_file = pth / f"{(start_frame + ix) * 1 / self.fps}.png"
+            image_write(self[start_frame + ix], out_file)
 
     def __len__(self) -> int:
         return self.frames[-1] + 1
 
     def __getitem__(self, ix: int | list[int] | slice) -> np.ndarray:
+        if isinstance(ix, np.ndarray):
+            return self[ix.tolist()]
         if isinstance(ix, list):
             return np.array([self[_ix] for _ix in ix])
         if isinstance(ix, slice):
