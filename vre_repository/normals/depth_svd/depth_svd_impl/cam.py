@@ -21,8 +21,7 @@ def fov_diag_to_intrinsic(fov, res, res_new=None):
         fx = res_new[0] / 2 / math.tan(ax)
         fy = res_new[1] / 2 / math.tan(ay)
         k = np.asarray([[fx, 0, 0], [0, fy, 0], [res_new[0] / 2, res_new[1] / 2, 1]])
-    return k.transpose()
-
+    return k.transpose().astype(np.float32)
 
 def fov_diag_crop_aspect(fov, ar, ar_new):
     """

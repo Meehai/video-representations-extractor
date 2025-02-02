@@ -4,7 +4,7 @@ import numpy as np
 
 def monkey_patch(cls=tr.Tensor):
     "Monkey-patch lovely features into `cls`"
-    setattr(cls, "_t", cls.__repr__)
+    setattr(cls, "v", cls.__repr__)
     cls.__repr__ = cls.__str__ = lo
 
 def lo(x: np.ndarray | tr.Tensor | None) -> str:
