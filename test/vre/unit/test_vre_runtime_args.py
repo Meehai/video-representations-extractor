@@ -1,5 +1,6 @@
 import sys
-from vre.utils import FakeVideo, get_project_root
+from vre import FakeVideo
+from vre.utils import get_project_root
 from vre.vre_runtime_args import VRERuntimeArgs
 import numpy as np
 import pytest

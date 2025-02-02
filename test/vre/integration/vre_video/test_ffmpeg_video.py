@@ -1,5 +1,6 @@
 import numpy as np
-from vre.utils import FFmpegVideo, fetch_resource
+from vre import FFmpegVideo
+from vre.utils import fetch_resource
 
 def test_FFmpegVideo_getitem():
     video = FFmpegVideo(fetch_resource("test_video.mp4"))

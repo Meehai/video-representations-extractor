@@ -1,6 +1,6 @@
 import numpy as np
 from vre_repository.soft_segmentation.generalized_boundaries import GeneralizedBoundaries
-from vre.utils import FakeVideo
+from vre import FakeVideo
 
 def test_generalized_boundaries():
     video = FakeVideo(np.random.randint(0, 255, size=(20, 64, 128, 3), dtype=np.uint8), fps=30)

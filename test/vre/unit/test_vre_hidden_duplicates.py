@@ -1,8 +1,8 @@
 import sys
 import numpy as np
 import pytest
-from vre.utils import get_project_root, FakeVideo
-from vre import VRE
+from vre.utils import get_project_root
+from vre import VRE, FakeVideo
 
 sys.path.append(str(get_project_root() / "test"))
 from fake_representation import FakeRepresentation

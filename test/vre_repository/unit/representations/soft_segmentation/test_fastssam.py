@@ -1,6 +1,6 @@
 import numpy as np
 from vre_repository.soft_segmentation.fastsam import FastSam
-from vre.utils import FakeVideo
+from vre import FakeVideo
 
 def test_fastsam():
     np.random.seed(42)
