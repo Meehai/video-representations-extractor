@@ -2,7 +2,7 @@
 from pathlib import Path
 from urllib.request import urlretrieve
 from vre.utils.utils import DownloadProgressBar, is_git_lfs
-from vre.utils.resources import RESOURCES_DIR, RESOURCES_URL
+from vre.utils.resources import RESOURCES_DIR, RESOURCES_URL, fetch_resource
 from vre.logger import vre_logger as logger
 
 def fetch_weights(paths: list[str], depth: int = 0) -> list[Path]:
@@ -18,12 +18,5 @@ def fetch_weights(paths: list[str], depth: int = 0) -> list[Path]:
         res.append(local_path)
         if local_path.exists() and not is_git_lfs(local_path): # is_git_lfs is for CI where weights are lfs links
             continue
-        local_path.parent.mkdir(exist_ok=True, parents=True)
-        url = f"{RESOURCES_URL}/weights/{path}"
-        with DownloadProgressBar(unit="B", unit_scale=True, miniters=1, desc=path) as t:
-            try:
-                urlretrieve(url, filename=local_path, reporthook=t.update_to)
-            except Exception as e:
-                logger.info(f"Failed to download '{url}' to '{local_path}'")
-                raise e
+        fetch_resource(f"weights/{path}")
     return res
