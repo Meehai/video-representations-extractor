@@ -1,9 +1,7 @@
 """Weights Repository module for Learnable Representations in the default repository"""
 from pathlib import Path
-from urllib.request import urlretrieve
-from vre.utils.utils import DownloadProgressBar, is_git_lfs
-from vre.utils.resources import RESOURCES_DIR, RESOURCES_URL, fetch_resource
-from vre.logger import vre_logger as logger
+from vre.utils.utils import is_git_lfs
+from vre.utils.resources import RESOURCES_DIR, fetch_resource
 
 def fetch_weights(paths: list[str], depth: int = 0) -> list[Path]:
     """fetches weights for a representation from the repository (if needed) and returns the local path"""
