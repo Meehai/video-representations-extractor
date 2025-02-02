@@ -3,10 +3,10 @@ from pathlib import Path
 from abc import ABC, abstractmethod
 from overrides import overrides
 
-from vre.utils import VREVideo
 from .io_representation_mixin import IORepresentationMixin, MemoryData
 from .representation import Representation, ReprOut
 from .compute_representation_mixin import ComputeRepresentationMixin
+from ..vre_video import VREVideo
 
 class TaskMapper(Representation, IORepresentationMixin, ComputeRepresentationMixin, ABC):
     """

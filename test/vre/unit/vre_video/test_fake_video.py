@@ -1,4 +1,4 @@
-from vre.utils.vre_video import FakeVideo
+from vre.vre_video import FakeVideo
 from tempfile import NamedTemporaryFile
 import numpy as np
 import pytest
