@@ -97,7 +97,7 @@ representations:
     type: semantic-segmentation/safeuav
     dependencies: []
     parameters:
-      variant: model_1M
+      variant: model_430k
       disk_data_argmax: True
 
   # # SUCKY BECAUSE SUPERSLOW. Adds like 2-3 mins in CI. Rife is good enough.

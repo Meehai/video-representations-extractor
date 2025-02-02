@@ -24,7 +24,7 @@ class SafeUAV(SemanticRepresentation, LearnedRepresentationMixin, ComputeReprese
         LearnedRepresentationMixin.__init__(self)
         ComputeRepresentationMixin.__init__(self)
         self.variant = variant
-        assert variant in ("model_1M", "model_4M", "testing"), variant
+        assert variant in ("model_1M", "model_4M", "model_430k", "testing"), variant
         color_map = [[0, 255, 0], [0, 127, 0], [255, 255, 0], [255, 255, 255],
                      [255, 0, 0], [0, 0, 255], [0, 255, 255], [127, 127, 63]]
         classes = ["land", "forest", "residential", "road", "little-objects", "water", "sky", "hill"]
@@ -114,7 +114,7 @@ class SafeUAV(SemanticRepresentation, LearnedRepresentationMixin, ComputeReprese
 
 if __name__ == "__main__":
     img = image_read(sys.argv[1])
-    assert len(sys.argv) == 3, "Usage: python safeuav.py /path/to/img.png [model_1M/model_4M]"
+    assert len(sys.argv) == 3, "Usage: python safeuav.py /path/to/img.png [model_430k/model_1M/model_4M]"
     model = SafeUAV(name="safeuav", disk_data_argmax=True, variant=sys.argv[2])
     model.vre_setup(load_weights=True)
 
