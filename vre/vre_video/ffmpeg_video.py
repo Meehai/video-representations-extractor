@@ -88,7 +88,7 @@ class FFmpegVideo(VREVideo):
             ffmpeg
             .input(self.path, ss=start_time)
             .output("pipe:", format="rawvideo", pix_fmt="rgb24")
-            .run_async(pipe_stdout=True, pipe_stderr=True)
+            .run_async(pipe_stdout=True, pipe_stderr=True, pipe_stdin=True)
         )
 
     def _cache_frames(self, start_frame: int):
@@ -119,8 +119,7 @@ class FFmpegVideo(VREVideo):
             self._cache_frames(frame_number)
 
         # Calculate the index within the cache
-        cache_index = frame_number - self.cache_start_frame
-        return self.cache[cache_index]
+        return self.cache[frame_number - self.cache_start_frame]
 
     def __repr__(self):
         return f"[FFmpegVideo] Path: {self.path}. FPS: {self.fps}. Len: {len(self)}. Frame shape: {self.frame_shape}."
