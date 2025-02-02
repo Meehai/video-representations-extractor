@@ -1,8 +1,28 @@
 # pylint: disable=all
 import numpy as np
-from .cam import fov_diag_to_intrinsic
+import math
 
 _GRID_CACHE = {}
+
+def fov_diag_to_intrinsic(fov, res, res_new=None):
+    """
+    Ideal camera matrix for diagonal fov and image size.
+    :param fov: Diagonal FOV in degrees
+    :param res: (original_width, original_height) tuple
+    :param res_new: (rescaled_width, rescaled_height) tuple, optional
+    :return: Camera matrix
+    """
+    d = math.sqrt((res[0] / 2) ** 2 + (res[1] / 2) ** 2)
+    z = d / math.tan(fov * math.pi / 180 / 2)
+    if res_new is None:
+        k = np.asarray([[z, 0, 0], [0, z, 0], [res[0] / 2, res[1] / 2, 1]])
+    else:
+        ax = math.atan(res[0] / 2 / z)
+        ay = math.atan(res[1] / 2 / z)
+        fx = res_new[0] / 2 / math.tan(ax)
+        fy = res_new[1] / 2 / math.tan(ay)
+        k = np.asarray([[fx, 0, 0], [0, fy, 0], [res_new[0] / 2, res_new[1] / 2, 1]])
+    return k.transpose().astype(np.float32)
 
 def get_sampling_grid(width: int, height: int, window_size: int, stride: int) -> np.ndarray:
     if (key := (width, height, window_size, stride)) in _GRID_CACHE:
