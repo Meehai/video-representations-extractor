@@ -1,6 +1,7 @@
 """Depth normals representation using SVD."""
 from overrides import overrides
 import numpy as np
+from contexttimer import Timer
 
 from vre.utils import MemoryData, ReprOut
 from vre.vre_video import VREVideo
@@ -37,7 +38,11 @@ class DepthNormalsSVD(NormalsRepresentation, ComputeRepresentationMixin):
         assert (A := self.dependencies[0].data) is not None and self.dependencies[0].data.key == ixs, (A.key, ixs)
         depths = self.dependencies[0].data.output
         assert len(depths.shape) == 4 and depths.shape[-1] == 1, f"Expected (B, H, W, 1) got: {depths.shape}"
-        res = MemoryData([self._make_one_normal(depth[..., 0]) for depth in depths])
+        res = []
+        for i, depth in enumerate(depths):
+            with Timer(prefix=f"depth {i}"):
+                res.append(self._make_one_normal(depth[..., 0]))
+        res = MemoryData(res)#[self._make_one_normal(depth[..., 0]) for depth in depths])
         self.data = ReprOut(frames=video[ixs], output=res, key=ixs)
 
     def _make_one_normal(self, depth: np.ndarray) -> np.ndarray:

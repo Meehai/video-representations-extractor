@@ -24,5 +24,4 @@ class DepthRepresentation(Representation, NpIORepresentation, NormedRepresentati
 
     @overrides
     def make_images(self, data: ReprOut) -> np.ndarray:
-        assert self.data is not None, f"[{self}] data must be first computed using compute()"
-        return (colorize_depth(self.data.output, percentiles=[1, 95]) * 255).astype(np.uint8)
+        return (colorize_depth(data.output, percentiles=[1, 95]) * 255).astype(np.uint8)
