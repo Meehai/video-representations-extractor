@@ -9,9 +9,10 @@ import torch as tr
 from torch import nn
 from torch.nn import functional as F
 
+from vre.vre_video import VREVideo, FakeVideo
 from vre.representations import (Representation, ReprOut, LearnedRepresentationMixin,
                                  ComputeRepresentationMixin, NpIORepresentation, NormedRepresentationMixin)
-from vre.utils import image_resize_batch, image_read, image_write, VREVideo, FakeVideo, MemoryData
+from vre.utils import image_resize_batch, image_read, image_write, MemoryData
 from vre.logger import vre_logger as logger
 from vre_repository.weights_repository import fetch_weights
 

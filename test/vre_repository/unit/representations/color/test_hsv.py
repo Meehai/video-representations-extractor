@@ -1,5 +1,5 @@
 import numpy as np
-from vre.utils import FakeVideo
+from vre import FakeVideo
 from vre_repository.color.rgb import RGB
 from vre_repository.color.hsv import HSV
 

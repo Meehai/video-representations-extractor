@@ -5,9 +5,9 @@ from natsort import natsorted
 from overrides import overrides
 import shutil
 import numpy as np
-from vre import VRE
-from vre.utils import (FakeVideo, colorize_semantic_segmentation, semantic_mapper, VREVideo,
-                       DiskData, MemoryData, ReprOut, get_project_root, image_resize_batch)
+from vre import VRE, FakeVideo, VREVideo
+from vre.utils import (colorize_semantic_segmentation, semantic_mapper, DiskData,
+                       MemoryData, ReprOut, get_project_root, image_resize_batch)
 from vre.representations import Representation, TaskMapper, NpIORepresentation, ComputeRepresentationMixin
 
 sys.path.append(str(get_project_root() / "test/vre"))

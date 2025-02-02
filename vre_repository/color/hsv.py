@@ -2,7 +2,8 @@
 import numpy as np
 from overrides import overrides
 
-from vre.utils import VREVideo, ReprOut
+from vre.vre_video import VREVideo
+from vre.utils import ReprOut
 from vre.representations import ComputeRepresentationMixin
 
 from .rgb import RGB

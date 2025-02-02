@@ -3,8 +3,9 @@ from __future__ import annotations
 import numpy as np
 from overrides import overrides
 
+from vre.vre_video import VREVideo
 from vre.logger import vre_logger as logger
-from vre.utils import VREVideo, MemoryData
+from vre.utils import MemoryData
 from vre.representations import Representation, ReprOut, ComputeRepresentationMixin, NpIORepresentation
 
 class FakeRepresentation(Representation, ComputeRepresentationMixin, NpIORepresentation):

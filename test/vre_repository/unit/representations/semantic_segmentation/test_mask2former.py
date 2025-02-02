@@ -1,6 +1,6 @@
 import numpy as np
 from vre_repository.semantic_segmentation.mask2former import Mask2Former
-from vre.utils import FakeVideo
+from vre import FakeVideo
 
 def test_mask2former():
     video = FakeVideo(np.random.randint(0, 255, size=(20, 64, 128, 3), dtype=np.uint8), 30)

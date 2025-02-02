@@ -1,4 +1,4 @@
-from vre.utils.vre_video import FakeVideo
+from vre.vre_video import FakeVideo
 from tempfile import NamedTemporaryFile
 import numpy as np
 import pytest
@@ -23,6 +23,6 @@ def test_FakeVideo_frames():
 
 def test_FakeVideo_write():
     fake_video = FakeVideo(np.random.randint(0, 256, size=(10, 20, 30, 3), dtype=np.uint8), fps=1)
-    with NamedTemporaryFile("w", suffix=".mp4") as f:
-        fake_video.write(f.name)
-        assert Path(f.name).exists(), f.name
+    tempfile = NamedTemporaryFile("w", suffix=".mp4").name
+    fake_video.write(tempfile)
+    assert Path(tempfile).exists()

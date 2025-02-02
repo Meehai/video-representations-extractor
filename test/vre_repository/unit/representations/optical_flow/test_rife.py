@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 from vre_repository.optical_flow.rife import FlowRife
-from vre.utils import FakeVideo
+from vre import FakeVideo
 
 @pytest.mark.parametrize("uhd", [False, True])
 def test_rife_uhd_false(uhd):
