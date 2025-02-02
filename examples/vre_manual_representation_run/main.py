@@ -25,8 +25,8 @@ if __name__ == "__main__":
     depth = SimpleNamespace(data=ReprOut(frames=video[ixs], output=MemoryData(np.load("data.npz")["arr_0"]), key=ixs),
                             make_images=lambda data: (colorize_depth(data.output,
                                                                      percentiles=[1, 95]) * 255).astype(np.uint8))
-    normals = DepthNormalsSVD(name="normals1", dependencies=[depth], sensor_fov=75, sensor_height=2160,
-                              sensor_width=3840, window_size=11)
+    normals = DepthNormalsSVD(name="normals1", dependencies=[depth], sensor_fov=75,
+                              sensor_size=(3840, 2160), window_size=11)
 
     normals.data = None
     # depth.data = ReprOut(frames=video[ixs], output=MemoryData(np.load("data.npz")["arr_0"]), key=ixs)

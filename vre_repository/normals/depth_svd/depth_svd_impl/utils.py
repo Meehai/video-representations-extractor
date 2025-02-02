@@ -1,6 +1,8 @@
 # pylint: disable=all
 import numpy as np
+from .cam import fov_diag_to_intrinsic
 
+_GRID_CACHE = {}
 
 def get_sampling_grid(width, height, window_size, stride):
     window_x = np.arange(0, stride * window_size, stride) - window_size // 2 * stride
@@ -33,49 +35,56 @@ def get_normalized_coords(width, height, K):
     z = np.ones_like(x)
     return np.stack((x, y, z), axis=2)
 
+def _get_grid(depth: np.ndarray, sensor_fov: int, window_size: int, stride: int,
+              sensor_size: tuple[int, int], input_downsample_step: int) -> tuple[np.ndarray, np.ndarray]:
+    height, width = depth.shape[:2]
+    if (height, width) in _GRID_CACHE:
+        return _GRID_CACHE[(height, width)]
+    if input_downsample_step is not None:
+        depth = depth[:: input_downsample_step, :: input_downsample_step]
+    depth_height, depth_width = depth.shape[:2]
+    sampling_grid = get_sampling_grid(depth_width, depth_height, window_size, stride)
+    K = fov_diag_to_intrinsic(sensor_fov, (sensor_size[0], sensor_size[1]), (depth_width, depth_height))
+    normalized_grid = get_normalized_coords(depth_width, depth_height, K)
+    _GRID_CACHE[(height, width)] = sampling_grid, normalized_grid
+    return sampling_grid, normalized_grid
 
-def depth_to_pointcloud(depth, normalized_coords):
-    return depth[:, :, None] * normalized_coords
 
-
-def depth_to_normals(depth, sampling_grid, normalized_grid, max_dist, min_valid=1):
+def depth_to_normals(depth: np.ndarray, sensor_fov: int, window_size: int, stride: int,
+                     sensor_size: tuple[int, int], input_downsample_step: int) -> np.ndarray:
     H, W = depth.shape[:2]
+    sampling_grid, normalized_grid = _get_grid(depth, sensor_fov, window_size, stride,
+                                               sensor_size, input_downsample_step)
+    from contexttimer import Timer
 
-    point_cloud = depth_to_pointcloud(depth, normalized_grid)
+    point_cloud = depth[:, :, None] * normalized_grid # depth_to_pointcloud(depth, normalized_coords=normalized_grid)
 
-    windows_3D = point_cloud[sampling_grid[0], sampling_grid[1]]
+    with Timer(prefix="windows_3D"):
+        windows_3D = point_cloud[sampling_grid[0], sampling_grid[1]]
 
     invalid_samples = sampling_grid[2]
-    if max_dist is not None and max_dist >= 0:
-        distance_to_center = np.linalg.norm(windows_3D - point_cloud.reshape(H, W, 1, 3), axis=-1)
-        too_far = distance_to_center > max_dist
-        invalid_samples = np.logical_or(invalid_samples, too_far)
 
-    valid_pixels = None
-    if min_valid is not None and min_valid > 0:
+    with Timer(prefix="valid_count"):
         valid_count = np.count_nonzero(~invalid_samples, axis=2)
-        valid_pixels = valid_count >= min_valid
-        invalid_samples[~valid_pixels] = True
-
-    valid_count = np.count_nonzero(~invalid_samples, axis=2)
-    windows_3D[invalid_samples] = 0
+    with Timer(prefix="windows_3D[invalid_samples] = 0"):
+        windows_3D[invalid_samples] = 0
 
     # compute feature from 3D windows
-    window_sum = np.sum(windows_3D, axis=2, keepdims=True)
-    centroid = np.full_like(window_sum, np.nan)
+    with Timer(prefix="window_sum"):
+        window_sum = np.sum(windows_3D, axis=2, keepdims=True)
 
-    if valid_pixels is not None:
-        centroid[valid_pixels] = window_sum[valid_pixels] / valid_count.reshape((H, W, 1, 1))[valid_pixels]
-        windows_3D[valid_pixels] = windows_3D[valid_pixels] - centroid[valid_pixels]
-    else:
+    with Timer(prefix="centroid"):
         centroid = window_sum / valid_count.reshape((H, W, 1, 1))
         windows_3D = windows_3D - centroid
 
-    windows_3D[invalid_samples] = 0
+    with Timer(prefix="windows_3D[invalid_samples] = 0"):
+        windows_3D[invalid_samples] = 0
 
-    covariance = np.transpose(windows_3D, (0, 1, 3, 2)) @ windows_3D
-    u, s, vh = np.linalg.svd(covariance)
-    normals = vh[:, :, -1]
+    with Timer(prefix="covariance"):
+        covariance = np.transpose(windows_3D, (0, 1, 3, 2)) @ windows_3D
+    with Timer(prefix="svd"):
+        u, s, vh = np.linalg.svd(covariance)
+        normals = vh[:, :, -1]
 
     angle = np.sum(normalized_grid * normals, axis=-1)
     neg_angle = np.sum(normalized_grid * (-normals), axis=-1)
