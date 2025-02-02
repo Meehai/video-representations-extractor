@@ -2,9 +2,7 @@
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Iterable
-from overrides import overrides
 from tqdm import trange
-import numpy as np
 import ffmpeg
 
 class VREVideo(Iterable, ABC):
