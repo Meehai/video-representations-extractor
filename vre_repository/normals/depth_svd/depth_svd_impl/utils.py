@@ -1,16 +1,40 @@
 # pylint: disable=all
 import numpy as np
+import math
 
+_GRID_CACHE = {}
 
-def get_sampling_grid(width, height, window_size, stride):
-    window_x = np.arange(0, stride * window_size, stride) - window_size // 2 * stride
+def fov_diag_to_intrinsic(fov, res, res_new=None):
+    """
+    Ideal camera matrix for diagonal fov and image size.
+    :param fov: Diagonal FOV in degrees
+    :param res: (original_width, original_height) tuple
+    :param res_new: (rescaled_width, rescaled_height) tuple, optional
+    :return: Camera matrix
+    """
+    d = math.sqrt((res[0] / 2) ** 2 + (res[1] / 2) ** 2)
+    z = d / math.tan(fov * math.pi / 180 / 2)
+    if res_new is None:
+        k = np.asarray([[z, 0, 0], [0, z, 0], [res[0] / 2, res[1] / 2, 1]])
+    else:
+        ax = math.atan(res[0] / 2 / z)
+        ay = math.atan(res[1] / 2 / z)
+        fx = res_new[0] / 2 / math.tan(ax)
+        fy = res_new[1] / 2 / math.tan(ay)
+        k = np.asarray([[fx, 0, 0], [0, fy, 0], [res_new[0] / 2, res_new[1] / 2, 1]])
+    return k.transpose().astype(np.float32)
+
+def get_sampling_grid(width: int, height: int, window_size: int, stride: int) -> np.ndarray:
+    if (key := (width, height, window_size, stride)) in _GRID_CACHE:
+        return _GRID_CACHE[key]
+    window_x = np.arange(0, stride * window_size, stride, dtype=np.int32) - window_size // 2 * stride
     window_y = window_x.copy()
-    window_y, window_x = np.meshgrid(window_y, window_x, indexing='ij')
+    window_y, window_x = np.meshgrid(window_y, window_x, indexing="ij")
     window_x = window_x.flatten()
     window_y = window_y.flatten()
-    xs = np.arange(width)
-    ys = np.arange(height)
-    ys, xs = np.meshgrid(ys, xs, indexing='ij')
+    xs = np.arange(width, dtype=np.int32)
+    ys = np.arange(height, dtype=np.int32)
+    ys, xs = np.meshgrid(ys, xs, indexing="ij")
     xs_windows = xs[:, :, None] + window_x[None, None, :]
     ys_windows = ys[:, :, None] + window_y[None, None, :]
     xs_windows[xs_windows >= width] = -1
@@ -18,67 +42,53 @@ def get_sampling_grid(width, height, window_size, stride):
     invalid = np.logical_or(xs_windows < 0, ys_windows < 0)
     xs_windows[invalid] = 0
     ys_windows[invalid] = 0
-    window_coords = np.stack((window_y, window_x), axis=1)
-    window_pixel_dist = np.linalg.norm(window_coords, axis=1)
-    return ys_windows, xs_windows, invalid, window_pixel_dist
-
+    #window_coords = np.stack((window_y, window_x), axis=1)
+    #window_pixel_dist = np.linalg.norm(window_coords, axis=1)
+    _GRID_CACHE[key] = ys_windows, xs_windows, invalid#, window_pixel_dist
+    return ys_windows, xs_windows, invalid#, window_pixel_dist
 
 def get_normalized_coords(width, height, K):
     us = np.arange(width)
     vs = np.arange(height)
-    vs, us = np.meshgrid(vs, us, indexing='ij')
+    vs, us = np.meshgrid(vs, us, indexing="ij")
     fx, fy, u0, v0 = K[0, 0], K[1, 1], K[0, 2], K[1, 2]
     x = (us - u0) / fx
     y = (vs - v0) / fy
     z = np.ones_like(x)
-    return np.stack((x, y, z), axis=2)
+    return np.stack((x, y, z), axis=2).astype(np.float32)
 
+def depths_to_normals(depths: np.ndarray, sensor_fov: int, window_size: int, stride: int,
+                      sensor_size: tuple[int, int], input_downsample_step: int) -> np.ndarray:
+    H, W = depths.shape[1], depths.shape[2]
+    H_down, W_down = H // input_downsample_step, W // input_downsample_step
+    K = fov_diag_to_intrinsic(sensor_fov, (sensor_size[0], sensor_size[1]), (W_down, H_down))
+    normalized_grid = get_normalized_coords(W_down, H_down, K)[None].repeat(len(depths), axis=0)
+    sampling_grid = [x[None].repeat(len(depths), axis=0)
+                     for x in get_sampling_grid(W_down, H_down, window_size, stride)]
 
-def depth_to_pointcloud(depth, normalized_coords):
-    return depth[:, :, None] * normalized_coords
+    point_clouds = depths[..., None] * normalized_grid
 
-
-def depth_to_normals(depth, sampling_grid, normalized_grid, max_dist, min_valid=1):
-    H, W = depth.shape[:2]
-
-    point_cloud = depth_to_pointcloud(depth, normalized_grid)
-
-    windows_3D = point_cloud[sampling_grid[0], sampling_grid[1]]
+    X = (sampling_grid[0] * 0) + np.arange(len(depths)).reshape(-1, 1, 1, 1)
+    windows_3D = point_clouds[X, sampling_grid[0], sampling_grid[1]]
 
     invalid_samples = sampling_grid[2]
-    if max_dist is not None and max_dist >= 0:
-        distance_to_center = np.linalg.norm(windows_3D - point_cloud.reshape(H, W, 1, 3), axis=-1)
-        too_far = distance_to_center > max_dist
-        invalid_samples = np.logical_or(invalid_samples, too_far)
 
-    valid_pixels = None
-    if min_valid is not None and min_valid > 0:
-        valid_count = np.count_nonzero(~invalid_samples, axis=2)
-        valid_pixels = valid_count >= min_valid
-        invalid_samples[~valid_pixels] = True
-
-    valid_count = np.count_nonzero(~invalid_samples, axis=2)
+    valid_count = np.count_nonzero(~invalid_samples, axis=3)
     windows_3D[invalid_samples] = 0
 
     # compute feature from 3D windows
-    window_sum = np.sum(windows_3D, axis=2, keepdims=True)
-    centroid = np.full_like(window_sum, np.nan)
+    window_sum = np.sum(windows_3D, axis=3, keepdims=True)
 
-    if valid_pixels is not None:
-        centroid[valid_pixels] = window_sum[valid_pixels] / valid_count.reshape((H, W, 1, 1))[valid_pixels]
-        windows_3D[valid_pixels] = windows_3D[valid_pixels] - centroid[valid_pixels]
-    else:
-        centroid = window_sum / valid_count.reshape((H, W, 1, 1))
-        windows_3D = windows_3D - centroid
+    centroid = window_sum / valid_count.reshape((len(depths), H, W, 1, 1))
+    windows_3D = windows_3D - centroid
 
     windows_3D[invalid_samples] = 0
 
-    covariance = np.transpose(windows_3D, (0, 1, 3, 2)) @ windows_3D
-    u, s, vh = np.linalg.svd(covariance)
-    normals = vh[:, :, -1]
+    covariance = np.transpose(windows_3D, (0, 1, 2, 4, 3)) @ windows_3D
+    _, _, vh = np.linalg.svd(covariance)
+    normals = vh[:, :, :, -1]
 
-    angle = np.sum(normalized_grid * normals, axis=-1)
-    neg_angle = np.sum(normalized_grid * (-normals), axis=-1)
-    normals = np.where((angle > neg_angle)[:, :, None], normals, -normals)
-
+    angle = (normalized_grid * normals).sum(axis=-1)
+    neg_angle = (normalized_grid * -normals).sum(axis=-1)
+    normals = np.where((angle > neg_angle)[..., None], normals, -normals)
     return normals

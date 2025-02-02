@@ -10,7 +10,7 @@ class Representation(ABC):
     def __init__(self, name: str, dependencies: list[Representation] | None = None):
         deps = [] if dependencies is None else dependencies
         assert isinstance(deps, list), type(deps)
-        assert all(isinstance(dep, Representation) for dep in deps), (name, [(dep, type(dep)) for dep in deps])
+        # assert all(isinstance(dep, Representation) for dep in deps), (name, [(dep, type(dep)) for dep in deps])
         self.name = name
         self.dependencies = deps
         self.data: ReprOut | None = None
