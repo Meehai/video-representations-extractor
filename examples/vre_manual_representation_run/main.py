@@ -1,13 +1,12 @@
 import os
 import torch as tr
-import yaml
 import numpy as np
 import matplotlib.pyplot as plt
 from omegaconf import OmegaConf
 from pathlib import Path
 
 from vre.representations import build_representations_from_cfg
-from vre.utils import get_project_root, FFmpegVideo
+from vre.utils import get_project_root, FFmpegVideo, collage_fn, image_write, image_resize
 from vre_repository import get_vre_repository
 os.environ["VRE_DEVICE"] = device = "cuda" if tr.cuda.is_available() else "cpu"
 
@@ -38,11 +37,8 @@ if __name__ == "__main__":
     y_depth_img = depth.make_images(depth.data)
     y_normals_img = normals.make_images(normals.data)
     for i in range(mb):
-        fig, ax = plt.subplots(1, 3, figsize=(20, 10))
-        ax[0].imshow(depth.data.frames[i])
-        ax[1].imshow(y_depth_img[i])
-        ax[2].imshow(y_normals_img[i])
-        plt.show()
+        res = [image_resize(depth.data.frames[i], *y_depth_img[i].shape[0:2]), y_depth_img[i], y_normals_img[i]]
+        image_write(collage_fn(res, rows_cols=(1, 3)), f"res_{ixs[i]}.png")
     depth.vre_free()
 
     breakpoint()
