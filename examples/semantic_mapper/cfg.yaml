@@ -49,6 +49,13 @@ representations:
       model_id: "47429163_0"
       disk_data_argmax: True
 
+  semantic_mask2former_mapillary_49189528_1:
+    type: semantic-segmentation/mask2former
+    dependencies: []
+    parameters:
+      model_id: "49189528_1"
+      disk_data_argmax: True
+
   depth_marigold:
     type: depth/marigold
     dependencies: []
