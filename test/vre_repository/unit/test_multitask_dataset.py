@@ -66,8 +66,7 @@ def test_MultiTaskDataset_ctor_shapes_and_types(dataset_path: Path):
 @pytest.mark.parametrize("normalization", ["standardization", "min_max"])
 def test_MultiTaskDataset_normalization(dataset_path: Path, normalization: str):
     dataset = MultiTaskDataset(dataset_path, task_names=list(fake_dronescapes_task_types.keys()),
-                               task_types=fake_dronescapes_task_types, normalization=normalization,
-                               batch_size_stats=2)
+                               task_types=fake_dronescapes_task_types, normalization=normalization, batch_size_stats=2)
     x, _ = dataset[0]
     for task in dataset.task_names:
         assert x[task].dtype == tr.float32, x[task].dtype
@@ -95,6 +94,26 @@ def test_MultiTaskDataset_getitem(dataset_path):
     loader = DataLoader(reader, collate_fn=reader.collate_fn, batch_size=5, shuffle=True)
     data, _ = next(iter(loader)) # get a random batch using torch DataLoader
     assert all(len(x.shape) == 4 for x in data.values()), data
+
+def test_MultiTaskDataset_add_remove_task(dataset_path):
+    dataset = MultiTaskDataset(dataset_path, task_names=list(fake_dronescapes_task_types.keys()),
+                               task_types=fake_dronescapes_task_types, normalization="min_max", batch_size_stats=2)
+    assert len(dataset.tasks) == 3
+
+    my_new_representation = ColorRepresentation("hsv", dependencies=[fake_dronescapes_task_types["rgb"]])
+    dataset.add_task(my_new_representation)
+    assert len(dataset.tasks) == 4
+
+    with pytest.raises(AssertionError):
+        dataset.remove_task("depth")
+    assert len(dataset.tasks) == 4
+
+    dataset.remove_task("depth_sfm_manual202204")
+    assert len(dataset.tasks) == 3
+
+    with pytest.raises(AssertionError):
+        dataset.remove_task("depth_sfm_manual202204")
+    assert len(dataset.tasks) == 3
 
 if __name__ == "__main__":
     test_MultiTaskDataset_normalization(_dataset_path(), "min_max")
