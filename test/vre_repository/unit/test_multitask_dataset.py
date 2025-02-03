@@ -1,7 +1,8 @@
 from pathlib import Path
+from copy import deepcopy
 from tempfile import TemporaryDirectory
 from vre.readers import MultiTaskDataset
-from vre.representations import NormedRepresentationMixin
+from vre.representations import NormedRepresentationMixin, Representation
 from vre_repository.semantic_segmentation import SemanticRepresentation
 from vre_repository.depth import DepthRepresentation
 from vre_repository.color import ColorRepresentation
@@ -10,21 +11,23 @@ import numpy as np
 import torch as tr
 import pytest
 
-color_map_8classes = [[0, 255, 0], [0, 127, 0], [255, 255, 0], [255, 255, 255],
-                    [255, 0, 0], [0, 0, 255], [0, 255, 255], [127, 127, 63]]
-fake_dronescapes_task_types = {
-    "rgb": ColorRepresentation("rgb"),
-    "depth_sfm_manual202204": DepthRepresentation("depth_sfm_manual202204", min_depth=0, max_depth=300),
-    "semantic_segprop8": SemanticRepresentation("semantic_segprop8", classes=8,
-                                                color_map=color_map_8classes, disk_data_argmax=True),
-}
+def fake_dronescapes_task_types() -> dict[str, Representation]:
+    color_map_8classes = [[0, 255, 0], [0, 127, 0], [255, 255, 0], [255, 255, 255],
+                          [255, 0, 0], [0, 0, 255], [0, 255, 255], [127, 127, 63]]
+    res = {
+        "rgb": ColorRepresentation("rgb"),
+        "depth_sfm_manual202204": DepthRepresentation("depth_sfm_manual202204", min_depth=0, max_depth=300),
+        "semantic_segprop8": SemanticRepresentation("semantic_segprop8", classes=8,
+                                                    color_map=color_map_8classes, disk_data_argmax=True),
+    }
+    return deepcopy(res)
 
 def _dataset_path() -> Path:
     (temp_dir := Path(TemporaryDirectory().name)).mkdir(exist_ok=False)
     task_names = ("rgb", "semantic_segprop8", "depth_sfm_manual202204")
 
     N, H, W = 33, 16, 25
-    n_classes = fake_dronescapes_task_types["semantic_segprop8"].n_classes
+    n_classes = fake_dronescapes_task_types()["semantic_segprop8"].n_classes
     min_depth, max_depth = 0, 300
     data = {
         "rgb": np.random.randint(0, 255, size=(N, H, W, 3)).astype(np.uint8),
@@ -44,8 +47,9 @@ def dataset_path() -> Path: return _dataset_path()
 
 def test_MultiTaskDataset_ctor_shapes_and_types(dataset_path: Path):
     N, H, W = 33, 16, 25
-    dataset = MultiTaskDataset(dataset_path, task_names=list(fake_dronescapes_task_types.keys()),
-                               task_types=fake_dronescapes_task_types, normalization=None)
+    task_types = fake_dronescapes_task_types()
+    dataset = MultiTaskDataset(dataset_path, task_names=list(task_types.keys()),
+                               task_types=task_types, normalization=None)
     assert len(dataset) == N
     assert dataset.task_names == ["depth_sfm_manual202204", "rgb", "semantic_segprop8"], dataset.task_names # inferred
     expected_shapes = {"rgb": (H, W, 3), "semantic_segprop8": (H, W, 8), "depth_sfm_manual202204": (H, W, 1)}
@@ -65,8 +69,9 @@ def test_MultiTaskDataset_ctor_shapes_and_types(dataset_path: Path):
 
 @pytest.mark.parametrize("normalization", ["standardization", "min_max"])
 def test_MultiTaskDataset_normalization(dataset_path: Path, normalization: str):
-    dataset = MultiTaskDataset(dataset_path, task_names=list(fake_dronescapes_task_types.keys()),
-                               task_types=fake_dronescapes_task_types, normalization=normalization, batch_size_stats=2)
+    task_types = fake_dronescapes_task_types()
+    dataset = MultiTaskDataset(dataset_path, task_names=list(task_types.keys()),
+                               task_types=task_types, normalization=normalization, batch_size_stats=2)
     x, _ = dataset[0]
     for task in dataset.task_names:
         assert x[task].dtype == tr.float32, x[task].dtype
@@ -81,8 +86,9 @@ def test_MultiTaskDataset_normalization(dataset_path: Path, normalization: str):
                 (task, x[task].mean(), x[task].std())
 
 def test_MultiTaskDataset_getitem(dataset_path):
-    reader = MultiTaskDataset(dataset_path, task_names=list(fake_dronescapes_task_types.keys()),
-                              task_types=fake_dronescapes_task_types, normalization=None)
+    task_types = fake_dronescapes_task_types()
+    reader = MultiTaskDataset(dataset_path, task_names=list(task_types.keys()),
+                              task_types=task_types, normalization=None)
 
     rand_ix = np.random.randint(len(reader))
     data, _ = reader[rand_ix] # get a random single data point
@@ -96,11 +102,12 @@ def test_MultiTaskDataset_getitem(dataset_path):
     assert all(len(x.shape) == 4 for x in data.values()), data
 
 def test_MultiTaskDataset_add_remove_task(dataset_path):
-    dataset = MultiTaskDataset(dataset_path, task_names=list(fake_dronescapes_task_types.keys()),
-                               task_types=fake_dronescapes_task_types, normalization="min_max", batch_size_stats=2)
+    task_types = fake_dronescapes_task_types()
+    dataset = MultiTaskDataset(dataset_path, task_names=list(task_types.keys()),
+                               task_types=task_types, normalization="min_max", batch_size_stats=2)
     assert len(dataset.tasks) == 3
 
-    my_new_representation = ColorRepresentation("hsv", dependencies=[fake_dronescapes_task_types["rgb"]])
+    my_new_representation = ColorRepresentation("hsv", dependencies=[task_types["rgb"]])
     dataset.add_task(my_new_representation)
     assert len(dataset.tasks) == 4
 
@@ -114,6 +121,15 @@ def test_MultiTaskDataset_add_remove_task(dataset_path):
     with pytest.raises(AssertionError):
         dataset.remove_task("depth_sfm_manual202204")
     assert len(dataset.tasks) == 3
+
+@pytest.mark.skip("not implemented yet")
+def test_MultiTaskDataset_deps_of_deps(dataset_path):
+    task_types = fake_dronescapes_task_types()
+    task_types["dep1"] = ColorRepresentation("dep1", dependencies=[task_types["rgb"]])
+    task_types["dep2"] = ColorRepresentation("dep2", dependencies=[task_types["dep1"]])
+    dataset = MultiTaskDataset(dataset_path, task_names=list(task_types.keys()),
+                               task_types=task_types, normalization="min_max", batch_size_stats=2)
+    x, _ = dataset[0]
 
 if __name__ == "__main__":
     test_MultiTaskDataset_normalization(_dataset_path(), "min_max")
