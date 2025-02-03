@@ -8,7 +8,7 @@ import numpy as np
 import torch as tr
 
 from vre.utils import (semantic_mapper, colorize_semantic_segmentation, DiskData, MemoryData,
-                       ReprOut, reorder_dict, collage_fn, image_add_title, lo)
+                       ReprOut, reorder_dict, collage_fn, image_add_title, lo, image_write)
 from vre.logger import vre_logger as logger
 from vre.readers.multitask_dataset import MultiTaskDataset, MultiTaskItem
 from vre.representations import TaskMapper, NpIORepresentation, Representation, build_representations_from_cfg
@@ -18,7 +18,8 @@ from vre_repository.normals import NormalsRepresentation
 from vre_repository.semantic_segmentation import SemanticRepresentation
 
 def plot_one(data: MultiTaskItem, title: str, order: list[str] | None,
-             name_to_task: dict[str, Representation]) -> np.ndarray:
+             name_to_task: dict[str, Representation], return_origs: bool = False) \
+        -> np.ndarray | tuple[np.ndarray, dict[str, np.ndarray]]:
     """simple plot function: plot_one(reader[0][0], reader[0][1], None, reader.name_to_task)"""
     def vre_plot_fn(rgb_img: np.ndarray, x: tr.Tensor, task: Representation) -> np.ndarray:
         task.data = ReprOut(frames=rgb_img, output=MemoryData(x.cpu().detach().numpy()[None]), key=[0])
@@ -35,7 +36,7 @@ def plot_one(data: MultiTaskItem, title: str, order: list[str] | None,
     titles = [title if len(title) < 40 else f"{title[0:19]}..{title[-19:]}" for title in img_data]
     collage = collage_fn(list(img_data.values()), titles=titles, size_px=40)
     collage = image_add_title(collage, title, size_px=55, top_padding=110)
-    return collage
+    return collage if return_origs is False else (collage, img_data)
 
 coco_classes = ["person", "bicycle", "car", "motorcycle", "airplane", "bus", "train", "truck", "boat", "traffic light",
                 "fire hydrant", "stop sign", "parking meter", "bench", "bird", "cat", "dog", "horse", "sheep", "cow",
@@ -305,7 +306,8 @@ class SafeLandingAreas(BinaryMapper):
             where_safe = sema_safe * where_safe
         return self.disk_to_memory_fmt(where_safe)
 
-def get_new_semantic_mapped_tasks(tasks_subset: list[str] | None = None) -> dict[str, TaskMapper]:
+def get_new_semantic_mapped_tasks(tasks_subset: list[str] | None = None,
+                                  include_semantic_output: bool = True) -> dict[str, TaskMapper]:
     """The exported function for VRE!"""
     buildings_mapping = [
         {
@@ -419,8 +421,6 @@ def get_new_semantic_mapped_tasks(tasks_subset: list[str] | None = None) -> dict
             "semantic_mask2former_r50_mapillary_converted", [m2f_r50_mapillary]),
         m2f_swin_coco_converted := SemanticMask2FormerCOCOConverted(
             "semantic_mask2former_swin_coco_converted", [m2f_coco]),
-        SemanticMedian("semantic_output", [m2f_swin_mapillary_converted, m2f_r50_mapillary_converted,
-                                           m2f_swin_coco_converted]),
         buildings := BinaryMapper("buildings", [m2f_mapillary, m2f_coco, m2f_r50_mapillary],
                                   buildings_mapping, mode="majority"),
         BinaryMapper("sky-and-water", [m2f_mapillary, m2f_coco, m2f_r50_mapillary],
@@ -435,6 +435,10 @@ def get_new_semantic_mapped_tasks(tasks_subset: list[str] | None = None) -> dict
                          original_classes=[mapillary_classes, coco_classes, mapillary_classes],
                          semantics=[m2f_mapillary, m2f_coco, m2f_r50_mapillary]),
     ]
+    if include_semantic_output:
+        available_tasks.append(SemanticMedian("semantic_output", [m2f_swin_mapillary_converted,
+                                                                  m2f_r50_mapillary_converted,
+                                                                  m2f_swin_coco_converted]))
     if tasks_subset is None:
         return {t.name: t for t in available_tasks}
     return {t.name: t for t in available_tasks if t.name in tasks_subset}
@@ -445,7 +449,8 @@ if __name__ == "__main__":
     vre_dir = data_path
 
     task_names = ["rgb", "depth_marigold", "normals_svd(depth_marigold)",
-                  "semantic_mask2former_coco_47429163_0", "semantic_mask2former_mapillary_49189528_0"]
+                  "semantic_mask2former_coco_47429163_0", "semantic_mask2former_mapillary_49189528_0",
+                  "semantic_mask2former_mapillary_49189528_1"]
     order = ["rgb", "semantic_mask2former_mapillary_49189528_0", "semantic_mask2former_coco_47429163_0",
              "depth_marigold", "normals_svd(depth_marigold)"]
 
@@ -456,17 +461,35 @@ if __name__ == "__main__":
                               cache_task_stats=True, batch_size_stats=100)
     orig_task_names = list(reader.task_types.keys())
 
-    new_tasks = get_new_semantic_mapped_tasks()
+    new_tasks = get_new_semantic_mapped_tasks(include_semantic_output=False) # TODO: depth=2 not implemented in reader
     for task_name in reader.task_names:
         if task_name not in orig_task_names:
             reader.remove_task(task_name)
     for new_task in new_tasks.values():
         reader.add_task(new_task, overwrite=True)
 
+    # Note: depth=2 works well in VRE, just not in MultiTaskDataset (need to disable the assert for depth <= 1 tho)
+    # from vre import VRE, FakeVideo
+    # from vre.representations.build_representations import _add_external_representations_dict
+    # reprs = _add_external_representations_dict(list(task_types.values()),
+    #                                            get_new_semantic_mapped_tasks(include_semantic_output=True), {}, {}, {})
+    # video= FakeVideo(np.array(list(map(lambda x: np.load(x)["arr_0"], (data_path/"rgb/npz").iterdir()))),
+    #                  fps=1, frames=[5,8,22])
+    # vre = VRE(video, reprs)
+    # vre._compute_one_representation_batch(vre["semantic_output"], [5,8,22], Path.cwd())
+    # vre.to_graphviz().render("graph", format="png", cleanup=True)
+
     print("== Random loaded item ==")
     ixs = np.random.permutation(range(len(reader))).tolist()
+    ixs = ["8.npz"]
     for ix in ixs:
         data, name = reader[ix]
         pprint(data)
-        print(plot_one(data, title=name, order=order, name_to_task=reader.name_to_task).shape)
+        res, origs = plot_one(data, title=name, order=order, name_to_task=reader.name_to_task, return_origs=True)
+        print(f"{name} -- {res.shape}")
+        image_write(res, f"collage_{name[0:-4]}.png")
+        for k, v in origs.items():
+            image_write(v, f"collage_{name[0:-4]}_{k}.png")
         break
+    breakpoint()
+    

@@ -28,6 +28,7 @@ class VideoRepresentationsExtractor:
         """
         assert len(representations) > 0, "At least one representation must be provided"
         assert all(isinstance(x, Representation) for x in representations), [(x.name, type(x)) for x in representations]
+        assert isinstance(video, VREVideo), (type(video), video)
         self.video = video
         self.representations: list[Representation] = vre_topo_sort(representations)
         self.repr_names = [r.name for r in representations]
@@ -128,7 +129,9 @@ class VideoRepresentationsExtractor:
     def _compute_one_representation_batch(self, rep: Representation, batch: list[int],
                                           output_dir: Path, depth: int = 0):
         assert isinstance(rep, ComputeRepresentationMixin), rep
-        assert depth <= 1, (rep, depth)
+        # setting depth to higher values allows to compute deps of deps in memory. We throw to not hide bugs.
+        # useful for VRE hacking (i.e. see semanit_mapper.py)
+        assert depth <= 1, f"{rep=} {depth=} {batch=} {output_dir=}"
         # TODO: make unit test with this (lingering .data from previous computation) on depth == 1 (i.e. deps of rep)
         rep.data = None # Important to invalidate any previous results here
         self._load_from_disk_if_possible(rep, self.video, batch, output_dir)
@@ -217,3 +220,7 @@ class VideoRepresentationsExtractor:
 
     def __repr__(self) -> str:
         return str(self)
+
+    def __getitem__(self, key: str) -> Representation:
+        assert key in self.repr_names, f"Representation '{key}' not in {self.repr_names}"
+        return self.representations[self.repr_names.index(key)]

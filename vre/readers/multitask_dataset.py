@@ -218,7 +218,7 @@ class MultiTaskDataset(Dataset):
         self.task_names = sorted([*self.task_names, task.name])
         self.task_types[task.name] = task
         self._tasks = None
-        self.files_per_repr, self.file_names = self._build_dataset(self.task_types, self.task_names)
+        self.files_per_repr, self.file_names, self.task_types = self._build_dataset(self.task_types, self.task_names)
 
     def remove_task(self, task_name: str):
         """Safely removes a task from this reader"""
@@ -227,7 +227,7 @@ class MultiTaskDataset(Dataset):
         self.task_names = sorted(name for name in self.task_names if name != task_name)
         del self.task_types[task_name]
         self._tasks = None
-        self.files_per_repr, self.file_names = self._build_dataset(self.task_types, self.task_names)
+        self.files_per_repr, self.file_names, self.task_types = self._build_dataset(self.task_types, self.task_names)
 
     def get_one_item(self, index: int, subset_tasks: list[str] | None = None) -> MultiTaskItem:
         """getitem implementation for a single index. Supports a subset of tasks as well"""
@@ -284,7 +284,7 @@ class MultiTaskDataset(Dataset):
         assert (diff := set(task_names).difference(task_types)) == set(), f"\n-{diff}\n-{list(task_types)}"
         if (diff := set(task_names).difference(all_files)) != set():
             logger.debug(f"The following tasks do not have data on disk: {list(diff)}. Checking dependencies.")
-        relevant_tasks_for_files = set() # hsv requires only rgb, so we look at dependencies later on
+        relevant_tasks_for_files = set() # fo e.g. hsv requires only rgb, so we look at dependencies later on
         for task_name in task_names:
             if task_name not in diff and task_types[task_name].dep_names != [task_name]:
                 logger.debug(f"Upating the deps of '{task_name}' as all its data is on disk!")

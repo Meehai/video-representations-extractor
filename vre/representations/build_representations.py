@@ -101,17 +101,19 @@ def build_representations_from_cfg(cfg: Path | str | DictConfig | dict,
                                                              learned_params=learned_defaults, io_params=io_defaults)
     return built_so_far
 
-def _add_one_external_representation_list(built_so_far: list[Representation], external_path: str, compute_params: dict,
-                                          learned_params: dict, io_params: dict) -> list[Representation]:
-    assert isinstance(learned_params, dict) and isinstance(compute_params, dict) and isinstance(io_params, dict)
-    path, fn = external_path.split(":")
-    external_reprs: dict[str, Representation] = getattr(imp.load_source("external", path), fn)()
-    assert isinstance(external_reprs, dict) and len(external_reprs) > 0, (external_path, external_reprs)
+def _add_external_representations_dict(built_so_far: list[Representation],
+                                       external_reprs: dict[str, Representation],
+                                       compute_params: dict, learned_params: dict,
+                                       io_params: dict) -> list[Representation]:
     assert all(isinstance(v, Representation) for v in external_reprs.values()), external_reprs
-    logger.info(f"Adding {list(external_reprs)} from {path}")
     name_to_repr = {r.name: r for r in built_so_far}
     assert (diff := set(name_to_repr.keys()).intersection(external_reprs)) == set(), diff
 
+    # Note (TODO?): ideally we'd use deepcopy here so we don't update external_reprs stuff, however there is an issue
+    # if we do this, becvause there is no guarantee that external_reprs is topo-sorted (which we could do). For this
+    # reason. we cannot do stuff like semantic_output (see semantic_mapper) that depends on 3 representations
+    # (converted) which are also task mapped from the raw ones, because we'd update the dependencies of the middle ones
+    # (converted) initially os it uses 'built_so_far' objects, but then it crashes on depth=2 (semantic_output).
     for obj in external_reprs.values():
         if isinstance(obj, ComputeRepresentationMixin):
             obj.set_compute_params(**compute_params)
@@ -124,6 +126,15 @@ def _add_one_external_representation_list(built_so_far: list[Representation], ex
         for i, external_dep in enumerate(obj.dependencies):
             if external_dep.name in name_to_repr and id(external_dep) != id(curr := name_to_repr[external_dep.name]):
                 logger.warning(f"[{obj.name}] Dependency {external_dep} is different than existing {curr}. "
-                            "Replacing the dependency. This may yield in wrong results!")
+                                "Replacing the dependency. This may yield in wrong results!")
                 obj.dependencies[i] = curr
     return [*built_so_far, *external_reprs.values()]
+
+def _add_one_external_representation_list(built_so_far: list[Representation], external_path: str, compute_params: dict,
+                                          learned_params: dict, io_params: dict) -> list[Representation]:
+    assert isinstance(learned_params, dict) and isinstance(compute_params, dict) and isinstance(io_params, dict)
+    path, fn = external_path.split(":")
+    external_reprs: dict[str, Representation] = getattr(imp.load_source("external", path), fn)()
+    assert isinstance(external_reprs, dict) and len(external_reprs) > 0, (external_path, external_reprs)
+    logger.info(f"Adding {list(external_reprs)} from {path}")
+    return _add_external_representations_dict(built_so_far, external_reprs, compute_params, learned_params, io_params)
