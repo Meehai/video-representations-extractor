@@ -3,15 +3,20 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to nwgraph's documentation!
+Video Representations Extractor (VRE) documentation
 ===================================
 
+.. image:: imgs/logo.png
+  :width: 1000
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Basics
 
-   basics/welcome
+   basics/introduction
+   basics/architecture-and-design
+   basics/cli-tools
+   basics/vre-repository
 
 .. toctree::
    :maxdepth: 2
@@ -24,6 +29,7 @@ Welcome to nwgraph's documentation!
    :caption: Docstring
 
    docstring/vre
+   docstring_vre_repository/vre_repository
 
 .. toctree::
    :maxdepth: 2
