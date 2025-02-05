@@ -1,4 +1,4 @@
-# Welcome to VRE
+# VRE basic concepts
 
 Hopefully this works nicely.
 
