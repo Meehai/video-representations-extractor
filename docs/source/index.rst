@@ -13,7 +13,10 @@ Video Representations Extractor (VRE) documentation
    :maxdepth: 2
    :caption: Basics
 
-   basics/basic-concepts
+   basics/introduction
+   basics/architecture-and-design
+   basics/cli-tools
+   basics/vre-repository
 
 .. toctree::
    :maxdepth: 2
