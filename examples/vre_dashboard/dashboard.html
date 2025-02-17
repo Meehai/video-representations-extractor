@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Progress Dashboard</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 10px; overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }
+    th, td { border: 1px solid #ddd; padding: 6px; text-align: center; white-space: nowrap; max-width: 80px; overflow: hidden; text-overflow: ellipsis; }
+    th { background-color: #f4f4f4; position: sticky; top: 0; }
+    .progress-box { padding: 6px; color: white; font-weight: bold; }
+    .scene-cell, .rep-cell { max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    
+    @media screen and (max-width: 768px) {
+      table { font-size: 10px; }
+      th, td { padding: 4px; max-width: 60px; }
+      .scene-cell, .rep-cell { max-width: 60px; }
+    }
+  </style>
+</head>
+<body>
+  <h1>Progress Dashboard</h1>
+  <div style="overflow-x: auto;">
+    <table id="progressTable"></table>
+  </div>
+
+  <script>
+    async function fetchData() {
+      try {
+        const response = await fetch('data.json');  // Fetch the JSON file
+        if (!response.ok) throw new Error('Failed to load JSON');
+        const jsonData = await response.json();
+        updateTable(jsonData);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
+    }
+
+    function updateTable(jsonData) {
+      const table = document.getElementById('progressTable');
+      table.innerHTML = '';
+
+      // Extract scene names and representation keys
+      const scenes = Object.keys(jsonData);
+      const representations = new Set();
+      scenes.forEach(scene => {
+        Object.keys(jsonData[scene]).forEach(rep => representations.add(rep));
+      });
+      const repArray = Array.from(representations);
+
+      // Create header row
+      let headerRow = '<tr><th class="scene-cell" title="Scene">Scene</th>';
+      repArray.forEach(rep => { 
+        headerRow += `<th class="rep-cell" title="${rep}">${rep}</th>`; 
+      });
+      headerRow += '</tr>';
+      table.innerHTML += headerRow;
+
+      // Populate table rows
+      scenes.forEach(scene => {
+        let row = `<tr><td class="scene-cell" title="${scene}">${scene}</td>`;
+        const totalFrames = jsonData[scene]['rgb'];
+        repArray.forEach(rep => {
+          const count = jsonData[scene][rep] || 0;
+          const percentage = totalFrames ? Math.round((count / totalFrames) * 100) : 0;
+          let cellText = '';
+          let bgColor = '';
+
+          // Uniform dark green for `rgb`, color gradient for others
+          if (rep === 'rgb') {
+            cellText = count;
+            bgColor = 'rgb(0, 100, 0)'; // Dark green
+          } else {
+            cellText = `${percentage}%`;
+
+            // Diverse color scale
+            if (percentage === 0) {
+              bgColor = 'rgb(150, 0, 0)'; // Dark red
+            } else if (percentage <= 25) {
+              bgColor = 'rgb(255, 85, 0)'; // Bright red-orange
+            } else if (percentage <= 50) {
+              bgColor = 'rgb(255, 165, 0)'; // Orange
+            } else if (percentage <= 75) {
+              bgColor = 'rgb(0, 100, 255)'; // Blue
+            } else if (percentage <= 90) {
+              bgColor = 'rgb(0, 180, 100)'; // Teal-green
+            } else if (percentage <= 99) {
+              bgColor = 'rgb(0, 220, 50)'; // Light green
+            } else {
+              bgColor = 'rgb(0, 100, 0)'; // Dark green (100%)
+            }
+          }
+
+          row += `<td class="progress-box" style="background-color: ${bgColor}" title="${count}">${cellText}</td>`;
+        });
+        row += '</tr>';
+        table.innerHTML += row;
+      });
+    }
+
+    // Auto-fetch data every second
+    setInterval(fetchData, 1000);
+    fetchData();  // Load data immediately on page load
+  </script>
+</body>
+</html>
