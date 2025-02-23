@@ -263,7 +263,8 @@ class MultiTaskDataset(Dataset):
         all_repr_dirs: list[str] = [x.name for x in self.path.iterdir() if x.is_dir() and not x.name.startswith(".")]
         for repr_dir_name in all_repr_dirs:
             dir_name = self.path / repr_dir_name
-            if all(f.is_dir() for f in dir_name.iterdir()): # dataset is stored as repr/part_x/0.npz, ..., part_k/n.npz
+            files_in_dir = [x for x in dir_name.iterdir() if not x.name.startswith(".")]
+            if all(f.is_dir() for f in files_in_dir): # dataset is stored as repr/part_x/0.npz, ..., part_k/n.npz
                 all_files = []
                 for part in dir_name.iterdir():
                     all_files.extend(part.glob(f"*.{self.suffix}"))
