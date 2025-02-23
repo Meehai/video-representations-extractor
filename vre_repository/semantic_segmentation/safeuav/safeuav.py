@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """SafeUAV semanetic segmentation representation"""
 import sys
 from pathlib import Path
@@ -24,7 +25,6 @@ class SafeUAV(SemanticRepresentation, LearnedRepresentationMixin, ComputeReprese
         LearnedRepresentationMixin.__init__(self)
         ComputeRepresentationMixin.__init__(self)
         self.variant = variant
-        assert variant in ("model_1M", "model_4M", "model_430k", "testing"), variant
         color_map = [[0, 255, 0], [0, 127, 0], [255, 255, 0], [255, 255, 255],
                      [255, 0, 0], [0, 0, 255], [0, 255, 255], [127, 127, 63]]
         classes = ["land", "forest", "residential", "road", "little-objects", "water", "sky", "hill"]
@@ -92,7 +92,13 @@ class SafeUAV(SemanticRepresentation, LearnedRepresentationMixin, ComputeReprese
             }
         else:
             assert load_weights is True, load_weights
-            ckpt = tr.load(fetch_weights(SafeUAV.weights_repository_links(variant=self.variant))[0], map_location="cpu")
+            if self.variant not in (variants := ("model_1M", "model_4M", "model_430k", "testing")):
+                logger.warning(f"'{self.variant}' not in {variants}. Most likely a ckpt path.")
+                assert Path(self.variant).exists(), self.variant
+                ckpt = tr.load(self.variant, map_location="cpu")
+            else:
+                weights = fetch_weights(SafeUAV.weights_repository_links(variant=self.variant))[0]
+                ckpt = tr.load(weights, map_location="cpu")
             self.cfg = ckpt["hyper_parameters"]["cfg"]
             self.statistics = ckpt["hyper_parameters"]["statistics"]
             self.model = Model(**self.cfg["model"]["parameters"])
@@ -113,13 +119,15 @@ class SafeUAV(SemanticRepresentation, LearnedRepresentationMixin, ComputeReprese
         self.setup_called = False
 
 if __name__ == "__main__":
+    assert len(sys.argv) in (3, 4), ("Usage: python safeuav.py /path/to/img.png {model_430k/model_1M/model_4M/"
+                                     "path_to_ckpt} [out_path]")
     img = image_read(sys.argv[1])
-    assert len(sys.argv) == 3, "Usage: python safeuav.py /path/to/img.png [model_430k/model_1M/model_4M]"
     model = SafeUAV(name="safeuav", disk_data_argmax=True, variant=sys.argv[2])
     model.vre_setup(load_weights=True)
 
     model.compute(img[None], [0])
     res_img = model.make_images(model.data)[0]
-    out_path = Path(__file__).parent / f"{Path(sys.argv[1]).stem}.png"
+    out_path = Path(sys.argv[1]).parent / f"{Path(sys.argv[1]).stem}_res{Path(sys.argv[1]).suffix}"
+    out_path = out_path if len(sys.argv) == 3 else sys.argv[3]
     image_write(res_img, out_path)
     logger.info(f"Stored prediction at '{out_path}'")
