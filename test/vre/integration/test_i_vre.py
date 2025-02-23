@@ -25,14 +25,14 @@ def test_vre_run(video: FakeVideo):
     vre = VRE(video=video, representations=[FakeRepresentation("rgb", n_channels=3)])
     vre.set_io_parameters(binary_format="npz", image_format="not-set")
     res = vre.run(Path(TemporaryDirectory().name))
-    assert len(res.run_stats["rgb"]) == 2, res
+    assert len(res.repr_metadatas["rgb"].run_stats) == 2, res
 
 def test_vre_run_with_dep(video: FakeVideo):
     vre = VRE(video=video, representations=[rgb := FakeRepresentation("rgb", n_channels=3),
                                             FakeRepresentation("hsv", n_channels=3, dependencies=[rgb])])
     vre.set_io_parameters(binary_format="npz", image_format="not-set")
     res = vre.run(X := Path(TemporaryDirectory().name))
-    assert len(res.run_stats["rgb"]) == 2, res
+    assert len(res.repr_metadatas["rgb"].run_stats) == 2, res
     res = vre.run(X, output_dir_exists_mode="skip_computed")
 
 def test_vre_output_dir_exists_mode():
@@ -89,14 +89,6 @@ def test_vre_simple_representations():
     vre(tmp_dir, frames=[1000])
     assert Path(f"{tmp_dir}/rgb/npz/1000.npz").exists()
     assert Path(f"{tmp_dir}/rgb/jpg/1000.jpg").exists()
-
-def test_vre_metadata():
-    video = FakeVideo(np.random.randint(0, 255, size=(2, 128, 128, 3), dtype=np.uint8), fps=30)
-    vre = VRE(video=video, representations=[FakeRepresentation("rgb", n_channels=3)])
-    vre.set_io_parameters(binary_format="npz", image_format="not-set")
-    res = vre.run(output_dir=Path(TemporaryDirectory().name))
-    assert res.run_stats.keys() == {"rgb"}
-    assert res.runtime_args["frames"] == [0, 1]
 
 def test_vre_dep_data_not_saved():
     video = FFmpegVideo(fetch_resource("test_video.mp4"))

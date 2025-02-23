@@ -32,6 +32,7 @@ class DataWriter:
         assert self.rep.binary_format is not None or self.rep.image_format is not None, f"One must be set: {self.rep}"
         self.output_dir = output_dir
         self.output_dir_exists_mode = output_dir_exists_mode
+        self.rep_out_dir = self.output_dir / self.rep.name
         self._make_dirs()
 
     def write(self, y_repr: ReprOut):
@@ -50,7 +51,7 @@ class DataWriter:
         for i, t in enumerate(y_repr.key):
             if self.rep.export_binary:
                 ext = self.rep.binary_format.value
-                if (bin_path := self.output_dir / self.rep.name / ext / f"{t}.{ext}").exists():
+                if (bin_path := self.rep_out_dir / ext / f"{t}.{ext}").exists():
                     logger.warning(f"[{self.rep}] '{bin_path}' already exists. Overwriting.")
                 disk_fmt = self.rep.memory_to_disk_fmt(y_repr.output[i])
                 if disk_fmt.dtype != self.rep.output_dtype:
@@ -62,14 +63,14 @@ class DataWriter:
 
             if self.rep.export_image:
                 ext = self.rep.image_format.value
-                if (img_path := self.output_dir / self.rep.name / ext / f"{t}.{ext}").exists():
+                if (img_path := self.rep_out_dir / ext / f"{t}.{ext}").exists():
                     logger.warning(f"[{self.rep}] '{img_path}' already exists. Overwriting.")
                 image_write(y_repr.output_images[i], img_path)
 
     def all_batch_exists(self, frames: list[int]) -> bool:
         """true if all batch [l:r] exists on the disk"""
         def _path(writer: DataWriter, t: int, suffix: str) -> Path:
-            return writer.output_dir / writer.rep.name / suffix / f"{t}.{suffix}"
+            return writer.rep_out_dir / suffix / f"{t}.{suffix}"
         assert all(isinstance(frame, int) and frame >= 0 for frame in frames), (frames, self.rep)
         assert self.rep.export_binary or self.rep.export_image, self.rep
         for ix in frames:

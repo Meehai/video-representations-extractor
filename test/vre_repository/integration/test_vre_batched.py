@@ -144,14 +144,14 @@ representations:
 
     vre = VRE(video, chosen)
     vre.set_compute_params(batch_size=1).set_io_parameters(binary_format="npz", image_format="png", compress=True)
-    took1 = vre.run(tmp_dir_bs, frames=list(range(start_frame, end_frame)), output_dir_exists_mode="raise")
+    run_meta = vre.run(tmp_dir_bs, frames=list(range(start_frame, end_frame)), output_dir_exists_mode="raise")
     vre.set_compute_params(batch_size=batch_size)
-    took_bs = vre(tmp_dir, frames=list(range(start_frame, end_frame)), output_dir_exists_mode="raise")
+    run_meta_bs = vre(tmp_dir, frames=list(range(start_frame, end_frame)), output_dir_exists_mode="raise")
 
-    unbatched = np.array(list(took1.run_stats.values())).mean(axis=1)
-    batched = np.array(list(took_bs.run_stats.values())).mean(axis=1)
+    unbatched = np.array(list(run_meta_bs.run_stats.values())).mean(axis=1)
+    batched = np.array(list(run_meta_bs.run_stats.values())).mean(axis=1)
     total_u, total_b = (end_frame - start_frame) * unbatched.sum(), (end_frame - start_frame) * batched.sum()
-    keys = list(took1.run_stats.keys())
+    keys = list(run_meta.run_stats.keys())
     for k, u, b in zip(keys, unbatched, batched):
         logger.info(f"{k}: {u:.2f} vs {b:.2f} ({u / b:.2f})")
     logger.info(f"Total: {total_u:.2f} vs {total_b:.2f} ({total_u / total_b:.2f})")

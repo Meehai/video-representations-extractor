@@ -28,7 +28,7 @@ class VRERuntimeArgs:
         assert 0 <= frames[0] <= frames[-1] < len(video), f"{frames[0]=}, {frames[-1]=}, {len(video)=}"
 
         self.video = video
-        self.frames = frames
+        self.frames: list[int] = frames
         self.exception_mode = exception_mode
         self.representations = representations
         self.representation_names = [r.name for r in representations]
