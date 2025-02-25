@@ -11,7 +11,7 @@ class FFmpegVideo(VREVideo):
     """FFmpegVideo -- reads data from a video using ffmpeg"""
     def __init__(self, path: Path, cache_len: int = 30):
         super().__init__()
-        self.path = Path(path)
+        self.path = self._build_path(path)
         assert self.path.exists(), f"Video '{self.path}' doesn't exist"
         self.probe = ffmpeg.probe(self.path)
         self.stream_info = next((stream for stream in self.probe["streams"] if stream["codec_type"] == "video"), None)
@@ -60,6 +60,17 @@ class FFmpegVideo(VREVideo):
             self.write_process.wait()
             self.write_process = None
 
+    def _build_path(self, path: str | Path) -> Path:
+        """Builds the path. Can also be a youtube video, not just a local path, but yt_dlp must be installed"""
+        if path.startswith("http") and path.find("youtube") != -1:
+            from yt_dlp import YoutubeDL # pylint: disable=import-outside-toplevel
+            tmpfile = f"/tmp/{path}.mp4"
+            if not Path(tmpfile).exists():
+                with YoutubeDL({'format': 'bv*', 'outtmpl': tmpfile}) as ydl:
+                    ydl.download([path])
+            path = tmpfile
+        return Path(path)
+
     def _build_total_frames(self) -> int:
         """returns the number of frames of the vifdeo"""
         if "nb_frames" in self.stream_info:
@@ -73,7 +84,6 @@ class FFmpegVideo(VREVideo):
             if "duration" in self.stream_info:
                 duration_s = float(self.stream_info["duration"])
                 return int(duration_s * self.fps)
-        breakpoint()
         raise ValueError(f"Unknown video format. Stream info from ffmpeg: {self.stream_info}")
 
     def _start_ffmpeg_process(self, start_time):
