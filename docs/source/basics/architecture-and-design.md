@@ -6,8 +6,10 @@ The purpose of this repository is to execute the following very simple pseudo-co
 
 ```python
 videos = ["1.mp4", "2.mkv"]
+representations = ["rgb", "hsv", "camera_normals(depth)", "depth", "semantic_segmentation"]
 for video in videos: # this loop is handled by the user
-  for representation in topo_sort(representations): # rgb, hsv, depth, camera normals etc.
+  tsr = topo_sort(representations) # [{"level 1": [rgb, hsv, depth, semantic_segmentation], "level 2": [camera_normals(depth)]}
+  for representation in tsr:
      for frame in frames(video):
        y_repr = representation(video, frame)
        store_to_disk(y_repr, output_dir / representation / frame)
@@ -15,7 +17,7 @@ for video in videos: # this loop is handled by the user
 
 - The `for video in videos` must be handled by the user, i.e. the VRE tool operates on a single video at a time.
 - The `topo_sort(representations)` is defined via dependencies, as some representations (i.e. camera normals) may require others
-to be pre-computed (depth).
+to be pre-computed (depth) and available to be loaded from disk.
 - The `for frame in frames(video)` is batched in VRE. Each representation can define it's own batch size for efficiency. Furthermore, the batches may be completely skipped if they are already pre-computed (i.e. present on the disk)
 - The `store_to_disk()` part can also be configurable (npy, npz, npz+compression, png, etc.)
 
