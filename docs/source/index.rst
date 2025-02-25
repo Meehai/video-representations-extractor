@@ -6,14 +6,14 @@
 Video Representations Extractor (VRE) documentation
 ===================================
 
-.. image:: imgs/logo.png
+.. image:: _static/logo.png
   :width: 1000
 
 .. toctree::
    :maxdepth: 1
    :caption: Basics
 
-   basics/introduction
+   basics/introduction-and-installation
    basics/architecture-and-design
    basics/cli-tools
    basics/vre-repository

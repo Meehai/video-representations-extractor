@@ -8,7 +8,7 @@ The purpose of this tool is to export various representations starting from RGB 
 ## Installation
 
 ### 2.1 Google Colab
-Here's is a recent google colab run: [link](https://colab.research.google.com/drive/1vAp71H-TLewhF56odv33TkmGwwhuoFJ-?usp=sharing)
+Here's a recent google colab run: [link](https://colab.research.google.com/drive/1vAp71H-TLewhF56odv33TkmGwwhuoFJ-?usp=sharing)
 that is based in [this examples notebook](examples/semantic_mapper/semantic_mapper.ipynb).
 
 ### 2.2 Local installation: Pip (recommended)

@@ -1,5 +1,30 @@
 # VRE basic concepts
 
+## High level
+
+The purpose of this repository is to execute the following very simple pseudo-code reliably and hopefully efficient:
+
+```python
+videos = ["1.mp4", "2.mkv"]
+for video in videos: # this loop is handled by the user
+  for representation in topo_sort(representations): # rgb, hsv, depth, camera normals etc.
+     for frame in frames(video):
+       y_repr = representation(video, frame)
+       store_to_disk(y_repr, output_dir / representation / frame)
+```
+
+- The `for video in videos` must be handled by the user, i.e. the VRE tool operates on a single video at a time.
+- The `topo_sort(representations)` is defined via dependencies, as some representations (i.e. camera normals) may require others
+to be pre-computed (depth).
+- The `for frame in frames(video)` is batched in VRE. Each representation can define it's own batch size for efficiency. Furthermore, the batches may be completely skipped if they are already pre-computed (i.e. present on the disk)
+- The `store_to_disk()` part can also be configurable (npy, npz, npz+compression, png, etc.)
+
+The tool is designed to be single processing at the moment, so in case you are lucky to have access to more than 1 GPU, you can optimize your load in two ways:
+- if you have >1 video, use 1 video per GPU
+- if you have more GPUs available, you can specify subsets of representations via the `--representations` flag manually pointing to the same `output_dir` as a subdir will be created for each reprsentation (see pseudo-code)
+- otherwise, if you have a single reprsentation you want to compute and a single video, you can divide the frames yourself via `--frames` which accepts a list of frames or a `start..end` syntax.
+- There is some work in progress to allow some automatic multi-processing scheduling (i.e. divide the video in 4 if you have 4 GPUs or divide the representations w.r.t the topo sort automatically or both). But for the moment, this part must be done by hand.
+
 ## Config file
 
 The config file will have the hyperparameters required to instantiate each supported method as well as global
