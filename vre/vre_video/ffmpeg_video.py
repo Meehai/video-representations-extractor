@@ -70,6 +70,10 @@ class FFmpegVideo(VREVideo):
                 h, m, s = [float(x) for x in duration_str.split(":")]
                 duration_s = h * 60 * 60 + m * 60 + s
                 return int(duration_s * self.fps)
+            if "duration" in self.stream_info:
+                duration_s = float(self.stream_info["duration"])
+                return int(duration_s * self.fps)
+        breakpoint()
         raise ValueError(f"Unknown video format. Stream info from ffmpeg: {self.stream_info}")
 
     def _start_ffmpeg_process(self, start_time):
