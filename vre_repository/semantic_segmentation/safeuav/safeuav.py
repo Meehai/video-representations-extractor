@@ -92,7 +92,7 @@ class SafeUAV(SemanticRepresentation, LearnedRepresentationMixin, ComputeReprese
             }
         else:
             assert load_weights is True, load_weights
-            if self.variant not in (variants := ("model_1M", "model_4M", "model_430k", "testing")):
+            if self.variant not in (variants := ("model_1M", "model_4M", "model_430k", "model_150k", "testing")):
                 logger.warning(f"'{self.variant}' not in {variants}. Most likely a ckpt path.")
                 assert Path(self.variant).exists(), self.variant
                 ckpt = tr.load(self.variant, map_location="cpu")
