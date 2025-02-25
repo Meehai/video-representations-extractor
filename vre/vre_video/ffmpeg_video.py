@@ -62,7 +62,7 @@ class FFmpegVideo(VREVideo):
 
     def _build_path(self, path: str | Path) -> Path:
         """Builds the path. Can also be a youtube video, not just a local path, but yt_dlp must be installed"""
-        if path.startswith("http") and path.find("youtube") != -1:
+        if path.startswith("http") and (path.find("youtube") != -1 or path.find("youtu.be") != -1):
             from yt_dlp import YoutubeDL # pylint: disable=import-outside-toplevel
             tmpfile = f"/tmp/{path}.mp4"
             if not Path(tmpfile).exists():
@@ -75,14 +75,14 @@ class FFmpegVideo(VREVideo):
         """returns the number of frames of the vifdeo"""
         if "nb_frames" in self.stream_info:
             return int(float(self.stream_info["nb_frames"]))
+        if "duration" in self.stream_info:
+            duration_s = float(self.stream_info["duration"])
+            return int(duration_s * self.fps)
         if "codec_name" in self.stream_info and self.stream_info["codec_name"] == "h264":
             if "tags" in self.stream_info and "DURATION" in self.stream_info["tags"]:
                 duration_str = self.stream_info["tags"]["DURATION"]
                 h, m, s = [float(x) for x in duration_str.split(":")]
                 duration_s = h * 60 * 60 + m * 60 + s
-                return int(duration_s * self.fps)
-            if "duration" in self.stream_info:
-                duration_s = float(self.stream_info["duration"])
                 return int(duration_s * self.fps)
         raise ValueError(f"Unknown video format. Stream info from ffmpeg: {self.stream_info}")
 
