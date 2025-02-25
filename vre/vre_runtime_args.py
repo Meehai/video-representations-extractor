@@ -20,7 +20,7 @@ class VRERuntimeArgs:
     - n_threads_data_storer The number of threads used by the DataStorer
     """
     def __init__(self, video: VREVideo, representations: list[Representation], frames: list[str] | None,
-                 exception_mode: str, n_threads_data_storer: int, store_metadata_every_n_iters: int = 10):
+                 exception_mode: str, n_threads_data_storer: int):
         assert all(isinstance(r, Representation) for r in representations), representations
         assert exception_mode in ("stop_execution", "skip_representation"), exception_mode
         frames = sorted(list(range(len(video))) if frames is None else frames)
@@ -33,7 +33,6 @@ class VRERuntimeArgs:
         self.representations = representations
         self.representation_names = [r.name for r in representations]
         self.n_threads_data_storer = n_threads_data_storer
-        self.store_metadata_every_n_iters = store_metadata_every_n_iters
 
     @property
     def n_frames(self) -> int:

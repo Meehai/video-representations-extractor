@@ -148,8 +148,8 @@ representations:
     vre.set_compute_params(batch_size=batch_size)
     run_meta_bs = vre(tmp_dir, frames=list(range(start_frame, end_frame)), output_dir_exists_mode="raise")
 
-    unbatched = np.array(list(run_meta_bs.run_stats.values())).mean(axis=1)
-    batched = np.array(list(run_meta_bs.run_stats.values())).mean(axis=1)
+    unbatched = np.array([list(x.values()) for x in run_meta.run_stats.values()]).mean(axis=1)
+    batched = np.array([list(x.values()) for x in run_meta_bs.run_stats.values()]).mean(axis=1)
     total_u, total_b = (end_frame - start_frame) * unbatched.sum(), (end_frame - start_frame) * batched.sum()
     keys = list(run_meta.run_stats.keys())
     for k, u, b in zip(keys, unbatched, batched):
