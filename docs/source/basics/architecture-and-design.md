@@ -8,7 +8,7 @@ The purpose of this repository is to execute the following very simple pseudo-co
 videos = ["1.mp4", "2.mkv"]
 representations = ["rgb", "hsv", "camera_normals(depth)", "depth", "semantic_segmentation"]
 for video in videos: # this loop is handled by the user
-  tsr = topo_sort(representations) # [{"level 1": [rgb, hsv, depth, semantic_segmentation], "level 2": [camera_normals(depth)]}
+  tsr = topo_sort(representations) # { "level_1": [ rgb, hsv, depth, semantic_segmentation ], "level_2": [ camera_normals(depth) ] }
   for representation in tsr:
      for frame in frames(video):
        y_repr = representation(video, frame)
