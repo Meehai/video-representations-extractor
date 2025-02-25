@@ -142,21 +142,20 @@ class VideoRepresentationsExtractor:
         data_storer = DataStorer(data_writer=data_writer, n_threads=runtime_args.n_threads_data_storer)
         logger.info(f"Running:\n{representation}\n{data_storer}")
         rep: Representation | ComputeRepresentationMixin | IORepresentationMixin = representation
-        repr_metadata = RepresentationMetadata(representation.name, data_writer.rep_out_dir / ".repr_metadata.json",
-                                               frames=runtime_args.frames, data_writer_meta=data_writer.to_dict())
+        repr_metadata = RepresentationMetadata(repr_name=representation.name,
+                                               disk_location=data_writer.rep_out_dir / ".repr_metadata.json",
+                                               frames=list(range(len(self.video))),
+                                               data_writer_meta=data_writer.to_dict())
         rep.output_size = self.video.frame_shape[0:2] if rep.output_size == "video_shape" else rep.output_size
 
-        batches = make_batches(runtime_args.frames, rep.batch_size)
-        pbar = tqdm(total=runtime_args.n_frames, desc=f"[VRE] {rep.name} bs={rep.batch_size}")
-        for i, batch in enumerate(batches):
-            if i % runtime_args.store_metadata_every_n_iters == 0:
-                repr_metadata.store_on_disk()
-
+        relevant_frames = [f for f in runtime_args.frames if f not in map(int, repr_metadata.frames_computed)]
+        logger.debug(f"Out of {len(runtime_args.frames)} total frames, {runtime_args.n_frames - len(relevant_frames)}"
+                     " are precomputed and will be skipped.")
+        batches = make_batches(relevant_frames, rep.batch_size)
+        pbar = tqdm(total=len(relevant_frames), desc=f"[VRE] {rep.name} bs={rep.batch_size}")
+        for batch in batches:
             now = datetime.now()
-            # TODO: make it that batches aren't even added to the list if this is the case and load existing repr.
-            # In the current form the old timings (when they were computed) are overwritten. SAD.
             if data_writer.all_batch_exists(batch):
-                repr_metadata.add_time((datetime.now() - now).total_seconds(), batch)
                 pbar.update(len(batch))
                 continue
 

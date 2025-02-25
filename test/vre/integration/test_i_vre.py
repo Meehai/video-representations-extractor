@@ -100,4 +100,4 @@ def test_vre_dep_data_not_saved():
     assert not (tmp_dir / "dpt").exists()
 
 if __name__ == "__main__":
-    test_vre_output_shape()
+    test_vre_output_dir_exists_mode()

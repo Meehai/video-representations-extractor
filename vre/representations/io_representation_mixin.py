@@ -107,7 +107,7 @@ class IORepresentationMixin(ABC):
     def output_size(self) -> str | tuple[int, int]:
         """Returns the output size as a tuple/string or None if it's not explicitly set"""
         if self._output_size is None:
-            logger.warning(f"[{self}] No output_size set, returning 'video_shape'. Call set_compute_params")
+            logger.warning(f"[{self}] No output_size set, returning 'video_shape'. Call set_io_params")
             return "video_shape"
         return self._output_size
 

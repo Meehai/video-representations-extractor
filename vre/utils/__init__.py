@@ -8,3 +8,4 @@ from .resources import fetch_resource
 from .colorizer import colorize_depth, colorize_semantic_segmentation, colorize_optical_flow
 from .lovely import lo, monkey_patch
 from .repr_memory_layout import ReprOut, MemoryData, DiskData
+from .atomic_open import AtomicOpen

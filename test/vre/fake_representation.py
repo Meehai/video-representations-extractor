@@ -14,7 +14,7 @@ class FakeRepresentation(Representation, ComputeRepresentationMixin, NpIOReprese
         Representation.__init__(self, *args, **kwargs)
         ComputeRepresentationMixin.__init__(self)
         NpIORepresentation.__init__(self)
-        if self.dependencies != 0:
+        if len(self.dependencies) != 0:
             logger.warning(f"{self} has {len(self.dependencies)} dependencies. Usually it's supposed to be 0")
         self._n_channels = n_channels
         self.output_dtype = output_dtype
