@@ -34,6 +34,7 @@ class SafeUAV(SemanticRepresentation, LearnedRepresentationMixin, ComputeReprese
         self.cfg: dict | None = None
         self.statistics: dict[str, list[float]] | None = None
         self.output_dtype = "uint8" if disk_data_argmax else "float16"
+        self._mean, self._std = None, None
 
     @property
     @overrides
@@ -48,8 +49,7 @@ class SafeUAV(SemanticRepresentation, LearnedRepresentationMixin, ComputeReprese
         rgb_pos = self.cfg["data"]["parameters"]["task_names"].index("rgb")
         x = tr.zeros(len(ixs), self.model.encoder.d_in, h, w, device=self.device)
         tr_rgb = F.interpolate(tr.from_numpy(video[ixs]).permute(0, 3, 1, 2).to(self.device), size=(h, w))
-        mean, std = self.statistics["rgb"][2:4]
-        tr_rgb = (tr_rgb - tr.Tensor(mean).reshape(1, 3, 1, 1)) / tr.Tensor(std).reshape(1, 3, 1, 1)
+        tr_rgb = (tr_rgb - self._mean) / self._std
         x[:, cumsum[rgb_pos]: cumsum[rgb_pos+1] ] = tr_rgb
 
         with tr.no_grad():
@@ -104,6 +104,8 @@ class SafeUAV(SemanticRepresentation, LearnedRepresentationMixin, ComputeReprese
             self.model = Model(**self.cfg["model"]["parameters"])
             self.model.load_state_dict(ckpt["state_dict"])
 
+        self._mean = tr.Tensor(self.statistics["rgb"][2]).reshape(1, 3, 1, 1).to(self.device)
+        self._std = tr.Tensor(self.statistics["rgb"][3]).reshape(1, 3, 1, 1).to(self.device)
         self.model = self.model.eval().to(self.device)
         self.setup_called = True
 
@@ -117,6 +119,7 @@ class SafeUAV(SemanticRepresentation, LearnedRepresentationMixin, ComputeReprese
         self.cfg = None
         self.statistics = None
         self.setup_called = False
+        self._mean, self._std = None, None
 
 if __name__ == "__main__":
     assert len(sys.argv) in (3, 4), ("Usage: python safeuav.py /path/to/img.png {model_430k/model_1M/model_4M/"
