@@ -62,8 +62,8 @@ class FFmpegVideo(VREVideo):
 
     def _build_path(self, path: str | Path) -> Path:
         """Builds the path. Can also be a youtube video, not just a local path, but yt_dlp must be installed"""
-        if path.startswith("http") and (path.find("youtube") != -1 or path.find("youtu.be") != -1):
-            from yt_dlp import YoutubeDL # pylint: disable=import-outside-toplevel
+        if (s_path := str(path)).startswith("http") and (s_path.find("youtube") != -1 or s_path.find("youtu.be") != -1):
+            from yt_dlp import YoutubeDL # pylint: disable=import-outside-toplevel, import-error
             tmpfile = f"/tmp/{path}.mp4"
             if not Path(tmpfile).exists():
                 with YoutubeDL({'format': 'bv*', 'outtmpl': tmpfile}) as ydl:
