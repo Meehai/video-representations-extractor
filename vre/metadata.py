@@ -84,7 +84,7 @@ class RepresentationMetadata:
     @property
     def frames_computed(self) -> list[str]:
         """returns the list of comptued frames so far"""
-        return [v for v in self.run_stats.values() if v is not None or v != 1<<31]
+        return [v for v in self.run_stats.values() if v is not None or v != 1<<31] # TODO: test
 
     def add_time(self, duration: float, frames: list[int]):
         """adds a (batched) time to the representation's run_stats"""
@@ -92,7 +92,7 @@ class RepresentationMetadata:
         data = [duration / batch_size] * batch_size
         for k, v in zip(map(str, frames), data): # make the frames strings due to json keys issue when storing/loading
             assert self.run_stats[k] is None or self.run_stats[k] == 1<<31, \
-                (self.repr_name, self.disk_location, f"frame={k}", self.run_stats[k])
+                (self.repr_name, self.disk_location, f"frame={k}", self.run_stats[k]) # TODO: test
             self.run_stats[k] = v
         self.store_on_disk()
 
@@ -111,7 +111,7 @@ class RepresentationMetadata:
                 for k, v in self.run_stats.items():
                     if loaded_json_data["run_stats"][k] is not None:
                         if v is not None: # make sure 2 processes didn't write the same frames.
-                            loaded = loaded_json_data["run_stats"][k]
+                            loaded = loaded_json_data["run_stats"][k] # TODO: test
                             assert loaded == v or loaded == 1 << 31, (k, v, loaded_json_data["run_stats"][k])
                         self.run_stats[k] = loaded_json_data["run_stats"][k]
 
