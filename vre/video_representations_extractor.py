@@ -83,7 +83,6 @@ class VideoRepresentationsExtractor:
             logger.info(f"Stored graphviz representation at: '{pth}.png'")
         except Exception as e:
             logger.error(e)
-            pass
 
         runtime_args = VRERuntimeArgs(self.video, self.representations, frames, exception_mode, n_threads_data_storer)
         logger.info(runtime_args)
