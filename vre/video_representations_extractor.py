@@ -81,8 +81,8 @@ class VideoRepresentationsExtractor:
         try:
             self.to_graphviz().render(pth := f"{output_dir}/.logs/graph-{now}", format="png", cleanup=True)
             logger.info(f"Stored graphviz representation at: '{pth}.png'")
-        except ImportError:
-            pass
+        except Exception as e:
+            logger.error(e)
 
         runtime_args = VRERuntimeArgs(self.video, self.representations, frames, exception_mode, n_threads_data_storer)
         logger.info(runtime_args)
