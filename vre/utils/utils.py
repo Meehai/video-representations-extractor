@@ -113,9 +113,12 @@ def array_blend(x: np.ndarray, y: np.ndarray, alpha: float | np.ndarray) -> np.n
 
 def make_batches(frames: list[int], batch_size: int) -> list[int]:
     """return 1D array [start_frame, start_frame+bs, start_frame+2*bs... end_frame]"""
+     # TODO test all the cases of this fn
     if batch_size > len(frames):
         logger.warning(f"batch size {batch_size} is larger than #frames to process {len(frames)}.")
         batch_size = len(frames)
+    if len(frames) == 0:
+        return []
     batches, n_batches = [], len(frames) // batch_size + (len(frames) % batch_size > 0)
     for i in range(n_batches):
         batches.append(frames[i * batch_size: (i + 1) * batch_size])

@@ -6,6 +6,7 @@ from pathlib import Path
 from pprint import pformat
 import numpy as np
 
+from .logger import vre_logger as logger
 from .utils import str_maxk, AtomicOpen
 from .vre_runtime_args import VRERuntimeArgs
 
@@ -42,17 +43,23 @@ class RunMetadata:
     def pretty_format(self) -> str:
         """returns a pretty formatted string of the metadata"""
         # make sure that each representation metadata computed only what we asked for
-        assert [(set(x.keys()) == set(map(str, self.runtime_args["frames"]))) for x in self.run_stats.values()], \
-            f"\n{self.run_stats}\n{self.runtime_args['frames']}"
-        vre_run_stats_np = np.array([list(x.values()) for x in self.run_stats.values()]).T.round(3)
-        vre_run_stats_np[abs(vre_run_stats_np - float(1<<31)) < 1e-2] = float("nan")
-        res = f"{'ix':<5}" + "|" + "|".join([f"{str_maxk(k, 20):<20}" for k in self.representations])
-        frames = self.runtime_args["frames"]
-        for frame in sorted(np.random.choice(frames, size=min(5, len(frames)), replace=False)):
-            ix = frames.index(frame)
-            res += "\n" + f"{frame:<5}" + "|" + "|".join([f"{str_maxk(str(v), 20):<20}" for v in vre_run_stats_np[ix]])
-        res += "\n" + f"\nTotal:\n{pformat(dict(zip(self.representations, vre_run_stats_np.sum(0).round(3))))}"
-        return res
+        if any((set(x.keys()) != set(map(str, self.runtime_args["frames"]))) for x in self.run_stats.values()):
+            logger.error(f"\n{self.run_stats}\n{self.runtime_args['frames']}")
+            return ""
+        try:
+            vre_run_stats_np = np.array([list(x.values()) for x in self.run_stats.values()]).T.round(3)
+            vre_run_stats_np[abs(vre_run_stats_np - float(1<<31)) < 1e-2] = float("nan")
+            res = f"{'ix':<5}" + "|" + "|".join([f"{str_maxk(k, 20):<20}" for k in self.representations])
+            frames = self.runtime_args["frames"]
+            for frame in sorted(np.random.choice(frames, size=min(5, len(frames)), replace=False)):
+                ix = frames.index(frame)
+                res += "\n" + f"{frame:<5}" + "|" + "|".join([f"{str_maxk(str(v), 20):<20}"
+                                                              for v in vre_run_stats_np[ix]])
+            res += "\n" + f"\nTotal:\n{pformat(dict(zip(self.representations, vre_run_stats_np.sum(0).round(3))))}"
+            return res
+        except Exception as e:
+            logger.error(e)
+            return ""
 
     def __repr__(self):
         return f"[Metadata] Num representations: {len(self.representations)}. Disk location: '{self.disk_location}'"
@@ -78,14 +85,15 @@ class RepresentationMetadata:
     @property
     def frames_computed(self) -> list[str]:
         """returns the list of comptued frames so far"""
-        return [v for v in self.run_stats.values() if v is not None]
+        return [k for k, v in self.run_stats.items() if v is not None and v != 1<<31] # TODO: test
 
     def add_time(self, duration: float, frames: list[int]):
         """adds a (batched) time to the representation's run_stats"""
         assert (batch_size := len(frames)) > 0, batch_size
         data = [duration / batch_size] * batch_size
         for k, v in zip(map(str, frames), data): # make the frames strings due to json keys issue when storing/loading
-            assert self.run_stats[k] is None, (self.repr_name, self.disk_location, f"frame={k}", self.run_stats[k])
+            assert self.run_stats[k] is None or self.run_stats[k] == 1<<31, \
+                (self.repr_name, self.disk_location, f"frame={k}", self.run_stats[k]) # TODO: test
             self.run_stats[k] = v
         self.store_on_disk()
 
@@ -104,7 +112,8 @@ class RepresentationMetadata:
                 for k, v in self.run_stats.items():
                     if loaded_json_data["run_stats"][k] is not None:
                         if v is not None: # make sure 2 processes didn't write the same frames.
-                            assert loaded_json_data["run_stats"][k] == v, (k, v, loaded_json_data["run_stats"][k])
+                            loaded = loaded_json_data["run_stats"][k] # TODO: test
+                            assert loaded in(v, 1<<31), (k, v, loaded_json_data["run_stats"][k])
                         self.run_stats[k] = loaded_json_data["run_stats"][k]
 
             fp.seek(0)
