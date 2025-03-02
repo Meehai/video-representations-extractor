@@ -85,7 +85,7 @@ class RepresentationMetadata:
     @property
     def frames_computed(self) -> list[str]:
         """returns the list of comptued frames so far"""
-        return [v for v in self.run_stats.values() if v is not None and v != 1<<31] # TODO: test
+        return [k for k, v in self.run_stats.items() if v is not None and v != 1<<31] # TODO: test
 
     def add_time(self, duration: float, frames: list[int]):
         """adds a (batched) time to the representation's run_stats"""
