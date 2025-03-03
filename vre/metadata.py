@@ -43,9 +43,11 @@ class RunMetadata:
     def pretty_format(self) -> str:
         """returns a pretty formatted string of the metadata"""
         # make sure that each representation metadata computed only what we asked for
-        if any((set(x.keys()) != set(map(str, self.runtime_args["frames"]))) for x in self.run_stats.values()):
-            logger.error(f"\n{self.run_stats}\n{self.runtime_args['frames']}")
-            return ""
+        for k, x in self.run_stats.items():
+            if not set(map(str, self.runtime_args["frames"])).issubset(x.keys()):
+                logger.error(f"\n{self.run_stats}\n{self.runtime_args['frames']}\nerror on {k}")
+                return ""
+
         try:
             vre_run_stats_np = np.array([list(x.values()) for x in self.run_stats.values()]).T.round(3)
             vre_run_stats_np[abs(vre_run_stats_np - float(1<<31)) < 1e-2] = float("nan")
@@ -110,10 +112,11 @@ class RepresentationMetadata:
                 assert (a := loaded_json_data["run_stats"].keys()) == (b := self.run_stats.keys()), f"\n- {a}\n- {b}"
                 assert (a := loaded_json_data["name"]) == (b := self.repr_name), f"\n- {a}\n- {b}"
                 for k, v in self.run_stats.items():
-                    if loaded_json_data["run_stats"][k] is not None:
-                        if v is not None: # make sure 2 processes didn't write the same frames.
-                            loaded = loaded_json_data["run_stats"][k] # TODO: test
-                            assert loaded in(v, 1<<31), (k, v, loaded_json_data["run_stats"][k])
+                    loaded_v = loaded_json_data["run_stats"][k]
+                    if loaded_v is not None and loaded_v != 1<<31:
+                        # make sure 2 processes didn't write the same frames.                     # TODO: test
+
+                        assert v == loaded_v or v is None, (k, v, loaded_v)
                         self.run_stats[k] = loaded_json_data["run_stats"][k]
 
             fp.seek(0)
