@@ -96,7 +96,5 @@ A script that tries to shard a single video across multiple gpus by dividing the
 Usage:
 
 ```bash
-vre_gpu_parallel --gpus 0 1 2 [--frames F1..FN] -- <all the other vre args>
+CUDA_VISIBLE_DEVICES 0,1,2,... vre_gpu_parallel [--frames F1..FN]  <all the other vre args>
 ```
-
-Note the `--` between `vre_gpu_parallel` args and the rest of the args to be sent to multiple `vre` instances.
