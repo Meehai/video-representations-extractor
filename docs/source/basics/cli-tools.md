@@ -5,18 +5,18 @@
 The main CLI tool used. Usage:
 
 ```bash
-vre \
-  VIDEO \
-  -o /path/to/output_dir \ # or --output_path
-  --config_path /path/to/config.yaml \
-  [--representations r1 r2 ] \
-  [--frames F1 F2 F5] or [--frames F1..F10] \
-  [--output_dir_exists_mode {overwrite,skip_computed,raise}] \
-  [--exception_mode {skip_representation,stop_execution}] \
-  [--n_threads_data_storer N] \
-  [-I f1.py:foo f2.py:foo2] # or --external_representations \
-  [-J f1.py:foo f2.py:foo2] # or --external_repositories \
-  [--make_vre_collage] \
+vre
+  VIDEO
+  -o /path/to/output_dir # or --output_path
+  --config_path /path/to/config.yaml
+  [--representations r1 r2 ]
+  [--frames F1 F2 F5] or [--frames F1..F10]
+  [--output_dir_exists_mode {overwrite,skip_computed,raise}]
+  [--exception_mode {skip_representation,stop_execution}]
+  [--n_threads_data_storer N]
+  [-I f1.py:foo f2.py:foo2] # or --external_representations
+  [-J f1.py:foo f2.py:foo2] # or --external_repositories
+  [--make_vre_collage]
   [--collage_fps] # if make_vre_collage is set
 ```
 
@@ -30,8 +30,14 @@ can later be turned into a video as well.
 
 Usage:
 ```bash
-vre_collage /path/to/output_dir --config_path /path/to/config.yaml -o /path/to/collage_dir
-[--overwrite] [--video] [--fps] [--output_resolution H W]
+vre_collage
+  /path/to/output_dir
+  --config_path /path/to/config.yaml
+  -o /path/to/collage_dir
+  [--overwrite]
+  [--video]
+  [--fps]
+  [--output_resolution H W]
 ```
 
 ```
@@ -53,8 +59,12 @@ The `vre_reader` tool can be used to iterate over the extracted vre dataset from
 
 Usage:
 ```bash
-vre_reader /path/to/output_dir --config_path /path/to/config.yaml --mode [MODE] [--batch_size B]
-[--handle_missing_data H]
+vre_reader
+  /path/to/output_dir
+  --config_path /path/to/config.yaml
+  --mode [MODE]
+  [--batch_size B]
+  [--handle_missing_data H]
 ```
 
 We have 2 choices for `--mode`:
@@ -86,5 +96,7 @@ A script that tries to shard a single video across multiple gpus by dividing the
 Usage:
 
 ```bash
-vre_gpu_parallel --gpus 0 1 2 <all the other vre args>
+vre_gpu_parallel --gpus 0 1 2 [--frames F1..FN] -- <all the other vre args>
 ```
+
+Note the `--` between `vre_gpu_parallel` args and the rest of the args to be sent to multiple `vre` instances.
