@@ -56,7 +56,7 @@ def main(args: Namespace):
         env_str = " ".join([f"{k}={v}" for k, v in env.items()])
         print(f"Executing command: {env_str} {' '.join(cmd)}")
         
-        process = subprocess.Popen(cmd, env=env)
+        process = subprocess.Popen(cmd, env={**os.environ.copy(), **env})
         processes.append(process)
 
     # Wait for all processes to complete
