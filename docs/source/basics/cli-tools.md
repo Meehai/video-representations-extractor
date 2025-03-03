@@ -2,7 +2,25 @@
 
 ## vre
 
-TODO
+The main CLI tool used. Usage:
+
+```bash
+vre \
+  VIDEO \
+  -o /path/to/output_dir \ # or --output_path
+  --config_path /path/to/config.yaml \
+  [--representations r1 r2 ] \
+  [--frames F1 F2 F5] or [--frames F1..F10] \
+  [--output_dir_exists_mode {overwrite,skip_computed,raise}] \
+  [--exception_mode {skip_representation,stop_execution}] \
+  [--n_threads_data_storer N] \
+  [-I f1.py:foo f2.py:foo2] # or --external_representations \
+  [-J f1.py:foo f2.py:foo2] # or --external_repositories \
+  [--make_vre_collage] \
+  [--collage_fps] # if make_vre_collage is set
+```
+
+Lots of optional arguments for sure, but we'll see examples later on.
 
 ## vre_collage
 
@@ -11,7 +29,7 @@ stacks them together in a single image. This is useful if we want to create a si
 can later be turned into a video as well.
 
 Usage:
-```
+```bash
 vre_collage /path/to/output_dir --config_path /path/to/config.yaml -o /path/to/collage_dir
 [--overwrite] [--video] [--fps] [--output_resolution H W]
 ```
@@ -34,16 +52,39 @@ ffmpeg -start_number 1 -framerate 30 -i %d.png -c:v libx264 -pix_fmt yuv420p /pa
 The `vre_reader` tool can be used to iterate over the extracted vre dataset from the provided output path.
 
 Usage:
-```
+```bash
 vre_reader /path/to/output_dir --config_path /path/to/config.yaml --mode [MODE] [--batch_size B]
 [--handle_missing_data H]
 ```
 
 We have 2 choices for `--mode`:
-- `read_one_batch` Reads a single batch at random using `torch.utils.data.DataLoader` and, after reading, it will invoke
-the plotting function (similar to `vre_collage`). It only prints the shapes.
+- `read_one_batch` Reads a single batch at random using `torch.utils.data.DataLoader` and, after reading, it will invoke the plotting function (similar to `vre_collage`). It only prints the shapes.
 - `iterate_all_data` Will iterate the entire dataset to see if the data is corrupted.
 
 Handle missing data is passed to the `MultiTaskDataset` dataset constructor and accepts all the choices from there.
 Defaults to 'raise' which will raise an exception if any representation has missing data (i.e. each xxx.npz must be
 present for all the representations).
+
+## vre_dir_analysis
+
+Generates a json file (printed to stdout) with the status of a VRE base dir. A VRE base dir contains one or more vre output dirs of 1 or more videos.
+
+So, for `base/vre_video_1` and `base/vre_video_2` you would get a dashboard of 2 rows and N representataons (outer join) of these two videos. Useful when working with more videos in parallel to keep a global track
+
+Usage:
+
+```bash
+vre_dir_analysis root_dir > res.json`
+```
+
+`root_dir` must be like: `[subdir1/[repr1,...,reprn], subdir2[], ... ]`
+
+## vre_gpu_parallel
+
+A script that tries to shard a single video across multiple gpus by dividing the frames equally as per the `--gpus` argument. The outputs are written to the same final VRE directory, so all the other arguments are sent to VRE. If `--frames` is sent to this script, then these frames are used to shard, otherwise the entire video.
+
+Usage:
+
+```bash
+vre_gpu_parallel --gpus 0 1 2 <all the other vre args>
+```
