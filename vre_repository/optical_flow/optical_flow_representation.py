@@ -6,6 +6,7 @@ from vre.representations import Representation, NpIORepresentation, NormedRepres
 from vre.vre_video import VREVideo
 
 def _get_delta_frames(video: VREVideo, ixs: list[int], delta: int) -> list[int]:
+    assert delta != 0, delta
     return [clip(ix + delta, 0, len(video) - 1) for ix in ixs]
 
 class OpticalFlowRepresentation(Representation, NpIORepresentation, NormedRepresentationMixin):
@@ -14,6 +15,7 @@ class OpticalFlowRepresentation(Representation, NpIORepresentation, NormedRepres
         Representation.__init__(self, name, **kwargs)
         NpIORepresentation.__init__(self)
         NormedRepresentationMixin.__init__(self)
+        assert isinstance(delta, int) and delta != 0, delta
         self.delta = delta
 
     @property
