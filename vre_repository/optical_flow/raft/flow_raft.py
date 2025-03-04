@@ -36,7 +36,7 @@ class FlowRaft(OpticalFlowRepresentation, LearnedRepresentationMixin, ComputeRep
     def compute(self, video: VREVideo, ixs: list[int]):
         assert self.data is None, f"[{self}] data must not be computed before calling this"
         frames = video[ixs]
-        right_frames = self._get_delta_frames(video, ixs)
+        right_frames = self.get_delta_frames(video, ixs)
         source, dest = self._preprocess(frames), self._preprocess(right_frames)
         tr.manual_seed(self.seed) if self.seed is not None else None
         with tr.no_grad():
@@ -93,8 +93,3 @@ class FlowRaft(OpticalFlowRepresentation, LearnedRepresentationMixin, ComputeRep
         flow_perm = flow_unpad.transpose(0, 2, 3, 1)
         flow_unpad_norm = flow_perm / (self.inference_height, self.inference_width) # [-1 : 1]
         return flow_unpad_norm.astype(np.float32)
-
-    def _get_delta_frames(self, video: VREVideo, ixs: list[int]) -> np.ndarray:
-        ixs = list(range(ixs.start, ixs.stop)) if isinstance(ixs, slice) else ixs
-        ixs = [min(ix + 1, len(video) - 1) for ix in ixs]
-        return video[ixs]
