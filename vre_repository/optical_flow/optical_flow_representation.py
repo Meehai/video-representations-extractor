@@ -1,9 +1,12 @@
 """optical_flow_representation.py -- module implementing an Optical Flow Represenatation generic class"""
 from overrides import overrides
 import numpy as np
-from vre.utils import colorize_optical_flow, ReprOut
+from vre.utils import colorize_optical_flow, ReprOut, clip
 from vre.representations import Representation, NpIORepresentation, NormedRepresentationMixin
 from vre.vre_video import VREVideo
+
+def _get_delta_frames(video: VREVideo, ixs: list[int], delta: int) -> list[int]:
+    return [clip(ix + delta, 0, len(video) - 1) for ix in ixs]
 
 class OpticalFlowRepresentation(Representation, NpIORepresentation, NormedRepresentationMixin):
     """OpticalFlowRepresentation. Implements flow task-specific stuff."""
@@ -26,6 +29,4 @@ class OpticalFlowRepresentation(Representation, NpIORepresentation, NormedRepres
 
     def get_delta_frames(self, video: VREVideo, ixs: list[int]) -> np.ndarray:
         """for a given list of frames at .compute() time, return the delta frames required to compute the flow"""
-        ixs = list(range(ixs.start, ixs.stop)) if isinstance(ixs, slice) else ixs
-        ixs = [min(ix + 1, len(video) - 1) for ix in ixs]
-        return video[ixs]
+        return video[_get_delta_frames(video, ixs, self.delta)]

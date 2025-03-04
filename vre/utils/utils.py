@@ -1,5 +1,5 @@
 """utils for vre"""
-from typing import Any
+from typing import Any, T
 from pathlib import Path
 from datetime import datetime, timezone as tz
 from collections import OrderedDict
@@ -134,3 +134,7 @@ def vre_load_weights(path: Path) -> dict[str, tr.Tensor]:
             res = {**res, **tr.load(item, map_location="cpu")}
         return res
     return tr.load(path, map_location="cpu")
+
+def clip(x: T, _min: T, _max: T) -> T:
+    """clips a value between [min, max]"""
+    return max(min(x, _max), _min)

@@ -36,7 +36,7 @@ class FlowRaft(OpticalFlowRepresentation, LearnedRepresentationMixin, ComputeRep
     def compute(self, video: VREVideo, ixs: list[int]):
         assert self.data is None, f"[{self}] data must not be computed before calling this"
         frames = video[ixs]
-        right_frames = self._get_delta_frames(video, ixs)
+        right_frames = self.get_delta_frames(video, ixs)
         source, dest = self._preprocess(frames), self._preprocess(right_frames)
         tr.manual_seed(self.seed) if self.seed is not None else None
         with tr.no_grad():
