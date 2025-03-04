@@ -68,6 +68,7 @@ representations:
     parameters:
       uhd: False
       compute_backward_flow: False
+      delta: 1
     learned_parameters:
       device: {device}
 

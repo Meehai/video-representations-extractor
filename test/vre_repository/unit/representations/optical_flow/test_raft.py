@@ -7,7 +7,7 @@ from vre import FakeVideo
 def test_raft(iters: int, small: bool):
     video = FakeVideo(np.random.randint(0, 255, size=(20, 255, 255, 3), dtype=np.uint8), fps=30)
     raft_repr = FlowRaft(name="raft", dependencies=[], inference_height=128, inference_width=128,
-                         iters=iters, small=small)
+                         iters=iters, small=small, delta=1)
     raft_repr.vre_setup(load_weights=False)
     assert raft_repr.name == "raft"
     assert raft_repr.compress is True # default from ComputeRepresentationMixin

@@ -62,6 +62,7 @@ representations:
     parameters:
       uhd: False
       compute_backward_flow: False
+      delta: 1
 
   normals_svd(depth_dpt):
     type: normals/depth-svd
