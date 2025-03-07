@@ -1,5 +1,4 @@
 """external_representations.py handles functions related to loading external representations to the library"""
-import imp # pylint: disable=deprecated-module
 from pathlib import Path
 from typing import Type
 from omegaconf import DictConfig, OmegaConf
@@ -8,7 +7,7 @@ from .io_representation_mixin import IORepresentationMixin
 from .compute_representation_mixin import ComputeRepresentationMixin
 from .learned_representation_mixin import LearnedRepresentationMixin
 from ..logger import vre_logger as logger
-from ..utils import topological_sort
+from ..utils import topological_sort, load_function_from_module
 
 def add_external_repositories(external_paths: list[str],
                               default_representations: dict[str, type[Representation]] | None = None) \
@@ -23,7 +22,7 @@ def add_external_repositories(external_paths: list[str],
 
 def _add_one_external_repository(external_path: str) -> dict[str, type[Representation]]:
     path, fn = external_path.split(":")
-    external_reprs: dict[str, Representation] = getattr(imp.load_source("external", path), fn)()
+    external_reprs: dict[str, Representation] = load_function_from_module(path, fn)()
     assert all(isinstance(v, Type) for v in external_reprs.values()), external_reprs
     return external_reprs
 
@@ -134,7 +133,7 @@ def _add_one_external_representation_list(built_so_far: list[Representation], ex
                                           learned_params: dict, io_params: dict) -> list[Representation]:
     assert isinstance(learned_params, dict) and isinstance(compute_params, dict) and isinstance(io_params, dict)
     path, fn = external_path.split(":")
-    external_reprs: dict[str, Representation] = getattr(imp.load_source("external", path), fn)()
+    external_reprs: dict[str, Representation] = load_function_from_module(path, fn)()
     assert isinstance(external_reprs, dict) and len(external_reprs) > 0, (external_path, external_reprs)
     logger.info(f"Adding {list(external_reprs)} from {path}")
     return _add_external_representations_dict(built_so_far, external_reprs, compute_params, learned_params, io_params)
