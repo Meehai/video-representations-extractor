@@ -80,7 +80,7 @@ class RepresentationMetadata:
         self.run_stats: dict[str, float | None] = {str(f): None for f in frames}
         self.data_writer_meta = data_writer_meta or {}
         if disk_location.exists():
-            if data_writer_meta.get("output_dir_exists_mode", "") == "overwrite":
+            if self.data_writer_meta.get("output_dir_exists_mode", "") == "overwrite":
                 os.remove(disk_location)
         self.store_on_disk()
 
