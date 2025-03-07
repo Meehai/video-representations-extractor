@@ -2,10 +2,9 @@
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
 from natsort import natsorted
-import imp
 import numpy as np
 from vre import VRE, FFmpegVideo, FakeVideo
-from vre.utils import image_read, abs_path
+from vre.utils import image_read, abs_path, load_function_from_module
 from vre.representations import build_representations_from_cfg, add_external_repositories
 from vre.logger import vre_logger as logger
 from vre_repository import get_vre_repository
@@ -75,8 +74,8 @@ def main(args: Namespace):
     print(vre_metadata.pretty_format())
 
     if args.make_video_collage:
-        vre_collage = imp.load_source("vre_collage", (Path(__file__).parent / "vre_collage").__str__())
-        vre_collage.main(Namespace(vre_export_dir=args.output_path, output_path=args.output_path / "collage",
+        vre_collage_main = load_function_from_module(Path(__file__).parent / "vre_collage", "main")
+        vre_collage_main(Namespace(vre_export_dir=args.output_path, output_path=args.output_path / "collage",
                                    video=True, config_path=args.config_path, fps=args.collage_fps, normalization=None,
                                    output_resolution=None, external_representations=[], external_repositories=[],
                                    n_workers=1))
