@@ -80,7 +80,7 @@ class RepresentationMetadata:
         self.run_stats: dict[str, float | None] = {str(f): None for f in frames}
         self.data_writer_meta = data_writer_meta or {}
         if disk_location.exists():
-            if data_writer_meta.get("output_dir_exists_mode", "") == "overwrite":
+            if self.data_writer_meta.get("output_dir_exists_mode", "") == "overwrite":
                 os.remove(disk_location)
         self.store_on_disk()
 
@@ -94,8 +94,8 @@ class RepresentationMetadata:
         assert (batch_size := len(frames)) > 0, batch_size
         data = [duration / batch_size] * batch_size
         for k, v in zip(map(str, frames), data): # make the frames strings due to json keys issue when storing/loading
-            assert self.run_stats[k] is None or self.run_stats[k] == 1<<31, \
-                (self.repr_name, self.disk_location, f"frame={k}", self.run_stats[k]) # TODO: test
+            if self.run_stats[k] is not None and self.run_stats[k] != 1<<31:
+                raise ValueError(f"Adding time to existing metadata {self}. Frame={k}. Previous: {self.run_stats[k]}")
             self.run_stats[k] = v
         self.store_on_disk()
 

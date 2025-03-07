@@ -1,19 +1,21 @@
 """AtomicOpen -- copy pasta from https://stackoverflow.com/questions/489861/locking-a-file-in-python"""
 from io import FileIO
 import os
+
+
 try:
     # Posix based file locking (Linux, Ubuntu, MacOS, etc.)
-    #   Only allows locking on writable files, might cause strange results for reading.
     import fcntl
+
     def lock_file(f: FileIO):
         """locks a file"""
         if f.writable():
-            fcntl.lockf(f, fcntl.LOCK_EX)
+            fcntl.flock(f, fcntl.LOCK_EX)
 
     def unlock_file(f: FileIO):
         """unlocks a file"""
         if f.writable():
-            fcntl.lockf(f, fcntl.LOCK_UN)
+            fcntl.flock(f, fcntl.LOCK_UN)
 
 except ModuleNotFoundError:
     # Windows file locking
