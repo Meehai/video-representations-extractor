@@ -10,3 +10,4 @@ from .colorizer import colorize_depth, colorize_semantic_segmentation, colorize_
 from .lovely import lo, monkey_patch
 from .repr_memory_layout import ReprOut, MemoryData, DiskData
 from .atomic_open import AtomicOpen
+from .summary_printer import SummaryPrinter

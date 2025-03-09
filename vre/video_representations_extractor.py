@@ -12,9 +12,9 @@ from .representations.io_representation_mixin import IORepresentationMixin
 from .vre_runtime_args import VRERuntimeArgs
 from .data_writer import DataWriter
 from .data_storer import DataStorer
-from .metadata import RunMetadata, RepresentationMetadata, SummaryPrinter
+from .metadata import RunMetadata, RepresentationMetadata
 from .vre_video import VREVideo
-from .utils import now_fmt, make_batches, vre_topo_sort, ReprOut, DiskData
+from .utils import now_fmt, make_batches, vre_topo_sort, ReprOut, DiskData, SummaryPrinter
 from .logger import vre_logger as logger
 
 class VideoRepresentationsExtractor:
@@ -101,8 +101,8 @@ class VideoRepresentationsExtractor:
             if repr_metadata.run_had_exceptions and runtime_args.exception_mode == "stop_execution":
                 raise RuntimeError(f"Representation '{vre_repr.name}' threw. "
                                    f"Check '{logger.get_file_handler().baseFilename}' for information")
-            summary_printer.repr_metadatas[vre_repr.name] = repr_metadata # TODO: used for printing only
-        print(summary_printer.pretty_format())
+            summary_printer.repr_metadatas[vre_repr.name] = repr_metadata
+        print(summary_printer())
         return run_metadata
 
     def _load_from_disk_if_possible(self, rep: Representation, video: VREVideo, ixs: list[int], output_dir: Path):
