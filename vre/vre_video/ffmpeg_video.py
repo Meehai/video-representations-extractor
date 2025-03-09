@@ -70,7 +70,7 @@ class FFmpegVideo(VREVideo):
     def get_one_frame(self, ix: int) -> np.ndarray:
         """Retrieve a frame from the video by frame number, using nearby frames caching."""
         assert isinstance(ix, int), type(ix)
-        assert 0 <= ix < self.total_frames, f"Frame out of bounds: {ix}. Len: {len(self)}"
+        assert 0 <= ix < len(self), f"Frame out of bounds: {ix}. Len: {len(self)}"
 
         # Load new cache if the requested frame is outside the current cache range
         if self.cache_start_frame is None or not self.cache_start_frame <= ix < self.cache_end_frame:
@@ -132,10 +132,10 @@ class FFmpegVideo(VREVideo):
 
         # Read frames until the end of the current keyframe range
         while True:
-            in_bytes = self.video_process.stdout.read(self.width * self.height * 3)
+            in_bytes = self.video_process.stdout.read(self.shape[1] * self.shape[2] * 3)
             if not in_bytes or len(self.cache) > self.cache_max_len:
                 break
-            frame = np.frombuffer(in_bytes, np.uint8).reshape([self.height, self.width, 3])
+            frame = np.frombuffer(in_bytes, np.uint8).reshape([self.shape[1], self.shape[2], 3])
             self.cache.append(frame)
 
         # Set cache boundaries in terms of frame numbers
@@ -146,7 +146,7 @@ class FFmpegVideo(VREVideo):
         return f"[FFmpegVideo] Path: {self.path}. FPS: {self.fps}. Len: {len(self)}. Frame shape: {self.frame_shape}."
 
     def __len__(self) -> int:
-        return self.total_frames
+        return self.shape[0]
 
     def __del__(self):
         """Clean up the ffmpeg process when done."""
