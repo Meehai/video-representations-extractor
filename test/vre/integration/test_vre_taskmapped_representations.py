@@ -115,10 +115,11 @@ def test_vre_stored_representation():
     print(vre)
 
     res = vre.run(output_dir=Path(tmp_dir), frames=list(range(0, len(video))), output_dir_exists_mode="skip_computed")
-    print(res.pretty_format())
+    print(res)
 
     # assert that it works the 2nd time too and no computation is done !
     res = vre.run(output_dir=Path(tmp_dir), frames=list(range(0, len(video))), output_dir_exists_mode="skip_computed")
+    print(res)
 
 if __name__ == "__main__":
     test_vre_stored_representation()

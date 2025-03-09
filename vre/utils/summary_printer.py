@@ -22,15 +22,19 @@ class SummaryPrinter:
 
     def __call__(self) -> str:
         """returns a pretty formatted string of the metadata"""
-        vre_run_stats_np = np.array([list(x.values()) for x in self.run_stats.values()]).T.round(3)
-        vre_run_stats_np[abs(vre_run_stats_np - float(1<<31)) < 1e-2] = float("nan")
+        # vre_run_stats_np = np.array([list(x.values()) for x in self.run_stats.values()]).T.round(3)
+        # vre_run_stats_np[abs(vre_run_stats_np - float(1<<31)) < 1e-2] = float("nan")
         res = ""
         frames = self.runtime_args["frames"]
         chosen_frames = sorted(np.random.choice(frames, size=min(5, len(frames)), replace=False))
         res = f"{'Name':<20}" + "|" + "|".join([f"{str_maxk(k, 9):<9}" for k in map(str, chosen_frames)]) + "|Total"
         for i, vrepr in enumerate(self.representations):
+            if vrepr not in self.run_stats:
+                continue
+            stats = np.array(list(self.run_stats[vrepr].values())).round(3)
+            stats[abs(stats - float(1<<31)) < 1e-2] = float("nan")
             res += "\n" + f"{str_maxk(vrepr, 20):<20}"
             for chosen_frame in chosen_frames:
-                res += "|" + f"{vre_run_stats_np[:, i][frames.index(chosen_frame)]:<9}"
-            res += "|" + f"{vre_run_stats_np[:, i].sum().round(2)}"
+                res += "|" + f"{stats[frames.index(chosen_frame)]:<9}"
+            res += "|" + f"{stats.sum().round(2)}"
         return res

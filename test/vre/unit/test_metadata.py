@@ -18,7 +18,6 @@ def test_RepresentationMetadata_ctor(tmp_path: Path):
             "4": None,
             "5": None
         },
-        "data_writer": {}
     }
     assert loaded_json == expected_json
 

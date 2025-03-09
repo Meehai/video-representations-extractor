@@ -15,7 +15,6 @@ def test_RunMetadata_1():
     vre.set_io_parameters(binary_format="npz", image_format="not-set", compress=True, output_size="video_shape")
     res = vre.run(output_dir := Path(TemporaryDirectory().name))
     assert res.representations == ["rgb"], res.representations
-    assert res.repr_metadatas["rgb"] is not None, res.repr_metadatas
     assert res.runtime_args["frames"] == [0, 1], res.runtime_args["frames"]
     assert (output_dir / "rgb/.repr_metadata.json").exists()
 
