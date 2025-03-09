@@ -4,11 +4,8 @@ import json
 import os
 from typing import Any
 from pathlib import Path
-from pprint import pformat
-import numpy as np
 
-from .logger import vre_logger as logger
-from .utils import str_maxk, AtomicOpen, random_chars
+from .utils import AtomicOpen, random_chars
 from .vre_runtime_args import VRERuntimeArgs
 
 class RunMetadata:
@@ -19,7 +16,6 @@ class RunMetadata:
         self.disk_location = disk_location
         self.runtime_args = runtime_args.to_dict()
         self.id = random_chars(n=10)
-        self.data_writers = {}
 
     @property
     def metadata(self) -> dict[str, Any]:
@@ -27,7 +23,6 @@ class RunMetadata:
         return {
             "id": self.id,
             "runtime_args": self.runtime_args,
-            "data_writers": self.data_writers,
         }
 
     def store_on_disk(self):
