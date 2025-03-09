@@ -45,17 +45,12 @@ class FakeVideo(VREVideo):
             out_file = pth / f"{(start_frame + ix) * 1 / self.fps}.png"
             image_write(self[start_frame + ix], out_file)
 
+    @overrides
+    def get_one_frame(self, ix: int) -> np.ndarray:
+        return self.data[ix]
+
     def __len__(self) -> int:
         return self.frames[-1] + 1
-
-    def __getitem__(self, ix: int | list[int] | slice) -> np.ndarray:
-        if isinstance(ix, np.ndarray):
-            return self[ix.tolist()]
-        if isinstance(ix, list):
-            return np.array([self[_ix] for _ix in ix])
-        if isinstance(ix, slice):
-            return np.array([self[_ix] for _ix in range(ix.start, ix.stop)])
-        return self.data[self.frames_ix[ix]]
 
     def __repr__(self):
         return f"[FakeVideo] FPS: {self.fps}. Len: {len(self.data)}. Frame shape: {self.data.shape[1:]}. FPS: "

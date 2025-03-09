@@ -59,6 +59,19 @@ class FFmpegVideo(VREVideo):
             self.write_process.wait()
             self.write_process = None
 
+    @overrides
+    def get_one_frame(self, frame_number: int) -> np.ndarray:
+        """Retrieve a frame from the video by frame number, using nearby frames caching."""
+        assert isinstance(frame_number, int), type(frame_number)
+        assert 0 <= frame_number < self.total_frames, f"Frame out of bounds: {frame_number}. Len: {len(self)}"
+
+        # Load new cache if the requested frame is outside the current cache range
+        if self.cache_start_frame is None or not self.cache_start_frame <= frame_number < self.cache_end_frame:
+            self._cache_frames(frame_number)
+
+        # Calculate the index within the cache
+        return self.cache[frame_number - self.cache_start_frame]
+
     def _build_path(self, path: str | Path) -> Path:
         """Builds the path. Can also be a youtube video, not just a local path, but yt_dlp must be installed"""
         if (s_path := str(path)).startswith("http") and (s_path.find("youtube") != -1 or s_path.find("youtu.be") != -1):
@@ -122,32 +135,11 @@ class FFmpegVideo(VREVideo):
         self.cache_start_frame = start_frame
         self.cache_end_frame = start_frame + len(self.cache)
 
-    def get_frame_by_number(self, frame_number: int) -> np.ndarray:
-        """Retrieve a frame from the video by frame number, using nearby frames caching."""
-        assert isinstance(frame_number, int), type(frame_number)
-        assert 0 <= frame_number < self.total_frames, f"Frame out of bounds: {frame_number}. Len: {len(self)}"
-
-        # Load new cache if the requested frame is outside the current cache range
-        if self.cache_start_frame is None or not self.cache_start_frame <= frame_number < self.cache_end_frame:
-            self._cache_frames(frame_number)
-
-        # Calculate the index within the cache
-        return self.cache[frame_number - self.cache_start_frame]
-
     def __repr__(self):
         return f"[FFmpegVideo] Path: {self.path}. FPS: {self.fps}. Len: {len(self)}. Frame shape: {self.frame_shape}."
 
     def __len__(self) -> int:
         return self.total_frames
-
-    def __getitem__(self, ix: int | list[int] | np.ndarray | slice) -> np.ndarray:
-        if isinstance(ix, np.ndarray):
-            return self[ix.tolist()]
-        if isinstance(ix, list):
-            return np.array([self[_ix] for _ix in ix])
-        if isinstance(ix, slice):
-            return np.array([self[_ix] for _ix in range(ix.start, ix.stop)])
-        return self.get_frame_by_number(ix)
 
     def __del__(self):
         """Clean up the ffmpeg process when done."""
