@@ -114,8 +114,6 @@ class RepresentationMetadata:
                 for k, v in self.run_stats.items():
                     loaded_v = loaded_json_data["run_stats"][k]
                     if loaded_v is not None and loaded_v != 1<<31:
-                        # make sure 2 processes didn't write the same frames.                     # TODO: test
-
                         assert v == loaded_v or v is None, (k, v, loaded_v)
                         self.run_stats[k] = loaded_json_data["run_stats"][k]
 

@@ -8,7 +8,11 @@ class VREVideo(Iterable, ABC):
     """VREVideo -- A generic wrapper on top of a Video container"""
     def __init__(self):
         self.write_process = None
-        self.frame_shape = self.shape[1:]
+
+    @property
+    def frame_shape(self) -> tuple[int, int, int]:
+        """the shape of a frame"""
+        return self.shape[1:]
 
     @property
     @abstractmethod

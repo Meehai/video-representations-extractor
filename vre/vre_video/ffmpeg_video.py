@@ -29,7 +29,7 @@ class FFmpegVideo(VREVideo):
     @property
     @overrides
     def shape(self) -> tuple[int, int, int, int]:
-        return (self.total_frames, *self.frame_shape)
+        return (self.total_frames, self.height, self.width, 3)
 
     @property
     @overrides
