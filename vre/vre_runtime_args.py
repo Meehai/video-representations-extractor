@@ -34,11 +34,6 @@ class VRERuntimeArgs:
         self.representation_names = [r.name for r in representations]
         self.n_threads_data_storer = n_threads_data_storer
 
-    @property
-    def n_frames(self) -> int:
-        """returns the number of frames to be computed by vre"""
-        return len(self.frames)
-
     def to_dict(self) -> dict:
         """A dict representation of this runtime args. Used in Metadata() to be stored on disk during the run."""
         return {
@@ -56,7 +51,7 @@ class VRERuntimeArgs:
 - Video path: '{getattr(self.video, "path", "")}'
 - Representations ({len(self.representations)}): {", ".join(x for x in self.representation_names)}
 - Video shape: {self.video.shape} (FPS: {self.video.fps:.2f})
-- Output frames ({self.n_frames}): [{self.frames[0]} : {self.frames[-1]}]
+- Output frames ({len(self.frames)}): [{self.frames[0]} : {self.frames[-1]}]
 - Exception mode: '{self.exception_mode}'
 - DataStorer Threads: {self.n_threads_data_storer} (0 = only using main thread)
 """

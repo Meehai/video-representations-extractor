@@ -149,8 +149,8 @@ class VideoRepresentationsExtractor:
         rep.output_size = self.video.frame_shape[0:2] if rep.output_size == "video_shape" else rep.output_size
 
         relevant_frames = [f for f in runtime_args.frames if f not in map(int, repr_metadata.frames_computed)]
-        logger.debug(f"Out of {len(runtime_args.frames)} total frames, {runtime_args.n_frames - len(relevant_frames)}"
-                     " are precomputed and will be skipped.")
+        logger.debug(f"Out of {len(runtime_args.frames)} total frames, "
+                     f"{len(runtime_args.frames) - len(relevant_frames)} are precomputed and will be skipped.")
         batches = make_batches(relevant_frames, rep.batch_size)
         pbar = tqdm(total=len(relevant_frames), desc=f"[VRE] {rep.name} bs={rep.batch_size}")
         for batch in batches:
