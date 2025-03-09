@@ -17,7 +17,6 @@ class FFmpegVideo(VREVideo):
         self.stream_info = next((stream for stream in self.probe["streams"] if stream["codec_type"] == "video"), None)
         self.width = int(self.stream_info["width"])
         self.height = int(self.stream_info["height"])
-        self.frame_shape = (self.height, self.width, 3)
         self._fps = eval(self.stream_info["avg_frame_rate"]) # pylint: disable=eval-used
         self.total_frames = self._build_total_frames()
 

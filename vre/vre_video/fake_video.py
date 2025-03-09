@@ -14,12 +14,11 @@ class FakeVideo(VREVideo):
     This can be used to create a FakeVideo out of a directory with files: [1.png, 10.png, 100.png]
     """
     def __init__(self, data: np.ndarray, fps: float, frames: list[int] | None = None):
+        self.data = data
         super().__init__()
         assert len(data) > 0, "No data provided"
-        self.data = data
         self._fps = fps
         self.frames = list(range(len(data))) if frames is None else frames
-        self.frame_shape = data.shape[1:]
         self.path = f"FakeVideo {self.data.shape}"
         assert 0 < len(self.frames) <= 1_000_000 # max 1M frames to keep it tight
         assert len(self.frames) == len(self.data), (self.frames, self.data)
