@@ -6,9 +6,6 @@ import numpy as np
 
 class VREVideo(Iterable, ABC):
     """VREVideo -- A generic wrapper on top of a Video container"""
-    def __init__(self):
-        self.write_process = None
-
     @property
     def frame_shape(self) -> tuple[int, int, int]:
         """the shape of a frame"""

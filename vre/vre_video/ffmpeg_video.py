@@ -15,25 +15,32 @@ class FFmpegVideo(VREVideo):
         assert self.path.exists(), f"Video '{self.path}' doesn't exist"
         self.probe = ffmpeg.probe(self.path)
         self.stream_info = next((stream for stream in self.probe["streams"] if stream["codec_type"] == "video"), None)
-        self.width = int(self.stream_info["width"])
-        self.height = int(self.stream_info["height"])
-        self._fps = eval(self.stream_info["avg_frame_rate"]) # pylint: disable=eval-used
-        self.total_frames = self._build_total_frames()
+
+        self._fps: float | None = None
+        self._shape: tuple[int, int, int, int] | None = None
 
         self.cache = []
         self.cache_max_len = cache_len
         self.cache_start_frame = None
         self.cache_end_frame = None
         self.video_process = None
+        self.write_process = None
 
     @property
     @overrides
     def shape(self) -> tuple[int, int, int, int]:
-        return (self.total_frames, self.height, self.width, 3)
+        if self._shape is None:
+            width = int(self.stream_info["width"])
+            height = int(self.stream_info["height"])
+            total_frames = self._build_total_frames()
+            self._shape = (total_frames, height, width, 3)
+        return self._shape
 
     @property
     @overrides
     def fps(self) -> float:
+        if self._fps is None:
+            self._fps = eval(self.stream_info["avg_frame_rate"]) # pylint: disable=eval-used
         return self._fps
 
     @overrides
