@@ -60,17 +60,17 @@ class FFmpegVideo(VREVideo):
             self.write_process = None
 
     @overrides
-    def get_one_frame(self, frame_number: int) -> np.ndarray:
+    def get_one_frame(self, ix: int) -> np.ndarray:
         """Retrieve a frame from the video by frame number, using nearby frames caching."""
-        assert isinstance(frame_number, int), type(frame_number)
-        assert 0 <= frame_number < self.total_frames, f"Frame out of bounds: {frame_number}. Len: {len(self)}"
+        assert isinstance(ix, int), type(ix)
+        assert 0 <= ix < self.total_frames, f"Frame out of bounds: {ix}. Len: {len(self)}"
 
         # Load new cache if the requested frame is outside the current cache range
-        if self.cache_start_frame is None or not self.cache_start_frame <= frame_number < self.cache_end_frame:
-            self._cache_frames(frame_number)
+        if self.cache_start_frame is None or not self.cache_start_frame <= ix < self.cache_end_frame:
+            self._cache_frames(start_frame=ix)
 
         # Calculate the index within the cache
-        return self.cache[frame_number - self.cache_start_frame]
+        return self.cache[ix - self.cache_start_frame]
 
     def _build_path(self, path: str | Path) -> Path:
         """Builds the path. Can also be a youtube video, not just a local path, but yt_dlp must be installed"""

@@ -47,7 +47,7 @@ class FakeVideo(VREVideo):
 
     @overrides
     def get_one_frame(self, ix: int) -> np.ndarray:
-        return self.data[ix]
+        return self.data[self.frames_ix[ix]]
 
     def __len__(self) -> int:
         return self.frames[-1] + 1
