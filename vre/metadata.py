@@ -16,6 +16,7 @@ class RunMetadata:
         self.disk_location = disk_location
         self.runtime_args = runtime_args.to_dict()
         self.id = random_chars(n=10)
+        self.data_writers = {}
 
     @property
     def metadata(self) -> dict[str, Any]:
@@ -23,6 +24,7 @@ class RunMetadata:
         return {
             "id": self.id,
             "runtime_args": self.runtime_args,
+            "data_writers": self.data_writers,
         }
 
     def store_on_disk(self):
@@ -41,15 +43,11 @@ class RepresentationMetadata:
     Note: that this file may be updated from multiple processes running at the same time. For this reason, we have an
     extra layer protection based on json modification time via `os.path.getmtime` and we merge before storing to disk.
     """
-    def __init__(self, repr_name: str, disk_location: Path, frames: list[int], data_writer_meta: dict | None = None):
+    def __init__(self, repr_name: str, disk_location: Path, frames: list[int]):
         self.run_had_exceptions = False
         self.repr_name = repr_name
         self.disk_location = disk_location
         self.run_stats: dict[str, float | None] = {str(f): None for f in frames}
-        self.data_writer_meta = data_writer_meta or {}
-        if disk_location.exists():
-            if self.data_writer_meta.get("output_dir_exists_mode", "") == "overwrite":
-                os.remove(disk_location)
         self.store_on_disk()
 
     @property
@@ -90,7 +88,6 @@ class RepresentationMetadata:
             json_data = {
                 "name": self.repr_name,
                 "run_stats": self.run_stats,
-                "data_writer": self.data_writer_meta,
             }
             json.dump(json_data, fp, indent=4)
 
