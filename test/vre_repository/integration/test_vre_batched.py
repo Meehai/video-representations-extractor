@@ -1,4 +1,5 @@
 import shutil
+import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import yaml
@@ -149,11 +150,15 @@ representations:
     vre.set_compute_params(batch_size=batch_size)
     run_meta_bs = vre(tmp_dir, frames=list(range(start_frame, end_frame)), output_dir_exists_mode="raise")
 
-    unbatched = np.array([list(x.values()) for x in run_meta.run_stats.values()]).mean(axis=1)
-    batched = np.array([list(x.values()) for x in run_meta_bs.run_stats.values()]).mean(axis=1)
+    unbatched_paths = [run_meta.disk_location.parents[1]/r/".repr_metadata.json" for r in run_meta.representations]
+    batched_paths = [run_meta_bs.disk_location.parents[1]/r/".repr_metadata.json" for r in run_meta.representations]
+    unbatched_meta = [json.load(open(pth, "r")) for pth in unbatched_paths]
+    batched_meta = [json.load(open(pth, "r")) for pth in batched_paths]
+
+    unbatched = np.array([[v for v in unbatched_meta[i]["run_stats"].values() if v is not None] for i in range(len(unbatched_meta))]).mean(1)
+    batched = np.array([[v for v in batched_meta[i]["run_stats"].values() if v is not None] for i in range(len(batched_meta))]).mean(1)
     total_u, total_b = (end_frame - start_frame) * unbatched.sum(), (end_frame - start_frame) * batched.sum()
-    keys = list(run_meta.run_stats.keys())
-    for k, u, b in zip(keys, unbatched, batched):
+    for k, u, b in zip(run_meta.representations, unbatched, batched):
         logger.info(f"{k}: {u:.2f} vs {b:.2f} ({u / b:.2f})")
     logger.info(f"Total: {total_u:.2f} vs {total_b:.2f} ({total_u / total_b:.2f})")
 
