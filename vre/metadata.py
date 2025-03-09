@@ -1,70 +1,39 @@
 """Metadata module -- The metadata of a particular VRE run"""
 from __future__ import annotations
 import json
-import os
+from typing import Any
 from pathlib import Path
-from pprint import pformat
-import numpy as np
 
-from .logger import vre_logger as logger
-from .utils import str_maxk, AtomicOpen
+from .utils import AtomicOpen, random_chars
 from .vre_runtime_args import VRERuntimeArgs
 
 class RunMetadata:
     """Metadata of a run for multiple representations. Backed on the disk by a JSON file"""
     def __init__(self, representations: list[str], runtime_args: VRERuntimeArgs, disk_location: Path):
         assert len(representations) > 0 and all(isinstance(x, str) for x in representations), representations
-        self.metadata = {"runtime_args": runtime_args.to_dict()}
         self.representations = representations
         self.disk_location = disk_location
-        self.repr_metadatas: dict[str, RepresentationMetadata | None] = {r: None for r in representations}
+        self.runtime_args = runtime_args.to_dict()
+        self.id = random_chars(n=10)
+        self.data_writers = {}
 
     @property
-    def runtime_args(self) -> dict:
-        """returns the runtime_args of the metadata"""
-        return self.metadata["runtime_args"]
-
-    @property
-    def run_stats(self) -> dict[str, dict[str, float]]:
-        """The run stats of each representation that was registered to this run or older ones (only computed values)"""
-        res = {}
-        for r in self.repr_metadatas.values():
-            if r is not None:
-                _res = {k: v for k, v in r.run_stats.items() if v is not None}
-                if len(_res) > 0:
-                    res[r.repr_name] = _res
-        return res
+    def metadata(self) -> dict[str, Any]:
+        """the run metadata as a json"""
+        return {
+            "id": self.id,
+            "runtime_args": self.runtime_args,
+            "data_writers": self.data_writers,
+        }
 
     def store_on_disk(self):
         """stores (overwrites if needed) the metadata on disk"""
         with open(self.disk_location, "w") as fp:
             json.dump(self.metadata, fp, indent=4)
 
-    def pretty_format(self) -> str:
-        """returns a pretty formatted string of the metadata"""
-        # make sure that each representation metadata computed only what we asked for
-        for k, x in self.run_stats.items():
-            if not set(map(str, self.runtime_args["frames"])).issubset(x.keys()):
-                logger.error(f"\n{self.run_stats}\n{self.runtime_args['frames']}\nerror on {k}")
-                return ""
-
-        try:
-            vre_run_stats_np = np.array([list(x.values()) for x in self.run_stats.values()]).T.round(3)
-            vre_run_stats_np[abs(vre_run_stats_np - float(1<<31)) < 1e-2] = float("nan")
-            res = f"{'ix':<5}" + "|" + "|".join([f"{str_maxk(k, 20):<20}" for k in self.representations])
-            frames = self.runtime_args["frames"]
-            for frame in sorted(np.random.choice(frames, size=min(5, len(frames)), replace=False)):
-                ix = frames.index(frame)
-                res += "\n" + f"{frame:<5}" + "|" + "|".join([f"{str_maxk(str(v), 20):<20}"
-                                                              for v in vre_run_stats_np[ix]])
-            res += "\n" + f"\nTotal:\n{pformat(dict(zip(self.representations, vre_run_stats_np.sum(0).round(3))))}"
-            return res
-        except Exception as e:
-            logger.error(e)
-            return ""
-
     def __repr__(self):
-        return f"[Metadata] Num representations: {len(self.representations)}. Disk location: '{self.disk_location}'"
+        return (f"[Metadata] Id: {self.id}, Num representations: {len(self.representations)}. "
+                f"Disk location: '{self.disk_location}'")
 
 class RepresentationMetadata:
     """
@@ -73,15 +42,11 @@ class RepresentationMetadata:
     Note: that this file may be updated from multiple processes running at the same time. For this reason, we have an
     extra layer protection based on json modification time via `os.path.getmtime` and we merge before storing to disk.
     """
-    def __init__(self, repr_name: str, disk_location: Path, frames: list[int], data_writer_meta: dict | None = None):
+    def __init__(self, repr_name: str, disk_location: Path, frames: list[int]):
         self.run_had_exceptions = False
         self.repr_name = repr_name
         self.disk_location = disk_location
         self.run_stats: dict[str, float | None] = {str(f): None for f in frames}
-        self.data_writer_meta = data_writer_meta or {}
-        if disk_location.exists():
-            if self.data_writer_meta.get("output_dir_exists_mode", "") == "overwrite":
-                os.remove(disk_location)
         self.store_on_disk()
 
     @property
@@ -114,8 +79,6 @@ class RepresentationMetadata:
                 for k, v in self.run_stats.items():
                     loaded_v = loaded_json_data["run_stats"][k]
                     if loaded_v is not None and loaded_v != 1<<31:
-                        # make sure 2 processes didn't write the same frames.                     # TODO: test
-
                         assert v == loaded_v or v is None, (k, v, loaded_v)
                         self.run_stats[k] = loaded_json_data["run_stats"][k]
 
@@ -124,7 +87,6 @@ class RepresentationMetadata:
             json_data = {
                 "name": self.repr_name,
                 "run_stats": self.run_stats,
-                "data_writer": self.data_writer_meta,
             }
             json.dump(json_data, fp, indent=4)
 

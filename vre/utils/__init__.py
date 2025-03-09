@@ -1,7 +1,7 @@
 """init file"""
 from .utils import (get_project_root, parsed_str_type, is_dir_empty, get_closest_square, str_maxk, array_blend, now_fmt,
                     semantic_mapper, FixedSizeOrderedDict, abs_path, reorder_dict, make_batches, vre_load_weights, clip,
-                    load_function_from_module)
+                    load_function_from_module, random_chars)
 from .topological_sort import topological_sort, vre_topo_sort
 from .image import (image_resize, image_resize_batch, image_write, image_read,
                     image_add_title, collage_fn, image_add_border, image_blend)
@@ -10,3 +10,4 @@ from .colorizer import colorize_depth, colorize_semantic_segmentation, colorize_
 from .lovely import lo, monkey_patch
 from .repr_memory_layout import ReprOut, MemoryData, DiskData
 from .atomic_open import AtomicOpen
+from .summary_printer import SummaryPrinter

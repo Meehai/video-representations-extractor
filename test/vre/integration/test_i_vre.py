@@ -25,14 +25,16 @@ def test_vre_run(video: FakeVideo):
     vre = VRE(video=video, representations=[FakeRepresentation("rgb", n_channels=3)])
     vre.set_io_parameters(binary_format="npz", image_format="not-set")
     res = vre.run(Path(TemporaryDirectory().name))
-    assert len(res.repr_metadatas["rgb"].run_stats) == 2, res
+    assert len(res.metadata["runtime_args"]["frames"])
+    assert res.metadata["runtime_args"]["representations"] == ["rgb"]
 
 def test_vre_run_with_dep(video: FakeVideo):
     vre = VRE(video=video, representations=[rgb := FakeRepresentation("rgb", n_channels=3),
                                             FakeRepresentation("hsv", n_channels=3, dependencies=[rgb])])
     vre.set_io_parameters(binary_format="npz", image_format="not-set")
     res = vre.run(X := Path(TemporaryDirectory().name))
-    assert len(res.repr_metadatas["rgb"].run_stats) == 2, res
+    assert len(res.metadata["runtime_args"]["frames"])
+    assert res.metadata["runtime_args"]["representations"] == ["rgb", "hsv"]
     res = vre.run(X, output_dir_exists_mode="skip_computed")
 
 def test_vre_output_dir_exists_mode():

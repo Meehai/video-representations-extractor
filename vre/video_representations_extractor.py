@@ -14,7 +14,7 @@ from .data_writer import DataWriter
 from .data_storer import DataStorer
 from .metadata import RunMetadata, RepresentationMetadata
 from .vre_video import VREVideo
-from .utils import now_fmt, make_batches, vre_topo_sort, ReprOut, DiskData
+from .utils import now_fmt, make_batches, vre_topo_sort, ReprOut, DiskData, SummaryPrinter
 from .logger import vre_logger as logger
 
 class VideoRepresentationsExtractor:
@@ -87,6 +87,12 @@ class VideoRepresentationsExtractor:
         runtime_args = VRERuntimeArgs(self.video, self.representations, frames, exception_mode, n_threads_data_storer)
         logger.info(runtime_args)
         run_metadata = RunMetadata(self.repr_names, runtime_args, output_dir / f".logs/run_metadata-{now}.json")
+        summary_printer = SummaryPrinter(self.repr_names, runtime_args)
+        for vrepr in self.representations:
+            data_writer = DataWriter(output_dir=output_dir, representation=vrepr,
+                                     output_dir_exists_mode=output_dir_exists_mode)
+            run_metadata.data_writers[vrepr.name] = data_writer.to_dict()
+        run_metadata.store_on_disk()
 
         for vre_repr in self._get_output_representations(exported_representations): # checks are done inside get fn
             repr_metadata = self._do_one_representation(representation=vre_repr, output_dir=output_dir,
@@ -95,8 +101,8 @@ class VideoRepresentationsExtractor:
             if repr_metadata.run_had_exceptions and runtime_args.exception_mode == "stop_execution":
                 raise RuntimeError(f"Representation '{vre_repr.name}' threw. "
                                    f"Check '{logger.get_file_handler().baseFilename}' for information")
-            run_metadata.repr_metadatas[vre_repr.name] = repr_metadata # TODO: used for printing only
-            run_metadata.store_on_disk()
+            summary_printer.repr_metadatas[vre_repr.name] = repr_metadata
+        print(summary_printer())
         return run_metadata
 
     def _load_from_disk_if_possible(self, rep: Representation, video: VREVideo, ixs: list[int], output_dir: Path):
@@ -144,13 +150,12 @@ class VideoRepresentationsExtractor:
         rep: Representation | ComputeRepresentationMixin | IORepresentationMixin = representation
         repr_metadata = RepresentationMetadata(repr_name=representation.name,
                                                disk_location=data_writer.rep_out_dir / ".repr_metadata.json",
-                                               frames=list(range(len(self.video))),
-                                               data_writer_meta=data_writer.to_dict())
+                                               frames=list(range(len(self.video))))
         rep.output_size = self.video.frame_shape[0:2] if rep.output_size == "video_shape" else rep.output_size
 
         relevant_frames = [f for f in runtime_args.frames if f not in map(int, repr_metadata.frames_computed)]
-        logger.debug(f"Out of {len(runtime_args.frames)} total frames, {runtime_args.n_frames - len(relevant_frames)}"
-                     " are precomputed and will be skipped.")
+        logger.debug(f"Out of {len(runtime_args.frames)} total frames, "
+                     f"{len(runtime_args.frames) - len(relevant_frames)} are precomputed and will be skipped.")
         batches = make_batches(relevant_frames, rep.batch_size)
         pbar = tqdm(total=len(relevant_frames), desc=f"[VRE] {rep.name} bs={rep.batch_size}")
         for batch in batches:
