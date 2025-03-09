@@ -1,7 +1,6 @@
 """Metadata module -- The metadata of a particular VRE run"""
 from __future__ import annotations
 import json
-import os
 from typing import Any
 from pathlib import Path
 

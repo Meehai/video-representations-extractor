@@ -28,7 +28,7 @@ class SummaryPrinter:
         frames = self.runtime_args["frames"]
         chosen_frames = sorted(np.random.choice(frames, size=min(5, len(frames)), replace=False))
         res = f"{'Name':<20}" + "|" + "|".join([f"{str_maxk(k, 9):<9}" for k in map(str, chosen_frames)]) + "|Total"
-        for i, vrepr in enumerate(self.representations):
+        for vrepr in self.representations:
             if vrepr not in self.run_stats:
                 continue
             stats = np.array(list(self.run_stats[vrepr].values())).round(3)
