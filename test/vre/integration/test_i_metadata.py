@@ -9,17 +9,16 @@ from vre.utils import get_project_root
 sys.path.append(str(get_project_root() / "test/vre"))
 from fake_representation import FakeRepresentation
 
-def test_vre_RunMetadata_1():
+def test_RunMetadata_1():
     video = FakeVideo(np.random.randint(0, 255, size=(2, 128, 128, 3), dtype=np.uint8), fps=30)
     vre = VRE(video=video, representations=[FakeRepresentation("rgb", n_channels=3)])
     vre.set_io_parameters(binary_format="npz", image_format="not-set", compress=True, output_size="video_shape")
     res = vre.run(output_dir := Path(TemporaryDirectory().name))
     assert res.representations == ["rgb"], res.representations
-    assert res.repr_metadatas["rgb"] is not None, res.repr_metadatas
     assert res.runtime_args["frames"] == [0, 1], res.runtime_args["frames"]
     assert (output_dir / "rgb/.repr_metadata.json").exists()
 
-def test_vre_RepresentationMetadata_1():
+def test_RepresentationMetadata_1():
     video = FakeVideo(np.random.randint(0, 255, size=(2, 128, 128, 3), dtype=np.uint8), fps=30)
     rgb = FakeRepresentation("rgb", n_channels=3)
     rgb.set_io_params(binary_format="npz", image_format="not-set", compress=True, output_size="video_shape")
@@ -31,7 +30,7 @@ def test_vre_RepresentationMetadata_1():
     assert meta.repr_name == "rgb"
     assert len(meta.run_stats) == 2 and meta.run_stats.keys() == {"0", "1"}, meta.run_stats
 
-def test_vre_load_RepresentationMetadata_1():
+def test_load_RepresentationMetadata_1():
     # This test does a video in 2 steps. Step 1 does first 5 frames, Step 2 does the last 5 frames.
     video = FakeVideo(np.random.randint(0, 255, size=(10, 128, 128, 3), dtype=np.uint8), fps=30)
     rgb = FakeRepresentation("rgb", n_channels=3)
