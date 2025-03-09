@@ -30,27 +30,21 @@ class SummaryPrinter:
 
     def pretty_format(self) -> str:
         """returns a pretty formatted string of the metadata"""
-        # make sure that each representation metadata computed only what we asked for
-        for k, x in self.run_stats.items():
-            if not set(map(str, self.runtime_args["frames"])).issubset(x.keys()):
-                logger.error(f"\n{self.run_stats}\n{self.runtime_args['frames']}\nerror on {k}")
-                return ""
-
+        vre_run_stats_np = np.array([list(x.values()) for x in self.run_stats.values()]).T.round(3)
+        vre_run_stats_np[abs(vre_run_stats_np - float(1<<31)) < 1e-2] = float("nan")
+        res = ""
+        frames = self.runtime_args["frames"]
+        chosen_frames = sorted(np.random.choice(frames, size=min(5, len(frames)), replace=False))
+        res = f"{'Name':<20}" + "|" + "|".join([f"{str_maxk(k, 9):<9}" for k in map(str, chosen_frames)]) + "|Total"
         try:
-            vre_run_stats_np = np.array([list(x.values()) for x in self.run_stats.values()]).T.round(3)
-            vre_run_stats_np[abs(vre_run_stats_np - float(1<<31)) < 1e-2] = float("nan")
-            res = f"{'ix':<5}" + "|" + "|".join([f"{str_maxk(k, 20):<20}" for k in self.representations])
-            frames = self.runtime_args["frames"]
-            for frame in sorted(np.random.choice(frames, size=min(5, len(frames)), replace=False)):
-                ix = frames.index(frame)
-                res += "\n" + f"{frame:<5}" + "|" + "|".join([f"{str_maxk(str(v), 20):<20}"
-                                                              for v in vre_run_stats_np[ix]])
-            res += "\n" + f"\nTotal:\n{pformat(dict(zip(self.representations, vre_run_stats_np.sum(0).round(3))))}"
-            return res
-        except Exception as e:
-            logger.error(e)
-            return ""
-
+            for i, vrepr in enumerate(self.representations):
+                res += "\n" + f"{str_maxk(vrepr, 20):<20}"
+                for chosen_frame in chosen_frames:
+                    res += "|" + f"{vre_run_stats_np[:, i][frames.index(chosen_frame)]:<9}"
+                res += "|" + f"{vre_run_stats_np[:, i].sum().round(2)}"
+        except:
+            breakpoint()
+        return res
 
 class RunMetadata:
     """Metadata of a run for multiple representations. Backed on the disk by a JSON file"""
