@@ -44,6 +44,7 @@ class RepresentationMetadata:
     extra layer protection based on json modification time via `os.path.getmtime` and we merge before storing to disk.
     """
     def __init__(self, repr_name: str, disk_location: Path, frames: list[int]):
+        assert all(isinstance(x, int) for x in frames), frames
         self.run_had_exceptions = False
         self.repr_name = repr_name
         self.disk_location = disk_location
@@ -92,12 +93,12 @@ class RepresentationMetadata:
         assert (a := loaded_json_data["name"]) == (b := self.repr_name), f"\n- {a}\n- {b}"
         merged_run_stats = {}
         for k, v in self.run_stats.items():
-            loaded_v = loaded_json_data["run_stats"][k]
-            if loaded_v is not None and loaded_v != 1<<31:
+            if (loaded_v := loaded_run_stats[k]) is not None and loaded_v != 1 << 31:
                 assert v == loaded_v or v is None, (k, v, loaded_v)
                 merged_run_stats[k] = loaded_v
+            else:
+                merged_run_stats[k] = v
         return merged_run_stats
-
 
     def __repr__(self):
         return (f"[ReprMetadata] Representation: {self.repr_name}. Frames: {len(self.run_stats)} "
