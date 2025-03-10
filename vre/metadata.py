@@ -1,6 +1,7 @@
 """Metadata module -- The metadata of a particular VRE run"""
 from __future__ import annotations
 import json
+from io import FileIO
 from typing import Any
 from pathlib import Path
 
@@ -58,7 +59,7 @@ class RepresentationMetadata:
         """adds a (batched) time to the representation's run_stats"""
         assert (batch_size := len(frames)) > 0, batch_size
         data = [duration / batch_size] * batch_size
-        for k, v in zip(map(str, frames), data): # make the frames strings due to json keys issue when storing/loading
+        for k, v in zip(frames, data):
             if self.run_stats[k] is not None and self.run_stats[k] != 1<<31:
                 raise ValueError(f"Adding time to existing metadata {self}. Frame={k}. Previous: {self.run_stats[k]}")
             self.run_stats[k] = v
@@ -72,15 +73,7 @@ class RepresentationMetadata:
         file_exists = self.disk_location.exists()
         with AtomicOpen(self.disk_location, "a+") as fp:
             if file_exists: # if it exists, we merge the disk data with existing data before overwriting
-                fp.seek(0)
-                loaded_json_data = json.loads(fp.read())
-                assert (a := loaded_json_data["run_stats"].keys()) == (b := self.run_stats.keys()), f"\n- {a}\n- {b}"
-                assert (a := loaded_json_data["name"]) == (b := self.repr_name), f"\n- {a}\n- {b}"
-                for k, v in self.run_stats.items():
-                    loaded_v = loaded_json_data["run_stats"][k]
-                    if loaded_v is not None and loaded_v != 1<<31:
-                        assert v == loaded_v or v is None, (k, v, loaded_v)
-                        self.run_stats[k] = loaded_json_data["run_stats"][k]
+                self.run_stats = self._load_and_merge_with_metadata_from_disk(fp)
 
             fp.seek(0)
             fp.truncate()
@@ -89,6 +82,22 @@ class RepresentationMetadata:
                 "run_stats": self.run_stats,
             }
             json.dump(json_data, fp, indent=4)
+
+    def _load_and_merge_with_metadata_from_disk(self, fp: FileIO) -> dict[str, Any]:
+        """given an (mutexed) fp, read the metadata from the disk and return the run stats. Fail if any errors"""
+        fp.seek(0)
+        loaded_json_data = json.loads(fp.read())
+        loaded_run_stats = {int(k): v for k, v in loaded_json_data["run_stats"].keys()}
+        assert (a := loaded_run_stats.keys()) == (b := self.run_stats.keys()), f"\n- {a}\n- {b}"
+        assert (a := loaded_json_data["name"]) == (b := self.repr_name), f"\n- {a}\n- {b}"
+        merged_run_stats = {}
+        for k, v in self.run_stats.items():
+            loaded_v = loaded_json_data["run_stats"][k]
+            if loaded_v is not None and loaded_v != 1<<31:
+                assert v == loaded_v or v is None, (k, v, loaded_v)
+                merged_run_stats[k] = loaded_v
+        return merged_run_stats
+
 
     def __repr__(self):
         return (f"[ReprMetadata] Representation: {self.repr_name}. Frames: {len(self.run_stats)} "
