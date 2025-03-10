@@ -47,7 +47,7 @@ class RepresentationMetadata:
         self.run_had_exceptions = False
         self.repr_name = repr_name
         self.disk_location = disk_location
-        self.run_stats: dict[str, float | None] = {str(f): None for f in frames}
+        self.run_stats: dict[int, float | None] = {f: None for f in frames}
         self.store_on_disk()
 
     @property
@@ -87,7 +87,7 @@ class RepresentationMetadata:
         """given an (mutexed) fp, read the metadata from the disk and return the run stats. Fail if any errors"""
         fp.seek(0)
         loaded_json_data = json.loads(fp.read())
-        loaded_run_stats = {int(k): v for k, v in loaded_json_data["run_stats"].keys()}
+        loaded_run_stats = {int(k): v for k, v in loaded_json_data["run_stats"].items()} # convert from json keys to int
         assert (a := loaded_run_stats.keys()) == (b := self.run_stats.keys()), f"\n- {a}\n- {b}"
         assert (a := loaded_json_data["name"]) == (b := self.repr_name), f"\n- {a}\n- {b}"
         merged_run_stats = {}

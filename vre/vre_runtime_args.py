@@ -19,7 +19,7 @@ class VRERuntimeArgs:
         - 'stop_execution' (default) Will stop the execution of VRE
     - n_threads_data_storer The number of threads used by the DataStorer
     """
-    def __init__(self, video: VREVideo, representations: list[Representation], frames: list[str] | None,
+    def __init__(self, video: VREVideo, representations: list[Representation], frames: list[int] | None,
                  exception_mode: str, n_threads_data_storer: int):
         assert all(isinstance(r, Representation) for r in representations), representations
         assert exception_mode in ("stop_execution", "skip_representation"), exception_mode
