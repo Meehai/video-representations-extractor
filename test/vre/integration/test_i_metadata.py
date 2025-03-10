@@ -28,7 +28,7 @@ def test_RepresentationMetadata_1():
     runtime_args = VRERuntimeArgs(video, [rgb], frames=None, exception_mode="stop_execution", n_threads_data_storer=0)
     meta = vre._do_one_representation(rgb, tmp_dir, output_dir_exists_mode="raise", runtime_args=runtime_args)
     assert meta.repr_name == "rgb"
-    assert len(meta.run_stats) == 2 and meta.run_stats.keys() == {"0", "1"}, meta.run_stats
+    assert len(meta.run_stats) == 2 and meta.run_stats.keys() == {0, 1}, meta.run_stats
 
 def test_load_RepresentationMetadata_1():
     # This test does a video in 2 steps. Step 1 does first 5 frames, Step 2 does the last 5 frames.
@@ -43,17 +43,17 @@ def test_load_RepresentationMetadata_1():
                                   exception_mode="stop_execution", n_threads_data_storer=0)
     meta = vre._do_one_representation(rgb, tmp_dir, output_dir_exists_mode="skip_computed", runtime_args=runtime_args)
     assert meta.repr_name == "rgb"
-    assert len(meta.run_stats) == 10 and meta.run_stats.keys() == set(map(str, range(10))), meta.run_stats
+    assert len(meta.run_stats) == 10 and meta.run_stats.keys() == set(range(10)), meta.run_stats
     assert len([v for v in meta.run_stats.values() if v is not None]) == 5
 
     runtime_args2 = VRERuntimeArgs(video, [rgb], frames=list(range(10)),
                                    exception_mode="stop_execution", n_threads_data_storer=0)
     meta2 = vre._do_one_representation(rgb, tmp_dir, output_dir_exists_mode="skip_computed", runtime_args=runtime_args2)
-    assert len(meta2.run_stats) == 10 and meta2.run_stats.keys() == set(map(str, range(10))), meta2.run_stats
+    assert len(meta2.run_stats) == 10 and meta2.run_stats.keys() == set(range(10)), meta2.run_stats
     assert len([v for v in meta2.run_stats.values() if v is not None]) == 10
 
     # Make sure that the metadata actually reloads the existing one and doesn't just write over it
     disk_data = json.load(open(tmp_dir / "rgb/.repr_metadata.json", "r"))
-    for frame in map(str, [0, 1, 2, 3, 4]):
+    for frame in [0, 1, 2, 3, 4]:
         assert meta2.run_stats[frame] == meta.run_stats[frame]
-        assert meta2.run_stats[frame] == disk_data["run_stats"][frame]
+        assert meta2.run_stats[frame] == disk_data["run_stats"][str(frame)] # note json conversion
