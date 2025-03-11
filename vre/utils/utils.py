@@ -155,3 +155,7 @@ def random_chars(n: int) -> str:
     """returns a string of n random characters"""
     valid_chars = [*range(ord('A'), ord('Z')+1), *range(ord('a'), ord('z')+1), *range(ord('0'), ord('9')+1)]
     return "".join(map(chr, [random.choice(valid_chars) for _ in range(n)]))
+
+def mean(l: list[int | float]) -> float:
+    """the average of a list of ints or floats"""
+    return sum(l) / len(l) if len(l) > 0 else 0
