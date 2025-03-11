@@ -141,7 +141,7 @@ class VideoRepresentationsExtractor:
                 data_storer(rep.data)
             except Exception:
                 self._log_error(f"\n[{rep.name} {rep.batch_size=} {batch=}] {traceback.format_exc()}\n")
-                repr_metadata.add_time((1 << 31) * len(batch), batch)
+                repr_metadata.add_time((1<<31) * len(batch), batch)
                 repr_metadata.run_had_exceptions = True
                 break
             repr_metadata.add_time((datetime.now() - now).total_seconds(), batch)
@@ -180,7 +180,7 @@ class VideoRepresentationsExtractor:
                                           output_dir: Path, depth: int = 0):
         assert isinstance(rep, ComputeRepresentationMixin), rep
         # setting depth to higher values allows to compute deps of deps in memory. We throw to not hide bugs.
-        # useful for VRE hacking (i.e. see semanit_mapper.py)
+        # useful for VRE hacking (i.e. see semantic_mapper.py)
         assert depth <= 1, f"{rep=} {depth=} {batch=} {output_dir=}"
         # TODO: make unit test with this (lingering .data from previous computation) on depth == 1 (i.e. deps of rep)
         rep.data = None # Important to invalidate any previous results here

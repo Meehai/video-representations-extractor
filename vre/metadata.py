@@ -112,7 +112,7 @@ class RepresentationMetadata:
         assert (a := loaded_json_data["name"]) == (b := self.repr_name), f"\n- {a}\n- {b}"
         merged_run_stats = {}
         for k, v in self.run_stats.items():
-            if (loaded_v := loaded_run_stats[k]) is not None and loaded_v != 1 << 31:
+            if (loaded_v := loaded_run_stats[k]) is not None and loaded_v != 1<<31:
                 assert v == loaded_v or v is None, (k, v, loaded_v)
                 merged_run_stats[k] = loaded_v
             else:
