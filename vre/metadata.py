@@ -5,7 +5,7 @@ from io import FileIO
 from typing import Any
 from pathlib import Path
 
-from .utils import AtomicOpen, random_chars
+from .utils import AtomicOpen, random_chars, mean
 from .vre_runtime_args import VRERuntimeArgs
 
 class RunMetadata:
@@ -17,6 +17,8 @@ class RunMetadata:
         self.runtime_args = runtime_args.to_dict()
         self.id = random_chars(n=10)
         self.data_writers = {}
+        self.run_stats = {}
+        self.store_on_disk()
 
     @property
     def metadata(self) -> dict[str, Any]:
@@ -25,7 +27,18 @@ class RunMetadata:
             "id": self.id,
             "runtime_args": self.runtime_args,
             "data_writers": self.data_writers,
+            "run_stats": self.run_stats,
         }
+
+    def add_run_stats(self, repr_metadata: RepresentationMetadata):
+        """adds statistics of a single representation after it finished running"""
+        assert (name := repr_metadata.repr_name) not in self.run_stats, f"{name} in {self.run_stats.keys()}"
+        n_computed = len(repr_metadata.frames_computed) - repr_metadata.n_computed_beginning
+        n_failed = len(repr_metadata.frames_failed) - repr_metadata.n_failed_beginning
+        # TODO: only frames of this run after we have run id at repr metadata run stats level
+        avg_duration = round(mean([repr_metadata.run_stats[ix] for ix in repr_metadata.frames_computed]), 2)
+        self.run_stats[name] = {"n_computed": n_computed, "n_failed": n_failed, "average_duration": avg_duration}
+        self.store_on_disk()
 
     def store_on_disk(self):
         """stores (overwrites if needed) the metadata on disk"""
@@ -50,20 +63,26 @@ class RepresentationMetadata:
         self.disk_location = disk_location
         self.run_stats: dict[int, float | None] = {f: None for f in frames}
         self.store_on_disk()
+        self.n_computed_beginning, self.n_failed_beginning = len(self.frames_computed), len(self.frames_failed)
 
     @property
-    def frames_computed(self) -> list[str]:
+    def frames_computed(self) -> list[int]:
         """returns the list of comptued frames so far"""
-        return [k for k, v in self.run_stats.items() if v is not None and v != 1<<31] # TODO: test
+        return [ix for ix, v in self.run_stats.items() if v is not None and v != 1<<31] # TODO: test
+
+    @property
+    def frames_failed(self) -> list[int]:
+        """returns the list of failed frames so far"""
+        return [ix for ix, v in self.run_stats.items() if v == 1<<31] # TODO: test
 
     def add_time(self, duration: float, frames: list[int]):
         """adds a (batched) time to the representation's run_stats"""
         assert (batch_size := len(frames)) > 0, batch_size
         data = [duration / batch_size] * batch_size
-        for k, v in zip(frames, data):
-            if self.run_stats[k] is not None and self.run_stats[k] != 1<<31:
-                raise ValueError(f"Adding time to existing metadata {self}. Frame={k}. Previous: {self.run_stats[k]}")
-            self.run_stats[k] = v
+        for ix, v in zip(frames, data):
+            if self.run_stats[ix] is not None and self.run_stats[ix] != 1<<31:
+                raise ValueError(f"Adding time to existing metadata {self}. Frame={ix}. Previous: {self.run_stats[ix]}")
+            self.run_stats[ix] = v
         self.store_on_disk()
 
     def store_on_disk(self):
@@ -102,4 +121,5 @@ class RepresentationMetadata:
 
     def __repr__(self):
         return (f"[ReprMetadata] Representation: {self.repr_name}. Frames: {len(self.run_stats)} "
-                f"(computed: {len(self.frames_computed)}). Disk location: '{self.disk_location}'")
+                f"(computed: {len(self.frames_computed)}, failed: {len(self.frames_failed)}) "
+                f"Disk location: '{self.disk_location}'")

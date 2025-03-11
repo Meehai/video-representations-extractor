@@ -1,9 +1,17 @@
-from vre.metadata import RepresentationMetadata
 from pathlib import Path
+import sys
 import json
 import pytest
 from threading import Thread
 import time
+import numpy as np
+
+from vre import FakeVideo
+from vre.utils import get_project_root
+from vre.metadata import RepresentationMetadata, RunMetadata
+from vre.vre_runtime_args import VRERuntimeArgs
+sys.path.append(str(get_project_root() / "test"))
+from fake_representation import FakeRepresentation
 
 def test_RepresentationMetadata_ctor(tmp_path: Path):
     metadata = RepresentationMetadata("repr_metadata", tmp_path/"metadata.json", [0, 1, 2, 3, 4, 5])
@@ -58,8 +66,29 @@ def test_RepresentationMetadata_add_time_in_threads(tmp_path: Path):
     for i in range(100):
         assert loaded_json["run_stats"][str(i)] == i % n_threads
 
+def test_RunMetadata_two_representations(tmp_path: Path):
+    r1, r2 = FakeRepresentation("r1", dependencies=[]), FakeRepresentation("r2", dependencies=[])
+    video = FakeVideo(np.random.randint(0, 255, size=(10, 20, 30, 3)), fps=1)
+    runtime_args = VRERuntimeArgs(video, [r1, r2], [0, 1, 2, 3, 4, 5], "stop_execution", 0)
+    run_metadata = RunMetadata(["r1", "r2"], runtime_args, disk_location=tmp_path / "run_metadata.json")
+    metadata_r1 = RepresentationMetadata("r1", tmp_path/"r2_metadata.json", [0, 1, 2, 3, 4, 5])
+    metadata_r2 = RepresentationMetadata("r2", tmp_path/"r1_metadata.json", [0, 1, 2, 3, 4, 5])
+    metadata_r1.add_time(0.1, [0, 1, 2])
+    metadata_r2.add_time(0.1, [0, 1, 2])
+    run_metadata.add_run_stats(metadata_r1)
+    assert run_metadata.run_stats == {
+        "r1": {"n_computed": 3, "n_failed": 0, "average_duration": 0.03},
+    }
+    # cannot run the same representation twice in the same run
+    with pytest.raises(AssertionError):
+        run_metadata.add_run_stats(metadata_r1)
+    run_metadata.add_run_stats(metadata_r2)
+    assert run_metadata.run_stats == {
+        "r1": {"n_computed": 3, "n_failed": 0, "average_duration": 0.03},
+        "r2": {"n_computed": 3, "n_failed": 0, "average_duration": 0.03}
+    }
+
 if __name__ == "__main__":
     from tempfile import TemporaryDirectory
     with TemporaryDirectory() as tmp:
-        test_RepresentationMetadata_add_time_in_threads(Path(tmp))
-
+        test_RunMetadata_two_representations(Path(tmp))
