@@ -96,9 +96,10 @@ class VideoRepresentationsExtractor:
         _add_data_writers_to_run_metadata(run_metadata, self.representations, output_dir, output_dir_exists_mode)
 
         for vre_repr in self._get_output_representations(exported_representations): # checks are done inside get fn
-            repr_metadata = self.do_one_representation(representation=vre_repr, output_dir=output_dir,
-                                                        output_dir_exists_mode=output_dir_exists_mode,
-                                                        runtime_args=runtime_args,)
+            repr_metadata = self.do_one_representation(run_id=run_metadata.id, representation=vre_repr,
+                                                       output_dir=output_dir,
+                                                       output_dir_exists_mode=output_dir_exists_mode,
+                                                       runtime_args=runtime_args,)
             if repr_metadata.run_had_exceptions and runtime_args.exception_mode == "stop_execution":
                 raise RuntimeError(f"Representation '{vre_repr.name}' threw. "
                                    f"Check '{logger.get_file_handler().baseFilename}' for information")
@@ -107,20 +108,20 @@ class VideoRepresentationsExtractor:
         print(summary_printer())
         return run_metadata
 
-    def do_one_representation(self, representation: Representation, output_dir: Path, output_dir_exists_mode: str,
-                              runtime_args: VRERuntimeArgs) -> RepresentationMetadata:
+    def do_one_representation(self, run_id: str, representation: Representation, output_dir: Path,
+                              output_dir_exists_mode: str, runtime_args: VRERuntimeArgs) -> RepresentationMetadata:
         """The loop of each representation. Returns a representation metadata with information about this repr's run"""
         data_writer = DataWriter(output_dir=output_dir, representation=representation,
                                  output_dir_exists_mode=output_dir_exists_mode)
         data_storer = DataStorer(data_writer=data_writer, n_threads=runtime_args.n_threads_data_storer)
-        logger.info(f"Running:\n{representation}\n{data_storer}")
+        logger.info(f"Running {run_id=}:\n{representation}\n{data_storer}")
         rep: Representation | ComputeRepresentationMixin | IORepresentationMixin = representation
-        repr_metadata = RepresentationMetadata(repr_name=representation.name,
+        repr_metadata = RepresentationMetadata(repr_name=representation.name, run_id=run_id,
                                                disk_location=data_writer.rep_out_dir / ".repr_metadata.json",
                                                frames=list(range(len(self.video))))
         rep.output_size = self.video.frame_shape[0:2] if rep.output_size == "video_shape" else rep.output_size
 
-        relevant_frames = [f for f in runtime_args.frames if f not in map(int, repr_metadata.frames_computed)]
+        relevant_frames = [f for f in runtime_args.frames if f not in repr_metadata.frames_computed()]
         logger.debug(f"Out of {len(runtime_args.frames)} total frames, "
                      f"{len(runtime_args.frames) - len(relevant_frames)} are precomputed and will be skipped.")
         batches = make_batches(relevant_frames, rep.batch_size)
@@ -141,7 +142,7 @@ class VideoRepresentationsExtractor:
                 data_storer(rep.data)
             except Exception:
                 self._log_error(f"\n[{rep.name} {rep.batch_size=} {batch=}] {traceback.format_exc()}\n")
-                repr_metadata.add_time((1<<31) * len(batch), batch)
+                repr_metadata.add_time(None, batch)
                 repr_metadata.run_had_exceptions = True
                 break
             repr_metadata.add_time((datetime.now() - now).total_seconds(), batch)

@@ -155,8 +155,10 @@ representations:
     unbatched_meta = [json.load(open(pth, "r")) for pth in unbatched_paths]
     batched_meta = [json.load(open(pth, "r")) for pth in batched_paths]
 
-    unbatched = np.array([[v for v in unbatched_meta[i]["run_stats"].values() if v is not None] for i in range(len(unbatched_meta))]).mean(1)
-    batched = np.array([[v for v in batched_meta[i]["run_stats"].values() if v is not None] for i in range(len(batched_meta))]).mean(1)
+    unbatched = np.array([[v["duration"] for v in unbatched_meta[i]["run_stats"].values() if v is not None]
+                          for i in range(len(unbatched_meta))]).mean(1)
+    batched = np.array([[v["duration"] for v in batched_meta[i]["run_stats"].values() if v is not None]
+                        for i in range(len(batched_meta))]).mean(1)
     total_u, total_b = (end_frame - start_frame) * unbatched.sum(), (end_frame - start_frame) * batched.sum()
     for k, u, b in zip(run_meta.representations, unbatched, batched):
         logger.info(f"{k}: {u:.2f} vs {b:.2f} ({u / b:.2f})")
