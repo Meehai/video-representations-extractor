@@ -3,10 +3,11 @@ import sys
 import os
 import subprocess
 import signal
+from functools import partial
 from argparse import ArgumentParser, Namespace, REMAINDER
 from vre import FFmpegVideo
 
-def _cleanup(signum, frame):
+def _cleanup(processes: list, signum, frame):
     print("Terminating subprocesses...")
     for p in processes:
         p.terminate()
@@ -23,8 +24,7 @@ def get_args() -> Namespace:
 
 def main(args: Namespace):
     """main fn"""
-    signal.signal(signal.SIGINT, _cleanup)
-    signal.signal(signal.SIGTERM, _cleanup)
+
     assert os.getenv("CUDA_VISIBLE_DEVICES") is not None
     gpu_indices = os.environ["CUDA_VISIBLE_DEVICES"].split(",")
     assert len(gpu_indices) > 0, gpu_indices
@@ -45,19 +45,22 @@ def main(args: Namespace):
     for i, gpu in enumerate(gpu_indices):
         gpu_start_frame = start_frame + i * frames_per_gpu
         gpu_end_frame = gpu_start_frame + frames_per_gpu
-        
+
         # Ensure the last partition captures all remaining frames
         if i == n_gpus - 1:
             gpu_end_frame = end_frame
-        
+
         env = {"CUDA_VISIBLE_DEVICES": gpu, "VRE_DEVICE": "cuda"}
         cmd = ["vre", video_file, "--frames", f"{gpu_start_frame}..{gpu_end_frame}"] + args.vre_args
-        
+
         env_str = " ".join([f"{k}={v}" for k, v in env.items()])
         print(f"Executing command: {env_str} {' '.join(cmd)}")
-        
+
         process = subprocess.Popen(cmd, env={**os.environ.copy(), **env})
         processes.append(process)
+
+    signal.signal(signal.SIGINT, partial(_cleanup, processes=processes))
+    signal.signal(signal.SIGTERM, partial(_cleanup, processes=processes))
 
     # Wait for all processes to complete
     for p in processes:
