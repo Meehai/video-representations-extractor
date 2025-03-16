@@ -8,7 +8,6 @@ from vre.utils import image_read, abs_path, load_function_from_module
 from vre.representations import build_representations_from_cfg, add_external_repositories
 from vre.logger import vre_logger as logger
 from vre_repository import get_vre_repository
-from omegaconf import OmegaConf
 
 def _get_raw_data(video_path: Path) -> dict[str, np.ndarray | list[str]]:
     all_files = natsorted([f for f in video_path.iterdir() if f.is_file()], key=lambda p: p.name)
@@ -55,7 +54,6 @@ def get_args() -> Namespace:
 
 def main(args: Namespace):
     """Za main function"""
-    cfg = OmegaConf.to_container(OmegaConf.load(args.config_path), resolve=True)
 
     if args.video_path.is_dir():
         video = FakeVideo(**_get_raw_data(args.video_path), fps=1)
@@ -63,7 +61,7 @@ def main(args: Namespace):
         video = FFmpegVideo(args.video_path)
 
     representation_types = add_external_repositories(args.external_repositories, get_vre_repository())
-    representations = build_representations_from_cfg(cfg=cfg, representation_types=representation_types,
+    representations = build_representations_from_cfg(cfg=args.config_path, representation_types=representation_types,
                                                      external_representations=args.external_representations)
 
     vre = VRE(video, representations)

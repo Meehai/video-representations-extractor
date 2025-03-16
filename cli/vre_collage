@@ -8,7 +8,6 @@ from tempfile import NamedTemporaryFile
 from multiprocessing import Pool
 import shutil
 import ffmpeg
-from omegaconf import OmegaConf
 from natsort import natsorted
 from tqdm import tqdm
 import numpy as np
@@ -83,9 +82,8 @@ def main(args: Namespace):
     if args.video:
         logger.info(f"Export video: '{args.output_path / 'collage.mp4'}'")
 
-    cfg = OmegaConf.to_container(OmegaConf.load(args.config_path), resolve=True)
     representation_types = add_external_repositories(args.external_repositories, get_vre_repository())
-    representations = build_representations_from_cfg(cfg=cfg, representation_types=representation_types,
+    representations = build_representations_from_cfg(cfg=args.config_path, representation_types=representation_types,
                                                      external_representations=args.external_representations)
 
     assert "rgb" in [r.name for r in representations], "RGB(rgb) is needed for collage plot"

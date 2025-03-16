@@ -21,7 +21,6 @@ REQUIRED = [
     "torchvision==0.20.1",
     "overrides==7.7.0",
     "loggez==0.4.2",
-    "omegaconf==2.3.0",
     "opencv-python==4.7.0.68",
     "Pillow==10.3.0",
     "pycocotools==2.0.7",

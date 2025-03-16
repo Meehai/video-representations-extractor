@@ -1,12 +1,12 @@
 import os
 import torch as tr
 import numpy as np
-from omegaconf import OmegaConf
 from pathlib import Path
 from types import SimpleNamespace
 
 from vre import FFmpegVideo
-from vre.utils import get_project_root, collage_fn, image_write, image_resize, ReprOut, MemoryData, colorize_depth, lo
+from vre.utils import (
+    get_project_root, collage_fn, image_write, image_resize, vre_yaml_load, ReprOut, MemoryData, colorize_depth, lo)
 from vre_repository.depth.marigold import Marigold
 from vre_repository.normals.depth_svd import DepthNormalsSVD
 os.environ["VRE_DEVICE"] = device = "cuda" if tr.cuda.is_available() else "cpu"
@@ -15,7 +15,7 @@ if __name__ == "__main__":
     video = FFmpegVideo(get_project_root() / "resources/test_video.mp4")
     print(video.shape, video.fps)
 
-    all_representations_dict = OmegaConf.load(open(Path.cwd() / "cfg.yaml", "r"))
+    all_representations_dict = vre_yaml_load(open(Path.cwd() / "cfg.yaml", "r"))
 
     device = "cuda" if tr.cuda.is_available() else "cpu"
     ixs = [2303, 3392]
