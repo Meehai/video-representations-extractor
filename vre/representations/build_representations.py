@@ -1,13 +1,12 @@
 """external_representations.py handles functions related to loading external representations to the library"""
 from pathlib import Path
 from typing import Type
-from omegaconf import DictConfig, OmegaConf
 from .representation import Representation
 from .io_representation_mixin import IORepresentationMixin
 from .compute_representation_mixin import ComputeRepresentationMixin
 from .learned_representation_mixin import LearnedRepresentationMixin
 from ..logger import vre_logger as logger
-from ..utils import topological_sort, load_function_from_module
+from ..utils import topological_sort, load_function_from_module, vre_yaml_load
 
 def add_external_repositories(external_paths: list[str],
                               default_representations: dict[str, type[Representation]] | None = None) \
@@ -70,13 +69,12 @@ def build_representation_from_cfg(repr_cfg: dict, name: str, representation_type
         obj.set_io_params(**io_params)
     return obj
 
-def build_representations_from_cfg(cfg: Path | str | DictConfig | dict,
+def build_representations_from_cfg(cfg: Path | str | dict,
                                    representation_types: dict[str, type[Representation]],
                                    external_representations: list[Path] | None = None) -> list[Representation]:
     """builds a list of representations given a dict config (yaml file)"""
-    assert isinstance(cfg, (Path, str, DictConfig, dict)), type(cfg)
-    cfg = OmegaConf.load(cfg) if isinstance(cfg, (Path, str)) else cfg
-    cfg: dict = OmegaConf.to_container(cfg, resolve=True) if isinstance(cfg, DictConfig) else cfg
+    assert isinstance(cfg, (Path, str, dict)), type(cfg)
+    cfg = vre_yaml_load(cfg) if isinstance(cfg, (Path, str)) else cfg
     assert len(repr_cfg := cfg["representations"]) > 0 and isinstance(repr_cfg, dict), repr_cfg
 
     logger.debug("Doing topological sort...")

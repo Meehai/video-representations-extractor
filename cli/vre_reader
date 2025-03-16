@@ -7,7 +7,6 @@ from vre.representations import build_representations_from_cfg, add_external_rep
 from vre.utils import abs_path, lo
 from vre.logger import vre_logger as logger
 from vre_repository import get_vre_repository
-from omegaconf import OmegaConf
 from pprint import pformat
 from torch.utils.data import DataLoader
 from tqdm import tqdm
@@ -33,9 +32,8 @@ def get_args() -> Namespace:
 
 def main(args: Namespace):
     """main fn"""
-    cfg = OmegaConf.to_container(OmegaConf.load(args.config_path), resolve=True)
     representation_types = add_external_repositories(args.external_repositories, get_vre_repository())
-    representations = build_representations_from_cfg(cfg=cfg, representation_types=representation_types,
+    representations = build_representations_from_cfg(cfg=args.config_path, representation_types=representation_types,
                                                      external_representations=args.external_representations)
 
     reader = MultiTaskDataset(args.dataset_path, task_names=[r.name for r in representations],
