@@ -20,9 +20,9 @@ class EdgesRepresentation(Representation, NpIORepresentation, ComputeRepresentat
         return 1
 
     def make_images(self, data: ReprOut) -> np.ndarray:
-        y = self.unnormalize(data.output) if self.normalization is not None else self.data.output
+        y = self.unnormalize(data.output) if self.normalization is not None else data.output
         return (np.repeat(y, 3, axis=-1) * 255).astype(np.uint8)
 
     @overrides
-    def compute(self, video: VREVideo, ixs: list[int]):
+    def compute(self, video: VREVideo, ixs: list[int], dep_data: list[ReprOut] | None = None) -> ReprOut:
         raise NotImplementedError(f"[{self}] compute() must be overriden. We inherit it for output_dtype/size etc.")

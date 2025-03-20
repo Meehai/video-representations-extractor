@@ -10,17 +10,17 @@ def test_mask2former():
     assert m2f_repr.compress is True # default from ComputeRepresentationMixin
     assert m2f_repr.device == "cpu" # default from LearnedRepresentationMixin
 
-    m2f_repr.compute(video, [0])
-    assert m2f_repr.data.output.shape == (1, 64, 128, m2f_repr.n_classes)
+    out = m2f_repr.compute(video, [0])
+    assert out.output.shape == (1, 64, 128, m2f_repr.n_classes)
 
-    y_m2f_rgb = m2f_repr.make_images(m2f_repr.data)
-    assert y_m2f_rgb.shape == (1, 64, 128, 3)
-    assert y_m2f_rgb.dtype == np.uint8, y_m2f_rgb.dtype
+    out_image = m2f_repr.make_images(out)
+    assert out_image.shape == (1, 64, 128, 3)
+    assert out_image.dtype == np.uint8, out_image.dtype
 
-    assert m2f_repr.size == (1, 64, 128, m2f_repr.n_classes)
-    m2f_repr.data = m2f_repr.resize(m2f_repr.data, (32, 64)) # we can resize it though
-    assert m2f_repr.size == (1, 32, 64, m2f_repr.n_classes)
-    assert m2f_repr.make_images(m2f_repr.data).shape == (1, 32, 64, 3)
+    assert m2f_repr.size(out) == (1, 64, 128, m2f_repr.n_classes)
+    out_resized = m2f_repr.resize(out, (32, 64)) # we can resize it though
+    assert m2f_repr.size(out_resized) == (1, 32, 64, m2f_repr.n_classes)
+    assert m2f_repr.make_images(out_resized).shape == (1, 32, 64, 3)
 
 if __name__ == "__main__":
     test_mask2former()

@@ -11,17 +11,17 @@ def test_marigold():
     assert marigold_repr.compress is True # default from ComputeRepresentationMixin
     assert marigold_repr.device == "cpu" # default from LearnedRepresentationMixin
 
-    marigold_repr.compute(video, ixs=[0])
-    assert marigold_repr.data.output.shape == (1, 8, 24, 1), marigold_repr.data.output.shape
+    out = marigold_repr.compute(video, ixs=[0])
+    assert out.output.shape == (1, 8, 24, 1)
 
-    y_dpt_images = marigold_repr.make_images(marigold_repr.data)
-    assert y_dpt_images.shape == (1, 8, 24, 3), y_dpt_images.shape
-    assert y_dpt_images.dtype == np.uint8, y_dpt_images.dtype
+    out_images = marigold_repr.make_images(out)
+    assert out_images.shape == (1, 8, 24, 3)
+    assert out_images.dtype == np.uint8
 
-    assert marigold_repr.size == (1, 8, 24, 1)
-    marigold_repr.data = marigold_repr.resize(marigold_repr.data, (64, 128)) # we can resize it though
-    assert marigold_repr.size == (1, 64, 128, 1)
-    assert marigold_repr.make_images(marigold_repr.data).shape == (1, 64, 128, 3)
+    assert marigold_repr.size(out) == (1, 8, 24, 1)
+    out_resized = marigold_repr.resize(out, (64, 128)) # we can resize it though
+    assert marigold_repr.size(out_resized) == (1, 64, 128, 1)
+    assert marigold_repr.make_images(out_resized).shape == (1, 64, 128, 3)
 
 if __name__ == "__main__":
     test_marigold()

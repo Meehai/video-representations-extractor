@@ -10,17 +10,17 @@ def test_dexined_1():
     assert dexined_repr.compress is True # default from ComputeRepresentationMixin
     assert dexined_repr.device == "cpu" # default from LearnedRepresentationMixin
 
-    dexined_repr.compute(video, [0])
-    assert dexined_repr.data.output.shape == (1, 512, 512, 1), dexined_repr.data.output.shape
+    out = dexined_repr.compute(video, [0])
+    assert out.output.shape == (1, 512, 512, 1), out.output.shape
 
-    y_dexined_images = dexined_repr.make_images(dexined_repr.data)
-    assert y_dexined_images.shape == (1, 512, 512, 3)
-    assert y_dexined_images.dtype == np.uint8, y_dexined_images.dtype
+    out_images = dexined_repr.make_images(out)
+    assert out_images.shape == (1, 512, 512, 3)
+    assert out_images.dtype == np.uint8, out_images.dtype
 
-    assert dexined_repr.size == (1, 512, 512, 1)
-    dexined_repr.data = dexined_repr.resize(dexined_repr.data, (32, 64)) # we can resize it though
-    assert dexined_repr.size == (1, 32, 64, 1)
-    assert dexined_repr.make_images(dexined_repr.data).shape == (1, 32, 64, 3)
+    assert dexined_repr.size(out) == (1, 512, 512, 1)
+    out_resized = dexined_repr.resize(out, (32, 64)) # we can resize it though
+    assert dexined_repr.size(out_resized) == (1, 32, 64, 1)
+    assert dexined_repr.make_images(out_resized).shape == (1, 32, 64, 3)
 
 if __name__ == "__main__":
     test_dexined_1()

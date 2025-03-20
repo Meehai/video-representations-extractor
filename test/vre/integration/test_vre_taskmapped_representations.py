@@ -33,7 +33,7 @@ class SemaCompute(Representation, NpIORepresentation, ComputeRepresentationMixin
         return self.n_classes
 
     @overrides
-    def compute(self, video: VREVideo, ixs: list[int]):
+    def compute(self, video: VREVideo, ixs: list[int], dep_data: list[ReprOut] | None = None) -> ReprOut:
         raise NotImplementedError(f"[{self}] compute() must be overriden. We inherit it for output_dtype/size etc.")
 
     @overrides

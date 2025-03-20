@@ -10,17 +10,17 @@ def test_safeuav():
     assert safeuav_repr.compress is True # default from ComputeRepresentationMixin
     assert safeuav_repr.device == "cpu" # default from LearnedRepresentationMixin
 
-    safeuav_repr.compute(video, [0])
-    assert safeuav_repr.data.output.shape == (1, 50, 50, 8)
+    out = safeuav_repr.compute(video, [0])
+    assert out.output.shape == (1, 50, 50, 8)
 
-    y_safeuav_rgb = safeuav_repr.make_images(safeuav_repr.data)
-    assert y_safeuav_rgb.shape == (1, 50, 50, 3)
-    assert y_safeuav_rgb.dtype == np.uint8, y_safeuav_rgb.dtype
+    out_image = safeuav_repr.make_images(out)
+    assert out_image.shape == (1, 50, 50, 3)
+    assert out_image.dtype == np.uint8, out_image.dtype
 
-    assert safeuav_repr.size == (1, 50, 50, 8)
-    safeuav_repr.data = safeuav_repr.resize(safeuav_repr.data, (64, 128)) # we can resize it though
-    assert safeuav_repr.size == (1, 64, 128, 8)
-    assert safeuav_repr.make_images(safeuav_repr.data).shape == (1, 64, 128, 3)
+    assert safeuav_repr.size(out) == (1, 50, 50, 8)
+    out_resized = safeuav_repr.resize(out, (64, 128)) # we can resize it though
+    assert safeuav_repr.size(out_resized) == (1, 64, 128, 8)
+    assert safeuav_repr.make_images(out_resized).shape == (1, 64, 128, 3)
 
 if __name__ == "__main__":
     test_safeuav()

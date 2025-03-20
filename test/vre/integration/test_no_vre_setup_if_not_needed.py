@@ -20,7 +20,7 @@ class MyRepresentation(Representation, LearnedRepresentationMixin, ComputeRepres
         self.vre_setup_called = False
         self.vre_free_called = False
         self.make_called = False
-    def compute(self, video, ixs):
+    def compute(self, video, ixs, dep_data):
         raise NotImplementedError("should not be called")
     @staticmethod
     def weights_repository_links(**kwargs):
@@ -41,8 +41,8 @@ class MyDependentRepresentation(Representation, ComputeRepresentationMixin, NpIO
         Representation.__init__(self, *args, **kwargs)
         ComputeRepresentationMixin.__init__(self)
         NpIORepresentation.__init__(self)
-    def compute(self, video, ixs):
-        self.data = ReprOut(frames=video[ixs], output=self.dependencies[0].data.output, key=ixs)
+    def compute(self, video, ixs, dep_data):
+        return ReprOut(frames=video[ixs], output=dep_data[0].output, key=ixs)
     def make_images(self, data: ReprOut) -> np.ndarray:
         return data.output
     @property

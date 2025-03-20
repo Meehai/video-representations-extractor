@@ -32,16 +32,14 @@ class GeneralizedBoundaries(Representation, ComputeRepresentationMixin, NpIORepr
         return 3
 
     @overrides
-    def compute(self, video: VREVideo, ixs: list[int]):
-        assert self.data is None, f"[{self}] data must not be computed before calling this"
+    def compute(self, video: VREVideo, ixs: list[int], dep_data: list[ReprOut] | None = None) -> ReprOut:
         x = tr.from_numpy(video[ixs]).type(tr.float) / 255
         x = x.permute(0, 3, 1, 2)
         y = soft_seg(x, use_median_filtering=self.use_median_filtering, as_image=self.adjust_to_rgb,
                      max_channels=self.max_channels)
         y = y.permute(0, 2, 3, 1).cpu().numpy()
-        self.data = ReprOut(frames=video[ixs], output=MemoryData(y), key=ixs)
+        return ReprOut(frames=video[ixs], output=MemoryData(y), key=ixs)
 
     @overrides
     def make_images(self, data: ReprOut) -> np.ndarray:
-        assert self.data is not None, f"[{self}] data must be first computed using compute()"
-        return (self.data.output * 255).astype(np.uint8)
+        return (data.output * 255).astype(np.uint8)

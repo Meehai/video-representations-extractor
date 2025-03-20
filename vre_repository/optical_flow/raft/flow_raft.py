@@ -33,8 +33,7 @@ class FlowRaft(OpticalFlowRepresentation, LearnedRepresentationMixin, ComputeRep
         self.inference_height = inference_height
 
     @overrides
-    def compute(self, video: VREVideo, ixs: list[int]):
-        assert self.data is None, f"[{self}] data must not be computed before calling this"
+    def compute(self, video: VREVideo, ixs: list[int], dep_data: list[ReprOut] | None = None) -> ReprOut:
         frames = video[ixs]
         right_frames = self.get_delta_frames(video, ixs)
         source, dest = self._preprocess(frames), self._preprocess(right_frames)
@@ -42,7 +41,7 @@ class FlowRaft(OpticalFlowRepresentation, LearnedRepresentationMixin, ComputeRep
         with tr.no_grad():
             _, predictions = self.model(source, dest, iters=self.iters, test_mode=True)
         flow = self._postporcess(predictions)
-        self.data = ReprOut(frames=video[ixs], output=MemoryData(flow), key=ixs)
+        return ReprOut(frames=video[ixs], output=MemoryData(flow), key=ixs)
 
     @staticmethod
     @overrides

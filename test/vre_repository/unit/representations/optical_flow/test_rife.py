@@ -13,14 +13,14 @@ def test_rife_uhd_false(uhd):
     assert rife_repr.device == "cpu" # default from LearnedRepresentationMixin
 
     out_shape = (32, 64) if not uhd else (16, 32)
-    rife_repr.compute(video, [0])
-    assert rife_repr.data.output.shape == (1, *out_shape, 2), rife_repr.data.output.shape
+    out = rife_repr.compute(video, [0])
+    assert out.output.shape == (1, *out_shape, 2), out.output.shape
 
-    y_rife_images = rife_repr.make_images(rife_repr.data)
-    assert y_rife_images.shape == (1, *out_shape, 3), y_rife_images.shape
-    assert y_rife_images.dtype == np.uint8, y_rife_images.dtype
+    out_images = rife_repr.make_images(out)
+    assert out_images.shape == (1, *out_shape, 3), out_images.shape
+    assert out_images.dtype == np.uint8, out_images.dtype
 
-    assert rife_repr.size == (1, *out_shape, 2)
-    rife_repr.data = rife_repr.resize(rife_repr.data, (64, 128)) # we can resize it though
-    assert rife_repr.size == (1, 64, 128, 2)
-    assert rife_repr.make_images(rife_repr.data).shape == (1, 64, 128, 3)
+    assert rife_repr.size(out) == (1, *out_shape, 2)
+    out_resized = rife_repr.resize(out, (64, 128)) # we can resize it though
+    assert rife_repr.size(out_resized) == (1, 64, 128, 2)
+    assert rife_repr.make_images(out_resized).shape == (1, 64, 128, 3)

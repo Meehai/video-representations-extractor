@@ -41,15 +41,13 @@ class Halftone(Representation, ComputeRepresentationMixin, NpIORepresentation, N
         self._check_arguments()
 
     @overrides
-    def compute(self, video: VREVideo, ixs: list[int]):
-        assert self.data is None, f"[{self}] data must not be computed before calling this"
-        self.data = ReprOut(frames=video[ixs], key=ixs,
-                            output=MemoryData([self._make_one_image(frame) for frame in video[ixs]]))
+    def compute(self, video: VREVideo, ixs: list[int], dep_data: list[ReprOut] | None = None) -> ReprOut:
+        output = MemoryData([self._make_one_image(frame) for frame in video[ixs]])
+        return ReprOut(frames=video[ixs], key=ixs, output=output)
 
     @overrides
     def make_images(self, data: ReprOut) -> np.ndarray:
-        assert self.data is not None, f"[{self}] data must be first computed using compute()"
-        return (self.data.output * 255).astype(np.uint8)
+        return (data.output * 255).astype(np.uint8)
 
     @property
     @overrides

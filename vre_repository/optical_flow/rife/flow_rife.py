@@ -25,15 +25,14 @@ class FlowRife(OpticalFlowRepresentation, LearnedRepresentationMixin, ComputeRep
         self.model: Model | None = None
 
     @overrides
-    def compute(self, video: VREVideo, ixs: list[int]):
-        assert self.data is None, f"[{self}] data must not be computed before calling this"
+    def compute(self, video: VREVideo, ixs: list[int], dep_data: list[ReprOut] | None = None) -> ReprOut:
         frames = video[ixs]
         right_frames = self.get_delta_frames(video, ixs)
         x_s, x_t, padding = self._preprocess(frames, right_frames)
         with tr.no_grad():
             prediction = self.model.inference(x_s, x_t, self.uhd, self.no_backward_flow)
         flow = self._postprocess(prediction, padding)
-        self.data = ReprOut(frames=video[ixs], output=MemoryData(flow), key=ixs)
+        return ReprOut(frames=video[ixs], output=MemoryData(flow), key=ixs)
 
     @staticmethod
     @overrides

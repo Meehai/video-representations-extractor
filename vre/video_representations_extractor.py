@@ -134,12 +134,11 @@ class VideoRepresentationsExtractor:
 
             try:
                 tr.cuda.empty_cache() # might empty some unused memory, not 100% if needed.
-                self._compute_one_representation_batch(rep=rep, batch=batch, output_dir=data_writer.output_dir)
-                assert rep.data is not None, (rep, batch)
+                rep_data = self._compute_one_representation_batch(rep, batch=batch, output_dir=data_writer.output_dir)
                 if not rep.is_classification and rep.name.find("fastsam") == -1: # TODO: MemoryData of M2F is binary...
-                    assert rep.data.output.shape[-1] == rep.n_channels, (rep, rep.data.output, rep.n_channels)
-                rep.data.output_images = rep.make_images(rep.data) if rep.export_image else None
-                data_storer(rep.data)
+                    assert rep_data.output.shape[-1] == rep.n_channels, (rep, rep_data.output, rep.n_channels)
+                rep_data.output_images = rep.make_images(rep_data) if rep.export_image else None
+                data_storer(rep_data)
             except Exception:
                 self._log_error(f"\n[{rep.name} {rep.batch_size=} {batch=}] {traceback.format_exc()}\n")
                 repr_metadata.add_time(None, batch)
@@ -160,7 +159,8 @@ class VideoRepresentationsExtractor:
 
     # Helper private methods
 
-    def _load_from_disk_if_possible(self, rep: Representation, video: VREVideo, ixs: list[int], output_dir: Path):
+    def _load_from_disk_if_possible(self, rep: Representation, video: VREVideo, ixs: list[int],
+                                    output_dir: Path) -> ReprOut | None:
         """loads (batched) data from disk if possible."""
         assert isinstance(rep, IORepresentationMixin), rep
         assert isinstance(ixs, list) and all(isinstance(ix, int) for ix in ixs), (type(ixs), [type(ix) for ix in ixs])
@@ -169,31 +169,29 @@ class VideoRepresentationsExtractor:
         npz_paths: list[Path] = [output_dir / rep.name / f"npz/{ix}.npz" for ix in ixs]
         extra_paths: list[Path] = [output_dir / rep.name / f"npz/{ix}_extra.npz" for ix in ixs]
         if any(not x.exists() for x in npz_paths): # partial batches are considered 'not existing' and overwritten
-            return
+            return None
         extras_exist = [x.exists() for x in extra_paths]
         assert (ee := sum(extras_exist)) in (0, (ep := len(extra_paths))), f"Found {ee}. Expected either 0 or {ep}"
         disk_data: DiskData = np.array([rep.load_from_disk(x) for x in npz_paths])
         extra = [np.load(x, allow_pickle=True)["arr_0"].item() for x in extra_paths] if ee == ep else None
         logger.debug2(f"[{rep}] Slice: [{ixs[0]}:{ixs[-1]}]. All data found on disk and loaded")
-        rep.data = ReprOut(frames=video[ixs], output=rep.disk_to_memory_fmt(disk_data), extra=extra, key=ixs)
+        return ReprOut(frames=video[ixs], output=rep.disk_to_memory_fmt(disk_data), extra=extra, key=ixs)
 
     def _compute_one_representation_batch(self, rep: Representation, batch: list[int],
-                                          output_dir: Path, depth: int = 0):
+                                          output_dir: Path, depth: int = 0) -> ReprOut:
         assert isinstance(rep, ComputeRepresentationMixin), rep
         # setting depth to higher values allows to compute deps of deps in memory. We throw to not hide bugs.
         # useful for VRE hacking (i.e. see semantic_mapper.py)
         assert depth <= 1, f"{rep=} {depth=} {batch=} {output_dir=}"
-        # TODO: make unit test with this (lingering .data from previous computation) on depth == 1 (i.e. deps of rep)
-        rep.data = None # Important to invalidate any previous results here
-        self._load_from_disk_if_possible(rep, self.video, batch, output_dir)
-        if rep.data is not None:
-            return
+        loaded_data = self._load_from_disk_if_possible(rep, self.video, batch, output_dir)
+        if loaded_data is not None:
+            return loaded_data
+        dep_data = []
         for dep in rep.dependencies:
-            self._compute_one_representation_batch(dep, batch, output_dir, depth + 1)
+            dep_data.append(self._compute_one_representation_batch(dep, batch, output_dir, depth + 1))
         if isinstance(rep, LearnedRepresentationMixin) and rep.setup_called is False:
             rep.vre_setup() # instantiates the model, loads to cuda device etc.
-        rep.compute(self.video, ixs=batch)
-        assert rep.data is not None, f"{rep=} {batch=} {output_dir=} {depth=}"
+        return rep.compute(self.video, ixs=batch, dep_data=dep_data)
 
     def _setup_logger(self, output_dir: Path, now_str: str):
         (logs_dir := output_dir / ".logs").mkdir(exist_ok=True, parents=True)

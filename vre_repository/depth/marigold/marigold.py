@@ -68,10 +68,9 @@ class Marigold(DepthRepresentation, LearnedRepresentationMixin, ComputeRepresent
         self.setup_called = True
 
     @overrides
-    def compute(self, video: VREVideo, ixs: list[int]):
-        assert self.data is None, f"[{self}] data must not be computed before calling this"
-        self.data = ReprOut(frames=video[ixs], key=ixs,
-                            output=MemoryData([self._make_one_frame(frame) for frame in video[ixs]]))
+    def compute(self, video: VREVideo, ixs: list[int], dep_data: list[ReprOut] | None = None) -> ReprOut:
+        output = MemoryData([self._make_one_frame(frame) for frame in video[ixs]])
+        return ReprOut(frames=video[ixs], key=ixs, output=output)
 
     @overrides
     def vre_free(self):
@@ -186,8 +185,7 @@ def main():
     for rgb_path in (pbar := tqdm(image_paths, leave=True)):
         pbar.set_description(f"Estimating depth: {rgb_path.name}")
         rgb = image_read(rgb_path, "PIL")
-        marigold.compute(rgb[None], [0])
-        depth = marigold.data
+        depth = marigold.compute(rgb[None], [0])
         if marigold.variant == "marigold-lcm-v1-0" and rgb_path.name in expected.keys() \
                 and marigold.seed is not None and marigold.seed == 42 and str(device) in expected[rgb_path.name]:
             try:
@@ -197,8 +195,8 @@ def main():
             except AssertionError as e:
                 print(e)
 
-        marigold.data = marigold.resize(marigold.data, rgb.shape[0:2])
-        depth_img = marigold.make_images(marigold.data)[0]
+        depth_rsz = marigold.resize(depth, rgb.shape[0:2])
+        depth_img = marigold.make_images(depth_rsz)[0]
         image_write(depth_img, output_dir / "png" / f"{rgb_path.stem}_pred.png")
 
 if __name__ == "__main__":

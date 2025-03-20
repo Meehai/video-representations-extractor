@@ -11,23 +11,22 @@ def test_fastsam():
     assert fastsam_repr.compress is True # default from ComputeRepresentationMixin
     assert fastsam_repr.device == "cpu" # default from LearnedRepresentationMixin
 
-    fastsam_repr.compute(video, [0])
-    assert fastsam_repr.size == (1, 64, 128, 3), fastsam_repr.size
-    assert fastsam_repr.data.output.shape == (1, 32, 128, 256), fastsam_repr.data.output.shape
-    assert len(fastsam_repr.data.extra) == 1 # no objects in random images
-    assert fastsam_repr.data.extra[0]["boxes"].shape == (300, 38), fastsam_repr.data.extra[0]["boxes"].shape
-    assert fastsam_repr.data.extra[0]["inference_size"] == (32, 64), fastsam_repr.data.extra[0]["inference_size"]
-    assert fastsam_repr.data.extra[0]["image_size"] == (64, 128), fastsam_repr.data.extra[0]["image_size"]
+    out = fastsam_repr.compute(video, [0])
+    assert fastsam_repr.size(out) == (1, 64, 128, 3)
+    assert out.output.shape == (1, 32, 128, 256)
+    assert len(out.extra) == 1 # no objects in random images
+    assert out.extra[0]["boxes"].shape == (300, 38)
+    assert out.extra[0]["inference_size"] == (32, 64)
+    assert out.extra[0]["image_size"] == (64, 128)
 
-    y_fastsam_rgb = fastsam_repr.make_images(fastsam_repr.data)
-    assert y_fastsam_rgb.shape == (1, 64, 128, 3) # no guarantee about the raw inference output
-    assert y_fastsam_rgb.dtype == np.uint8, y_fastsam_rgb.dtype
-    assert fastsam_repr.size == (1, 64, 128, 3)
-    assert np.allclose(y_fastsam_rgb[0], video[0])
+    out_image = fastsam_repr.make_images(out)
+    assert out_image.shape == (1, 64, 128, 3) # no guarantee about the raw inference output
+    assert out_image.dtype == np.uint8
+    assert np.allclose(out_image[0], video[0])
 
-    fastsam_repr.data = fastsam_repr.resize(fastsam_repr.data, (80, 160)) # we can resize it though
-    assert fastsam_repr.size == (1, 80, 160, 3), fastsam_repr.size
-    assert (A := fastsam_repr.data.output.shape) == (1, 32, 128, 256), A # this never changes
+    out_resized = fastsam_repr.resize(out, (80, 160)) # we can resize it though
+    assert fastsam_repr.size(out_resized) == (1, 80, 160, 3)
+    assert out_resized.output.shape == (1, 32, 128, 256)
 
 if __name__ == "__main__":
     test_fastsam()
