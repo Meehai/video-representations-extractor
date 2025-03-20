@@ -20,9 +20,8 @@ class FakeRepresentation(Representation, ComputeRepresentationMixin, NpIOReprese
         self.output_dtype = output_dtype
 
     @overrides
-    def compute(self, video: VREVideo, ixs: list[int]):
-        assert self.data is None, "data must not be computed before calling this"
-        self.data = ReprOut(frames=video[ixs], output=MemoryData(video[ixs]), key=ixs)
+    def compute(self, video: VREVideo, ixs: list[int], dep_data: list[ReprOut] | None = None) -> ReprOut:
+        return ReprOut(frames=video[ixs], output=MemoryData(video[ixs]), key=ixs)
 
     @overrides
     def make_images(self, data: ReprOut) -> np.ndarray:
@@ -33,3 +32,4 @@ class FakeRepresentation(Representation, ComputeRepresentationMixin, NpIOReprese
     @overrides
     def n_channels(self) -> int:
         return self._n_channels
+

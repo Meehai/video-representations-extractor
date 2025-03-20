@@ -1,7 +1,6 @@
 """FastSAM representation."""
 from argparse import ArgumentParser, Namespace
 from datetime import datetime
-from copy import deepcopy
 from pathlib import Path
 from overrides import overrides
 import numpy as np
@@ -40,8 +39,7 @@ class FastSam(Representation, LearnedRepresentationMixin, ComputeRepresentationM
         self._imgsz: int | None = None
 
     @overrides
-    def compute(self, video: VREVideo, ixs: list[int]):
-        assert self.data is None, f"[{self}] data must not be computed before calling this"
+    def compute(self, video: VREVideo, ixs: list[int], dep_data: list[ReprOut] | None = None) -> ReprOut:
         tr_x = self._preproces(frames := video[ixs])
         tr_y: tr.FloatTensor = self.model.forward(tr_x)
         mb, _, i_h, i_w = tr_x.shape[0:4]
@@ -51,11 +49,11 @@ class FastSam(Representation, LearnedRepresentationMixin, ComputeRepresentationM
                  for i in range(mb)]
         assert len(tr_y[1]) == 3, len(tr_y[1])
         # Note: this is called 'proto' in the original implementation. Only this part of predictions is used for plots.
-        self.data = ReprOut(frames=frames, output=MemoryData(tr_y[1][-1].to("cpu").numpy()), extra=extra, key=ixs)
+        return ReprOut(frames=frames, output=MemoryData(tr_y[1][-1].to("cpu").numpy()), extra=extra, key=ixs)
 
     @overrides(check_signature=False)
     def make_images(self, data: ReprOut) -> np.ndarray:
-        y_fastsam, extra = self.data.output, self.data.extra # len(y_fastsam) == len(extra) == len(ixs)
+        y_fastsam, extra = data.output, data.extra # len(y_fastsam) == len(extra) == len(ixs)
         assert all((inf_size := e["inference_size"]) == extra[0]["inference_size"] for e in extra), extra
         assert all((img_size := e["image_size"]) == extra[0]["image_size"] for e in extra), extra
         tr_y = tr.from_numpy(y_fastsam).to(self.device)
@@ -63,7 +61,7 @@ class FastSam(Representation, LearnedRepresentationMixin, ComputeRepresentationM
         # scaled_boxes = [scale_box(box, *inf_size, *img_size) for box in boxes] # TODO: needed for faster proc?
 
         res: list[np.ndarray] = []
-        for i, (box, frame) in enumerate(zip(boxes, self.data.frames)):
+        for i, (box, frame) in enumerate(zip(boxes, data.frames)):
             if len(box) == 0:  # save empty boxes
                 res.append(frame)
                 continue
@@ -76,11 +74,9 @@ class FastSam(Representation, LearnedRepresentationMixin, ComputeRepresentationM
         res_arr = image_resize_batch(res, *img_size, interpolation="bilinear")
         return res_arr
 
-    @property
     @overrides
-    def size(self) -> tuple[int, ...]:
-        assert self.data is not None, f"[{self}] data must be first computed using size()"
-        return (len(self.data.output), *self.data.extra[0]["image_size"], 3) # Note: not the embeddings size!
+    def size(self, repr_out: ReprOut) -> tuple[int, ...]:
+        return (len(repr_out.output), *repr_out.extra[0]["image_size"], 3) # Note: not the embeddings size!
 
     @overrides
     def resize(self, data: ReprOut, new_size: tuple[int, int]) -> ReprOut:
@@ -184,17 +180,15 @@ def main(args: Namespace):
     fastsam.device = "cuda" if tr.cuda.is_available() else "cpu"
     fastsam.vre_setup(load_weights=args.model_id != "testing")
     now = datetime.now()
-    fastsam.compute(FakeVideo(img[None], 1), [0])
+    pred = fastsam.compute(FakeVideo(img[None], 1), [0])
     logger.info(f"Pred took: {datetime.now() - now}")
-    semantic_result = fastsam.make_images(fastsam.data)[0]
+    semantic_result = fastsam.make_images(pred)[0]
     image_write(semantic_result, args.output_path)
     logger.info(f"Written result to '{args.output_path}'")
 
     output_path_rsz = args.output_path.parent / f"{args.output_path.stem}_rsz{args.output_path.suffix}"
-    pred = deepcopy(fastsam.data)
-    fastsam.data = fastsam.resize(fastsam.data, (300, 1024))
-    pred_rsz = fastsam.data
-    semantic_result_rsz = fastsam.make_images(fastsam.data)[0]
+    pred_rsz = fastsam.resize(pred, (300, 1024))
+    semantic_result_rsz = fastsam.make_images(pred_rsz)[0]
     image_write(semantic_result_rsz, output_path_rsz)
     logger.info(f"Written resized result to '{output_path_rsz}'")
 

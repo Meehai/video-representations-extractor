@@ -1,6 +1,7 @@
 """ComputeRepresentationMixin module"""
 from abc import ABC, abstractmethod
 
+from ..utils import ReprOut
 from ..vre_video import VREVideo
 from ..logger import vre_logger as logger
 
@@ -10,7 +11,7 @@ class ComputeRepresentationMixin(ABC):
         self._batch_size: int | None = None
 
     @abstractmethod
-    def compute(self, video: VREVideo, ixs: list[int]):
+    def compute(self, video: VREVideo, ixs: list[int], dep_data: list[ReprOut] | None = None) -> ReprOut:
         """given input data (batch of images/frewes), compute the output data of this representation"""
 
     @property

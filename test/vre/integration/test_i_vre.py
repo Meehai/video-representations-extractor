@@ -62,11 +62,9 @@ def test_vre_output_shape():
             super().__init__(*args, **kwargs)
             self.shape = shape
 
-        def compute(self, video: VREVideo, ixs: list[int]):
-            assert self.data is None, f"[{self}] data must not be computed before calling this"
-            super().compute(video, ixs)
-            self.data = ReprOut(frames=video[ixs],
-                                output=MemoryData(image_resize_batch(self.data.output, *self.shape)), key=ixs)
+        def compute(self, video: VREVideo, ixs: list[int], dep_data: list[ReprOut] | None = None) -> ReprOut:
+            output = MemoryData(image_resize_batch(super().compute(video, ixs).output, *self.shape))
+            return ReprOut(frames=video[ixs], output=output, key=ixs)
 
     video = FakeVideo(np.random.randint(0, 255, size=(2, 128, 128, 3), dtype=np.uint8), fps=30)
     vre = VRE(video=video, representations=[RGBWithShape((64, 64), "rgb", n_channels=3)])

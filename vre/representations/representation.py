@@ -13,7 +13,11 @@ class Representation(ABC):
         # assert all(isinstance(dep, Representation) for dep in deps), (name, [(dep, type(dep)) for dep in deps])
         self.name = name
         self.dependencies = deps
-        self.data: ReprOut | None = None
+        # self.data: ReprOut | None = None
+
+    def size(self, repr_out: ReprOut) -> tuple[int, ...]:
+        """Returns the (b, h, w, c) tuple of the size of the current representation"""
+        return tuple(repr_out.output.shape)
 
     ## Abstract methods ##
     @abstractmethod
@@ -30,12 +34,6 @@ class Representation(ABC):
     def dep_names(self) -> list[str]:
         """return the list of dependencies names"""
         return [r.name for r in self.dependencies]
-
-    @property
-    def size(self) -> tuple[int, ...]:
-        """Returns the (b, h, w, c) tuple of the size of the current representation"""
-        assert self.data is not None, f"[{self}] data must be first computed using compute()"
-        return tuple(self.data.output.shape)
 
     @property
     def is_classification(self) -> bool:

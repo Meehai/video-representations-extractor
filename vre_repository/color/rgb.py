@@ -17,6 +17,5 @@ class RGB(ColorRepresentation, ComputeRepresentationMixin):
         self.output_dtype = "uint8"
 
     @overrides
-    def compute(self, video: VREVideo, ixs: list[int]):
-        assert self.data is None, f"[{self}] data must not be computed before calling this"
-        self.data = ReprOut(frames=video[ixs], output=MemoryData(video[ixs]), key=ixs) # video[ixs] is cached
+    def compute(self, video: VREVideo, ixs: list[int], dep_data: list[ReprOut] | None = None) -> ReprOut:
+        return ReprOut(frames=video[ixs], output=MemoryData(video[ixs]), key=ixs) # video[ixs] is cached

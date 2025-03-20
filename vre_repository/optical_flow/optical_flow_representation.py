@@ -25,8 +25,7 @@ class OpticalFlowRepresentation(Representation, NpIORepresentation, NormedRepres
 
     @overrides
     def make_images(self, data: ReprOut) -> np.ndarray:
-        assert self.data is not None, f"[{self}] data must be first computed using compute()"
-        y = self.unnormalize(data.output) if self.normalization is not None else self.data.output
+        y = self.unnormalize(data.output) if self.normalization is not None else data.output
         return colorize_optical_flow(y)
 
     def get_delta_frames(self, video: VREVideo, ixs: list[int]) -> np.ndarray:

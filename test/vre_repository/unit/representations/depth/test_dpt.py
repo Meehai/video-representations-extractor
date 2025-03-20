@@ -10,17 +10,17 @@ def test_dpt():
     assert dpt_repr.compress is True # default from ComputeRepresentationMixin
     assert dpt_repr.device == "cpu" # default from LearnedRepresentationMixin
 
-    dpt_repr.compute(video, ixs=[0])
-    assert dpt_repr.data.output.shape == (1, 192, 384, 1), dpt_repr.data.output.shape
+    out = dpt_repr.compute(video, ixs=[0])
+    assert out.output.shape == (1, 192, 384, 1), out.output.shape
 
-    y_dpt_images = dpt_repr.make_images(dpt_repr.data)
-    assert y_dpt_images.shape == (1, 192, 384, 3), y_dpt_images.shape
-    assert y_dpt_images.dtype == np.uint8, y_dpt_images.dtype
+    out_images = dpt_repr.make_images(out)
+    assert out_images.shape == (1, 192, 384, 3), out_images.shape
+    assert out_images.dtype == np.uint8, out_images.dtype
 
-    assert dpt_repr.size == (1, 192, 384, 1)
-    dpt_repr.data = dpt_repr.resize(dpt_repr.data, (64, 128)) # we can resize it though
-    assert dpt_repr.size == (1, 64, 128, 1)
-    assert dpt_repr.make_images(dpt_repr.data).shape == (1, 64, 128, 3)
+    assert dpt_repr.size(out) == (1, 192, 384, 1)
+    out_resized = dpt_repr.resize(out, (64, 128)) # we can resize it though
+    assert dpt_repr.size(out_resized) == (1, 64, 128, 1)
+    assert dpt_repr.make_images(out_resized).shape == (1, 64, 128, 3)
 
 if __name__ == "__main__":
     test_dpt()

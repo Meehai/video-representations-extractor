@@ -46,11 +46,12 @@ class TaskMapper(Representation, IORepresentationMixin, ComputeRepresentationMix
         return merged_data
 
     @overrides
-    def compute(self, video: VREVideo, ixs: list[int]):
-        data = [dep.data.output for dep in self.dependencies]
-        assert all(dep.data.key == ixs for dep in self.dependencies), ([dep.data.key for dep in self.dependencies], ixs)
+    def compute(self, video: VREVideo, ixs: list[int], dep_data: list[ReprOut] | None = None) -> ReprOut:
+        assert dep_data is not None, dep_data
+        assert all(dep.key == ixs for dep in dep_data), ([dep.key for dep in dep_data], ixs)
+        data = [dep.output for dep in dep_data]
         res = []
         for i in range(len(data[0])):
             res.append(self.merge_fn([x[i] for x in data]))
         assert all(isinstance(item, MemoryData) for item in res), (self, [type(item) for item in res])
-        self.data = ReprOut(video[ixs], MemoryData(res), key=ixs)
+        return ReprOut(video[ixs], MemoryData(res), key=ixs)

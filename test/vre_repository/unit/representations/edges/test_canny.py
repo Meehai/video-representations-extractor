@@ -8,16 +8,16 @@ def test_canny_1():
     assert canny_repr.name == "canny"
     assert canny_repr.compress is True # default from ComputeRepresentationMixin
 
-    canny_repr.compute(video, ixs=[0])
-    assert canny_repr.data.output.shape == (1, 64, 128, 1)
-    y_canny_images = canny_repr.make_images(canny_repr.data)
-    assert y_canny_images.shape == (1, 64, 128, 3)
-    assert y_canny_images.dtype == np.uint8, y_canny_images.dtype
+    out = canny_repr.compute(video, ixs=[0])
+    assert out.output.shape == (1, 64, 128, 1)
+    out_images = canny_repr.make_images(out)
+    assert out_images.shape == (1, 64, 128, 3)
+    assert out_images.dtype == np.uint8, out_images.dtype
 
-    assert canny_repr.size == (1, 64, 128, 1)
-    canny_repr.data = canny_repr.resize(canny_repr.data, (32, 64)) # we can resize it though
-    assert canny_repr.size == (1, 32, 64, 1)
-    assert canny_repr.make_images(canny_repr.data).shape == (1, 32, 64, 3)
+    assert canny_repr.size(out) == (1, 64, 128, 1)
+    out_resized = canny_repr.resize(out, (32, 64)) # we can resize it though
+    assert canny_repr.size(out_resized) == (1, 32, 64, 1)
+    assert canny_repr.make_images(out_resized).shape == (1, 32, 64, 3)
 
 if __name__ == "__main__":
     test_canny_1()

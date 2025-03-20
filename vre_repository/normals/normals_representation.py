@@ -13,7 +13,7 @@ class NormalsRepresentation(Representation, NpIORepresentation, NormedRepresenta
 
     @overrides
     def make_images(self, data: ReprOut) -> np.ndarray:
-        y = self.unnormalize(data.output) if self.normalization is not None else self.data.output
+        y = self.unnormalize(data.output) if self.normalization is not None else data.output
         return (y * 255).astype(np.uint8)
 
     @property

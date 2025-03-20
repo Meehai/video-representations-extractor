@@ -13,14 +13,14 @@ def test_raft(iters: int, small: bool):
     assert raft_repr.compress is True # default from ComputeRepresentationMixin
     assert raft_repr.device == "cpu" # default from LearnedRepresentationMixin
 
-    raft_repr.compute(video, [0])
-    assert raft_repr.data.output.shape == (1, 128, 128, 2), (raft_repr.data.output.shape, iters)
+    out = raft_repr.compute(video, [0])
+    assert out.output.shape == (1, 128, 128, 2), (out.output.shape, iters)
 
-    y_raft_images = raft_repr.make_images(raft_repr.data)
-    assert y_raft_images.shape == (1, 128, 128, 3), y_raft_images.shape
-    assert y_raft_images.dtype == np.uint8, y_raft_images.dtype
+    out_images = raft_repr.make_images(out)
+    assert out_images.shape == (1, 128, 128, 3), out_images.shape
+    assert out_images.dtype == np.uint8, out_images.dtype
 
-    assert raft_repr.size == (1, raft_repr.inference_height, raft_repr.inference_width, 2)
-    raft_repr.data = raft_repr.resize(raft_repr.data, (64, 128)) # we can resize it though
-    assert raft_repr.size == (1, 64, 128, 2)
-    assert raft_repr.make_images(raft_repr.data).shape == (1, 64, 128, 3)
+    assert raft_repr.size(out) == (1, raft_repr.inference_height, raft_repr.inference_width, 2)
+    out_resized = raft_repr.resize(out, (64, 128)) # we can resize it though
+    assert raft_repr.size(out_resized) == (1, 64, 128, 2)
+    assert raft_repr.make_images(out_resized).shape == (1, 64, 128, 3)

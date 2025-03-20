@@ -42,8 +42,7 @@ class SafeUAV(SemanticRepresentation, LearnedRepresentationMixin, ComputeReprese
         return len(self.classes)
 
     @overrides
-    def compute(self, video: VREVideo, ixs: list[int]):
-        assert self.data is None, f"[{self}] data must not be computed before calling this"
+    def compute(self, video: VREVideo, ixs: list[int], dep_data: list[ReprOut] | None = None) -> ReprOut:
         h, w = self.cfg["model"]["hparams"]["data_shape"]["rgb"][1:3]
         cumsum = [0, *np.cumsum([x[0] for x in self.cfg["model"]["hparams"]["data_shape"].values()])]
         rgb_pos = self.cfg["data"]["parameters"]["task_names"].index("rgb")
@@ -56,7 +55,7 @@ class SafeUAV(SemanticRepresentation, LearnedRepresentationMixin, ComputeReprese
             y = self.model.forward(x)
         sema_pos = self.cfg["data"]["parameters"]["task_names"].index("semantic_output")
         y_rgb = y[:, cumsum[sema_pos]: cumsum[sema_pos+1]].permute(0, 2, 3, 1).cpu().numpy()
-        self.data = ReprOut(frames=video[ixs], output=MemoryData(y_rgb), key=ixs)
+        return ReprOut(frames=video[ixs], output=MemoryData(y_rgb), key=ixs)
 
     @staticmethod
     @overrides
@@ -128,8 +127,8 @@ if __name__ == "__main__":
     model = SafeUAV(name="safeuav", disk_data_argmax=True, variant=sys.argv[2])
     model.vre_setup(load_weights=True)
 
-    model.compute(img[None], [0])
-    res_img = model.make_images(model.data)[0]
+    out = model.compute(img[None], [0])
+    res_img = model.make_images(out)[0]
     out_path = Path(sys.argv[1]).parent / f"{Path(sys.argv[1]).stem}_res{Path(sys.argv[1]).suffix}"
     out_path = out_path if len(sys.argv) == 3 else sys.argv[3]
     image_write(res_img, out_path)

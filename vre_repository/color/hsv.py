@@ -61,7 +61,6 @@ class HSV(ColorRepresentation, ComputeRepresentationMixin):
         ComputeRepresentationMixin.__init__(self)
 
     @overrides
-    def compute(self, video: VREVideo, ixs: list[int]):
-        assert self.data is None, "data must not be computed before calling this"
-        rgb = self.dependencies[0].data.output
-        self.data = ReprOut(frames=video[ixs], output=rgb2hsv(rgb).astype(np.float32), key=ixs)
+    def compute(self, video: VREVideo, ixs: list[int], dep_data: list[ReprOut] | None = None) -> ReprOut:
+        assert dep_data is not None and len(dep_data) == 1, dep_data
+        return ReprOut(frames=video[ixs], output=rgb2hsv(dep_data[0].output).astype(np.float32), key=ixs)

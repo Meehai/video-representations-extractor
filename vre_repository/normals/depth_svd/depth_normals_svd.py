@@ -27,12 +27,12 @@ class DepthNormalsSVD(NormalsRepresentation, ComputeRepresentationMixin):
         assert len(self.dependencies) == 1, f"Expected exactly one depth method, got: {self.dependencies}"
 
     @overrides
-    def compute(self, video: VREVideo, ixs: list[int]):
-        assert self.data is None, f"[{self}] data must not be computed before calling this"
-        assert (A := self.dependencies[0].data) is not None and self.dependencies[0].data.key == ixs, (A.key, ixs)
-        depths = self.dependencies[0].data.output
+    def compute(self, video: VREVideo, ixs: list[int], dep_data: list[ReprOut] | None = None) -> ReprOut:
+        assert dep_data is not None and len(dep_data) == 1, dep_data
+        assert dep_data[0].key == ixs, (self, dep_data[0], ixs)
+        depths = dep_data[0].output
         assert len(depths.shape) == 4 and depths.shape[-1] == 1, f"Expected (B, H, W, 1) got: {depths.shape}"
         res = depths_to_normals(depths[..., 0], self.sensor_fov, self.window_size, self.stride,
                                 self.sensor_size, self.input_downsample_step)
         res = (MemoryData(res).astype(np.float32) + 1) / 2
-        self.data = ReprOut(frames=video[ixs], output=res, key=ixs)
+        return ReprOut(frames=video[ixs], output=res, key=ixs)

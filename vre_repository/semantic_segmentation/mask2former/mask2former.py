@@ -43,8 +43,7 @@ class Mask2Former(SemanticRepresentation, LearnedRepresentationMixin, ComputeRep
 
     @tr.no_grad()
     @overrides
-    def compute(self, video: VREVideo, ixs: list[int]):
-        assert self.data is None, f"[{self}] data must not be computed before calling this"
+    def compute(self, video: VREVideo, ixs: list[int], dep_data: list[ReprOut] | None = None) -> ReprOut:
         height, width = video.frame_shape[0:2]
         _os = get_output_shape(height, width, self.cfg.INPUT.MIN_SIZE_TEST, self.cfg.INPUT.MAX_SIZE_TEST)
         imgs = image_resize_batch(video[ixs], _os[0], _os[1], "bilinear", "PIL").transpose(0, 3, 1, 2).astype("float32")
@@ -53,7 +52,7 @@ class Mask2Former(SemanticRepresentation, LearnedRepresentationMixin, ComputeRep
         res = []
         for pred in predictions:
             res.append(pred.permute(1, 2, 0).to("cpu").numpy())
-        self.data = ReprOut(frames=video[ixs], output=MemoryData(res), key=ixs)
+        return ReprOut(frames=video[ixs], output=MemoryData(res), key=ixs)
 
     @staticmethod
     @overrides
@@ -114,12 +113,12 @@ def main(args: Namespace):
     m2f.device = "cuda" if tr.cuda.is_available() else "cpu"
     m2f.vre_setup()
     now = datetime.now()
-    m2f.compute(FakeVideo(img[None], 1), [0])
+    m2f_out = m2f.compute(FakeVideo(img[None], 1), [0])
     logger.info(f"Pred took: {datetime.now() - now}")
-    semantic_result: np.ndarray = m2f.make_images(m2f.data)[0]
+    semantic_result: np.ndarray = m2f.make_images(m2f_out)[0]
     image_write(semantic_result, args.output_path)
     logger.info(f"Written prediction to '{args.output_path}'")
-    return m2f.data.output # for integration tests
+    return m2f_out.output # for integration tests
 
 if __name__ == "__main__":
     main(get_args())

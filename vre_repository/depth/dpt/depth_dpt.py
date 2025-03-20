@@ -24,13 +24,12 @@ class DepthDpt(DepthRepresentation, LearnedRepresentationMixin, ComputeRepresent
         self.model: DPTDepthModel | None = None
 
     @overrides
-    def compute(self, video: VREVideo, ixs: list[int]):
-        assert self.data is None, f"[{self}] data must not be computed before calling this"
+    def compute(self, video: VREVideo, ixs: list[int], dep_data: list[ReprOut] | None = None) -> ReprOut:
         tr_frames = self._preprocess(video[ixs])
         with tr.no_grad():
             predictions = self.model(tr_frames)
         res = self._postprocess(predictions)
-        self.data = ReprOut(frames=video[ixs], output=MemoryData(res), key=ixs)
+        return ReprOut(frames=video[ixs], output=MemoryData(res), key=ixs)
 
     @staticmethod
     @overrides
