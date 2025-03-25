@@ -491,5 +491,3 @@ if __name__ == "__main__":
         for k, v in origs.items():
             image_write(v, f"collage_{name[0:-4]}_{k}.png")
         break
-    breakpoint()
-    
