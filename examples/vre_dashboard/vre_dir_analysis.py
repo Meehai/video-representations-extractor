@@ -13,7 +13,7 @@ def cnts(base_path: Path) -> pd.DataFrame:
         subdirs = [x for x in dir_path.iterdir() if x.is_dir()]
         if not {".logs", "rgb"}.issubset(map(lambda x: x.name, subdirs)): # not a vre dir, but something else
             continue
-            
+
         for subdir in subdirs: # each vre_dir inside root_dir
             if subdir.name.startswith("."):
                 continue
