@@ -9,6 +9,7 @@ import numpy as np
 
 from .representations import Representation, ComputeRepresentationMixin, LearnedRepresentationMixin
 from .representations.io_representation_mixin import IORepresentationMixin
+from .vre_streaming import VREStreaming
 from .vre_runtime_args import VRERuntimeArgs
 from .data_writer import DataWriter
 from .data_storer import DataStorer
@@ -63,6 +64,10 @@ class VideoRepresentationsExtractor:
         for l, r in edges:
             g.edge(r, l) # reverse?
         return g
+
+    def to_streaming(self, output_dir: Path | None = None, run_id: str | None = None) -> VREStreaming:
+        """Returns a VREStreaming object"""
+        return VREStreaming(self, output_dir=output_dir, run_id=run_id)
 
     def run(self, output_dir: Path, frames: list[int] | None = None, output_dir_exists_mode: str = "raise",
             exception_mode: str = "stop_execution", n_threads_data_storer: int = 0,

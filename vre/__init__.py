@@ -7,6 +7,7 @@ from diffusers.utils.logging import disable_progress_bar
 
 
 from .video_representations_extractor import VideoRepresentationsExtractor, VideoRepresentationsExtractor as VRE
+from .vre_streaming import VREStreaming
 from .representations import Representation, ReprOut
 from .vre_video import VREVideo, FFmpegVideo, FakeVideo
 from .utils.lovely import monkey_patch
