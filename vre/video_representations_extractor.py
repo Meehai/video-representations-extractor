@@ -215,7 +215,8 @@ class VideoRepresentationsExtractor:
         crs: list[IORepresentationMixin] = [_r for _r in self.representations if isinstance(_r, IORepresentationMixin)]
         assert len(crs) > 0, f"No I/O Representation found in {self.repr_names}"
         out_r: list[Representation] = [r for r in crs if r.export_binary or r.export_image]
-        if exported_representations:
+        if er := exported_representations:
+            assert sorted(set(er)) == sorted(er), f"Duplicates found: {er} in --representations."
             logger.info(f"Explicit subset providewd: {exported_representations}. Exporting only these.")
             out_r = [r for r in out_r if r.name in exported_representations]
 
