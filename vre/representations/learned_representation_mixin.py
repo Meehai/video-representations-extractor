@@ -55,4 +55,4 @@ class LearnedRepresentationMixin(ABC):
                 res += f"\n-{attr}: {kwargs[attr]}"
 
         if len(res) > 0:
-            logger.debug(f"[{self}] Set node specific 'Learned' params: {res}")
+            logger.debug(f"[{self}] Set node specific 'Learned' params:{res}")
