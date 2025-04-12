@@ -33,9 +33,12 @@ def get_args() -> Namespace:
 def main(args: Namespace):
     """main fn"""
     representation_types = add_external_repositories(args.external_repositories, get_vre_repository())
-    representations = build_representations_from_cfg(cfg=args.config_path, representation_types=representation_types,
-                                                     external_representations=args.external_representations)
-
+    # https://gitlab.com/video-representations-extractor/video-representations-extractor/-/issues/83
+    _representations = build_representations_from_cfg(cfg=args.config_path, representation_types=representation_types,
+                                                      external_representations=args.external_representations)
+    representations = [r for r in _representations if r.name in [p.name for p in args.dataset_path.iterdir()]]
+    if diff := set(_representations).difference(representations) != set():
+        logger.warning(f"Not all representations from '{args.config_path}' were exported! Missing: {diff}")
     reader = MultiTaskDataset(args.dataset_path, task_names=[r.name for r in representations],
                               task_types={r.name: r for r in representations},
                               handle_missing_data=args.handle_missing_data, normalization=args.normalization,

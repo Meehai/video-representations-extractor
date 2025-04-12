@@ -83,9 +83,12 @@ def main(args: Namespace):
         logger.info(f"Export video: '{args.output_path / 'collage.mp4'}'")
 
     representation_types = add_external_repositories(args.external_repositories, get_vre_repository())
-    representations = build_representations_from_cfg(cfg=args.config_path, representation_types=representation_types,
-                                                     external_representations=args.external_representations)
-
+    # https://gitlab.com/video-representations-extractor/video-representations-extractor/-/issues/83
+    _representations = build_representations_from_cfg(cfg=args.config_path, representation_types=representation_types,
+                                                      external_representations=args.external_representations)
+    representations = [r for r in _representations if r.name in [p.name for p in args.vre_export_dir.iterdir()]]
+    if diff := set(_representations).difference(representations) != set():
+        logger.warning(f"Not all representations from '{args.config_path}' were exported! Missing: {diff}")
     assert "rgb" in [r.name for r in representations], "RGB(rgb) is needed for collage plot"
     logger.debug(f"Representations:\n{pformat(representations)}")
     reader = MultiTaskDataset(args.vre_export_dir, task_names=[r.name for r in representations],
@@ -101,7 +104,6 @@ def main(args: Namespace):
         shutil.rmtree(args.output_path)
     args.output_path.mkdir(parents=True, exist_ok=False)
 
-    # for ix in tqdm([0, 100, 1000, 2000, 3000, len(reader) - 100, len(reader) - 1]):
     f_do_one = partial(do_one, reader=reader, output_path=args.output_path, output_resolution=args.output_resolution)
     map_fn = map if args.n_workers == 1 else Pool(args.n_workers).imap
     _ = list(map_fn(f_do_one, tqdm(range(len(reader)))))

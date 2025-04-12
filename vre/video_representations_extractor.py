@@ -94,13 +94,16 @@ class VideoRepresentationsExtractor:
         except Exception as e:
             logger.error(e)
 
-        runtime_args = VRERuntimeArgs(self.video, self.representations, frames, exception_mode, n_threads_data_storer)
+        exported_representations: list[Representation] = self._get_output_representations(exported_representations)
+        exported_names = [r.name for r in exported_representations]
+        runtime_args = VRERuntimeArgs(video=self.video, representations=exported_representations, frames=frames,
+                                      exception_mode=exception_mode, n_threads_data_storer=n_threads_data_storer)
         logger.info(runtime_args)
-        run_metadata = RunMetadata(self.repr_names, runtime_args, output_dir / f".logs/run_metadata-{now}.json")
-        summary_printer = SummaryPrinter(self.repr_names, runtime_args)
-        _add_data_writers_to_run_metadata(run_metadata, self.representations, output_dir, output_dir_exists_mode)
+        run_metadata = RunMetadata(exported_names, runtime_args, output_dir / f".logs/run_metadata-{now}.json")
+        summary_printer = SummaryPrinter(exported_names, runtime_args)
+        _add_data_writers_to_run_metadata(run_metadata, exported_representations, output_dir, output_dir_exists_mode)
 
-        for vre_repr in self._get_output_representations(exported_representations): # checks are done inside get fn
+        for vre_repr in exported_representations:
             repr_metadata = self.do_one_representation(run_id=run_metadata.id, representation=vre_repr,
                                                        output_dir=output_dir,
                                                        output_dir_exists_mode=output_dir_exists_mode,
@@ -211,12 +214,20 @@ class VideoRepresentationsExtractor:
 
     def _get_output_representations(self, exported_representations: list[str]) \
             -> list[IORepresentationMixin | Representation]:
-        """given all the representations, keep those that actually export something. At least one is needed"""
+        """
+        Given all the representations, keep those that actually export something. RunMetadata uses only these.
+        We do a bunch of checks:
+        - at least one representation is provided
+        - they are exportable: IORpresentations are set, like npz, png etc.
+        - no duplicates provided
+        Returns a subset of representations from the ones given at constructor that will be exported.
+        """
         crs: list[IORepresentationMixin] = [_r for _r in self.representations if isinstance(_r, IORepresentationMixin)]
         assert len(crs) > 0, f"No I/O Representation found in {self.repr_names}"
         out_r: list[Representation] = [r for r in crs if r.export_binary or r.export_image]
-        if exported_representations:
-            logger.info(f"Explicit subset providewd: {exported_representations}. Exporting only these.")
+        if er := exported_representations:
+            assert sorted(set(er)) == sorted(er), f"Duplicates found: {er} in --representations."
+            logger.info(f"Explicit subset provided: {exported_representations}. Exporting only these.")
             out_r = [r for r in out_r if r.name in exported_representations]
 
         assert len(out_r) > 0, f"No output format set for any I/O Representation: {', '.join([r.name for r in crs])}"

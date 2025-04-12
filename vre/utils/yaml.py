@@ -10,6 +10,7 @@ def vre_yaml_load(path: Path | str | IOBase) -> dict[str, Any]:
     fp = open(path, "r") if isinstance(path, (Path, str)) else path
     fp.seek(0)
     data: str = fp.read()
+    assert len(data) > 0, f"Nothing read from '{path}'"
     skip = 0
     new_data = ""
     while (ix := data.find("${oc.env:", skip)) != -1:

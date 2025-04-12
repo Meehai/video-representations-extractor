@@ -39,17 +39,24 @@ def get_args() -> Namespace:
     parser.add_argument("--external_repositories", "-J", nargs="+", default=[],
                         help="Path to external reprs. Format: /path/to/file.py:fn_name. fn -> {str: Type[Repr]}")
     # collage parameters (calls vre_collage)
-    parser.add_argument("--make_video_collage", action="store_true", help="if set, calls vre_collage on the output")
+    parser.add_argument("--collage", action="store_true", help="If set, calls vre_collage on the output")
+    parser.add_argument("--collage_video", action="store_true", help="if set, calls vre_collage on the output")
     parser.add_argument("--collage_fps", type=float, help="Required by --make_video_collage for the collage output")
+    parser.add_argument("--collage_output_path", type=Path, help="If not set, uses 'args.output_path/.collage'")
 
     args = parser.parse_args()
-    if args.make_video_collage:
-        assert args.collage_fps is not None and args.collage_fps > 0, args.collage_fps
+    if args.collage is True:
+        if args.collage_video:
+            assert args.collage_fps is not None and args.collage_fps > 0, args.collage_fps
+        if args.collage_output_path is None:
+            args.collage_output_path = args.output_path / ".collage"
+            logger.warning(f"--collage_output_path not set, defaulting to: '{args.collage_output_path}'")
     if args.frames is not None:
         assert len(args.frames) > 0, f"No frames provided, cannot run VRE"
         if len(args.frames) == 1 and args.frames[0].find("..") != -1:
             args.frames = list(range(*map(int, args.frames[0].split(".."))))
         args.frames = list(map(int, args.frames))
+
     return args
 
 def main(args: Namespace):
@@ -70,12 +77,13 @@ def main(args: Namespace):
             n_threads_data_storer=args.n_threads_data_storer, exception_mode=args.exception_mode,
             exported_representations=args.representations)
 
-    if args.make_video_collage:
+    if args.collage:
         vre_collage_main = load_function_from_module(Path(__file__).parent / "vre_collage", "main")
-        vre_collage_main(Namespace(vre_export_dir=args.output_path, output_path=args.output_path / "collage",
-                                   video=True, config_path=args.config_path, fps=args.collage_fps, normalization=None,
-                                   output_resolution=None, external_representations=[], external_repositories=[],
-                                   n_workers=1))
+        vre_collage_main(Namespace(vre_export_dir=args.output_path, output_path=args.collage_output_path,
+                                   video=args.collage_video, config_path=args.config_path, fps=args.collage_fps,
+                                   normalization=None, output_resolution=None,
+                                   external_representations=args.external_representations,
+                                   external_repositories=args.external_repositories, n_workers=1))
 
 if __name__ == "__main__":
     main(get_args())
