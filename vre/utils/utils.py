@@ -1,5 +1,4 @@
 """utils for vre"""
-import importlib.machinery
 from typing import Any, T, Callable
 from types import ModuleType
 from pathlib import Path
@@ -8,7 +7,7 @@ from collections import OrderedDict
 from math import sqrt
 import random
 import sys
-import importlib
+from importlib.machinery import SourceFileLoader
 from tqdm import tqdm
 import numpy as np
 import torch as tr
@@ -149,7 +148,7 @@ def load_function_from_module(module_path: str | Path, function_name: str) -> Ca
     module_path = Path(module_path)
     assert module_path.exists(), module_path
     module = ModuleType(module_path.stem)
-    loader = importlib.machinery.SourceFileLoader(module_path.stem, str(module_path))
+    loader = SourceFileLoader(module_path.stem, str(module_path))
     sys.modules[module_path.stem] = module
     loader.exec_module(module)
     return getattr(module, function_name)

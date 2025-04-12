@@ -14,7 +14,7 @@ def test_RunMetadata_1():
     vre = VRE(video=video, representations=[FakeRepresentation("rgb", n_channels=3)])
     vre.set_io_parameters(binary_format="npz", image_format="not-set", compress=True, output_size="video_shape")
     res = vre.run(output_dir := Path(TemporaryDirectory().name))
-    assert res.representations == ["rgb"], res.representations
+    assert res.repr_names == ["rgb"], res.repr_names
     assert res.runtime_args["frames"] == [0, 1], res.runtime_args["frames"]
     assert (output_dir / "rgb/.repr_metadata.json").exists()
 
@@ -60,3 +60,14 @@ def test_load_RepresentationMetadata_1():
     for frame in [0, 1, 2, 3, 4]:
         assert meta2.run_stats[frame] == meta.run_stats[frame]
         assert meta2.run_stats[frame] == disk_data["run_stats"][str(frame)] # note json conversion
+
+def test_RunMetadata_exported_representations():
+    video = FakeVideo(np.random.randint(0, 255, size=(2, 128, 128, 3), dtype=np.uint8), fps=30)
+    representations=[FakeRepresentation("rgb", n_channels=3), FakeRepresentation("hsv", n_channels=3)]
+    vre = VRE(video=video, representations=representations)
+    vre.set_io_parameters(binary_format="npz", image_format="not-set", compress=True, output_size="video_shape")
+    res = vre.run(output_dir := Path(TemporaryDirectory().name), exported_representations=["rgb"])
+    assert res.repr_names == ["rgb"], res.repr_names
+    assert res.runtime_args["frames"] == [0, 1], res.runtime_args["frames"]
+    assert (output_dir / "rgb/.repr_metadata.json").exists()
+    assert not (output_dir / "hsv/.repr_metadata.json").exists()

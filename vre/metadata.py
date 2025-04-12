@@ -10,9 +10,10 @@ from .vre_runtime_args import VRERuntimeArgs
 
 class RunMetadata:
     """Metadata of a run for multiple representations. Backed on the disk by a JSON file"""
-    def __init__(self, representations: list[str], runtime_args: VRERuntimeArgs, disk_location: Path):
-        assert len(representations) > 0 and all(isinstance(x, str) for x in representations), representations
-        self.representations = representations
+    def __init__(self, repr_names: list[str], runtime_args: VRERuntimeArgs, disk_location: Path):
+        assert len(repr_names) > 0 and all(isinstance(x, str) for x in repr_names), repr_names
+        assert (A := set(r.name for r in runtime_args.representations)) == (B := set(repr_names)), (A, B)
+        self.repr_names = repr_names
         self.disk_location = disk_location
         self.runtime_args = runtime_args.to_dict()
         self.id = random_chars(n=10)
@@ -47,7 +48,7 @@ class RunMetadata:
             json.dump(self.metadata, fp, indent=4)
 
     def __repr__(self):
-        return (f"[Metadata] Id: {self.id}, Num representations: {len(self.representations)}. "
+        return (f"[Metadata] Id: {self.id}, Num representations: {len(self.repr_names)}. "
                 f"Disk location: '{self.disk_location}'")
 
 class RepresentationMetadata:
