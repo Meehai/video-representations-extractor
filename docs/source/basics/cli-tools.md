@@ -16,8 +16,9 @@ vre
   [--n_threads_data_storer N]
   [-I f1.py:foo f2.py:foo2] # or --external_representations
   [-J f1.py:foo f2.py:foo2] # or --external_repositories
-  [--make_vre_collage]
-  [--collage_fps] # if make_vre_collage is set
+  [--collage] # calls vre_collage CLI tool at the end with the args below
+    [--collage_videp] # if --collage is set
+      [--collage_fps] # required if -collage is set and --collage_video is set
 ```
 
 Lots of optional arguments for sure, but we'll see examples later on.

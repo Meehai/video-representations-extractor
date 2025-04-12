@@ -101,7 +101,6 @@ def main(args: Namespace):
         shutil.rmtree(args.output_path)
     args.output_path.mkdir(parents=True, exist_ok=False)
 
-    # for ix in tqdm([0, 100, 1000, 2000, 3000, len(reader) - 100, len(reader) - 1]):
     f_do_one = partial(do_one, reader=reader, output_path=args.output_path, output_resolution=args.output_resolution)
     map_fn = map if args.n_workers == 1 else Pool(args.n_workers).imap
     _ = list(map_fn(f_do_one, tqdm(range(len(reader)))))

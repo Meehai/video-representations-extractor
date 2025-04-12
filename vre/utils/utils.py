@@ -1,5 +1,7 @@
 """utils for vre"""
+import importlib.machinery
 from typing import Any, T, Callable
+from types import ModuleType
 from pathlib import Path
 from datetime import datetime, timezone as tz
 from collections import OrderedDict
@@ -144,11 +146,12 @@ def clip(x: T, _min: T, _max: T) -> T:
 
 def load_function_from_module(module_path: str | Path, function_name: str) -> Callable:
     """Usage: fn = load_function_from_module("/path/to/stuff.py", "function_name"); y = fn(args);"""
-    module_name = str(module_path).split("/")[-1].replace(".py", "")
-    spec = importlib.util.spec_from_file_location(module_name, str(module_path))
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[module_name] = module
-    spec.loader.exec_module(module)
+    module_path = Path(module_path)
+    assert module_path.exists(), module_path
+    module = ModuleType(module_path.stem)
+    loader = importlib.machinery.SourceFileLoader(module_path.stem, str(module_path))
+    sys.modules[module_path.stem] = module
+    loader.exec_module(module)
     return getattr(module, function_name)
 
 def random_chars(n: int) -> str:
