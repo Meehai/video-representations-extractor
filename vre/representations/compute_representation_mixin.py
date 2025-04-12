@@ -37,4 +37,4 @@ class ComputeRepresentationMixin(ABC):
                 setattr(self, attr, kwargs[attr])
                 res += f"\n-{attr}: {kwargs[attr]}"
         if len(res) > 0:
-            logger.debug(f"[{self}] Set node specific 'Compute' params: {res}")
+            logger.debug(f"[{self}] Set node specific 'Compute' params:{res}")

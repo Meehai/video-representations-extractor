@@ -13,6 +13,7 @@ from vre_repository.weights_repository import fetch_weights
 
 from .raft_impl import RAFT, InputPadder
 
+# TODO: make inference_height/width a tuple inference_size
 class FlowRaft(OpticalFlowRepresentation, LearnedRepresentationMixin, ComputeRepresentationMixin):
     """FlowRaft representation"""
     def __init__(self, inference_height: int, inference_width: int, iters: int, small: bool,

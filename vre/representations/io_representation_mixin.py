@@ -142,7 +142,7 @@ class IORepresentationMixin(ABC):
                 setattr(self, attr, kwargs[attr])
                 res += f"\n-{attr}: {kwargs[attr]}"
         if len(res) > 0:
-            logger.debug(f"[{self}] Set node specific 'IO' params: {res}")
+            logger.debug(f"[{self}] Set node specific 'IO' params:{res}")
 
     def resize(self, data: ReprOut, new_size: tuple[int, int]):
         """resizes the data. size is provided in (h, w)"""
