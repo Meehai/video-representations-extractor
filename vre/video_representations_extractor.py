@@ -212,8 +212,7 @@ class VideoRepresentationsExtractor:
         open(logs_file, "a").write(f"{'=' * 80}\n{now_fmt()}\n{msg}\n{'=' * 80}")
         logger.debug(f"Error: {msg}")
 
-    def _get_output_representations(self, exported_representations: list[str]) \
-            -> list[IORepresentationMixin | Representation]:
+    def _get_output_representations(self, exported_representations: list[str] | None) -> list[Representation]:
         """
         Given all the representations, keep those that actually export something. RunMetadata uses only these.
         We do a bunch of checks:
@@ -225,7 +224,8 @@ class VideoRepresentationsExtractor:
         crs: list[IORepresentationMixin] = [_r for _r in self.representations if isinstance(_r, IORepresentationMixin)]
         assert len(crs) > 0, f"No I/O Representation found in {self.repr_names}"
         out_r: list[Representation] = [r for r in crs if r.export_binary or r.export_image]
-        if er := exported_representations:
+        if (er := exported_representations) is not None:
+            assert all(r_name in self.repr_names for r_name in er), f"Wrong names: {er=} vs {self.repr_names=}"
             assert sorted(set(er)) == sorted(er), f"Duplicates found: {er} in --representations."
             logger.info(f"Explicit subset provided: {exported_representations}. Exporting only these.")
             out_r = [r for r in out_r if r.name in exported_representations]
