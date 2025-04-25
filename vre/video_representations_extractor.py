@@ -2,20 +2,20 @@
 from __future__ import annotations
 from pathlib import Path
 from datetime import datetime
+from tempfile import TemporaryDirectory
 import traceback
 from tqdm import tqdm
 import torch as tr
 import numpy as np
 
 from .representations import Representation, ComputeRepresentationMixin, LearnedRepresentationMixin
-from .representations.io_representation_mixin import IORepresentationMixin
-from .vre_streaming import VREStreaming
+from .representations.io_representation_mixin import IORepresentationMixin, ImageFormat
 from .vre_runtime_args import VRERuntimeArgs
 from .data_writer import DataWriter
 from .data_storer import DataStorer
 from .metadata import RunMetadata, RepresentationMetadata
 from .vre_video import VREVideo
-from .utils import now_fmt, make_batches, vre_topo_sort, ReprOut, DiskData, SummaryPrinter
+from .utils import now_fmt, make_batches, vre_topo_sort, ReprOut, DiskData, SummaryPrinter, random_chars
 from .logger import vre_logger as logger
 
 def _add_data_writers_to_run_metadata(run_metadata, representations, output_dir, output_dir_exists_mode):
@@ -64,10 +64,6 @@ class VideoRepresentationsExtractor:
         for l, r in edges:
             g.edge(r, l) # reverse?
         return g
-
-    def to_streaming(self, output_dir: Path | None = None, run_id: str | None = None) -> VREStreaming:
-        """Returns a VREStreaming object"""
-        return VREStreaming(self, output_dir=output_dir, run_id=run_id)
 
     def run(self, output_dir: Path, frames: list[int] | None = None, output_dir_exists_mode: str = "raise",
             exception_mode: str = "stop_execution", n_threads_data_storer: int = 0,
@@ -143,7 +139,7 @@ class VideoRepresentationsExtractor:
             try:
                 tr.cuda.empty_cache() # might empty some unused memory, not 100% if needed.
                 rep_data = self._compute_one_representation_batch(rep, batch=batch, output_dir=data_writer.output_dir)
-                if not rep.is_classification and rep.name.find("fastsam") == -1: # TODO: MemoryData of M2F is binary...
+                if not rep.is_classification and rep.name.find("fastsam") == -1: # TODO: MemoryData of FSAM is binary...
                     assert rep_data.output.shape[-1] == rep.n_channels, (rep, rep_data.output, rep.n_channels)
                 rep_data.output_images = rep.make_images(rep_data) if rep.export_image else None
                 data_storer(rep_data)
@@ -238,6 +234,22 @@ class VideoRepresentationsExtractor:
 
         return out_r
 
+    def _getitem(self, ix: list[int], output_dir: Path, run_id: str) -> dict[str, ReprOut]:
+        """wrapper since getitem cannot receive extra args. This is the old 'VREStreaming' code basically."""
+        res: dict[str, ReprOut] = {}
+        for vre_repr in self.representations:
+            assert isinstance(vre_repr, IORepresentationMixin), (vre_repr, type(vre_repr))
+            (output_dir / vre_repr.name).mkdir(exist_ok=True, parents=True)
+            runtime_args = VRERuntimeArgs(video=self.video, representations=self.representations, frames=ix,
+                                          exception_mode="stop_execution", n_threads_data_storer=1)
+            _ = self.do_one_representation(run_id=run_id, representation=vre_repr, output_dir=output_dir,
+                                           output_dir_exists_mode="skip_computed", runtime_args=runtime_args)
+            res[vre_repr.name] = self._load_from_disk_if_possible(vre_repr, self.video,
+                                                                  ixs=list(ix), output_dir=output_dir)
+            if vre_repr.image_format != ImageFormat.NOT_SET:
+                res[vre_repr.name].output_images = vre_repr.make_images(res[vre_repr.name])
+        return res
+
     def __call__(self, *args, **kwargs) -> RunMetadata:
         return self.run(*args, **kwargs)
 
@@ -249,6 +261,11 @@ class VideoRepresentationsExtractor:
     def __repr__(self) -> str:
         return str(self)
 
-    def __getitem__(self, key: str) -> Representation:
-        assert key in self.repr_names, f"Representation '{key}' not in {self.repr_names}"
-        return self.representations[self.repr_names.index(key)]
+    def __getitem__(self, ix: int | slice | list[int]) -> dict[str, ReprOut]:
+        output_dir = Path(TemporaryDirectory(prefix="vre_getitem").name)
+        run_id = random_chars(n=10)
+        if isinstance(ix, int):
+            return self._getitem([ix], output_dir, run_id)
+        if isinstance(ix, slice):
+            return self._getitem(list(range(ix.start, ix.stop)), output_dir, run_id)
+        return self._getitem(ix, output_dir, run_id)
