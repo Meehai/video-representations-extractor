@@ -59,7 +59,7 @@ def test_load_RepresentationMetadata_1():
     disk_data = json.load(open(tmp_dir / "rgb/.repr_metadata.json", "r"))
     for frame in [0, 1, 2, 3, 4]:
         assert meta2.run_stats[frame] == meta.run_stats[frame]
-        assert meta2.run_stats[frame] == disk_data["run_stats"][str(frame)] # note json conversion
+        assert meta2.run_stats[frame]._asdict() == disk_data["run_stats"][str(frame)] # note json conversion
 
 def test_RunMetadata_exported_representations():
     video = FakeVideo(np.random.randint(0, 255, size=(2, 128, 128, 3), dtype=np.uint8), fps=30)

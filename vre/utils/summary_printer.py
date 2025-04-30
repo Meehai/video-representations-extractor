@@ -29,7 +29,7 @@ class SummaryPrinter:
         for vrepr in self.representations:
             if vrepr not in self.run_stats:
                 continue
-            stats = np.array([x["duration"] or float("nan") for x in self.run_stats[vrepr].values()]).round(3)
+            stats = np.array([x.duration or float("nan") for x in self.run_stats[vrepr].values()]).round(3)
             res += "\n" + f"{str_maxk(vrepr, 20):<20}"
             for chosen_frame in chosen_frames:
                 res += "|" + f"{stats[frames.index(chosen_frame)]:<9}"
