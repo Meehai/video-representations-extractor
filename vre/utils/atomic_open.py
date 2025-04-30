@@ -2,7 +2,6 @@
 from io import FileIO
 import os
 
-
 try:
     # Posix based file locking (Linux, Ubuntu, MacOS, etc.)
     import fcntl

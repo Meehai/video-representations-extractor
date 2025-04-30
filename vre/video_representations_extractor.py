@@ -13,7 +13,8 @@ from .representations.io_representation_mixin import IORepresentationMixin, Imag
 from .vre_runtime_args import VRERuntimeArgs
 from .data_writer import DataWriter
 from .data_storer import DataStorer
-from .metadata import RunMetadata, RepresentationMetadata
+from .run_metadata import RunMetadata
+from .representation_metadata import RepresentationMetadata
 from .vre_video import VREVideo
 from .utils import now_fmt, make_batches, vre_topo_sort, ReprOut, DiskData, SummaryPrinter, random_chars
 from .logger import vre_logger as logger
@@ -120,7 +121,8 @@ class VideoRepresentationsExtractor:
         data_storer = DataStorer(data_writer=data_writer, n_threads=runtime_args.n_threads_data_storer)
         logger.info(f"Running {run_id=}:\n{representation}\n{data_storer}")
         rep: Representation | ComputeRepresentationMixin | IORepresentationMixin = representation
-        repr_metadata = RepresentationMetadata(repr_name=representation.name, run_id=run_id,
+        formats = sorted([f for f in [rep.image_format.value, rep.binary_format.value] if f != "not-set"])
+        repr_metadata = RepresentationMetadata(repr_name=representation.name, formats=formats,
                                                disk_location=data_writer.rep_out_dir / ".repr_metadata.json",
                                                frames=list(range(len(self.video))))
         rep.output_size = self.video.frame_shape[0:2] if rep.output_size == "video_shape" else rep.output_size
@@ -145,10 +147,10 @@ class VideoRepresentationsExtractor:
                 data_storer(rep_data)
             except Exception:
                 self._log_error(f"\n[{rep.name} {rep.batch_size=} {batch=}] {traceback.format_exc()}\n")
-                repr_metadata.add_time(None, batch)
+                repr_metadata.add_time(None, batch, run_id=run_id, sync=True)
                 repr_metadata.run_had_exceptions = True
                 break
-            repr_metadata.add_time((datetime.now() - now).total_seconds(), batch)
+            repr_metadata.add_time((datetime.now() - now).total_seconds(), batch, run_id=run_id, sync=True)
             pbar.update(len(batch))
 
         # various cleanup stuff before ending with this representation

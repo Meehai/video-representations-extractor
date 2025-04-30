@@ -122,7 +122,7 @@ def test_MultiTaskDataset_add_remove_task(dataset_path):
         dataset.remove_task("depth_sfm_manual202204")
     assert len(dataset.tasks) == 3
 
-@pytest.mark.skip("not implemented yet")
+@pytest.mark.xfail(reason="not implemented yet")
 def test_MultiTaskDataset_deps_of_deps(dataset_path):
     task_types = fake_dronescapes_task_types()
     task_types["dep1"] = ColorRepresentation("dep1", dependencies=[task_types["rgb"]])
