@@ -27,7 +27,11 @@ class RepresentationMetadata:
 
     def frames_computed(self, run_id: str | None = None) -> list[int]:
         """returns the list of comptued frames so far for this representation"""
-        return [ix for ix, v in self.run_stats.items() if v is not None and v.duration is not None
+        def condition(frame_stats: FrameStats | None) -> bool:
+            if frame_stats is None or frame_stats.duration is None:
+                return False
+            return set(self.formats).issubset(frame_stats.formats)
+        return [ix for ix, v in self.run_stats.items() if condition(v)
                 and (v.run_id == run_id if run_id is not None else True)]
 
     def frames_failed(self, run_id: str | None = None) -> list[int]:
@@ -41,7 +45,11 @@ class RepresentationMetadata:
         data = [duration / batch_size] * batch_size if duration is not None else [None] * batch_size
         for ix, frame_duration in zip(frames, data):
             if self.run_stats[ix] is not None and self.run_stats[ix].duration is not None:
-                raise ValueError(f"Adding time to existing metadata {self}. Frame={ix}. Previous: {self.run_stats[ix]}")
+                if set(self.formats).issubset(self.run_stats[ix].formats):
+                    raise ValueError(f"Adding time to existing metadata {self}. Frame={ix}. "
+                                     f"Previous: {self.run_stats[ix]}")
+                # overwrite the run id but add the previous time of the old representations to current frame duration
+                frame_duration += self.run_stats[ix].duration
             self.run_stats[ix] = FrameStats(run_id=run_id, duration=frame_duration, formats=self.formats)
         if sync:
             self.store_on_disk()
@@ -87,10 +95,18 @@ class RepresentationMetadata:
         assert (a := loaded_run_stats.keys()) == (b := self.run_stats.keys()), f"\n- {a}\n- {b}"
         assert (a := loaded_json_data["name"]) == (b := self.repr_name), f"\n- {a}\n- {b}"
         merged_run_stats = {}
+        # TODO... test this stuff below
         for k, v in self.run_stats.items():
             if (loaded_v := loaded_run_stats[k]) is not None and loaded_v.duration is not None:
-                assert v == loaded_v or v is None, (k, v, loaded_v)
-                merged_run_stats[k] = loaded_v
+                if v is None:
+                    merged_run_stats[k] = loaded_v
+                    continue
+                # v exists too below
+                if set(self.formats) == set(loaded_v.formats) and v != loaded_v:
+                    raise ValueError(k, v, loaded_v)
+                # v exists and is different from loaded_v (i.e. jpg in new run and npz in prev) -> merge formats
+                merged_formats = sorted(set(v.formats).union(loaded_v.formats))
+                merged_run_stats[k] = FrameStats(duration=v.duration, formats=merged_formats, run_id=v.run_id)
             else:
                 merged_run_stats[k] = v
         return merged_run_stats

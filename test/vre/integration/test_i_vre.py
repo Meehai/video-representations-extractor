@@ -98,7 +98,6 @@ def test_vre_dep_data_not_saved(video: VREVideo):
     VRE(video, reprs).run(tmp_dir, frames=[2])
     assert not (tmp_dir / "dpt").exists()
 
-@pytest.mark.xfail(reason="wrongly skipped different formats")
 def test_vre_repr_not_skipped_if_different_formats(video: VREVideo):
     tmp_dir = Path(TemporaryDirectory().name)
     rgb = FakeRepresentation("rgb", n_channels=3)
