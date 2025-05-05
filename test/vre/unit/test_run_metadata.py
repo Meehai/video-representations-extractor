@@ -17,7 +17,7 @@ def test_RunMetadata_two_representations(tmp_path: Path):
     r1, r2 = FakeRepresentation("r1", dependencies=[]), FakeRepresentation("r2", dependencies=[])
     video = FakeVideo(np.random.randint(0, 255, size=(10, 20, 30, 3)), fps=1)
     runtime_args = VRERuntimeArgs(video, [r1, r2], [0, 1, 2, 3, 4, 5], "stop_execution", 0)
-    run_metadata = RunMetadata(["r1", "r2"], runtime_args, disk_location=tmp_path / "run_metadata.json")
+    run_metadata = RunMetadata(["r1", "r2"], runtime_args, logs_dir=tmp_path)
     metadata_r1 = RepresentationMetadata("r1", tmp_path / "r2_metadata.json", [0, 1, 2, 3, 4, 5], ["fmt"])
     metadata_r2 = RepresentationMetadata("r2", tmp_path / "r1_metadata.json", [0, 1, 2, 3, 4, 5], ["fmt"])
     metadata_r1.add_time(0.1, [0, 1, 2], run_id=run_metadata.id)

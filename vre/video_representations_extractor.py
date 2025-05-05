@@ -84,19 +84,16 @@ class VideoRepresentationsExtractor:
         Returns:
         - A RunMetadata object representing the run statistics for all representations of this run.
         """
-        self._setup_logger(output_dir, now := now_fmt())
-        try:
-            self.to_graphviz().render(pth := f"{output_dir}/.logs/graph-{now}", format="png", cleanup=True)
-            logger.info(f"Stored graphviz representation at: '{pth}.png'")
-        except Exception as e:
-            logger.error(e)
+        self._setup_logger(logs_dir := output_dir / ".logs", run_id := random_chars(n=10), now := now_fmt())
+        self._setup_graphviz(logs_dir, run_id, now)
 
         exported_representations: list[Representation] = self._get_output_representations(exported_representations)
         exported_names = [r.name for r in exported_representations]
         runtime_args = VRERuntimeArgs(video=self.video, representations=exported_representations, frames=frames,
                                       exception_mode=exception_mode, n_threads_data_storer=n_threads_data_storer)
+        run_metadata = RunMetadata(repr_names=exported_names, runtime_args=runtime_args,
+                                   logs_dir=logs_dir, now_str=now, run_id=run_id)
         logger.info(runtime_args)
-        run_metadata = RunMetadata(exported_names, runtime_args, output_dir / f".logs/run_metadata-{now}.json")
         summary_printer = SummaryPrinter(exported_names, runtime_args)
         _add_data_writers_to_run_metadata(run_metadata, exported_representations, output_dir, output_dir_exists_mode)
 
@@ -199,9 +196,16 @@ class VideoRepresentationsExtractor:
             rep.vre_setup() # instantiates the model, loads to cuda device etc.
         return rep.compute(self.video, ixs=batch, dep_data=dep_data)
 
-    def _setup_logger(self, output_dir: Path, now_str: str):
-        (logs_dir := output_dir / ".logs").mkdir(exist_ok=True, parents=True)
-        logs_file = logs_dir / f"logs-{now_str}.txt"
+    def _setup_graphviz(self, logs_dir: Path, run_id: str, now_str: str):
+        try:
+            self.to_graphviz().render(pth := f"{logs_dir}/graph-{run_id}-{now_str}", format="png", cleanup=True)
+            logger.info(f"Stored graphviz representation at: '{pth}.png'")
+        except Exception as e:
+            logger.error(e)
+
+    def _setup_logger(self, logs_dir: Path, run_id: str, now_str: str):
+        logs_dir.mkdir(exist_ok=True, parents=True)
+        logs_file = logs_dir / f"logs-{run_id}-{now_str}.txt"
         logger.add_file_handler(logs_file)
         logger.info(f"Logging run at: '{logs_file}")
 
@@ -265,7 +269,7 @@ class VideoRepresentationsExtractor:
 
     def __getitem__(self, ix: int | slice | list[int]) -> dict[str, ReprOut]:
         output_dir = Path(TemporaryDirectory(prefix="vre_getitem").name)
-        run_id = random_chars(n=10)
+        run_id = random_chars(n=10) # we need a temp run id for getitem in "streaming" mode
         if isinstance(ix, int):
             return self._getitem([ix], output_dir, run_id)
         if isinstance(ix, slice):
