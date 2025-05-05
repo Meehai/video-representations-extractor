@@ -5,21 +5,28 @@ from typing import Any
 from pathlib import Path
 
 from .representation_metadata import RepresentationMetadata
-from .utils import random_chars, mean
+from .utils import random_chars, mean, now_fmt
 from .vre_runtime_args import VRERuntimeArgs
 
 class RunMetadata:
     """Metadata of a run for multiple representations. Backed on the disk by a JSON file"""
-    def __init__(self, repr_names: list[str], runtime_args: VRERuntimeArgs, disk_location: Path):
+    def __init__(self, repr_names: list[str], runtime_args: VRERuntimeArgs, logs_dir: Path,
+                 now_str: str | None = None, run_id: str | None = None):
         assert len(repr_names) > 0 and all(isinstance(x, str) for x in repr_names), repr_names
         assert (A := set(r.name for r in runtime_args.representations)) == (B := set(repr_names)), (A, B)
         self.repr_names = repr_names
-        self.disk_location = disk_location
+        self.logs_dir = logs_dir
         self.runtime_args = runtime_args.to_dict()
-        self.id = random_chars(n=10)
+        self.id = run_id or random_chars(n=10)
         self.data_writers = {}
         self.run_stats = {}
+        self.now_str = now_str or now_fmt()
         self.store_on_disk()
+
+    @property
+    def disk_location(self) -> Path:
+        """The full path disk location of this metadata"""
+        return self.logs_dir / f"run_metadata-{self.id}-{self.now_str}.json"
 
     @property
     def metadata(self) -> dict[str, Any]:
