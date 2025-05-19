@@ -49,7 +49,7 @@ def do_one(ix: int, reader: MultiTaskDataset, output_path: Path, output_resoluti
     data, name = reader[ix]
     out_path = output_path / f"{'.'.join(name.split('.')[0:-1])}.png"
     img_data = reorder_dict(plot_one(data, name, reader.path, name_to_task=reader.name_to_task), ["rgb"])
-    collage = collage_fn(list(img_data.values()), titles=[str_topk(t, 40) for t in titles], size_px=40)
+    collage = collage_fn(list(img_data.values()), titles=[str_topk(t, 40) for t in img_data.keys()], size_px=40)
     collage = collage if output_resolution is None else image_resize(collage, *output_resolution)
     image_write(collage, out_path)
 
