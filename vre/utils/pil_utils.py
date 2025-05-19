@@ -18,13 +18,13 @@ def pil_image_add_title(image: np.ndarray, text: str, font: str = None, font_col
     """Calls image_add_text to add title on an updated image with padding on top for space and text centered"""
 
     assert len(image.shape) == 3, f"Wrong image shape: {image.shape}"
-    height, _ = image.shape[0: 2]
+    height, _ = image.shape[0:2]
     pil_image = Image.fromarray(image.astype(np.uint8))
     draw = ImageDraw.Draw(pil_image)
 
     if top_padding is None:
-        top_padding = int(height * 0.15)
-        logger.debug2(f"Top padding not provided. Giving 15% of the image = {top_padding}")
+        top_padding = int(height * 0.10)
+        logger.debug2(f"Top padding not provided. Giving 10% of the image = {top_padding}")
 
     if size_px is None:
         size_px = top_padding
