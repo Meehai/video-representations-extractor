@@ -13,7 +13,7 @@ from tqdm import tqdm
 import numpy as np
 import torch as tr
 
-from vre.utils import image_write, collage_fn, abs_path, reorder_dict, MemoryData, image_resize
+from vre.utils import image_write, collage_fn, abs_path, reorder_dict, MemoryData, image_resize, str_topk
 from vre.representations import build_representations_from_cfg, add_external_repositories, Representation, ReprOut
 from vre.readers.multitask_dataset import MultiTaskDataset
 from vre.logger import vre_logger as logger
@@ -49,8 +49,7 @@ def do_one(ix: int, reader: MultiTaskDataset, output_path: Path, output_resoluti
     data, name = reader[ix]
     out_path = output_path / f"{'.'.join(name.split('.')[0:-1])}.png"
     img_data = reorder_dict(plot_one(data, name, reader.path, name_to_task=reader.name_to_task), ["rgb"])
-    titles = [title if len(title) < 40 else f"{title[0:19]}..{title[-19:]}" for title in img_data.keys()]
-    collage = collage_fn(list(img_data.values()), titles=titles, size_px=40)
+    collage = collage_fn(list(img_data.values()), titles=[str_topk(t, 40) for t in img_data.keys()], size_px=40)
     collage = collage if output_resolution is None else image_resize(collage, *output_resolution)
     image_write(collage, out_path)
 

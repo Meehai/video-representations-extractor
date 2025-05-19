@@ -162,3 +162,16 @@ def random_chars(n: int) -> str:
 def mean(l: list[int | float]) -> float:
     """the average of a list of ints or floats"""
     return sum(l) / len(l) if len(l) > 0 else 0
+
+def str_topk(s: str, k: int) -> str:
+    """returns a substring of the type 'first_part..last_part' of len(s) > s with the parts being s//2"""
+    assert k >= 0, k
+    if len(s) <= k:
+        return s
+    # 4 => 1..1 => (4//2-1) -(4//2-1)
+    # 5 => 2..1 => (5//2-1+1) -(5//2-1)
+    # 6 => 2..2 => (6//2-1) -(6//2-1)
+    # 7 => 3..2 => (7//2-1+1)
+    first_part = s[0: k // 2 - 1 + (k%2 == 1)]
+    last_part = s[-(k//2 - 1):]
+    return f"{first_part}..{last_part}"
