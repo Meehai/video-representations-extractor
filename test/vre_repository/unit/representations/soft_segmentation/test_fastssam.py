@@ -8,7 +8,7 @@ def test_fastsam():
     fastsam_repr = FastSam(variant="testing", iou=0.9, conf=0.4, name="fastsam", dependencies=[])
     fastsam_repr.vre_setup(load_weights=False)
     assert fastsam_repr.name == "fastsam"
-    assert fastsam_repr.compress is True # default from ComputeRepresentationMixin
+    assert fastsam_repr.compress is True # default
     assert fastsam_repr.device == "cpu" # default from LearnedRepresentationMixin
 
     out = fastsam_repr.compute(video, [0])

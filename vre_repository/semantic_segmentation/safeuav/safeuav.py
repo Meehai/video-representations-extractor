@@ -10,7 +10,7 @@ from torch.nn import functional as F
 from vre.vre_video import VREVideo
 from vre.logger import vre_logger as logger
 from vre.utils import MemoryData, image_read, image_write
-from vre.representations import ReprOut, LearnedRepresentationMixin, ComputeRepresentationMixin
+from vre.representations import ReprOut, LearnedRepresentationMixin
 from vre_repository.weights_repository import fetch_weights
 from vre_repository.semantic_segmentation import SemanticRepresentation
 
@@ -19,11 +19,10 @@ try:
 except ImportError:
     from model import SafeUAV as Model
 
-class SafeUAV(SemanticRepresentation, LearnedRepresentationMixin, ComputeRepresentationMixin):
+class SafeUAV(SemanticRepresentation, LearnedRepresentationMixin):
     """SafeUAV semantic segmentation representation"""
     def __init__(self, disk_data_argmax: bool, variant: str, **kwargs):
         LearnedRepresentationMixin.__init__(self)
-        ComputeRepresentationMixin.__init__(self)
         self.variant = variant
         color_map = [[0, 255, 0], [0, 127, 0], [255, 255, 0], [255, 255, 255],
                      [255, 0, 0], [0, 0, 255], [0, 255, 255], [127, 127, 63]]

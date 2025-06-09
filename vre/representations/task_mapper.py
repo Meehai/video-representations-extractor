@@ -5,10 +5,9 @@ from overrides import overrides
 
 from .io_representation_mixin import IORepresentationMixin, MemoryData
 from .representation import Representation, ReprOut
-from .compute_representation_mixin import ComputeRepresentationMixin
 from ..vre_video import VREVideo
 
-class TaskMapper(Representation, IORepresentationMixin, ComputeRepresentationMixin, ABC):
+class TaskMapper(Representation, IORepresentationMixin, ABC):
     """
     TaskMapper abstract class for >=1 dependency that is transformed (mapped) (e.g. mapillary -> 8 classes).
     Must implement:
@@ -19,7 +18,6 @@ class TaskMapper(Representation, IORepresentationMixin, ComputeRepresentationMix
     def __init__(self, name: str, n_channels: int, **kwargs):
         Representation.__init__(self, name=name, dependencies=kwargs["dependencies"])
         IORepresentationMixin.__init__(self)
-        ComputeRepresentationMixin.__init__(self)
         assert len(self.dependencies) > 0 and self.dep_names[0] != self.name, "Need at least one dependency"
         assert all(isinstance(dep, IORepresentationMixin) for dep in self.dependencies), self.dependencies
         self._n_channels = n_channels

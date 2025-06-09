@@ -9,7 +9,7 @@ def test_rife_uhd_false(uhd):
     rife_repr = FlowRife(name="rife", dependencies=[], compute_backward_flow=False, uhd=uhd, delta=1)
     rife_repr.vre_setup(load_weights=False)
     assert rife_repr.name == "rife"
-    assert rife_repr.compress is True # default from ComputeRepresentationMixin
+    assert rife_repr.compress is True # default
     assert rife_repr.device == "cpu" # default from LearnedRepresentationMixin
 
     out_shape = (32, 64) if not uhd else (16, 32)

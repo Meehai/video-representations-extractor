@@ -7,7 +7,7 @@ def test_dpt():
     dpt_repr = DepthDpt(name="dpt", dependencies=[])
     dpt_repr.vre_setup(load_weights=False)
     assert dpt_repr.name == "dpt"
-    assert dpt_repr.compress is True # default from ComputeRepresentationMixin
+    assert dpt_repr.compress is True # default
     assert dpt_repr.device == "cpu" # default from LearnedRepresentationMixin
 
     out = dpt_repr.compute(video, ixs=[0])

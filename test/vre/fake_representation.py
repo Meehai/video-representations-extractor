@@ -6,13 +6,12 @@ from overrides import overrides
 from vre.vre_video import VREVideo
 from vre.logger import vre_logger as logger
 from vre.utils import MemoryData
-from vre.representations import Representation, ReprOut, ComputeRepresentationMixin, NpIORepresentation
+from vre.representations import Representation, ReprOut, NpIORepresentation
 
-class FakeRepresentation(Representation, ComputeRepresentationMixin, NpIORepresentation):
+class FakeRepresentation(Representation, NpIORepresentation):
     """FakeRepresentation that is used in unit tests and some basic classes, like RGB."""
     def __init__(self, *args, n_channels: int = 1, output_dtype: str = "uint8", **kwargs):
         Representation.__init__(self, *args, **kwargs)
-        ComputeRepresentationMixin.__init__(self)
         NpIORepresentation.__init__(self)
         if len(self.dependencies) != 0:
             logger.warning(f"{self} has {len(self.dependencies)} dependencies. Usually it's supposed to be 0")

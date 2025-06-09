@@ -10,7 +10,7 @@ def test_depth_normals_svd_dpt():
                                        sensor_size=(100, 100), window_size=5, input_downsample_step=1, stride=1)
     dpt_repr.vre_setup(load_weights=False)
     assert normals_svd_repr.name == "depth_svd_normals_dpt"
-    assert normals_svd_repr.compress is True # default from ComputeRepresentationMixin
+    assert normals_svd_repr.compress is True # default
 
     out_dpt = dpt_repr.compute(video, ixs=[0])
     out = normals_svd_repr.compute(video, ixs=[0], dep_data=[out_dpt])

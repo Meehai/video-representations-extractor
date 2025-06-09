@@ -7,7 +7,7 @@ def test_dexined_1():
     dexined_repr = DexiNed(name="dexined", dependencies=[])
     dexined_repr.vre_setup(load_weights=False)
     assert dexined_repr.name == "dexined"
-    assert dexined_repr.compress is True # default from ComputeRepresentationMixin
+    assert dexined_repr.compress is True # default
     assert dexined_repr.device == "cpu" # default from LearnedRepresentationMixin
 
     out = dexined_repr.compute(video, [0])

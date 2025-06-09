@@ -4,13 +4,12 @@ import numpy as np
 from vre.vre_video import VREVideo
 from vre.utils import ReprOut
 from vre.representations import (
-    Representation, NpIORepresentation, ComputeRepresentationMixin, NormedRepresentationMixin)
+    Representation, NpIORepresentation, NormedRepresentationMixin)
 
-class EdgesRepresentation(Representation, NpIORepresentation, ComputeRepresentationMixin, NormedRepresentationMixin):
+class EdgesRepresentation(Representation, NpIORepresentation, NormedRepresentationMixin):
     """EdgesRepresentation -- CV representation for 1-channeled edges/boundaries"""
     def __init__(self, name: str, **kwargs):
         Representation.__init__(self, name, **kwargs)
-        ComputeRepresentationMixin.__init__(self)
         NpIORepresentation.__init__(self)
         NormedRepresentationMixin.__init__(self)
 

@@ -8,7 +8,7 @@ def test_marigold():
                              name="marigold", dependencies=[])
     marigold_repr.vre_setup(load_weights=False)
     assert marigold_repr.name == "marigold"
-    assert marigold_repr.compress is True # default from ComputeRepresentationMixin
+    assert marigold_repr.compress is True # default
     assert marigold_repr.device == "cpu" # default from LearnedRepresentationMixin
 
     out = marigold_repr.compute(video, ixs=[0])

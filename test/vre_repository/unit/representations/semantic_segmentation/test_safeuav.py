@@ -7,7 +7,7 @@ def test_safeuav():
     safeuav_repr = SafeUAV(name="safeuav", dependencies=[], variant="testing", disk_data_argmax=True)
     safeuav_repr.vre_setup(load_weights=False)
     assert safeuav_repr.name == "safeuav"
-    assert safeuav_repr.compress is True # default from ComputeRepresentationMixin
+    assert safeuav_repr.compress is True # default
     assert safeuav_repr.device == "cpu" # default from LearnedRepresentationMixin
 
     out = safeuav_repr.compute(video, [0])

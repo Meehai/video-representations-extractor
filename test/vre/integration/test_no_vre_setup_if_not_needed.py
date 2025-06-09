@@ -8,20 +8,17 @@ from pathlib import Path
 import numpy as np
 from vre import VideoRepresentationsExtractor as VRE
 from vre.representations import (
-    Representation, LearnedRepresentationMixin, ReprOut, ComputeRepresentationMixin, NpIORepresentation)
+    Representation, LearnedRepresentationMixin, ReprOut, NpIORepresentation)
 from vre import FakeVideo
 
-class MyRepresentation(Representation, LearnedRepresentationMixin, ComputeRepresentationMixin, NpIORepresentation):
+class MyRepresentation(Representation, LearnedRepresentationMixin, NpIORepresentation):
     def __init__(self, *args, **kwargs):
         Representation.__init__(self, *args, **kwargs)
         LearnedRepresentationMixin.__init__(self)
-        ComputeRepresentationMixin.__init__(self)
         NpIORepresentation.__init__(self)
         self.vre_setup_called = False
         self.vre_free_called = False
         self.make_called = False
-    def compute(self, video, ixs, dep_data):
-        raise NotImplementedError("should not be called")
     @staticmethod
     def weights_repository_links(**kwargs):
         raise NotImplementedError("should not be called")
@@ -36,10 +33,9 @@ class MyRepresentation(Representation, LearnedRepresentationMixin, ComputeRepres
     def n_channels(self):
         return 1
 
-class MyDependentRepresentation(Representation, ComputeRepresentationMixin, NpIORepresentation):
+class MyDependentRepresentation(Representation, NpIORepresentation):
     def __init__(self, *args, **kwargs):
         Representation.__init__(self, *args, **kwargs)
-        ComputeRepresentationMixin.__init__(self)
         NpIORepresentation.__init__(self)
     def compute(self, video, ixs, dep_data):
         return ReprOut(frames=video[ixs], output=dep_data[0].output, key=ixs)

@@ -10,7 +10,7 @@ def test_raft(iters: int, small: bool):
                          iters=iters, small=small, delta=1)
     raft_repr.vre_setup(load_weights=False)
     assert raft_repr.name == "raft"
-    assert raft_repr.compress is True # default from ComputeRepresentationMixin
+    assert raft_repr.compress is True # default
     assert raft_repr.device == "cpu" # default from LearnedRepresentationMixin
 
     out = raft_repr.compute(video, [0])

@@ -7,7 +7,7 @@ def test_rgb_1():
     rgb_repr = RGB("rgb")
     assert rgb_repr.name == "rgb"
     assert rgb_repr.compress is True # default from NpIORepresentation
-    assert rgb_repr.batch_size == 1 # defasult from ComputeRepreserntation
+    assert rgb_repr.batch_size == 1 # deefault
 
     out = rgb_repr.compute(video, [0])
     assert np.allclose(out.output, video.data[0])

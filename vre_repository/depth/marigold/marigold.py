@@ -13,7 +13,7 @@ from diffusers import AutoencoderKL, DDIMScheduler, LCMScheduler, UNet2DConditio
 
 from vre.vre_video import VREVideo
 from vre.utils import image_read, image_write, MemoryData, vre_load_weights
-from vre.representations import ReprOut, LearnedRepresentationMixin, ComputeRepresentationMixin
+from vre.representations import ReprOut, LearnedRepresentationMixin
 from vre_repository.depth import DepthRepresentation
 from vre_repository.weights_repository import fetch_weights
 
@@ -22,13 +22,12 @@ try:
 except ImportError:
     from vre_repository.depth.marigold.marigold_impl import MarigoldPipeline
 
-class Marigold(DepthRepresentation, LearnedRepresentationMixin, ComputeRepresentationMixin):
+class Marigold(DepthRepresentation, LearnedRepresentationMixin):
     """Marigold VRE implementation"""
     def __init__(self, variant: str, denoising_steps: int, ensemble_size: int, processing_resolution: int,
                  seed: int | None = None, **kwargs):
         DepthRepresentation.__init__(self, min_depth=0, max_depth=1, **kwargs)
         LearnedRepresentationMixin.__init__(self)
-        ComputeRepresentationMixin.__init__(self)
         assert variant in ("marigold-v1-0", "marigold-lcm-v1-0", "testing"), variant
         self.variant = variant
         self.denoising_steps = denoising_steps

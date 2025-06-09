@@ -7,7 +7,7 @@ def test_mask2former():
     m2f_repr = Mask2Former(model_id="49189528_1", disk_data_argmax=True, name="m2f", dependencies=[])
     m2f_repr.vre_setup(load_weights=False)
     assert m2f_repr.name == "m2f"
-    assert m2f_repr.compress is True # default from ComputeRepresentationMixin
+    assert m2f_repr.compress is True # default
     assert m2f_repr.device == "cpu" # default from LearnedRepresentationMixin
 
     out = m2f_repr.compute(video, [0])
