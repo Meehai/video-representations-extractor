@@ -4,12 +4,11 @@ import numpy as np
 
 from vre.utils import MemoryData, ReprOut
 from vre.vre_video import VREVideo
-from vre.representations import ComputeRepresentationMixin
 from vre_repository.normals import NormalsRepresentation
 
 from .depth_svd_impl import depths_to_normals
 
-class DepthNormalsSVD(NormalsRepresentation, ComputeRepresentationMixin):
+class DepthNormalsSVD(NormalsRepresentation):
     """
     General method for estimating normals from a depth map (+ intrinsics): a 2D window centered on each pixel is
     projected into 3D and then a plane is fitted on the 3D pointcloud using SVD.
@@ -17,7 +16,6 @@ class DepthNormalsSVD(NormalsRepresentation, ComputeRepresentationMixin):
     def __init__(self, sensor_fov: int, sensor_size: tuple[int, int], window_size: int,
                  input_downsample_step: int = None, stride: int = None, **kwargs):
         NormalsRepresentation.__init__(self, **kwargs)
-        ComputeRepresentationMixin.__init__(self)
         assert window_size % 2 == 1, f"Expected odd window size. Got: {window_size}"
         self.sensor_fov = sensor_fov
         self.sensor_size = sensor_size

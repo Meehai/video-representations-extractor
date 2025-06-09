@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 from vre.representations.build_representations import build_representation_from_cfg
-from vre.representations import ComputeRepresentationMixin, LearnedRepresentationMixin, IORepresentationMixin
+from vre.representations import LearnedRepresentationMixin, IORepresentationMixin
 from vre.utils import parsed_str_type
 from vre_repository import get_vre_repository as greps
 
@@ -9,7 +9,7 @@ def test_build_representations_from_cfg_defaults():
     orig_cfg = {"type": "color/rgb", "dependencies": [], "parameters": {}}
     res = build_representation_from_cfg(orig_cfg, name="rgb", representation_types=greps(), built_so_far={},
                                         compute_defaults={}, learned_defaults={}, io_defaults={})
-    assert parsed_str_type(res) == "RGB" and isinstance(res, ComputeRepresentationMixin), res
+    assert parsed_str_type(res) == "RGB", res
     assert not isinstance(res, LearnedRepresentationMixin) and isinstance(res, IORepresentationMixin), res
     assert res.batch_size == 1 and res.output_dtype is np.dtype("uint8") and res.output_size is "video_shape"
 
@@ -19,7 +19,7 @@ def test_build_representations_from_cfg_device():
     cfg = {**base_cfg, "type": "edges/dexined"}
     res = build_representation_from_cfg(cfg, name="dexined", representation_types=greps(), built_so_far={},
                                         compute_defaults={}, learned_defaults={}, io_defaults={})
-    assert parsed_str_type(res) == "DexiNed" and isinstance(res, ComputeRepresentationMixin)
+    assert parsed_str_type(res) == "DexiNed"
     assert isinstance(res, LearnedRepresentationMixin), res
     assert res.device == "cpu"
 

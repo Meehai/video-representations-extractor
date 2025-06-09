@@ -8,7 +8,7 @@ from tqdm import tqdm
 import torch as tr
 import numpy as np
 
-from .representations import Representation, ComputeRepresentationMixin, LearnedRepresentationMixin
+from .representations import Representation, LearnedRepresentationMixin
 from .representations.io_representation_mixin import IORepresentationMixin, ImageFormat
 from .vre_runtime_args import VRERuntimeArgs
 from .data_writer import DataWriter
@@ -41,8 +41,8 @@ class VideoRepresentationsExtractor:
         self.repr_names = [r.name for r in representations]
 
     def set_compute_params(self, **kwargs) -> VideoRepresentationsExtractor:
-        """Set the required params for all representations of ComputeRepresentationMixin type"""
-        for r in [_r for _r in self.representations if isinstance(_r, ComputeRepresentationMixin)]:
+        """Set the required params for all representations"""
+        for r in self.representations:
             r.set_compute_params(**kwargs)
         return self
 
@@ -117,7 +117,7 @@ class VideoRepresentationsExtractor:
                                  output_dir_exists_mode=output_dir_exists_mode)
         data_storer = DataStorer(data_writer=data_writer, n_threads=runtime_args.n_threads_data_storer)
         logger.info(f"Running {run_id=}:\n{representation}\n{data_storer}")
-        rep: Representation | ComputeRepresentationMixin | IORepresentationMixin = representation
+        rep: Representation | IORepresentationMixin = representation
         formats = sorted([f for f in [rep.image_format.value, rep.binary_format.value] if f != "not-set"])
         repr_metadata = RepresentationMetadata(repr_name=representation.name, formats=formats,
                                                disk_location=data_writer.rep_out_dir / ".repr_metadata.json",
@@ -182,7 +182,6 @@ class VideoRepresentationsExtractor:
 
     def _compute_one_representation_batch(self, rep: Representation, batch: list[int],
                                           output_dir: Path, depth: int = 0) -> ReprOut:
-        assert isinstance(rep, ComputeRepresentationMixin), rep
         # setting depth to higher values allows to compute deps of deps in memory. We throw to not hide bugs.
         # useful for VRE hacking (i.e. see semantic_mapper.py)
         assert depth <= 1, f"{rep=} {depth=} {batch=} {output_dir=}"

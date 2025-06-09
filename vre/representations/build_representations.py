@@ -3,7 +3,6 @@ from pathlib import Path
 from typing import Type
 from .representation import Representation
 from .io_representation_mixin import IORepresentationMixin
-from .compute_representation_mixin import ComputeRepresentationMixin
 from .learned_representation_mixin import LearnedRepresentationMixin
 from ..logger import vre_logger as logger
 from ..utils import topological_sort, load_function_from_module, vre_yaml_load
@@ -53,7 +52,6 @@ def build_representation_from_cfg(repr_cfg: dict, name: str, representation_type
         learned_params = {**learned_params, **repr_cfg["learned_parameters"]}
         logger.debug(f"[{obj}] Setting node specific 'Learned' params: {learned_params}")
     if "compute_parameters" in repr_cfg:
-        assert isinstance(obj, ComputeRepresentationMixin), obj
         compute_params = {**compute_params, **repr_cfg["compute_parameters"]}
         logger.debug(f"[{obj}] Setting node specific 'Compute' params: {compute_params}")
     if "io_parameters" in repr_cfg:
@@ -61,8 +59,7 @@ def build_representation_from_cfg(repr_cfg: dict, name: str, representation_type
         io_params = {**io_params, **repr_cfg["io_parameters"]}
         logger.debug(f"[{obj}] Setting node specific 'IO' params: {io_params}")
 
-    if isinstance(obj, ComputeRepresentationMixin):
-        obj.set_compute_params(**compute_params)
+    obj.set_compute_params(**compute_params)
     if isinstance(obj, LearnedRepresentationMixin):
         obj.set_learned_params(**learned_params)
     if isinstance(obj, IORepresentationMixin):
@@ -112,8 +109,7 @@ def _add_external_representations_dict(built_so_far: list[Representation],
     # (converted) which are also task mapped from the raw ones, because we'd update the dependencies of the middle ones
     # (converted) initially os it uses 'built_so_far' objects, but then it crashes on depth=2 (semantic_output).
     for obj in external_reprs.values():
-        if isinstance(obj, ComputeRepresentationMixin):
-            obj.set_compute_params(**compute_params)
+        obj.set_compute_params(**compute_params)
         if isinstance(obj, LearnedRepresentationMixin):
             obj.set_learned_params(**learned_params)
         if isinstance(obj, IORepresentationMixin):

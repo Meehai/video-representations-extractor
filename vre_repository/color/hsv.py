@@ -4,7 +4,6 @@ from overrides import overrides
 
 from vre.vre_video import VREVideo
 from vre.utils import ReprOut
-from vre.representations import ComputeRepresentationMixin
 
 from .rgb import RGB
 from .color_representation import ColorRepresentation
@@ -53,12 +52,11 @@ def rgb2hsv(rgb: np.ndarray) -> np.ndarray:
 
     return out
 
-class HSV(ColorRepresentation, ComputeRepresentationMixin):
+class HSV(ColorRepresentation):
     """HSV representation"""
     def __init__(self, name: str, dependencies: list[str]):
         assert len(dependencies) == 1 and isinstance(dependencies[0], RGB), dependencies
         ColorRepresentation.__init__(self, name, dependencies=dependencies)
-        ComputeRepresentationMixin.__init__(self)
 
     @overrides
     def compute(self, video: VREVideo, ixs: list[int], dep_data: list[ReprOut] | None = None) -> ReprOut:

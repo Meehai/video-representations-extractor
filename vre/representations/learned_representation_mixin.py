@@ -1,7 +1,6 @@
 """
 Helper mixin class that adds the weights/device relevant methods & properties for such representation
 A representation that inherits this also must have weights in the weights repository.
-Note: this could arguably extend ComputeRepresentation, but we want to keep the inheritance tree as flat as possible.
 """
 from abc import abstractmethod, ABC
 import torch as tr

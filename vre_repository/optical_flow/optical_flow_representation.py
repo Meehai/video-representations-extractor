@@ -31,3 +31,7 @@ class OpticalFlowRepresentation(Representation, NpIORepresentation, NormedRepres
     def get_delta_frames(self, video: VREVideo, ixs: list[int]) -> np.ndarray:
         """for a given list of frames at .compute() time, return the delta frames required to compute the flow"""
         return video[_get_delta_frames(video, ixs, self.delta)]
+
+    @overrides
+    def compute(self, video: VREVideo, ixs: list[int], dep_data = None) -> ReprOut:
+        raise NotImplementedError(self)

@@ -7,7 +7,7 @@ def test_hsv_compute():
     video = FakeVideo(np.random.randint(0, 255, size=(20, 64, 128, 3), dtype=np.uint8), fps=30)
     hsv_repr = HSV("hsv", dependencies=[RGB("rgb")])
     assert hsv_repr.name == "hsv"
-    assert hsv_repr.compress is True # default from ComputeRepresentationMixin
+    assert hsv_repr.compress is True # default
 
     rgb_out = hsv_repr.dependencies[0].compute(video, [0])
     out = hsv_repr.compute(video, [0], [rgb_out])

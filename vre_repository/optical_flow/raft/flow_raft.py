@@ -7,20 +7,19 @@ from torch.nn import functional as F
 from vre.vre_video import VREVideo
 from vre.utils import MemoryData
 from vre.logger import vre_logger as logger
-from vre.representations import ReprOut, LearnedRepresentationMixin, ComputeRepresentationMixin
+from vre.representations import ReprOut, LearnedRepresentationMixin
 from vre_repository.optical_flow import OpticalFlowRepresentation
 from vre_repository.weights_repository import fetch_weights
 
 from .raft_impl import RAFT, InputPadder
 
 # TODO: make inference_height/width a tuple inference_size
-class FlowRaft(OpticalFlowRepresentation, LearnedRepresentationMixin, ComputeRepresentationMixin):
+class FlowRaft(OpticalFlowRepresentation, LearnedRepresentationMixin):
     """FlowRaft representation"""
     def __init__(self, inference_height: int, inference_width: int, iters: int, small: bool,
                  seed: int | None = None, flow_delta_frames: int = 1, **kwargs):
         OpticalFlowRepresentation.__init__(self, **kwargs)
         LearnedRepresentationMixin.__init__(self)
-        ComputeRepresentationMixin.__init__(self)
         assert inference_height >= 128 and inference_width >= 128, f"This flow doesn't work with small " \
             f"videos. At least 128x128 is required, but got {inference_height}x{inference_width}"
         self.mixed_precision = False

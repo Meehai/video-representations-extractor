@@ -6,7 +6,7 @@ def test_canny_1():
     video = FakeVideo(np.random.randint(0, 255, size=(20, 64, 128, 3), dtype=np.uint8), fps=30)
     canny_repr = Canny(name="canny", dependencies=[], threshold1=100, threshold2=200, aperture_size=3, l2_gradient=True)
     assert canny_repr.name == "canny"
-    assert canny_repr.compress is True # default from ComputeRepresentationMixin
+    assert canny_repr.compress is True # default
 
     out = canny_repr.compute(video, ixs=[0])
     assert out.output.shape == (1, 64, 128, 1)

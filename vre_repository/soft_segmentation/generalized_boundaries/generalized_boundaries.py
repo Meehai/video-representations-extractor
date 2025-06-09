@@ -5,11 +5,10 @@ from overrides import overrides
 
 from vre.vre_video import VREVideo
 from vre.utils import MemoryData
-from vre.representations import (Representation, ReprOut, ComputeRepresentationMixin,
-                                 NpIORepresentation, NormedRepresentationMixin)
+from vre.representations import Representation, ReprOut, NpIORepresentation, NormedRepresentationMixin
 from .gb_impl.softseg import soft_seg
 
-class GeneralizedBoundaries(Representation, ComputeRepresentationMixin, NpIORepresentation, NormedRepresentationMixin):
+class GeneralizedBoundaries(Representation, NpIORepresentation, NormedRepresentationMixin):
     """
     Soft-seg implementation from https://link.springer.com/chapter/10.1007/978-3-642-33765-9_37
     Parameters:
@@ -19,7 +18,6 @@ class GeneralizedBoundaries(Representation, ComputeRepresentationMixin, NpIORepr
     """
     def __init__(self, use_median_filtering: bool, adjust_to_rgb: bool, max_channels: int, **kwargs):
         Representation.__init__(self, **kwargs)
-        ComputeRepresentationMixin.__init__(self)
         NpIORepresentation.__init__(self)
         NormedRepresentationMixin.__init__(self)
         self.use_median_filtering = use_median_filtering
