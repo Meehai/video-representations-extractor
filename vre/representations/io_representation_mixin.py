@@ -25,7 +25,7 @@ class IORepresentationMixin(ABC):
     """
     StoredRepresentation. These methods define the blueprint to store and load a representation from disk to RAM.
     Data transformations order:
-    - DISK [.npz] -> load_from_disk() -> [disk_fmt] -> disk_to_memory_fmt() -> RAM [memory_fmt] (stored in .data)
+    - DISK [.npz] -> load_from_disk() -> [disk_fmt] -> disk_to_memory_fmt() -> RAM [memory_fmt]
     - RAM [memory_fmt] -> memory_to_disk_fmt() -> [disk_fmt] -> store_to_disk() -> DISK [.npz]
     The intermediate disk_fmt is only used for storage efficiency, while all the vre operations happen with memory_fmt
     For example: disk_fmt is a binary bool vector, while memory_fmt is a one-hot 2 channels map.

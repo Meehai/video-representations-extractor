@@ -38,3 +38,19 @@ class ReprOut:
     def __repr__(self):
         return (f"[ReprOut] key={self.key}, output={lo(self.output)}, output_images={lo(self.output_images)}, "
                 f"extra set={self.extra is not None}, frames={lo(self.frames)}")
+
+    def __eq__(self, other: ReprOut) -> bool:
+        if not isinstance(other, ReprOut):
+            return False
+        if self.key != other.key:
+            return False
+        if (self.extra is not None) ^ (other.extra is not None):
+            return False
+        if (self.output_images is not None) ^ (other.output_images is not None):
+            return False
+        if not np.allclose(self.output, other.output):
+            return False
+        # we know both are not none or both are none as per the xor check above
+        if self.output_images is not None and not np.allclose(self.output_images, other.output_images):
+            return False
+        return True

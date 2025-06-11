@@ -51,7 +51,7 @@ class SafeUAV(SemanticRepresentation, LearnedRepresentationMixin):
         x[:, cumsum[rgb_pos]: cumsum[rgb_pos+1] ] = tr_rgb
 
         with tr.no_grad():
-            y = self.model.forward(x)
+            y = self.model.forward(x) # output data is in logits (B, H, W, C)
         sema_pos = self.cfg["data"]["parameters"]["task_names"].index("semantic_output")
         y_rgb = y[:, cumsum[sema_pos]: cumsum[sema_pos+1]].permute(0, 2, 3, 1).cpu().numpy()
         return ReprOut(frames=video[ixs], output=MemoryData(y_rgb), key=ixs)
