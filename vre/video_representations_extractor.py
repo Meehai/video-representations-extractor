@@ -116,7 +116,7 @@ class VideoRepresentationsExtractor:
         data_writer = DataWriter(output_dir=output_dir, representation=representation,
                                  output_dir_exists_mode=output_dir_exists_mode)
         data_storer = DataStorer(data_writer=data_writer, n_threads=runtime_args.n_threads_data_storer)
-        logger.info(f"Running {run_id=}:\n{representation}\n{data_storer}")
+        logger.debug(f"Running {run_id=}:\n{representation}\n{data_storer}")
         rep: Representation | IORepresentationMixin = representation
         formats = sorted([f for f in [rep.image_format.value, rep.binary_format.value] if f != "not-set"])
         repr_metadata = RepresentationMetadata(repr_name=representation.name, formats=formats,

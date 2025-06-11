@@ -6,6 +6,9 @@ from vre.utils import DiskData, MemoryData, image_resize_batch, colorize_semanti
 from vre.logger import vre_logger as logger
 from vre.vre_video import VREVideo
 
+# TODO: ideally we'd not need to specify disk_data_argmax explicitly
+# TODO: we may need a way to specify memory data format (one-hot, softmax, logits, index etc.)
+
 class SemanticRepresentation(Representation, NpIORepresentation):
     """SemanticRepresentation. Implements semantic task-specific stuff, like argmaxing if needed"""
     def __init__(self, *args, classes: int | list[str], color_map: list[tuple[int, int, int]],
