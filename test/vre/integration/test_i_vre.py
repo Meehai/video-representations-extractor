@@ -70,11 +70,11 @@ def test_vre_output_shape(video: VREVideo):
             return ReprOut(frames=video[ixs], output=output, key=ixs)
 
     vre = VRE(video=video, representations=[RGBWithShape((64, 64), "rgb", n_channels=3)])
-    vre.set_io_parameters(output_size="video_shape", binary_format="npz", image_format="not-set")
+    vre.set_io_parameters(output_size=video.shape[1:3], binary_format="npz", image_format="not-set")
     _ = vre.run(tmp_dir := Path(TemporaryDirectory().name), frames=[0, 1, 2])
     assert np.load(tmp_dir / "rgb/npz/0.npz")["arr_0"].shape == video.frame_shape
 
-    vre.set_io_parameters(output_size="native", binary_format="npz", image_format="not-set")
+    vre.set_io_parameters(output_size=(64, 64), binary_format="npz", image_format="not-set")
     _ = vre.run(tmp_dir := Path(TemporaryDirectory().name), frames=[0, 1, 2])
     assert np.load(tmp_dir / "rgb/npz/0.npz")["arr_0"].shape == (64, 64, 3)
 

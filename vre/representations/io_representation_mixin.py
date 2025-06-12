@@ -34,7 +34,7 @@ class IORepresentationMixin(ABC):
         self._binary_format: BinaryFormat | None = None
         self._image_format: ImageFormat | None = None
         self._compress: bool | None = None
-        self._output_size: tuple[int, int] | str | None = None
+        self._output_size: tuple[int, int] | None = None
         self._output_dtype: str | np.dtype | None = None
 
     @abstractmethod
@@ -104,21 +104,16 @@ class IORepresentationMixin(ABC):
         self._compress = c
 
     @property
-    def output_size(self) -> str | tuple[int, int]:
+    def output_size(self) -> tuple[int, int] | None:
         """Returns the output size as a tuple/string or None if it's not explicitly set"""
-        if self._output_size is None:
-            logger.warning(f"[{self}] No output_size set, returning 'video_shape'. Call set_io_params")
-            return "video_shape"
         return self._output_size
 
     @output_size.setter
-    def output_size(self, os: str | tuple[int, int]):
-        assert isinstance(os, (str, tuple, list)), os
+    def output_size(self, os: tuple[int, int] | None):
+        assert isinstance(os, (tuple, list, type(None))), os
         if isinstance(os, (tuple, list)):
             assert len(os) == 2 and all(isinstance(x, int) and x > 0 for x in os), os
-        if isinstance(os, str):
-            assert os in ("native", "video_shape"), os
-        self._output_size = os if isinstance(os, str) else tuple(os)
+        self._output_size = tuple(os) if os is not None else os
 
     @property
     def output_dtype(self) -> np.dtype:

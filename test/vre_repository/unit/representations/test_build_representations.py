@@ -11,7 +11,7 @@ def test_build_representations_from_cfg_defaults():
                                         compute_defaults={}, learned_defaults={}, io_defaults={})
     assert parsed_str_type(res) == "RGB", res
     assert not isinstance(res, LearnedRepresentationMixin) and isinstance(res, IORepresentationMixin), res
-    assert res.batch_size == 1 and res.output_dtype is np.dtype("uint8") and res.output_size is "video_shape"
+    assert res.batch_size == 1 and res.output_dtype is np.dtype("uint8") and res.output_size is None
 
 def test_build_representations_from_cfg_device():
     base_cfg = {"dependencies": [], "parameters": {}}
@@ -110,12 +110,12 @@ def test_build_representations_from_cfg_output_size():
     res = build_representation_from_cfg(orig_cfg, name="rgb", representation_types=greps(), built_so_far={},
                                         compute_defaults={}, learned_defaults={}, io_defaults={})
     assert isinstance(res, IORepresentationMixin), res
-    assert res.output_size == "video_shape", res.output_size
+    assert res.output_size is None, res.output_size
 
     res = build_representation_from_cfg(orig_cfg, name="rgb", representation_types=greps(), built_so_far={},
-                                        compute_defaults={}, learned_defaults={}, io_defaults={"output_size": "native"})
+                                        compute_defaults={}, learned_defaults={}, io_defaults={"output_size": None})
     assert isinstance(res, IORepresentationMixin), res
-    assert res.output_size == "native", res.output_size
+    assert res.output_size is None, res.output_size
 
     cfg = {**orig_cfg, "io_parameters": {"output_size": [100, 200]}}
     res: IORepresentationMixin = build_representation_from_cfg(
@@ -126,7 +126,7 @@ def test_build_representations_from_cfg_output_size():
 
     cfg = {**orig_cfg, "io_parameters": {"output_size": [100, 200]}}
     res = build_representation_from_cfg(cfg, name="rgb", representation_types=greps(), built_so_far={},
-                                        compute_defaults={}, learned_defaults={}, io_defaults={"output_size": "native"})
+                                        compute_defaults={}, learned_defaults={}, io_defaults={"output_size": None})
     assert isinstance(res, IORepresentationMixin), res
     assert res.output_size == (100, 200), res.output_size
 

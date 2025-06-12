@@ -53,7 +53,7 @@ def test_no_vre_setup_if_not_needed():
         np.savez(f"{tmp_dir}/r1/npz/{i}.npz", video[i][..., 0:1])
     r1 = MyRepresentation("r1", [])
     r2 = MyDependentRepresentation("r2", [r1])
-    vre = VRE(video, [r1, r2]).set_io_parameters(binary_format="npz", output_size="native", output_dtype="uint8")
+    vre = VRE(video, [r1, r2]).set_io_parameters(binary_format="npz", output_size=None, output_dtype="uint8")
     vre.run(tmp_dir, frames=list(range(0, len(video))), output_dir_exists_mode="skip_computed")
     assert r1.make_called is False, (r1.make_called, r1.vre_setup_called, r1.vre_free_called)
     # since all the data of r1 is already on the disk, there's no need to call vre_setup and vre_free at all
