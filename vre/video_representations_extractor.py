@@ -122,7 +122,6 @@ class VideoRepresentationsExtractor:
         repr_metadata = RepresentationMetadata(repr_name=representation.name, formats=formats,
                                                disk_location=data_writer.rep_out_dir / ".repr_metadata.json",
                                                frames=list(range(len(self.video))))
-        rep.output_size = self.video.frame_shape[0:2] if rep.output_size == "video_shape" else rep.output_size
 
         relevant_frames = [f for f in runtime_args.frames if f not in repr_metadata.frames_computed()]
         logger.debug(f"Out of {len(runtime_args.frames)} total frames, "
@@ -253,6 +252,7 @@ class VideoRepresentationsExtractor:
         return str(self)
 
     def __getitem__(self, ix: int | slice | range | list[int]) -> dict[str, ReprOut]:
+        # Note: setup and free should be called outside of this function!
         if isinstance(ix, int):
             return self[[ix]]
         if isinstance(ix, slice):
@@ -266,21 +266,19 @@ class VideoRepresentationsExtractor:
         res: dict[str, ReprOut] = {}
         for vre_repr in (pbar := tqdm(self.representations, disable=os.getenv("VRE_PBAR", "1") == "0")):
             pbar.set_description(f"[VRE Streaming] {vre_repr.name}")
-            if isinstance(vre_repr, LearnedRepresentationMixin) and not vre_repr.setup_called:
-                vre_repr.vre_setup()
             dep_names = [r.name for r in vre_repr.dependencies]
             batches = make_batches(ix, vre_repr.batch_size)
             batch_res: list[ReprOut] = []
             for b_ixs in batches:
                 repr_out = vre_repr.compute(video=self.video, ixs=b_ixs,
                                             dep_data=[res[dep_name] for dep_name in dep_names])
-                batch_res.append(vre_repr.resize(repr_out, self.video.shape[1:3]))
+                if vre_repr.output_size is not None:
+                    repr_out = vre_repr.resize(repr_out, vre_repr.output_size)
+                batch_res.append(repr_out)
             combined = ReprOut(frames=np.concatenate([br.frames for br in batch_res]),
                             key=sum([br.key for br in batch_res], []),
                             output=MemoryData(np.concatenate([br.output for br in batch_res])))
             if vre_repr.image_format.value != "not-set":
                 combined.output_images = vre_repr.make_images(combined)
             res[vre_repr.name] = combined
-            if isinstance(vre_repr, LearnedRepresentationMixin):
-                vre_repr.vre_free()
         return res

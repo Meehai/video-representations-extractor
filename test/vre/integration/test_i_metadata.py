@@ -12,7 +12,7 @@ from fake_representation import FakeRepresentation
 def test_RunMetadata_1():
     video = FakeVideo(np.random.randint(0, 255, size=(2, 128, 128, 3), dtype=np.uint8), fps=30)
     vre = VRE(video=video, representations=[FakeRepresentation("rgb", n_channels=3)])
-    vre.set_io_parameters(binary_format="npz", image_format="not-set", compress=True, output_size="video_shape")
+    vre.set_io_parameters(binary_format="npz", image_format="not-set", compress=True, output_size=(128, 128))
     res = vre.run(output_dir := Path(TemporaryDirectory().name))
     assert res.repr_names == ["rgb"], res.repr_names
     assert res.runtime_args["frames"] == [0, 1], res.runtime_args["frames"]
@@ -21,7 +21,7 @@ def test_RunMetadata_1():
 def test_RepresentationMetadata_1():
     video = FakeVideo(np.random.randint(0, 255, size=(2, 128, 128, 3), dtype=np.uint8), fps=30)
     rgb = FakeRepresentation("rgb", n_channels=3)
-    rgb.set_io_params(binary_format="npz", image_format="not-set", compress=True, output_size="video_shape")
+    rgb.set_io_params(binary_format="npz", image_format="not-set", compress=True, output_size=(128, 128))
     vre = VRE(video=video, representations=[rgb])
 
     (tmp_dir := Path(TemporaryDirectory().name)).mkdir(exist_ok=False)
@@ -35,7 +35,7 @@ def test_load_RepresentationMetadata_1():
     # This test does a video in 2 steps. Step 1 does first 5 frames, Step 2 does the last 5 frames.
     video = FakeVideo(np.random.randint(0, 255, size=(10, 128, 128, 3), dtype=np.uint8), fps=30)
     rgb = FakeRepresentation("rgb", n_channels=3)
-    rgb.set_io_params(binary_format="npz", image_format="not-set", compress=True, output_size="video_shape")
+    rgb.set_io_params(binary_format="npz", image_format="not-set", compress=True, output_size=(128, 128))
     rgb.set_compute_params(batch_size=1)
     vre = VRE(video=video, representations=[rgb])
 
@@ -65,7 +65,7 @@ def test_RunMetadata_exported_representations():
     video = FakeVideo(np.random.randint(0, 255, size=(2, 128, 128, 3), dtype=np.uint8), fps=30)
     representations=[FakeRepresentation("rgb", n_channels=3), FakeRepresentation("hsv", n_channels=3)]
     vre = VRE(video=video, representations=representations)
-    vre.set_io_parameters(binary_format="npz", image_format="not-set", compress=True, output_size="video_shape")
+    vre.set_io_parameters(binary_format="npz", image_format="not-set", compress=True, output_size=(128, 128))
     res = vre.run(output_dir := Path(TemporaryDirectory().name), exported_representations=["rgb"])
     assert res.repr_names == ["rgb"], res.repr_names
     assert res.runtime_args["frames"] == [0, 1], res.runtime_args["frames"]

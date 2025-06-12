@@ -1,7 +1,7 @@
 import sys
 import numpy as np
 import pytest
-from vre import VRE, Representation
+from vre import VRE
 from vre.utils import get_project_root
 from vre.vre_video import FakeVideo
 
@@ -43,3 +43,14 @@ def test_vre_getitem_batch(video: FakeVideo):
     assert res["rgb"].output_images.shape == (2, 128, 128, 3)
     assert res["hsv"].output.shape == (2, 128, 128, 3)
     assert res["hsv"].output_images.shape == (2, 128, 128, 3)
+
+def test_vre_getitem_resolution(video: FakeVideo):
+    vre = VRE(video=video, representations=[rgb := FakeRepresentation("rgb", n_channels=3),
+                                            FakeRepresentation("hsv", n_channels=3, dependencies=[rgb])])
+    vre.set_io_parameters(binary_format="npz", image_format="png", output_size=(64, 64))
+    res = vre[0:2]
+    assert res.keys() == {"rgb", "hsv"}
+    assert res["rgb"].output.shape == (2, 64, 64, 3)
+    assert res["rgb"].output_images.shape == (2, 64, 64, 3)
+    assert res["hsv"].output.shape == (2, 64, 64, 3)
+    assert res["hsv"].output_images.shape == (2, 64, 64, 3)
