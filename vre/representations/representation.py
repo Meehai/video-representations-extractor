@@ -31,7 +31,7 @@ class Representation(ABC):
     def batch_size(self) -> int:
         """the batch size that is used during the VRE run for computation"""
         if self._batch_size is None:
-            logger.warning(f"[{self}] No batch_size set, returning 1. Call set_compute_params")
+            logger.debug(f"[{self}] No batch_size set, returning 1. Call set_compute_params")
             return 1
         return self._batch_size
 

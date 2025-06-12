@@ -117,7 +117,7 @@ def array_blend(x: np.ndarray, y: np.ndarray, alpha: float | np.ndarray) -> np.n
 
 def make_batches(frames: list[int], batch_size: int) -> list[int]:
     """return 1D array [start_frame, start_frame+bs, start_frame+2*bs... end_frame]"""
-     # TODO test all the cases of this fn
+    assert isinstance(batch_size, int) and batch_size > 0, batch_size
     if batch_size > len(frames):
         logger.warning(f"batch size {batch_size} is larger than #frames to process {len(frames)}.")
         batch_size = len(frames)
