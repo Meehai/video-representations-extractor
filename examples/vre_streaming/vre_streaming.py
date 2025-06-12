@@ -8,6 +8,8 @@ from contexttimer import Timer
 from tempfile import TemporaryDirectory
 from tqdm import tqdm
 import os
+import time
+from datetime import datetime
 
 from vre import VRE, FFmpegVideo, ReprOut, Representation, MemoryData
 from vre.logger import vre_logger as logger
@@ -20,6 +22,7 @@ from vre_repository.color.rgb import RGB
 from vre_repository.semantic_segmentation.safeuav import SafeUAV
 
 os.environ["VRE_DEVICE"] = device = "cuda" if tr.cuda.is_available() else "cpu"
+os.environ["VRE_COLORIZE_SEMSEG_FAST"] = "1"
 
 def mean(x):
     return sum(x) / len(x)
@@ -113,25 +116,27 @@ def main():
         plt.figure()
         plt.ion()
         plt.show()
-    batches = make_batches(list(range(1000, len(video))), batch_size=1)
-    fps = []
-    for ixs in batches:
-        res = vre[ixs]
-        fps.append(1 / (t.elapsed / len(ixs)))
-        with Timer(prefix="get_imgs"):
-            imgs = get_imgs(res)
-        for i, img in enumerate(imgs):
-            img = image_resize(image_add_title(img, f"Frame: {ixs[i]}. FPS: {mean(fps):.2f}"), height=360, width=1280)
-            # img = image_resize(image_add_title(img, f"Frame: {ixs[i]}. FPS: {mean(fps):.2f}"), height=360, width=1280)
-            if os.getenv("MPL", "0") == "1":
-                plt.imshow(img)
-                plt.draw()
-                plt.pause(0.00001)
-                plt.clf()
-            else:
-                # sys.stderr.write(f"{img.shape}, {img.dtype}\n")
-                sys.stdout.buffer.write(img.tobytes())
-                sys.stdout.flush()
+    # batches = make_batches(list(range(1000, len(video))), batch_size=1)
+    fps = [0]
+    for ix in range(1000, len(video)):
+        now = datetime.now()
+        res = vre[ix]
+        img = get_imgs(res)[0]
+        # img = image_resize(img, height=360, width=1280)
+        img = image_resize(image_add_title(img, f"Frame: {ix}. FPS: {mean(fps):.2f}"), height=360, width=1280)
+        if os.getenv("MPL", "0") == "1":
+            plt.imshow(img)
+            plt.draw()
+            plt.pause(0.00001)
+            plt.clf()
+        else:
+            # sys.stderr.write(f"{img.shape}, {img.dtype}\n")
+            sys.stdout.buffer.write(img.tobytes())
+            sys.stdout.flush()
+
+        if (diff := (1 / video.fps) - (datetime.now() - now).total_seconds()) > 0:
+            time.sleep(diff)
+        fps.append(1 / (datetime.now() - now).total_seconds())
 
 if __name__ == "__main__":
     main()

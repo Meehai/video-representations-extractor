@@ -2,6 +2,8 @@
 
 This example will show us various ways to stream from VRE to various external tools.
 
+**Note: make sure nothing is printed to stdout except the frame data in case of MPL=0!**
+
 ## Matplotlib
 
 The easiest thing we can do is use matplotlib. In order to use matplotlib, we can specify the `MPL=1` env variable.
@@ -18,7 +20,18 @@ MPL=0 VRE_LOGLEVEL=-1 VRE_PBAR=0 ./vre_streaming.py | ffplay -f rawvideo -pixel_
 ## MPV/VLC (via ffmpeg+TCP stream)
 
 ```bash
-MPL=0 VRE_LOGLEVEL=-1 VRE_PBAR=0 ./vre_streaming.py | ffmpeg -f rawvideo -pixel_format rgb24 -video_size 1280x360 -framerate 30 -i - -f mpegts -c:v libx264 -tune zerolatency -preset ultrafast -b:v 1000k tcp://localhost:9999?listen
+MPL=0 VRE_LOGLEVEL=-1 VRE_PBAR=0 ./vre_streaming.py | ffmpeg \
+  -f rawvideo \
+  -pixel_format rgb24 \
+  -video_size 1280x360 \
+  -framerate 30 \
+  -i - \
+  -f mpegts \
+  -c:v libx264 \
+  -tune zerolatency \
+  -preset ultrafast \
+  -b:v 1000k \
+  tcp://localhost:9999?listen
 ```
 and open in the video player (i.e. vlc) the stream at: `tcp://localhost:9999`.
 
