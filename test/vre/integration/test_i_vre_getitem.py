@@ -16,7 +16,7 @@ def test_vre_getitem_basic(video: FakeVideo):
     vre = VRE(video=video, representations=[rgb := FakeRepresentation("rgb", n_channels=3),
                                             FakeRepresentation("hsv", n_channels=3, dependencies=[rgb])])
     vre.set_io_parameters(binary_format="npz")
-    with pytest.raises(AssertionError):
+    with pytest.raises(KeyError):
         _ = vre[2]
     res = vre[0]
     assert res.keys() == {"rgb", "hsv"}

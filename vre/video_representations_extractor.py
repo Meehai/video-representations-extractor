@@ -2,21 +2,21 @@
 from __future__ import annotations
 from pathlib import Path
 from datetime import datetime
-from tempfile import TemporaryDirectory
+import os
 import traceback
 from tqdm import tqdm
 import torch as tr
 import numpy as np
 
 from .representations import Representation, LearnedRepresentationMixin
-from .representations.io_representation_mixin import IORepresentationMixin, ImageFormat
+from .representations.io_representation_mixin import IORepresentationMixin
 from .vre_runtime_args import VRERuntimeArgs
 from .data_writer import DataWriter
 from .data_storer import DataStorer
 from .run_metadata import RunMetadata
 from .representation_metadata import RepresentationMetadata
 from .vre_video import VREVideo
-from .utils import now_fmt, make_batches, vre_topo_sort, ReprOut, DiskData, SummaryPrinter, random_chars
+from .utils import now_fmt, make_batches, vre_topo_sort, ReprOut, DiskData, SummaryPrinter, random_chars, MemoryData
 from .logger import vre_logger as logger
 
 def _add_data_writers_to_run_metadata(run_metadata, representations, output_dir, output_dir_exists_mode):
@@ -128,7 +128,9 @@ class VideoRepresentationsExtractor:
         logger.debug(f"Out of {len(runtime_args.frames)} total frames, "
                      f"{len(runtime_args.frames) - len(relevant_frames)} are precomputed and will be skipped.")
         batches = make_batches(relevant_frames, rep.batch_size)
-        pbar = tqdm(total=len(relevant_frames), desc=f"[VRE] {rep.name} bs={rep.batch_size}")
+
+        pbar = tqdm(total=len(relevant_frames), desc=f"[VRE] {rep.name} bs={rep.batch_size}",
+                    disable=os.getenv("VRE_PBAR", "1") == "0")
         for batch in batches:
             now = datetime.now()
             if data_writer.all_batch_exists(batch):
@@ -239,22 +241,6 @@ class VideoRepresentationsExtractor:
 
         return out_r
 
-    def _getitem(self, ix: list[int], output_dir: Path, run_id: str) -> dict[str, ReprOut]:
-        """wrapper since getitem cannot receive extra args. This is the old 'VREStreaming' code basically."""
-        res: dict[str, ReprOut] = {}
-        for vre_repr in self.representations:
-            assert isinstance(vre_repr, IORepresentationMixin), (vre_repr, type(vre_repr))
-            (output_dir / vre_repr.name).mkdir(exist_ok=True, parents=True)
-            runtime_args = VRERuntimeArgs(video=self.video, representations=self.representations, frames=ix,
-                                          exception_mode="stop_execution", n_threads_data_storer=1)
-            _ = self.do_one_representation(run_id=run_id, representation=vre_repr, output_dir=output_dir,
-                                           output_dir_exists_mode="skip_computed", runtime_args=runtime_args)
-            res[vre_repr.name] = self._load_from_disk_if_possible(vre_repr, self.video,
-                                                                  ixs=list(ix), output_dir=output_dir)
-            if vre_repr.image_format != ImageFormat.NOT_SET:
-                res[vre_repr.name].output_images = vre_repr.make_images(res[vre_repr.name])
-        return res
-
     def __call__(self, *args, **kwargs) -> RunMetadata:
         return self.run(*args, **kwargs)
 
@@ -266,11 +252,35 @@ class VideoRepresentationsExtractor:
     def __repr__(self) -> str:
         return str(self)
 
-    def __getitem__(self, ix: int | slice | list[int]) -> dict[str, ReprOut]:
-        output_dir = Path(TemporaryDirectory(prefix="vre_getitem").name)
-        run_id = random_chars(n=10) # we need a temp run id for getitem in "streaming" mode
+    def __getitem__(self, ix: int | slice | range | list[int]) -> dict[str, ReprOut]:
         if isinstance(ix, int):
-            return self._getitem([ix], output_dir, run_id)
+            return self[[ix]]
         if isinstance(ix, slice):
-            return self._getitem(list(range(ix.start, ix.stop)), output_dir, run_id)
-        return self._getitem(ix, output_dir, run_id)
+            return self[list(range(ix.start, ix.stop))]
+        if isinstance(ix, range):
+            return self[list(ix)]
+        assert isinstance(ix, list), type(ix)
+        assert all(isinstance(vre_repr, IORepresentationMixin)
+                   for vre_repr in self.representations), self.representations
+
+        res: dict[str, ReprOut] = {}
+        for vre_repr in (pbar := tqdm(self.representations, disable=os.getenv("VRE_PBAR", "1") == "0")):
+            pbar.set_description(f"[VRE Streaming] {vre_repr.name}")
+            if isinstance(vre_repr, LearnedRepresentationMixin) and not vre_repr.setup_called:
+                vre_repr.vre_setup()
+            dep_names = [r.name for r in vre_repr.dependencies]
+            batches = make_batches(ix, vre_repr.batch_size)
+            batch_res: list[ReprOut] = []
+            for b_ixs in batches:
+                repr_out = vre_repr.compute(video=self.video, ixs=b_ixs,
+                                            dep_data=[res[dep_name] for dep_name in dep_names])
+                batch_res.append(vre_repr.resize(repr_out, self.video.shape[1:3]))
+            combined = ReprOut(frames=np.concatenate([br.frames for br in batch_res]),
+                            key=sum([br.key for br in batch_res], []),
+                            output=MemoryData(np.concatenate([br.output for br in batch_res])))
+            if vre_repr.image_format.value != "not-set":
+                combined.output_images = vre_repr.make_images(combined)
+            res[vre_repr.name] = combined
+            if isinstance(vre_repr, LearnedRepresentationMixin):
+                vre_repr.vre_free()
+        return res
