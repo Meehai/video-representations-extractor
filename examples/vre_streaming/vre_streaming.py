@@ -40,7 +40,7 @@ def get_imgs(res: dict[str, ReprOut]) -> list[np.ndarray]:
 def get_args() -> Namespace:
     """cli args"""
     parser = ArgumentParser()
-    parser.add_argument("video_path", type=Path)
+    parser.add_argument("video_path", type=str)
     parser.add_argument("--batch_size", type=int, default=1)
     parser.add_argument("--output_size", nargs=2, type=int, help="h, w", default=[360, 1280])
     parser.add_argument("--disable_title_hud", action="store_true")

@@ -86,7 +86,7 @@ class FFmpegVideo(VREVideo):
             tmpfile = f"/tmp/{path}.mp4"
             if not Path(tmpfile).exists():
                 with YoutubeDL({'format': 'bv*', 'outtmpl': tmpfile}) as ydl:
-                    ydl.download([path])
+                    ydl.download([s_path])
             path = tmpfile
         return Path(path)
 
