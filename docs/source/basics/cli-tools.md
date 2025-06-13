@@ -99,3 +99,15 @@ Usage:
 ```bash
 CUDA_VISIBLE_DEVICES 0,1,2,... vre_gpu_parallel [--frames F1..FN]  <all the other vre args>
 ```
+
+## vre_streaming
+
+A script that reads frame by frame (or by batches) from a video and a vre config and outputs to various external tools used for streaming: matplotlib, ffplay, mpv/vlc (via ffmpeg+tcp) or html5 (via ffmpeg+HLS). By default it outputs the image raw bytes to stdout, so be careful :)
+
+Usage:
+```bash
+MPL=1 vre_streaming test_video.mp4 # matplotlib, requires no external tools
+vre_streaming VIDEO.mp4 | ffplay -f rawvideo -pixel_format rgb24 -video_size 1280x360 -framerate 30 -i - # ffplay
+```
+
+See [here](examples/vre_streaming/README.md) for more examples.

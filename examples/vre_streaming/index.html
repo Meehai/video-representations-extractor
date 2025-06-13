@@ -5,8 +5,8 @@
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 </head>
 <body>
-    <video id="video" controls width="1280" height="360"></video>
-
+    <video id="video" controls muted="" playsinline="" autoplay="" width="1280" height="360"></video>
+    <!-- <video id="video" autoplay="" muted="" playsinline=""></video> -->
     <script>
         const video = document.getElementById('video');
 
@@ -18,6 +18,8 @@
         } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
             video.src = 'playlist.m3u8';
             video.addEventListener('loadedmetadata', () => video.play());
+        } else {
+            console.error('This browser does not support HLS.');
         }
     </script>
 </body>
