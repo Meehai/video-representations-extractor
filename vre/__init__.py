@@ -9,7 +9,7 @@ except ImportError:
 
 from .video_representations_extractor import VideoRepresentationsExtractor, VideoRepresentationsExtractor as VRE
 from .representations import Representation, ReprOut
-from .vre_video import VREVideo, FFmpegVideo, FakeVideo
+from .vre_video import VREVideo, FFmpegVideo, FrameVideo
 from .utils.lovely import monkey_patch
 from .utils.repr_memory_layout import MemoryData, DiskData
 

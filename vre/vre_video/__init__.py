@@ -1,4 +1,4 @@
 """init file"""
 from .vre_video import VREVideo
-from .fake_video import FakeVideo
+from .frame_video import FrameVideo
 from .ffmpeg_video import FFmpegVideo

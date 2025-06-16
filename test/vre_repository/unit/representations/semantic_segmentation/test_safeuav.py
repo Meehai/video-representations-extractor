@@ -1,9 +1,9 @@
 import numpy as np
 from vre_repository.semantic_segmentation.safeuav import SafeUAV
-from vre import FakeVideo
+from vre import FrameVideo
 
 def test_safeuav():
-    video = FakeVideo(np.random.randint(0, 255, size=(20, 64, 128, 3), dtype=np.uint8), fps=30)
+    video = FrameVideo(np.random.randint(0, 255, size=(20, 64, 128, 3), dtype=np.uint8), fps=30)
     safeuav_repr = SafeUAV(name="safeuav", dependencies=[], variant="testing", disk_data_argmax=True)
     safeuav_repr.vre_setup(load_weights=False)
     assert safeuav_repr.name == "safeuav"

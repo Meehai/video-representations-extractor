@@ -9,7 +9,7 @@ import numpy as np
 from vre import VideoRepresentationsExtractor as VRE
 from vre.representations import (
     Representation, LearnedRepresentationMixin, ReprOut, NpIORepresentation)
-from vre import FakeVideo
+from vre import FrameVideo
 
 class MyRepresentation(Representation, LearnedRepresentationMixin, NpIORepresentation):
     def __init__(self, *args, **kwargs):
@@ -48,7 +48,7 @@ class MyDependentRepresentation(Representation, NpIORepresentation):
 def test_no_vre_setup_if_not_needed():
     tmp_dir = Path(TemporaryDirectory().name)
     (tmp_dir / "r1/npz").mkdir(parents=True, exist_ok=False)
-    video = FakeVideo(np.random.randint(0, 255, size=(10, 20, 20, 3)).astype(np.uint8), fps=30)
+    video = FrameVideo(np.random.randint(0, 255, size=(10, 20, 20, 3)).astype(np.uint8), fps=30)
     for i in range(len(video)):
         np.savez(f"{tmp_dir}/r1/npz/{i}.npz", video[i][..., 0:1])
     r1 = MyRepresentation("r1", [])

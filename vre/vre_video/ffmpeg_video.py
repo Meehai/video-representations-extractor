@@ -9,7 +9,7 @@ from .vre_video import VREVideo
 
 class FFmpegVideo(VREVideo):
     """FFmpegVideo -- reads data from a video using ffmpeg"""
-    def __init__(self, path: Path, cache_len: int = 30):
+    def __init__(self, path: Path, cache_len: int = 100):
         super().__init__()
         self.path = self._build_path(path)
         assert self.path.exists(), f"Video '{self.path}' doesn't exist"

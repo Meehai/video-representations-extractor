@@ -2,7 +2,7 @@ import sys
 import numpy as np
 import pytest
 from vre.utils import get_project_root
-from vre import VRE, FakeVideo
+from vre import VRE, FrameVideo
 
 sys.path.append(str(get_project_root() / "test"))
 from fake_representation import FakeRepresentation
@@ -20,7 +20,7 @@ def test_vre_hidden_duplicates_1():
     dep1_fake = FakeRepresentation("dep1", dependencies=[])
     repr1 = FakeRepresentation("repr1", dependencies=[dep1_fake])
     dep1 = FakeRepresentation("dep1", dependencies=[])
-    video = FakeVideo(np.random.randint(0, 255, size=(10, 20, 30, 3)), fps=1)
+    video = FrameVideo(np.random.randint(0, 255, size=(10, 20, 30, 3)), fps=1)
     with pytest.raises(ValueError):
         VRE(video, [repr1, dep1])
 
@@ -39,6 +39,6 @@ def test_vre_hidden_duplicates_2():
     dep2 = FakeRepresentation("dep2", dependencies=[dep1_fake])
     repr1 = FakeRepresentation("repr1", dependencies=[dep1])
     repr2 = FakeRepresentation("repr2", dependencies=[dep2])
-    video = FakeVideo(np.random.randint(0, 255, size=(10, 20, 30, 3)), fps=1)
+    video = FrameVideo(np.random.randint(0, 255, size=(10, 20, 30, 3)), fps=1)
     with pytest.raises(ValueError):
         VRE(video, [repr1, repr2, dep1, dep2])

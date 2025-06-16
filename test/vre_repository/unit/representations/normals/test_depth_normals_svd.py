@@ -1,10 +1,10 @@
 import numpy as np
 from vre_repository.depth.dpt import DepthDpt
 from vre_repository.normals.depth_svd import DepthNormalsSVD
-from vre import FakeVideo
+from vre import FrameVideo
 
 def test_depth_normals_svd_dpt():
-    video = FakeVideo(np.random.randint(0, 255, size=(20, 128, 128, 3), dtype=np.uint8), fps=30)
+    video = FrameVideo(np.random.randint(0, 255, size=(20, 128, 128, 3), dtype=np.uint8), fps=30)
     dpt_repr = DepthDpt(name="dpt", dependencies=[])
     normals_svd_repr = DepthNormalsSVD(name="depth_svd_normals_dpt", dependencies=[dpt_repr], sensor_fov=30,
                                        sensor_size=(100, 100), window_size=5, input_downsample_step=1, stride=1)

@@ -1,5 +1,5 @@
 import sys
-from vre import FakeVideo
+from vre import FrameVideo
 from vre.utils import get_project_root
 import numpy as np
 import pytest
@@ -10,8 +10,8 @@ from fake_representation import FakeRepresentation
 class SimpleRepresentation(FakeRepresentation): pass
 
 @pytest.fixture
-def video() -> FakeVideo:
-    return FakeVideo(np.random.randint(0, 255, size=(10, 20, 30, 3), dtype=np.uint8), fps=25)
+def video() -> FrameVideo:
+    return FrameVideo(np.random.randint(0, 255, size=(10, 20, 30, 3), dtype=np.uint8), fps=25)
 
 def test_representation_ctor():
     repr = SimpleRepresentation("simple_representation")
