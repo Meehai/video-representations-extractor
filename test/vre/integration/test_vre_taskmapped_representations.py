@@ -5,7 +5,7 @@ from natsort import natsorted
 from overrides import overrides
 import shutil
 import numpy as np
-from vre import VRE, FakeVideo, VREVideo
+from vre import VRE, FrameVideo, VREVideo
 from vre.utils import (colorize_semantic_segmentation, semantic_mapper, DiskData,
                        MemoryData, ReprOut, get_project_root, image_resize_batch)
 from vre.representations import Representation, TaskMapper, NpIORepresentation
@@ -103,7 +103,7 @@ def test_vre_stored_representation():
 
     video_path = Path(f"{tmp_dir}/rgb/npz")
     raw_data = [np.load(f)["arr_0"] for f in natsorted(video_path.glob("*.npz"), key=lambda p: p.name)]
-    video = FakeVideo(np.array(raw_data, dtype=np.uint8), fps=1)
+    video = FrameVideo(np.array(raw_data, dtype=np.uint8), fps=1)
 
     rgb = FakeRepresentation("rgb", n_channels=3)
     sema1 = SemaCompute("sema1", classes=8, color_map=[[i, i, i] for i in range(8)], disk_data_argmax=True)

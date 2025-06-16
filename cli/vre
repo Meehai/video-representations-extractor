@@ -1,24 +1,11 @@
 #!/usr/bin/env python3
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
-from natsort import natsorted
-import numpy as np
-from vre import VRE, FFmpegVideo, FakeVideo
-from vre.utils import image_read, abs_path, load_function_from_module
+from vre import VRE, FFmpegVideo, FrameVideo
+from vre.utils import abs_path, load_function_from_module
 from vre.representations import build_representations_from_cfg, add_external_repositories
 from vre.logger import vre_logger as logger
 from vre_repository import get_vre_repository
-
-def _get_raw_data(video_path: Path) -> dict[str, np.ndarray | list[str]]:
-    all_files = natsorted([f for f in video_path.iterdir() if f.is_file()], key=lambda p: p.name)
-    suffixes = set(p.suffix for p in all_files)
-    assert len(suffixes) == 1, f"Expected a single type of files in '{video_path}' found {suffixes}"
-    frames = [int(x.stem) for x in all_files]
-    fn = {".png": image_read, ".npz": lambda p: np.load(p)["arr_0"], ".npy": np.load}[next(iter(suffixes))]
-    raw_data = [fn(f) for f in all_files]
-    assert all(x.shape == raw_data[0].shape for x in raw_data), f"Images shape differ in '{video_path}'"
-    logger.info(f"--video_path is a directory. Assuming a directory of images. Found {len(raw_data)} images.")
-    return {"data": np.array(raw_data, dtype=np.uint8), "frames": frames}
 
 def get_args() -> Namespace:
     """cli args"""
@@ -61,12 +48,7 @@ def get_args() -> Namespace:
 
 def main(args: Namespace):
     """Za main function"""
-
-    if args.video_path.is_dir():
-        video = FakeVideo(**_get_raw_data(args.video_path), fps=1)
-    else:
-        video = FFmpegVideo(args.video_path)
-
+    video = FrameVideo(args.video_path, fps=1) if args.video_path.is_dir() else FFmpegVideo(args.video_path)
     representation_types = add_external_repositories(args.external_repositories, get_vre_repository())
     representations = build_representations_from_cfg(cfg=args.config_path, representation_types=representation_types,
                                                      external_representations=args.external_representations)
