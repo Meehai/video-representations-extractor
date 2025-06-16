@@ -30,7 +30,7 @@ def warp_image(rgb_t: np.ndarray, flow: np.ndarray) -> np.ndarray:
     grid = tr.stack((grid_x, grid_y), dim=-1)  # (H, W, 2), normalized [-1, 1]
 
     # Apply flow directly (since it's already in [-1, 1] range)
-    new_grid = grid + flow
+    new_grid = grid - flow
 
     # Warp image using grid_sample
     warped = F.grid_sample(image, new_grid, mode="bilinear", align_corners=True)
