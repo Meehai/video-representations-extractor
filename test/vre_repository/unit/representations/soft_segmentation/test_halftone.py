@@ -9,16 +9,16 @@ def test_halftone():
     assert halftone_repr.name == "halftone"
     assert halftone_repr.compress is True # default from IORepresentationMixin
 
-    halftone_repr.compute(video, [0])
-    assert halftone_repr.data.output.shape == (1, 64, 128, 3), halftone_repr.data.output.shape
-    y_halftone_images = halftone_repr.make_images(halftone_repr.data)
-    assert y_halftone_images.shape == (1, 64, 128, 3), y_halftone_images.shape
-    assert y_halftone_images.dtype == np.uint8, y_halftone_images.dtype
+    out = halftone_repr.compute(video, [0])
+    assert out.output.shape == (1, 64, 128, 3)
+    out_images = halftone_repr.make_images(out)
+    assert out_images.shape == (1, 64, 128, 3)
+    assert out_images.dtype == np.uint8
 
-    assert halftone_repr.size == (1, 64, 128, 3)
-    halftone_repr.data = halftone_repr.resize(halftone_repr.data, (32, 64))
-    assert halftone_repr.size == (1, 32, 64, 3)
-    assert halftone_repr.make_images(halftone_repr.data).shape == (1, 32, 64, 3)
+    assert halftone_repr.size(out) == (1, 64, 128, 3)
+    out_resized = halftone_repr.resize(out, (32, 64))
+    assert halftone_repr.size(out_resized) == (1, 32, 64, 3)
+    assert halftone_repr.make_images(out_resized).shape == (1, 32, 64, 3)
 
 if __name__ == "__main__":
     test_halftone()

@@ -10,11 +10,10 @@ from PIL import Image, ImageDraw, ImageStat
 from overrides import overrides
 
 from vre.vre_video import VREVideo
-from vre.representations import (Representation, ReprOut, ComputeRepresentationMixin,
-                                 NpIORepresentation, NormedRepresentationMixin)
+from vre.representations import Representation, ReprOut, NpIORepresentation, NormedRepresentationMixin
 from vre.utils import image_resize, MemoryData
 
-class Halftone(Representation, ComputeRepresentationMixin, NpIORepresentation, NormedRepresentationMixin):
+class Halftone(Representation, NpIORepresentation, NormedRepresentationMixin):
     """
     Halftone representation
     Parameters:
@@ -28,7 +27,6 @@ class Halftone(Representation, ComputeRepresentationMixin, NpIORepresentation, N
     def __init__(self, sample: float, scale: float, percentage: float, angles: list[int],
                  antialias: bool, resolution: tuple[int, int], **kwargs):
         Representation.__init__(self, **kwargs)
-        ComputeRepresentationMixin.__init__(self)
         NpIORepresentation.__init__(self)
         NormedRepresentationMixin.__init__(self)
         assert len(resolution) == 2, resolution
@@ -41,15 +39,13 @@ class Halftone(Representation, ComputeRepresentationMixin, NpIORepresentation, N
         self._check_arguments()
 
     @overrides
-    def compute(self, video: VREVideo, ixs: list[int]):
-        assert self.data is None, f"[{self}] data must not be computed before calling this"
-        self.data = ReprOut(frames=video[ixs], key=ixs,
-                            output=MemoryData([self._make_one_image(frame) for frame in video[ixs]]))
+    def compute(self, video: VREVideo, ixs: list[int], dep_data: list[ReprOut] | None = None) -> ReprOut:
+        output = MemoryData([self._make_one_image(frame) for frame in video[ixs]])
+        return ReprOut(frames=video[ixs], key=ixs, output=output)
 
     @overrides
     def make_images(self, data: ReprOut) -> np.ndarray:
-        assert self.data is not None, f"[{self}] data must be first computed using compute()"
-        return (self.data.output * 255).astype(np.uint8)
+        return (data.output * 255).astype(np.uint8)
 
     @property
     @overrides

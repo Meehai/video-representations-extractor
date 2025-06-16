@@ -4,6 +4,10 @@ import numpy as np
 from vre.representations import Representation, NpIORepresentation
 from vre.utils import DiskData, MemoryData, image_resize_batch, colorize_semantic_segmentation, ReprOut
 from vre.logger import vre_logger as logger
+from vre.vre_video import VREVideo
+
+# TODO: ideally we'd not need to specify disk_data_argmax explicitly
+# TODO: we may need a way to specify memory data format (one-hot, softmax, logits, index etc.)
 
 class SemanticRepresentation(Representation, NpIORepresentation):
     """SemanticRepresentation. Implements semantic task-specific stuff, like argmaxing if needed"""
@@ -48,3 +52,7 @@ class SemanticRepresentation(Representation, NpIORepresentation):
         if data.frames is not None:
             frames_rsz = image_resize_batch(data.frames, *data.output.shape[1:3])
         return colorize_semantic_segmentation(data.output.argmax(-1), self.classes, self.color_map, rgb=frames_rsz)
+
+    @overrides
+    def compute(self, video: VREVideo, ixs: list[int], dep_data = None) -> ReprOut:
+        raise NotImplementedError(self)

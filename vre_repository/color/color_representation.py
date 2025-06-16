@@ -19,5 +19,5 @@ class ColorRepresentation(Representation, NormedRepresentationMixin, NpIOReprese
 
     @overrides
     def make_images(self, data: ReprOut) -> np.ndarray:
-        y = self.unnormalize(data.output) if self.normalization is not None else self.data.output
+        y = self.unnormalize(data.output) if self.normalization is not None else data.output
         return y.astype(np.uint8)

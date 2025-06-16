@@ -1,11 +1,13 @@
 """utils for vre"""
 from typing import Any, T, Callable
+from types import ModuleType
 from pathlib import Path
 from datetime import datetime, timezone as tz
 from collections import OrderedDict
 from math import sqrt
+import random
 import sys
-import importlib
+from importlib.machinery import SourceFileLoader
 from tqdm import tqdm
 import numpy as np
 import torch as tr
@@ -115,7 +117,7 @@ def array_blend(x: np.ndarray, y: np.ndarray, alpha: float | np.ndarray) -> np.n
 
 def make_batches(frames: list[int], batch_size: int) -> list[int]:
     """return 1D array [start_frame, start_frame+bs, start_frame+2*bs... end_frame]"""
-     # TODO test all the cases of this fn
+    assert isinstance(batch_size, int) and batch_size > 0, batch_size
     if batch_size > len(frames):
         logger.warning(f"batch size {batch_size} is larger than #frames to process {len(frames)}.")
         batch_size = len(frames)
@@ -143,9 +145,33 @@ def clip(x: T, _min: T, _max: T) -> T:
 
 def load_function_from_module(module_path: str | Path, function_name: str) -> Callable:
     """Usage: fn = load_function_from_module("/path/to/stuff.py", "function_name"); y = fn(args);"""
-    module_name = str(module_path).split("/")[-1].replace(".py", "")
-    spec = importlib.util.spec_from_file_location(module_name, str(module_path))
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[module_name] = module
-    spec.loader.exec_module(module)
+    module_path = Path(module_path).absolute()
+    assert module_path.exists(), module_path
+    module = ModuleType(module_path.stem)
+    loader = SourceFileLoader(module_path.stem, str(module_path))
+    loader.exec_module(module)
+    sys.path.append(str(module_path.parent))
+    sys.modules[module_path.stem] = module
     return getattr(module, function_name)
+
+def random_chars(n: int) -> str:
+    """returns a string of n random characters"""
+    valid_chars = [*range(ord('A'), ord('Z')+1), *range(ord('a'), ord('z')+1), *range(ord('0'), ord('9')+1)]
+    return "".join(map(chr, [random.choice(valid_chars) for _ in range(n)]))
+
+def mean(l: list[int | float]) -> float:
+    """the average of a list of ints or floats"""
+    return sum(l) / len(l) if len(l) > 0 else 0
+
+def str_topk(s: str, k: int) -> str:
+    """returns a substring of the type 'first_part..last_part' of len(s) > s with the parts being s//2"""
+    assert k >= 0, k
+    if len(s) <= k:
+        return s
+    # 4 => 1..1 => (4//2-1) -(4//2-1)
+    # 5 => 2..1 => (5//2-1+1) -(5//2-1)
+    # 6 => 2..2 => (6//2-1) -(6//2-1)
+    # 7 => 3..2 => (7//2-1+1)
+    first_part = s[0: k // 2 - 1 + (k%2 == 1)]
+    last_part = s[-(k//2 - 1):]
+    return f"{first_part}..{last_part}"

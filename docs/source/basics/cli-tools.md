@@ -16,8 +16,9 @@ vre
   [--n_threads_data_storer N]
   [-I f1.py:foo f2.py:foo2] # or --external_representations
   [-J f1.py:foo f2.py:foo2] # or --external_repositories
-  [--make_vre_collage]
-  [--collage_fps] # if make_vre_collage is set
+  [--collage] # calls vre_collage CLI tool at the end with the args below
+    [--collage_videp] # if --collage is set
+      [--collage_fps] # required if -collage is set and --collage_video is set
 ```
 
 Lots of optional arguments for sure, but we'll see examples later on.
@@ -98,3 +99,15 @@ Usage:
 ```bash
 CUDA_VISIBLE_DEVICES 0,1,2,... vre_gpu_parallel [--frames F1..FN]  <all the other vre args>
 ```
+
+## vre_streaming
+
+A script that reads frame by frame (or by batches) from a video and a vre config and outputs to various external tools used for streaming: matplotlib, ffplay, mpv/vlc (via ffmpeg+tcp) or html5 (via ffmpeg+HLS). By default it outputs the image raw bytes to stdout, so be careful :)
+
+Usage:
+```bash
+MPL=1 vre_streaming test_video.mp4 # matplotlib, requires no external tools
+vre_streaming VIDEO.mp4 | ffplay -f rawvideo -pixel_format rgb24 -video_size 1280x360 -framerate 30 -i - # ffplay
+```
+
+See [here](examples/vre_streaming/README.md) for more examples.

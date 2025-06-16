@@ -25,7 +25,7 @@ class IORepresentationMixin(ABC):
     """
     StoredRepresentation. These methods define the blueprint to store and load a representation from disk to RAM.
     Data transformations order:
-    - DISK [.npz] -> load_from_disk() -> [disk_fmt] -> disk_to_memory_fmt() -> RAM [memory_fmt] (stored in .data)
+    - DISK [.npz] -> load_from_disk() -> [disk_fmt] -> disk_to_memory_fmt() -> RAM [memory_fmt]
     - RAM [memory_fmt] -> memory_to_disk_fmt() -> [disk_fmt] -> store_to_disk() -> DISK [.npz]
     The intermediate disk_fmt is only used for storage efficiency, while all the vre operations happen with memory_fmt
     For example: disk_fmt is a binary bool vector, while memory_fmt is a one-hot 2 channels map.
@@ -34,7 +34,7 @@ class IORepresentationMixin(ABC):
         self._binary_format: BinaryFormat | None = None
         self._image_format: ImageFormat | None = None
         self._compress: bool | None = None
-        self._output_size: tuple[int, int] | str | None = None
+        self._output_size: tuple[int, int] | None = None
         self._output_dtype: str | np.dtype | None = None
 
     @abstractmethod
@@ -104,21 +104,16 @@ class IORepresentationMixin(ABC):
         self._compress = c
 
     @property
-    def output_size(self) -> str | tuple[int, int]:
+    def output_size(self) -> tuple[int, int] | None:
         """Returns the output size as a tuple/string or None if it's not explicitly set"""
-        if self._output_size is None:
-            logger.warning(f"[{self}] No output_size set, returning 'video_shape'. Call set_io_params")
-            return "video_shape"
         return self._output_size
 
     @output_size.setter
-    def output_size(self, os: str | tuple[int, int]):
-        assert isinstance(os, (str, tuple, list)), os
+    def output_size(self, os: tuple[int, int] | None):
+        assert isinstance(os, (tuple, list, type(None))), os
         if isinstance(os, (tuple, list)):
             assert len(os) == 2 and all(isinstance(x, int) and x > 0 for x in os), os
-        if isinstance(os, str):
-            assert os in ("native", "video_shape"), os
-        self._output_size = os if isinstance(os, str) else tuple(os)
+        self._output_size = tuple(os) if os is not None else os
 
     @property
     def output_dtype(self) -> np.dtype:
@@ -142,7 +137,7 @@ class IORepresentationMixin(ABC):
                 setattr(self, attr, kwargs[attr])
                 res += f"\n-{attr}: {kwargs[attr]}"
         if len(res) > 0:
-            logger.debug(f"[{self}] Set node specific 'IO' params: {res}")
+            logger.debug(f"[{self}] Set node specific 'IO' params:{res}")
 
     def resize(self, data: ReprOut, new_size: tuple[int, int]):
         """resizes the data. size is provided in (h, w)"""

@@ -231,6 +231,7 @@ disable = logging-fstring-interpolation,
           use-maxsplit-arg,
           expression-not-assigned,
           unnecessary-dunder-call,
+          no-else-return,
 
 [FORMAT]
 

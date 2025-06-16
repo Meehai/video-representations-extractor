@@ -126,7 +126,7 @@ class FastSAM:
             args = DEFAULT_CFG_DICT
         else:
             # self.model, _ = attempt_load_one_weight(weights)
-            ckpt = torch.load(weights)
+            ckpt = torch.load(weights, weights_only=False)
             args = {**DEFAULT_CFG_DICT, **(ckpt.get('train_args', {}))}  # combine model and default args, preferring model args
             model = (ckpt.get('ema') or ckpt['model']).to("cpu").float()  # FP32 model
 

@@ -8,19 +8,18 @@ import numpy as np
 from vre import VRE, FakeVideo, VREVideo
 from vre.utils import (colorize_semantic_segmentation, semantic_mapper, DiskData,
                        MemoryData, ReprOut, get_project_root, image_resize_batch)
-from vre.representations import Representation, TaskMapper, NpIORepresentation, ComputeRepresentationMixin
+from vre.representations import Representation, TaskMapper, NpIORepresentation
 
 sys.path.append(str(get_project_root() / "test/vre"))
 from fake_representation import FakeRepresentation
 
-class SemaCompute(Representation, NpIORepresentation, ComputeRepresentationMixin):
+class SemaCompute(Representation, NpIORepresentation):
     """SemanticRepresentation. Implements semantic task-specific stuff, like argmaxing if needed"""
     def __init__(self, *args, classes: int | list[str], color_map: list[tuple[int, int, int]],
                  disk_data_argmax: bool, **kwargs):
         self.n_classes = len(list(range(classes)) if isinstance(classes, int) else classes)
         Representation.__init__(self, *args, **kwargs)
         NpIORepresentation.__init__(self)
-        ComputeRepresentationMixin.__init__(self)
         self.classes = list(range(classes)) if isinstance(classes, int) else classes
         self.color_map = color_map
         self.disk_data_argmax = disk_data_argmax
@@ -33,7 +32,7 @@ class SemaCompute(Representation, NpIORepresentation, ComputeRepresentationMixin
         return self.n_classes
 
     @overrides
-    def compute(self, video: VREVideo, ixs: list[int]):
+    def compute(self, video: VREVideo, ixs: list[int], dep_data: list[ReprOut] | None = None) -> ReprOut:
         raise NotImplementedError(f"[{self}] compute() must be overriden. We inherit it for output_dtype/size etc.")
 
     @overrides
@@ -115,10 +114,11 @@ def test_vre_stored_representation():
     print(vre)
 
     res = vre.run(output_dir=Path(tmp_dir), frames=list(range(0, len(video))), output_dir_exists_mode="skip_computed")
-    print(res.pretty_format())
+    print(res)
 
     # assert that it works the 2nd time too and no computation is done !
     res = vre.run(output_dir=Path(tmp_dir), frames=list(range(0, len(video))), output_dir_exists_mode="skip_computed")
+    print(res)
 
 if __name__ == "__main__":
     test_vre_stored_representation()

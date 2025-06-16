@@ -5,10 +5,10 @@ from pathlib import Path
 import numpy as np
 
 from .utils import image_write, is_dir_empty
-from .representations import ReprOut, Representation, IORepresentationMixin, ComputeRepresentationMixin
+from .representations import ReprOut, Representation, IORepresentationMixin
 from .logger import vre_logger as logger
 
-Repr = Representation | IORepresentationMixin | ComputeRepresentationMixin
+Repr = Representation | IORepresentationMixin
 
 def _check_dtype_compat(disk_data_dtype: str, rep_dtype: str):
     if (np.issubdtype(disk_data_dtype, np.integer) and np.issubdtype(rep_dtype, np.floating) or
@@ -81,7 +81,7 @@ class DataWriter:
         return True
 
     def to_dict(self):
-        """A dict representation of this DataWriter and information about its ComputeRepresentation object"""
+        """A dict representation of this DataWriter and information about its representation object"""
         return {
             "output_dir_exists_mode": self.output_dir_exists_mode,
             "batch_size": self.rep.batch_size, "export_binary": self.rep.export_binary,

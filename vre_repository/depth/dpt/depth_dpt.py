@@ -6,17 +6,16 @@ from overrides import overrides
 
 from vre.vre_video import VREVideo
 from vre.utils import MemoryData
-from vre.representations import ReprOut, LearnedRepresentationMixin, ComputeRepresentationMixin
+from vre.representations import ReprOut, LearnedRepresentationMixin
 from vre_repository.weights_repository import fetch_weights
 from vre_repository.depth import DepthRepresentation
 
 from .dpt_impl import DPTDepthModel, get_size
 
-class DepthDpt(DepthRepresentation, LearnedRepresentationMixin, ComputeRepresentationMixin):
+class DepthDpt(DepthRepresentation, LearnedRepresentationMixin):
     """DPT Depth Estimation representation"""
     def __init__(self, **kwargs):
         LearnedRepresentationMixin.__init__(self)
-        ComputeRepresentationMixin.__init__(self)
         DepthRepresentation.__init__(self, min_depth=0, max_depth=1, **kwargs)
         self.net_w, self.net_h = 384, 384
         self.multiple_of = 32
@@ -24,13 +23,12 @@ class DepthDpt(DepthRepresentation, LearnedRepresentationMixin, ComputeRepresent
         self.model: DPTDepthModel | None = None
 
     @overrides
-    def compute(self, video: VREVideo, ixs: list[int]):
-        assert self.data is None, f"[{self}] data must not be computed before calling this"
+    def compute(self, video: VREVideo, ixs: list[int], dep_data: list[ReprOut] | None = None) -> ReprOut:
         tr_frames = self._preprocess(video[ixs])
         with tr.no_grad():
             predictions = self.model(tr_frames)
         res = self._postprocess(predictions)
-        self.data = ReprOut(frames=video[ixs], output=MemoryData(res), key=ixs)
+        return ReprOut(frames=video[ixs], output=MemoryData(res), key=ixs)
 
     @staticmethod
     @overrides

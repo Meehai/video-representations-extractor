@@ -5,11 +5,10 @@ from overrides import overrides
 
 from vre.vre_video import VREVideo
 from vre.utils import MemoryData
-from vre.representations import (Representation, ReprOut, ComputeRepresentationMixin,
-                                 NpIORepresentation, NormedRepresentationMixin)
+from vre.representations import Representation, ReprOut, NpIORepresentation, NormedRepresentationMixin
 from .gb_impl.softseg import soft_seg
 
-class GeneralizedBoundaries(Representation, ComputeRepresentationMixin, NpIORepresentation, NormedRepresentationMixin):
+class GeneralizedBoundaries(Representation, NpIORepresentation, NormedRepresentationMixin):
     """
     Soft-seg implementation from https://link.springer.com/chapter/10.1007/978-3-642-33765-9_37
     Parameters:
@@ -19,7 +18,6 @@ class GeneralizedBoundaries(Representation, ComputeRepresentationMixin, NpIORepr
     """
     def __init__(self, use_median_filtering: bool, adjust_to_rgb: bool, max_channels: int, **kwargs):
         Representation.__init__(self, **kwargs)
-        ComputeRepresentationMixin.__init__(self)
         NpIORepresentation.__init__(self)
         NormedRepresentationMixin.__init__(self)
         self.use_median_filtering = use_median_filtering
@@ -32,16 +30,14 @@ class GeneralizedBoundaries(Representation, ComputeRepresentationMixin, NpIORepr
         return 3
 
     @overrides
-    def compute(self, video: VREVideo, ixs: list[int]):
-        assert self.data is None, f"[{self}] data must not be computed before calling this"
+    def compute(self, video: VREVideo, ixs: list[int], dep_data: list[ReprOut] | None = None) -> ReprOut:
         x = tr.from_numpy(video[ixs]).type(tr.float) / 255
         x = x.permute(0, 3, 1, 2)
         y = soft_seg(x, use_median_filtering=self.use_median_filtering, as_image=self.adjust_to_rgb,
                      max_channels=self.max_channels)
         y = y.permute(0, 2, 3, 1).cpu().numpy()
-        self.data = ReprOut(frames=video[ixs], output=MemoryData(y), key=ixs)
+        return ReprOut(frames=video[ixs], output=MemoryData(y), key=ixs)
 
     @overrides
     def make_images(self, data: ReprOut) -> np.ndarray:
-        assert self.data is not None, f"[{self}] data must be first computed using compute()"
-        return (self.data.output * 255).astype(np.uint8)
+        return (data.output * 255).astype(np.uint8)

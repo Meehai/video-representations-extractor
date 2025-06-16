@@ -1,4 +1,4 @@
-from vre.utils import MemoryData
+from vre.utils import MemoryData, ReprOut
 import numpy as np
 
 def test_MemoryData_ctor():
@@ -14,3 +14,17 @@ def test_MemoryData_share_memory():
     memory = MemoryData(data)
     data[0] = 100
     assert memory[0] == 100
+
+def test_ReprOut_equals():
+    r1 = ReprOut(frames=None, key=[1, 2, 3], output=MemoryData(np.array([1, 2, 3])))
+    r2 = ReprOut(frames=None, key=[1, 2, 3], output=MemoryData(np.array([1, 2, 3])))
+    assert r1 == r2
+
+    r3 = ReprOut(frames=None, key=[1, 2, 3], output=MemoryData(np.array([1, 3, 2])))
+    assert r1 != r3
+
+    r4 = ReprOut(frames=None, key=[1, 2, 3], output=MemoryData(np.array([1, 2, 3])), output_images=np.array([1,2,3]))
+    assert r1 != r4
+
+    r5 = ReprOut(frames=None, key=[1, 3, 2], output=MemoryData(np.array([1, 2, 3])))
+    assert r1 != r5

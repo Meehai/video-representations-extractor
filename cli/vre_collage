@@ -8,13 +8,12 @@ from tempfile import NamedTemporaryFile
 from multiprocessing import Pool
 import shutil
 import ffmpeg
-from omegaconf import OmegaConf
 from natsort import natsorted
 from tqdm import tqdm
 import numpy as np
 import torch as tr
 
-from vre.utils import image_write, collage_fn, abs_path, reorder_dict, MemoryData, image_resize
+from vre.utils import image_write, collage_fn, abs_path, reorder_dict, MemoryData, image_resize, str_topk
 from vre.representations import build_representations_from_cfg, add_external_repositories, Representation, ReprOut
 from vre.readers.multitask_dataset import MultiTaskDataset
 from vre.logger import vre_logger as logger
@@ -50,8 +49,7 @@ def do_one(ix: int, reader: MultiTaskDataset, output_path: Path, output_resoluti
     data, name = reader[ix]
     out_path = output_path / f"{'.'.join(name.split('.')[0:-1])}.png"
     img_data = reorder_dict(plot_one(data, name, reader.path, name_to_task=reader.name_to_task), ["rgb"])
-    titles = [title if len(title) < 40 else f"{title[0:19]}..{title[-19:]}" for title in img_data.keys()]
-    collage = collage_fn(list(img_data.values()), titles=titles, size_px=40)
+    collage = collage_fn(list(img_data.values()), titles=[str_topk(t, 40) for t in img_data.keys()], size_px=40)
     collage = collage if output_resolution is None else image_resize(collage, *output_resolution)
     image_write(collage, out_path)
 
@@ -83,11 +81,13 @@ def main(args: Namespace):
     if args.video:
         logger.info(f"Export video: '{args.output_path / 'collage.mp4'}'")
 
-    cfg = OmegaConf.to_container(OmegaConf.load(args.config_path), resolve=True)
     representation_types = add_external_repositories(args.external_repositories, get_vre_repository())
-    representations = build_representations_from_cfg(cfg=cfg, representation_types=representation_types,
-                                                     external_representations=args.external_representations)
-
+    # https://gitlab.com/video-representations-extractor/video-representations-extractor/-/issues/83
+    _representations = build_representations_from_cfg(cfg=args.config_path, representation_types=representation_types,
+                                                      external_representations=args.external_representations)
+    representations = [r for r in _representations if r.name in [p.name for p in args.vre_export_dir.iterdir()]]
+    if diff := set(_representations).difference(representations) != set():
+        logger.warning(f"Not all representations from '{args.config_path}' were exported! Missing: {diff}")
     assert "rgb" in [r.name for r in representations], "RGB(rgb) is needed for collage plot"
     logger.debug(f"Representations:\n{pformat(representations)}")
     reader = MultiTaskDataset(args.vre_export_dir, task_names=[r.name for r in representations],
@@ -103,7 +103,6 @@ def main(args: Namespace):
         shutil.rmtree(args.output_path)
     args.output_path.mkdir(parents=True, exist_ok=False)
 
-    # for ix in tqdm([0, 100, 1000, 2000, 3000, len(reader) - 100, len(reader) - 1]):
     f_do_one = partial(do_one, reader=reader, output_path=args.output_path, output_resolution=args.output_resolution)
     map_fn = map if args.n_workers == 1 else Pool(args.n_workers).imap
     _ = list(map_fn(f_do_one, tqdm(range(len(reader)))))

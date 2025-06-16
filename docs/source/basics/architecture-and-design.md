@@ -95,3 +95,5 @@ in the root of the project in a resources dir.
 - `VRE_DEVICE` Some default cfgs will use this to set the device of representations. Usage is:
  `VRE_DEVICE=cuda CUDA_VISIBLE_DEVICES=0 vre ...`. You can of course update the yaml config files to not use this
  pattern.
+- `VRE_LOGLEVEL=0/1/2` - INFO/DEBUG/TRACE (defaults to DEBUG)
+- `VRE_PBAR=0/1` - DISABLED/ENABLED (defaults to enabled)

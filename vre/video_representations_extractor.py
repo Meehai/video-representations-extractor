@@ -2,20 +2,27 @@
 from __future__ import annotations
 from pathlib import Path
 from datetime import datetime
+import os
 import traceback
 from tqdm import tqdm
 import torch as tr
 import numpy as np
 
-from .representations import Representation, ComputeRepresentationMixin, LearnedRepresentationMixin
+from .representations import Representation, LearnedRepresentationMixin
 from .representations.io_representation_mixin import IORepresentationMixin
 from .vre_runtime_args import VRERuntimeArgs
 from .data_writer import DataWriter
 from .data_storer import DataStorer
-from .metadata import RunMetadata, RepresentationMetadata
+from .run_metadata import RunMetadata
+from .representation_metadata import RepresentationMetadata
 from .vre_video import VREVideo
-from .utils import now_fmt, make_batches, vre_topo_sort, ReprOut, DiskData
+from .utils import now_fmt, make_batches, vre_topo_sort, ReprOut, DiskData, SummaryPrinter, random_chars, MemoryData
 from .logger import vre_logger as logger
+
+def _add_data_writers_to_run_metadata(run_metadata, representations, output_dir, output_dir_exists_mode):
+    for vrepr in representations:
+        run_metadata.data_writers[vrepr.name] = DataWriter(output_dir=output_dir, representation=vrepr,
+                                                           output_dir_exists_mode=output_dir_exists_mode).to_dict()
 
 class VideoRepresentationsExtractor:
     """Video Representations Extractor class"""
@@ -34,8 +41,8 @@ class VideoRepresentationsExtractor:
         self.repr_names = [r.name for r in representations]
 
     def set_compute_params(self, **kwargs) -> VideoRepresentationsExtractor:
-        """Set the required params for all representations of ComputeRepresentationMixin type"""
-        for r in [_r for _r in self.representations if isinstance(_r, ComputeRepresentationMixin)]:
+        """Set the required params for all representations"""
+        for r in self.representations:
             r.set_compute_params(**kwargs)
         return self
 
@@ -77,82 +84,52 @@ class VideoRepresentationsExtractor:
         Returns:
         - A RunMetadata object representing the run statistics for all representations of this run.
         """
-        self._setup_logger(output_dir, now := now_fmt())
-        try:
-            self.to_graphviz().render(pth := f"{output_dir}/.logs/graph-{now}", format="png", cleanup=True)
-            logger.info(f"Stored graphviz representation at: '{pth}.png'")
-        except Exception as e:
-            logger.error(e)
+        self._setup_logger(logs_dir := output_dir / ".logs", run_id := random_chars(n=10), now := now_fmt())
+        self._setup_graphviz(logs_dir, run_id, now)
 
-        runtime_args = VRERuntimeArgs(self.video, self.representations, frames, exception_mode, n_threads_data_storer)
+        exported_representations: list[Representation] = self._get_output_representations(exported_representations)
+        exported_names = [r.name for r in exported_representations]
+        runtime_args = VRERuntimeArgs(video=self.video, representations=exported_representations, frames=frames,
+                                      exception_mode=exception_mode, n_threads_data_storer=n_threads_data_storer)
+        run_metadata = RunMetadata(repr_names=exported_names, runtime_args=runtime_args,
+                                   logs_dir=logs_dir, now_str=now, run_id=run_id)
         logger.info(runtime_args)
-        run_metadata = RunMetadata(self.repr_names, runtime_args, output_dir / f".logs/run_metadata-{now}.json")
+        summary_printer = SummaryPrinter(exported_names, runtime_args)
+        _add_data_writers_to_run_metadata(run_metadata, exported_representations, output_dir, output_dir_exists_mode)
 
-        for vre_repr in self._get_output_representations(exported_representations): # checks are done inside get fn
-            repr_metadata = self._do_one_representation(representation=vre_repr, output_dir=output_dir,
-                                                        output_dir_exists_mode=output_dir_exists_mode,
-                                                        runtime_args=runtime_args,)
+        for vre_repr in exported_representations:
+            repr_metadata = self.do_one_representation(run_id=run_metadata.id, representation=vre_repr,
+                                                       output_dir=output_dir,
+                                                       output_dir_exists_mode=output_dir_exists_mode,
+                                                       runtime_args=runtime_args,)
             if repr_metadata.run_had_exceptions and runtime_args.exception_mode == "stop_execution":
                 raise RuntimeError(f"Representation '{vre_repr.name}' threw. "
                                    f"Check '{logger.get_file_handler().baseFilename}' for information")
-            run_metadata.repr_metadatas[vre_repr.name] = repr_metadata # TODO: used for printing only
-            run_metadata.store_on_disk()
+            run_metadata.add_run_stats(repr_metadata)
+            summary_printer.repr_metadatas[vre_repr.name] = repr_metadata
+        print(summary_printer())
         return run_metadata
 
-    def _load_from_disk_if_possible(self, rep: Representation, video: VREVideo, ixs: list[int], output_dir: Path):
-        """loads (batched) data from disk if possible."""
-        assert isinstance(rep, IORepresentationMixin), rep
-        assert isinstance(ixs, list) and all(isinstance(ix, int) for ix in ixs), (type(ixs), [type(ix) for ix in ixs])
-        assert output_dir is not None and output_dir.exists(), output_dir
-        # TODO: use data writer to create the paths as they can be non-npz for example
-        npz_paths: list[Path] = [output_dir / rep.name / f"npz/{ix}.npz" for ix in ixs]
-        extra_paths: list[Path] = [output_dir / rep.name / f"npz/{ix}_extra.npz" for ix in ixs]
-        if any(not x.exists() for x in npz_paths): # partial batches are considered 'not existing' and overwritten
-            return
-        extras_exist = [x.exists() for x in extra_paths]
-        assert (ee := sum(extras_exist)) in (0, (ep := len(extra_paths))), f"Found {ee}. Expected either 0 or {ep}"
-        disk_data: DiskData = np.array([rep.load_from_disk(x) for x in npz_paths])
-        extra = [np.load(x, allow_pickle=True)["arr_0"].item() for x in extra_paths] if ee == ep else None
-        logger.debug2(f"[{rep}] Slice: [{ixs[0]}:{ixs[-1]}]. All data found on disk and loaded")
-        rep.data = ReprOut(frames=video[ixs], output=rep.disk_to_memory_fmt(disk_data), extra=extra, key=ixs)
-
-    def _compute_one_representation_batch(self, rep: Representation, batch: list[int],
-                                          output_dir: Path, depth: int = 0):
-        assert isinstance(rep, ComputeRepresentationMixin), rep
-        # setting depth to higher values allows to compute deps of deps in memory. We throw to not hide bugs.
-        # useful for VRE hacking (i.e. see semanit_mapper.py)
-        assert depth <= 1, f"{rep=} {depth=} {batch=} {output_dir=}"
-        # TODO: make unit test with this (lingering .data from previous computation) on depth == 1 (i.e. deps of rep)
-        rep.data = None # Important to invalidate any previous results here
-        self._load_from_disk_if_possible(rep, self.video, batch, output_dir)
-        if rep.data is not None:
-            return
-        for dep in rep.dependencies:
-            self._compute_one_representation_batch(dep, batch, output_dir, depth + 1)
-        if isinstance(rep, LearnedRepresentationMixin) and rep.setup_called is False:
-            rep.vre_setup() # instantiates the model, loads to cuda device etc.
-        rep.compute(self.video, ixs=batch)
-        assert rep.data is not None, f"{rep=} {batch=} {output_dir=} {depth=}"
-
-    def _do_one_representation(self, representation: Representation, output_dir: Path, output_dir_exists_mode: str,
-                               runtime_args: VRERuntimeArgs) -> RepresentationMetadata:
+    def do_one_representation(self, run_id: str, representation: Representation, output_dir: Path,
+                              output_dir_exists_mode: str, runtime_args: VRERuntimeArgs) -> RepresentationMetadata:
         """The loop of each representation. Returns a representation metadata with information about this repr's run"""
         data_writer = DataWriter(output_dir=output_dir, representation=representation,
                                  output_dir_exists_mode=output_dir_exists_mode)
         data_storer = DataStorer(data_writer=data_writer, n_threads=runtime_args.n_threads_data_storer)
-        logger.info(f"Running:\n{representation}\n{data_storer}")
-        rep: Representation | ComputeRepresentationMixin | IORepresentationMixin = representation
-        repr_metadata = RepresentationMetadata(repr_name=representation.name,
+        logger.debug(f"Running {run_id=}:\n{representation}\n{data_storer}")
+        rep: Representation | IORepresentationMixin = representation
+        formats = sorted([f for f in [rep.image_format.value, rep.binary_format.value] if f != "not-set"])
+        repr_metadata = RepresentationMetadata(repr_name=representation.name, formats=formats,
                                                disk_location=data_writer.rep_out_dir / ".repr_metadata.json",
-                                               frames=list(range(len(self.video))),
-                                               data_writer_meta=data_writer.to_dict())
-        rep.output_size = self.video.frame_shape[0:2] if rep.output_size == "video_shape" else rep.output_size
+                                               frames=list(range(len(self.video))))
 
-        relevant_frames = [f for f in runtime_args.frames if f not in map(int, repr_metadata.frames_computed)]
-        logger.debug(f"Out of {len(runtime_args.frames)} total frames, {runtime_args.n_frames - len(relevant_frames)}"
-                     " are precomputed and will be skipped.")
+        relevant_frames = [f for f in runtime_args.frames if f not in repr_metadata.frames_computed()]
+        logger.debug(f"Out of {len(runtime_args.frames)} total frames, "
+                     f"{len(runtime_args.frames) - len(relevant_frames)} are precomputed and will be skipped.")
         batches = make_batches(relevant_frames, rep.batch_size)
-        pbar = tqdm(total=len(relevant_frames), desc=f"[VRE] {rep.name} bs={rep.batch_size}")
+
+        pbar = tqdm(total=len(relevant_frames), desc=f"[VRE] {rep.name} bs={rep.batch_size}",
+                    disable=os.getenv("VRE_PBAR", "1") == "0")
         for batch in batches:
             now = datetime.now()
             if data_writer.all_batch_exists(batch):
@@ -161,18 +138,17 @@ class VideoRepresentationsExtractor:
 
             try:
                 tr.cuda.empty_cache() # might empty some unused memory, not 100% if needed.
-                self._compute_one_representation_batch(rep=rep, batch=batch, output_dir=data_writer.output_dir)
-                assert rep.data is not None, (rep, batch)
-                if not rep.is_classification and rep.name.find("fastsam") == -1: # TODO: MemoryData of M2F is binary...
-                    assert rep.data.output.shape[-1] == rep.n_channels, (rep, rep.data.output, rep.n_channels)
-                rep.data.output_images = rep.make_images(rep.data) if rep.export_image else None
-                data_storer(rep.data)
+                rep_data = self._compute_one_representation_batch(rep, batch=batch, output_dir=data_writer.output_dir)
+                if not rep.is_classification and rep.name.find("fastsam") == -1: # TODO: MemoryData of FSAM is binary...
+                    assert rep_data.output.shape[-1] == rep.n_channels, (rep, rep_data.output, rep.n_channels)
+                rep_data.output_images = rep.make_images(rep_data) if rep.export_image else None
+                data_storer(rep_data)
             except Exception:
                 self._log_error(f"\n[{rep.name} {rep.batch_size=} {batch=}] {traceback.format_exc()}\n")
-                repr_metadata.add_time((1 << 31) * len(batch), batch)
+                repr_metadata.add_time(None, batch, run_id=run_id, sync=True)
                 repr_metadata.run_had_exceptions = True
                 break
-            repr_metadata.add_time((datetime.now() - now).total_seconds(), batch)
+            repr_metadata.add_time((datetime.now() - now).total_seconds(), batch, run_id=run_id, sync=True)
             pbar.update(len(batch))
 
         # various cleanup stuff before ending with this representation
@@ -186,9 +162,50 @@ class VideoRepresentationsExtractor:
         return repr_metadata
 
     # Helper private methods
-    def _setup_logger(self, output_dir: Path, now_str: str):
-        (logs_dir := output_dir / ".logs").mkdir(exist_ok=True, parents=True)
-        logs_file = logs_dir / f"logs-{now_str}.txt"
+
+    def _load_from_disk_if_possible(self, rep: Representation, video: VREVideo, ixs: list[int],
+                                    output_dir: Path) -> ReprOut | None:
+        """loads (batched) data from disk if possible."""
+        assert isinstance(rep, IORepresentationMixin), rep
+        assert isinstance(ixs, list) and all(isinstance(ix, int) for ix in ixs), (type(ixs), [type(ix) for ix in ixs])
+        assert output_dir is not None and output_dir.exists(), output_dir
+        # TODO: use data writer to create the paths as they can be non-npz for example
+        npz_paths: list[Path] = [output_dir / rep.name / f"npz/{ix}.npz" for ix in ixs]
+        extra_paths: list[Path] = [output_dir / rep.name / f"npz/{ix}_extra.npz" for ix in ixs]
+        if any(not x.exists() for x in npz_paths): # partial batches are considered 'not existing' and overwritten
+            return None
+        extras_exist = [x.exists() for x in extra_paths]
+        assert (ee := sum(extras_exist)) in (0, (ep := len(extra_paths))), f"Found {ee}. Expected either 0 or {ep}"
+        disk_data: DiskData = np.array([rep.load_from_disk(x) for x in npz_paths])
+        extra = [np.load(x, allow_pickle=True)["arr_0"].item() for x in extra_paths] if ee == ep else None
+        logger.debug2(f"[{rep}] Slice: [{ixs[0]}:{ixs[-1]}]. All data found on disk and loaded")
+        return ReprOut(frames=video[ixs], output=rep.disk_to_memory_fmt(disk_data), extra=extra, key=ixs)
+
+    def _compute_one_representation_batch(self, rep: Representation, batch: list[int],
+                                          output_dir: Path, depth: int = 0) -> ReprOut:
+        # setting depth to higher values allows to compute deps of deps in memory. We throw to not hide bugs.
+        # useful for VRE hacking (i.e. see semantic_mapper.py)
+        assert depth <= 1, f"{rep=} {depth=} {batch=} {output_dir=}"
+        loaded_data = self._load_from_disk_if_possible(rep, self.video, batch, output_dir)
+        if loaded_data is not None:
+            return loaded_data
+        dep_data = []
+        for dep in rep.dependencies:
+            dep_data.append(self._compute_one_representation_batch(dep, batch, output_dir, depth + 1))
+        if isinstance(rep, LearnedRepresentationMixin) and rep.setup_called is False:
+            rep.vre_setup() # instantiates the model, loads to cuda device etc.
+        return rep.compute(self.video, ixs=batch, dep_data=dep_data)
+
+    def _setup_graphviz(self, logs_dir: Path, run_id: str, now_str: str):
+        try:
+            self.to_graphviz().render(pth := f"{logs_dir}/graph-{run_id}-{now_str}", format="png", cleanup=True)
+            logger.info(f"Stored graphviz representation at: '{pth}.png'")
+        except Exception as e:
+            logger.error(e)
+
+    def _setup_logger(self, logs_dir: Path, run_id: str, now_str: str):
+        logs_dir.mkdir(exist_ok=True, parents=True)
+        logs_file = logs_dir / f"logs-{run_id}-{now_str}.txt"
         logger.add_file_handler(logs_file)
         logger.info(f"Logging run at: '{logs_file}")
 
@@ -197,14 +214,22 @@ class VideoRepresentationsExtractor:
         open(logs_file, "a").write(f"{'=' * 80}\n{now_fmt()}\n{msg}\n{'=' * 80}")
         logger.debug(f"Error: {msg}")
 
-    def _get_output_representations(self, exported_representations: list[str]) \
-            -> list[IORepresentationMixin | Representation]:
-        """given all the representations, keep those that actually export something. At least one is needed"""
+    def _get_output_representations(self, exported_representations: list[str] | None) -> list[Representation]:
+        """
+        Given all the representations, keep those that actually export something. RunMetadata uses only these.
+        We do a bunch of checks:
+        - at least one representation is provided
+        - they are exportable: IORpresentations are set, like npz, png etc.
+        - no duplicates provided
+        Returns a subset of representations from the ones given at constructor that will be exported.
+        """
         crs: list[IORepresentationMixin] = [_r for _r in self.representations if isinstance(_r, IORepresentationMixin)]
         assert len(crs) > 0, f"No I/O Representation found in {self.repr_names}"
         out_r: list[Representation] = [r for r in crs if r.export_binary or r.export_image]
-        if exported_representations:
-            logger.info(f"Explicit subset providewd: {exported_representations}. Exporting only these.")
+        if (er := exported_representations) is not None:
+            assert all(r_name in self.repr_names for r_name in er), f"Wrong names: {er=} vs {self.repr_names=}"
+            assert sorted(set(er)) == sorted(er), f"Duplicates found: {er} in --representations."
+            logger.info(f"Explicit subset provided: {exported_representations}. Exporting only these.")
             out_r = [r for r in out_r if r.name in exported_representations]
 
         assert len(out_r) > 0, f"No output format set for any I/O Representation: {', '.join([r.name for r in crs])}"
@@ -226,6 +251,34 @@ class VideoRepresentationsExtractor:
     def __repr__(self) -> str:
         return str(self)
 
-    def __getitem__(self, key: str) -> Representation:
-        assert key in self.repr_names, f"Representation '{key}' not in {self.repr_names}"
-        return self.representations[self.repr_names.index(key)]
+    def __getitem__(self, ix: int | slice | range | list[int]) -> dict[str, ReprOut]:
+        # Note: setup and free should be called outside of this function!
+        if isinstance(ix, int):
+            return self[[ix]]
+        if isinstance(ix, slice):
+            return self[list(range(ix.start, ix.stop))]
+        if isinstance(ix, range):
+            return self[list(ix)]
+        assert isinstance(ix, list), type(ix)
+        assert all(isinstance(vre_repr, IORepresentationMixin)
+                   for vre_repr in self.representations), self.representations
+
+        res: dict[str, ReprOut] = {}
+        for vre_repr in (pbar := tqdm(self.representations, disable=os.getenv("VRE_PBAR", "1") == "0")):
+            pbar.set_description(f"[VRE Streaming] {vre_repr.name}")
+            dep_names = [r.name for r in vre_repr.dependencies]
+            batches = make_batches(ix, vre_repr.batch_size)
+            batch_res: list[ReprOut] = []
+            for b_ixs in batches:
+                repr_out = vre_repr.compute(video=self.video, ixs=b_ixs,
+                                            dep_data=[res[dep_name] for dep_name in dep_names])
+                if vre_repr.output_size is not None:
+                    repr_out = vre_repr.resize(repr_out, vre_repr.output_size)
+                batch_res.append(repr_out)
+            combined = ReprOut(frames=np.concatenate([br.frames for br in batch_res]),
+                            key=sum([br.key for br in batch_res], []),
+                            output=MemoryData(np.concatenate([br.output for br in batch_res])))
+            if vre_repr.image_format.value != "not-set":
+                combined.output_images = vre_repr.make_images(combined)
+            res[vre_repr.name] = combined
+        return res

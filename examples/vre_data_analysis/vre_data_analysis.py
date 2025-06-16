@@ -1,8 +1,8 @@
 import sys
 from vre.readers import MultiTaskDataset
 from vre.representations import build_representations_from_cfg, Representation
+from vre_repository import get_vre_repository
 from vre_repository.semantic_segmentation import SemanticRepresentation
-from vre.logger import vre_logger as logger
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -92,10 +92,10 @@ def gaussian_from_statistics(reader: MultiTaskDataset, regression_task: Represen
 if __name__ == "__main__":
     data_path = sys.argv[1]
     cfg_path = sys.argv[2]
-    representations = build_representations_from_cfg(cfg_path)
+    representations = build_representations_from_cfg(cfg_path, get_vre_repository())
     print(representations)
-    reader = MultiTaskDataset(data_path, task_names=list(representations),
-                              task_types=representations, normalization="min_max")
+    reader = MultiTaskDataset(data_path, task_names=[r.name for r in representations],
+                            task_types={r.name: r for r in representations}, normalization="min_max")
     print(reader)
 
     imgsrcs = []

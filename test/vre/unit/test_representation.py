@@ -19,5 +19,5 @@ def test_representation_ctor():
 
 def test_representation_compute(video):
     repr = SimpleRepresentation("simple_representation")
-    repr.compute(video, [0, 1, 2, 3, 4])
-    assert np.allclose(repr.data.output, video[0:5])
+    repr_out = repr.compute(video, [0, 1, 2, 3, 4])
+    assert np.allclose(repr_out.output, video[0:5])

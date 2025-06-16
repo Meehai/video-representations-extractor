@@ -21,13 +21,12 @@ class DexiNed(EdgesRepresentation, LearnedRepresentationMixin):
         self.inference_height, self.inference_width = 512, 512 # fixed for this model
 
     @overrides
-    def compute(self, video: VREVideo, ixs: list[int]):
-        assert self.data is None, f"[{self}] data must not be computed before calling this"
+    def compute(self, video: VREVideo, ixs: list[int], dep_data: list[ReprOut] | None = None) -> ReprOut:
         tr_frames = self._preprocess(video[ixs], self.inference_height, self.inference_width)
         with tr.no_grad():
             y = self.model.forward(tr_frames)
         outs = self._postprocess(y)
-        self.data = ReprOut(frames=video[ixs], output=MemoryData(outs), key=ixs)
+        return ReprOut(frames=video[ixs], output=MemoryData(outs), key=ixs)
 
     @staticmethod
     @overrides

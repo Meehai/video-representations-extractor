@@ -6,18 +6,17 @@ from overrides import overrides
 
 from vre.vre_video import VREVideo
 from vre.utils import MemoryData
-from vre.representations import ReprOut, LearnedRepresentationMixin, ComputeRepresentationMixin
+from vre.representations import ReprOut, LearnedRepresentationMixin
 from vre_repository.optical_flow import OpticalFlowRepresentation
 from vre_repository.weights_repository import fetch_weights
 
 from .rife_impl import Model
 
-class FlowRife(OpticalFlowRepresentation, LearnedRepresentationMixin, ComputeRepresentationMixin):
+class FlowRife(OpticalFlowRepresentation, LearnedRepresentationMixin):
     """FlowRife representation"""
     def __init__(self, compute_backward_flow: bool, uhd: bool, flow_delta_frames: int = 1, **kwargs):
         OpticalFlowRepresentation.__init__(self, **kwargs)
         LearnedRepresentationMixin.__init__(self)
-        ComputeRepresentationMixin.__init__(self)
         self.uhd = uhd
         self.flow_delta_frames = flow_delta_frames
         assert compute_backward_flow is False, "Not supported"
@@ -25,15 +24,14 @@ class FlowRife(OpticalFlowRepresentation, LearnedRepresentationMixin, ComputeRep
         self.model: Model | None = None
 
     @overrides
-    def compute(self, video: VREVideo, ixs: list[int]):
-        assert self.data is None, f"[{self}] data must not be computed before calling this"
+    def compute(self, video: VREVideo, ixs: list[int], dep_data: list[ReprOut] | None = None) -> ReprOut:
         frames = video[ixs]
         right_frames = self.get_delta_frames(video, ixs)
         x_s, x_t, padding = self._preprocess(frames, right_frames)
         with tr.no_grad():
             prediction = self.model.inference(x_s, x_t, self.uhd, self.no_backward_flow)
         flow = self._postprocess(prediction, padding)
-        self.data = ReprOut(frames=video[ixs], output=MemoryData(flow), key=ixs)
+        return ReprOut(frames=video[ixs], output=MemoryData(flow), key=ixs)
 
     @staticmethod
     @overrides

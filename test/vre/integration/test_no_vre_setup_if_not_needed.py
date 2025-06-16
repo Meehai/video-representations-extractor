@@ -8,20 +8,17 @@ from pathlib import Path
 import numpy as np
 from vre import VideoRepresentationsExtractor as VRE
 from vre.representations import (
-    Representation, LearnedRepresentationMixin, ReprOut, ComputeRepresentationMixin, NpIORepresentation)
+    Representation, LearnedRepresentationMixin, ReprOut, NpIORepresentation)
 from vre import FakeVideo
 
-class MyRepresentation(Representation, LearnedRepresentationMixin, ComputeRepresentationMixin, NpIORepresentation):
+class MyRepresentation(Representation, LearnedRepresentationMixin, NpIORepresentation):
     def __init__(self, *args, **kwargs):
         Representation.__init__(self, *args, **kwargs)
         LearnedRepresentationMixin.__init__(self)
-        ComputeRepresentationMixin.__init__(self)
         NpIORepresentation.__init__(self)
         self.vre_setup_called = False
         self.vre_free_called = False
         self.make_called = False
-    def compute(self, video, ixs):
-        raise NotImplementedError("should not be called")
     @staticmethod
     def weights_repository_links(**kwargs):
         raise NotImplementedError("should not be called")
@@ -36,13 +33,12 @@ class MyRepresentation(Representation, LearnedRepresentationMixin, ComputeRepres
     def n_channels(self):
         return 1
 
-class MyDependentRepresentation(Representation, ComputeRepresentationMixin, NpIORepresentation):
+class MyDependentRepresentation(Representation, NpIORepresentation):
     def __init__(self, *args, **kwargs):
         Representation.__init__(self, *args, **kwargs)
-        ComputeRepresentationMixin.__init__(self)
         NpIORepresentation.__init__(self)
-    def compute(self, video, ixs):
-        self.data = ReprOut(frames=video[ixs], output=self.dependencies[0].data.output, key=ixs)
+    def compute(self, video, ixs, dep_data):
+        return ReprOut(frames=video[ixs], output=dep_data[0].output, key=ixs)
     def make_images(self, data: ReprOut) -> np.ndarray:
         return data.output
     @property
@@ -57,7 +53,7 @@ def test_no_vre_setup_if_not_needed():
         np.savez(f"{tmp_dir}/r1/npz/{i}.npz", video[i][..., 0:1])
     r1 = MyRepresentation("r1", [])
     r2 = MyDependentRepresentation("r2", [r1])
-    vre = VRE(video, [r1, r2]).set_io_parameters(binary_format="npz", output_size="native", output_dtype="uint8")
+    vre = VRE(video, [r1, r2]).set_io_parameters(binary_format="npz", output_size=None, output_dtype="uint8")
     vre.run(tmp_dir, frames=list(range(0, len(video))), output_dir_exists_mode="skip_computed")
     assert r1.make_called is False, (r1.make_called, r1.vre_setup_called, r1.vre_free_called)
     # since all the data of r1 is already on the disk, there's no need to call vre_setup and vre_free at all

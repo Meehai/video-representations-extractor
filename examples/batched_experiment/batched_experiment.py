@@ -2,7 +2,6 @@
 """experiment using batches of frames"""
 import sys
 from pathlib import Path
-from omegaconf import OmegaConf
 import shutil
 import json
 import pandas as pd # must be installed by the user
@@ -10,11 +9,12 @@ import pandas as pd # must be installed by the user
 from vre import VRE, FFmpegVideo
 from vre.representations import build_representations_from_cfg
 from vre.utils import get_project_root
+from vre_repository import get_vre_repository
 
 def main():
     """main fn"""
     video = FFmpegVideo(get_project_root() / "resources/test_video.mp4")
-    representations = build_representations_from_cfg(OmegaConf.load(Path(__file__).parent / "cfg.yaml"))
+    representations = build_representations_from_cfg(Path(__file__).parent / "cfg.yaml", get_vre_repository())
     vre = VRE(video, representations)
     frames = list(range(1000, 1000 + (5 if len(sys.argv) == 1 else int(sys.argv[1]))))
     batch_sizes = [1, 3, 5]
