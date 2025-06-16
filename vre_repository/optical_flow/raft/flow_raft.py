@@ -54,11 +54,8 @@ class FlowRaft(OpticalFlowRepresentation, LearnedRepresentationMixin):
         tr.manual_seed(self.seed) if self.seed is not None else None
         self.model = RAFT(self).to("cpu")
         if load_weights:
-            def convert(data: dict[str, tr.Tensor]) -> dict[str, tr.Tensor]:
-                logger.warning("REMOVE THIS WHEN THERE'S TIME")
-                return {k.replace("module.", ""): v for k, v in data.items()}
             path = fetch_weights(FlowRaft.weights_repository_links())[0]
-            self.model.load_state_dict(convert(tr.load(path, map_location="cpu")))
+            self.model.load_state_dict(tr.load(path, map_location="cpu"))
         self.model = self.model.eval().to(self.device)
         self.setup_called = True
 
