@@ -58,7 +58,9 @@ class FlowRaft(OpticalFlowRepresentation, LearnedRepresentationMixin):
                 logger.warning("REMOVE THIS WHEN THERE'S TIME")
                 return {k.replace("module.", ""): v for k, v in data.items()}
             path = fetch_weights(FlowRaft.weights_repository_links())[0]
-            self.model.load_state_dict(convert(tr.load(path, map_location="cpu")))
+            converted = convert(tr.load(path, map_location="cpu"))
+            breakpoint()
+            self.model.load_state_dict(converted)
         self.model = self.model.eval().to(self.device)
         self.setup_called = True
 
