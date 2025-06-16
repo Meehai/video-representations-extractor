@@ -8,7 +8,7 @@ from overrides import overrides
 import torch as tr
 import numpy as np
 
-from vre.vre_video import VREVideo, FakeVideo
+from vre.vre_video import VREVideo, FrameVideo
 from vre.logger import vre_logger as logger
 from vre.utils import image_resize_batch, image_read, image_write, MemoryData
 from vre.representations import ReprOut, LearnedRepresentationMixin
@@ -112,7 +112,7 @@ def main(args: Namespace):
     m2f.device = "cuda" if tr.cuda.is_available() else "cpu"
     m2f.vre_setup()
     now = datetime.now()
-    m2f_out = m2f.compute(FakeVideo(img[None], 1), [0])
+    m2f_out = m2f.compute(FrameVideo(img[None], 1), [0])
     logger.info(f"Pred took: {datetime.now() - now}")
     semantic_result: np.ndarray = m2f.make_images(m2f_out)[0]
     image_write(semantic_result, args.output_path)

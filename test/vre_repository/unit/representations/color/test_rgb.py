@@ -1,9 +1,9 @@
 import numpy as np
 from vre_repository.color.rgb import RGB
-from vre import FakeVideo
+from vre import FrameVideo
 
 def test_rgb_1():
-    video = FakeVideo(np.random.randint(0, 255, size=(20, 64, 128, 3), dtype=np.uint8), fps=30)
+    video = FrameVideo(np.random.randint(0, 255, size=(20, 64, 128, 3), dtype=np.uint8), fps=30)
     rgb_repr = RGB("rgb")
     assert rgb_repr.name == "rgb"
     assert rgb_repr.compress is True # default from NpIORepresentation
@@ -17,7 +17,7 @@ def test_rgb_1():
     assert out_images.shape == (1, 64, 128, 3) and out_images.dtype == np.uint8, out_images.dtype
 
 def test_rgb_resize():
-    video = FakeVideo(np.random.randint(0, 255, size=(20, 64, 128, 3), dtype=np.uint8), fps=30)
+    video = FrameVideo(np.random.randint(0, 255, size=(20, 64, 128, 3), dtype=np.uint8), fps=30)
     rgb_repr = RGB("rgb")
 
     out = rgb_repr.compute(video, [0])

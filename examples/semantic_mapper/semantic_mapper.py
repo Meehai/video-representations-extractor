@@ -469,11 +469,11 @@ if __name__ == "__main__":
         reader.add_task(new_task, overwrite=True)
 
     # Note: depth=2 works well in VRE, just not in MultiTaskDataset (need to disable the assert for depth <= 1 tho)
-    # from vre import VRE, FakeVideo
+    # from vre import VRE, FrameVideo
     # from vre.representations.build_representations import _add_external_representations_dict
     # reprs = _add_external_representations_dict(list(task_types.values()),
     #                                            get_new_semantic_mapped_tasks(include_semantic_output=True), {}, {}, {})
-    # video= FakeVideo(np.array(list(map(lambda x: np.load(x)["arr_0"], (data_path/"rgb/npz").iterdir()))),
+    # video= FrameVideo(np.array(list(map(lambda x: np.load(x)["arr_0"], (data_path/"rgb/npz").iterdir()))),
     #                  fps=1, frames=[5,8,22])
     # vre = VRE(video, reprs)
     # vre._compute_one_representation_batch(vre["semantic_output"], [5,8,22], Path.cwd())

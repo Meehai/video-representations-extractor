@@ -1,5 +1,5 @@
 import sys
-from vre import FakeVideo
+from vre import FrameVideo
 from vre.utils import get_project_root
 from vre.vre_runtime_args import VRERuntimeArgs
 import numpy as np
@@ -9,7 +9,7 @@ sys.path.append(str(get_project_root() / "test"))
 from fake_representation import FakeRepresentation
 
 def test_VRERuntimeArgs_ctor():
-    video = FakeVideo(np.random.randint(0, 255, size=(2, 128, 128, 3), dtype=np.uint8), fps=30)
+    video = FrameVideo(np.random.randint(0, 255, size=(2, 128, 128, 3), dtype=np.uint8), fps=30)
     representations = [FakeRepresentation("rgb")]
 
     with pytest.raises(AssertionError):

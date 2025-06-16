@@ -1,11 +1,11 @@
 import numpy as np
 import pytest
 from vre_repository.optical_flow.rife import FlowRife
-from vre import FakeVideo
+from vre import FrameVideo
 
 @pytest.mark.parametrize("uhd", [False, True])
 def test_rife_uhd_false(uhd):
-    video = FakeVideo(np.random.randint(0, 255, size=(20, 64, 128, 3), dtype=np.uint8), fps=30)
+    video = FrameVideo(np.random.randint(0, 255, size=(20, 64, 128, 3), dtype=np.uint8), fps=30)
     rife_repr = FlowRife(name="rife", dependencies=[], compute_backward_flow=False, uhd=uhd, delta=1)
     rife_repr.vre_setup(load_weights=False)
     assert rife_repr.name == "rife"

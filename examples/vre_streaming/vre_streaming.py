@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """vre_streaming -- Tool that 'streams' a VRE frame (or batch) by frame to other external tools like ffmpeg or mpl"""
 from argparse import ArgumentParser, Namespace
-from pathlib import Path
 from datetime import datetime
 import sys
 import os
@@ -10,10 +9,9 @@ import torch as tr
 import numpy as np
 import matplotlib.pyplot as plt
 
-from vre import VRE, FFmpegVideo, ReprOut, Representation
+from vre import VRE, FFmpegVideo, ReprOut, Representation, FrameVideo
 from vre.logger import vre_logger as logger
-from vre.utils import get_project_root, collage_fn, make_batches, image_resize, image_add_title
-
+from vre.utils import collage_fn, make_batches, image_resize, image_add_title
 from vre_repository.color.rgb import RGB
 from vre_repository.semantic_segmentation.safeuav import SafeUAV
 
@@ -51,7 +49,7 @@ def get_args() -> Namespace:
 
 def main(args: Namespace):
     """main fn"""
-    video = FFmpegVideo(args.video_path, cache_len=100)
+    video = FrameVideo(args.video_path, fps=1) if args.video_path.is_dir() else FFmpegVideo(args.video_path)
     logger.debug(video)
 
     representations: list[Representation] = [

@@ -1,10 +1,10 @@
 import numpy as np
 from vre_repository.soft_segmentation.fastsam import FastSam
-from vre import FakeVideo
+from vre import FrameVideo
 
 def test_fastsam():
     np.random.seed(42)
-    video = FakeVideo(np.random.randint(0, 255, size=(20, 64, 128, 3), dtype=np.uint8), 30)
+    video = FrameVideo(np.random.randint(0, 255, size=(20, 64, 128, 3), dtype=np.uint8), 30)
     fastsam_repr = FastSam(variant="testing", iou=0.9, conf=0.4, name="fastsam", dependencies=[])
     fastsam_repr.vre_setup(load_weights=False)
     assert fastsam_repr.name == "fastsam"

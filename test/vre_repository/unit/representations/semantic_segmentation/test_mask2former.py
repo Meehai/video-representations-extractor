@@ -1,9 +1,9 @@
 import numpy as np
 from vre_repository.semantic_segmentation.mask2former import Mask2Former
-from vre import FakeVideo
+from vre import FrameVideo
 
 def test_mask2former():
-    video = FakeVideo(np.random.randint(0, 255, size=(20, 64, 128, 3), dtype=np.uint8), 30)
+    video = FrameVideo(np.random.randint(0, 255, size=(20, 64, 128, 3), dtype=np.uint8), 30)
     m2f_repr = Mask2Former(model_id="49189528_1", disk_data_argmax=True, name="m2f", dependencies=[])
     m2f_repr.vre_setup(load_weights=False)
     assert m2f_repr.name == "m2f"
