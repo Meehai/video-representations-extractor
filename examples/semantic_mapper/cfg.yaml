@@ -42,6 +42,8 @@ representations:
     parameters:
       model_id: "49189528_0"
       disk_data_argmax: True
+    compute_parameters:
+      batch_size: 1
 
   semantic_mask2former_coco_47429163_0:
     type: semantic-segmentation/mask2former
@@ -49,6 +51,8 @@ representations:
     parameters:
       model_id: "47429163_0"
       disk_data_argmax: True
+    compute_parameters:
+      batch_size: 1
 
   semantic_mask2former_mapillary_49189528_1:
     type: semantic-segmentation/mask2former
@@ -56,6 +60,8 @@ representations:
     parameters:
       model_id: "49189528_1"
       disk_data_argmax: True
+    compute_parameters:
+      batch_size: 1
 
   depth_marigold:
     type: depth/marigold
