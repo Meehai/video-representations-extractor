@@ -6,7 +6,6 @@ from torch.nn import functional as F
 
 from vre.vre_video import VREVideo
 from vre.utils import MemoryData
-from vre.logger import vre_logger as logger
 from vre.representations import ReprOut, LearnedRepresentationMixin
 from vre_repository.optical_flow import OpticalFlowRepresentation
 from vre_repository.weights_repository import fetch_weights
