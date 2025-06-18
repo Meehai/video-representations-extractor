@@ -1,10 +1,10 @@
 import numpy as np
-from vre import FrameVideo
+from vre_video import VREVideo
 from vre_repository.color.rgb import RGB
 from vre_repository.color.hsv import HSV
 
 def test_hsv_compute():
-    video = FrameVideo(np.random.randint(0, 255, size=(20, 64, 128, 3), dtype=np.uint8), fps=30)
+    video = VREVideo(np.random.randint(0, 255, size=(20, 64, 128, 3), dtype=np.uint8), fps=30)
     hsv_repr = HSV("hsv", dependencies=[RGB("rgb")])
     assert hsv_repr.name == "hsv"
     assert hsv_repr.compress is True # default
@@ -18,7 +18,7 @@ def test_hsv_compute():
     assert out_images.dtype == np.uint8
 
 def test_hsv_resize():
-    video = FrameVideo(np.random.randint(0, 255, size=(20, 64, 128, 3), dtype=np.uint8), fps=30)
+    video = VREVideo(np.random.randint(0, 255, size=(20, 64, 128, 3), dtype=np.uint8), fps=30)
     hsv_repr = HSV("hsv", dependencies=[RGB("rgb")])
 
     rgb_out = hsv_repr.dependencies[0].compute(video, [0])

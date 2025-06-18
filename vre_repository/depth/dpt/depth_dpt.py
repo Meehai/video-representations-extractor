@@ -4,7 +4,7 @@ import torch as tr
 import torch.nn.functional as F
 from overrides import overrides
 
-from vre.vre_video import VREVideo
+from vre_video import VREVideo
 from vre.utils import MemoryData
 from vre.representations import ReprOut, LearnedRepresentationMixin
 from vre_repository.weights_repository import fetch_weights

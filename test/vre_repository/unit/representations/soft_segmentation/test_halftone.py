@@ -1,9 +1,9 @@
 import numpy as np
 from vre_repository.soft_segmentation.halftone import Halftone
-from vre import FrameVideo
+from vre_video import VREVideo
 
 def test_halftone():
-    video = FrameVideo(np.random.randint(0, 255, size=(20, 64, 128, 3), dtype=np.uint8), fps=30)
+    video = VREVideo(np.random.randint(0, 255, size=(20, 64, 128, 3), dtype=np.uint8), fps=30)
     halftone_repr = Halftone(name="halftone", dependencies=[], sample=3, scale=1, percentage=91,
                              angles=[0, 15, 30, 45], antialias=False, resolution=video.frame_shape[0:2])
     assert halftone_repr.name == "halftone"

@@ -3,7 +3,7 @@ import torch as tr
 import numpy as np
 from overrides import overrides
 
-from vre.vre_video import VREVideo
+from vre_video import VREVideo
 from vre.utils import MemoryData
 from vre.representations import Representation, ReprOut, NpIORepresentation, NormedRepresentationMixin
 from .gb_impl.softseg import soft_seg

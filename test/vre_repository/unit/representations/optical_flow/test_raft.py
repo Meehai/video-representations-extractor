@@ -1,11 +1,11 @@
 import numpy as np
 import pytest
 from vre_repository.optical_flow.raft import FlowRaft
-from vre import FrameVideo
+from vre_video import VREVideo
 
 @pytest.mark.parametrize(["iters", "small"], [(2, False), (2, True), (4, True)])
 def test_raft(iters: int, small: bool):
-    video = FrameVideo(np.random.randint(0, 255, size=(20, 255, 255, 3), dtype=np.uint8), fps=30)
+    video = VREVideo(np.random.randint(0, 255, size=(20, 255, 255, 3), dtype=np.uint8), fps=30)
     raft_repr = FlowRaft(name="raft", dependencies=[], inference_height=128, inference_width=128,
                          iters=iters, small=small, delta=1)
     raft_repr.vre_setup(load_weights=False)

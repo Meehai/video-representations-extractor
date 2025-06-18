@@ -6,7 +6,8 @@ import yaml
 import numpy as np
 import torch as tr
 
-from vre import VRE, FFmpegVideo
+from vre_video import VREVideo
+from vre import VRE
 from vre.representations import build_representations_from_cfg
 from vre.utils import fetch_resource
 from vre.logger import vre_logger as logger
@@ -14,7 +15,7 @@ from vre.logger import vre_logger as logger
 from vre_repository import get_vre_repository
 
 def test_vre_batched():
-    video = FFmpegVideo(fetch_resource("test_video.mp4"))
+    video = VREVideo(fetch_resource("test_video.mp4"))
     device = "cuda" if tr.cuda.is_available() else "cpu"
     all_representations_dict = yaml.safe_load(f"""
 representations:

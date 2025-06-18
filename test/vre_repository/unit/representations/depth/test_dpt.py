@@ -1,9 +1,9 @@
 import numpy as np
 from vre_repository.depth.dpt import DepthDpt
-from vre import FrameVideo
+from vre_video import VREVideo
 
 def test_dpt():
-    video = FrameVideo(np.random.randint(0, 255, size=(20, 64, 128, 3), dtype=np.uint8), fps=30)
+    video = VREVideo(np.random.randint(0, 255, size=(20, 64, 128, 3), dtype=np.uint8), fps=30)
     dpt_repr = DepthDpt(name="dpt", dependencies=[])
     dpt_repr.vre_setup(load_weights=False)
     assert dpt_repr.name == "dpt"

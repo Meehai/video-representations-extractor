@@ -1,9 +1,9 @@
 import numpy as np
 from vre_repository.soft_segmentation.generalized_boundaries import GeneralizedBoundaries
-from vre import FrameVideo
+from vre_video import VREVideo
 
 def test_generalized_boundaries():
-    video = FrameVideo(np.random.randint(0, 255, size=(20, 64, 128, 3), dtype=np.uint8), fps=30)
+    video = VREVideo(np.random.randint(0, 255, size=(20, 64, 128, 3), dtype=np.uint8), fps=30)
     gb_repr = GeneralizedBoundaries(name="gb", dependencies=[], use_median_filtering=True,
                                     adjust_to_rgb=True, max_channels=3)
     assert gb_repr.name == "gb"

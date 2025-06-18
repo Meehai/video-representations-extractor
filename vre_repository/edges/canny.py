@@ -2,8 +2,8 @@
 import numpy as np
 from overrides import overrides
 
+from vre_video import VREVideo
 from vre.utils import MemoryData, ReprOut
-from vre.vre_video import VREVideo
 from vre.utils.cv2_utils import cv2_Canny
 
 from ..edges import EdgesRepresentation

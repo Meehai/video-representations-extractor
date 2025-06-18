@@ -1,10 +1,10 @@
 """semantic_representation.py -- helper class for all semantic segmentation representations"""
 from overrides import overrides
 import numpy as np
+from vre_video import VREVideo
 from vre.representations import Representation, NpIORepresentation
 from vre.utils import DiskData, MemoryData, image_resize_batch, colorize_semantic_segmentation, ReprOut
 from vre.logger import vre_logger as logger
-from vre.vre_video import VREVideo
 
 # TODO: ideally we'd not need to specify disk_data_argmax explicitly
 # TODO: we may need a way to specify memory data format (one-hot, softmax, logits, index etc.)

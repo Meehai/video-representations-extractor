@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 import numpy as np
 
-from vre import FrameVideo
+from vre_video import VREVideo
 from vre.utils import get_project_root
 from vre.vre_runtime_args import VRERuntimeArgs
 from vre.run_metadata import RunMetadata
@@ -15,7 +15,7 @@ from fake_representation import FakeRepresentation
 
 def test_RunMetadata_two_representations(tmp_path: Path):
     r1, r2 = FakeRepresentation("r1", dependencies=[]), FakeRepresentation("r2", dependencies=[])
-    video = FrameVideo(np.random.randint(0, 255, size=(10, 20, 30, 3)), fps=1)
+    video = VREVideo(np.random.randint(0, 255, size=(10, 20, 30, 3), dtype=np.uint8), fps=1)
     runtime_args = VRERuntimeArgs(video, [r1, r2], [0, 1, 2, 3, 4, 5], "stop_execution", 0)
     run_metadata = RunMetadata(["r1", "r2"], runtime_args, logs_dir=tmp_path)
     metadata_r1 = RepresentationMetadata("r1", tmp_path / "r2_metadata.json", [0, 1, 2, 3, 4, 5], ["fmt"])

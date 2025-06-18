@@ -7,6 +7,7 @@ import traceback
 from tqdm import tqdm
 import torch as tr
 import numpy as np
+from vre_video import VREVideo
 
 from .representations import Representation, LearnedRepresentationMixin
 from .representations.io_representation_mixin import IORepresentationMixin
@@ -15,7 +16,6 @@ from .data_writer import DataWriter
 from .data_storer import DataStorer
 from .run_metadata import RunMetadata
 from .representation_metadata import RepresentationMetadata
-from .vre_video import VREVideo
 from .utils import now_fmt, make_batches, vre_topo_sort, ReprOut, DiskData, SummaryPrinter, random_chars, MemoryData
 from .logger import vre_logger as logger
 

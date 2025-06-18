@@ -8,8 +8,9 @@ import time
 import torch as tr
 import numpy as np
 import matplotlib.pyplot as plt
+from vre_video import VREVideo
 
-from vre import VRE, FFmpegVideo, ReprOut, Representation, FrameVideo
+from vre import VRE, ReprOut, Representation
 from vre.logger import vre_logger as logger
 from vre.utils import collage_fn, make_batches, image_resize, image_add_title
 from vre_repository.color.rgb import RGB
@@ -49,7 +50,7 @@ def get_args() -> Namespace:
 
 def main(args: Namespace):
     """main fn"""
-    video = FrameVideo(args.video_path, fps=1) if args.video_path.is_dir() else FFmpegVideo(args.video_path)
+    video = VREVideo(args.video_path)
     logger.debug(video)
 
     representations: list[Representation] = [

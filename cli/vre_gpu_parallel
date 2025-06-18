@@ -5,7 +5,7 @@ import subprocess
 import signal
 from functools import partial
 from argparse import ArgumentParser, Namespace, REMAINDER
-from vre import FFmpegVideo, FrameVideo
+from vre_video import VREVideo
 
 def _cleanup(processes: list, signum, frame):
     print("Terminating subprocesses...")
@@ -31,7 +31,7 @@ def main(args: Namespace):
 
     video_file = args.video_file
     n_gpus = len(gpu_indices)
-    video = FrameVideo(args.video_path, fps=1) if args.video_path.is_dir() else FFmpegVideo(args.video_path)
+    video = VREVideo(args.video_path)
 
     if args.frames:
         start_frame, end_frame = map(int, args.frames.split(".."))
