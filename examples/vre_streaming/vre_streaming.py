@@ -78,7 +78,7 @@ def main(args: Namespace):
             for i in range(len(bix)):
                 img = imgs[i]
                 if not args.disable_title_hud:
-                    img =image_add_title(imgs[i], f"Frame: {bix[i]}. FPS: {mean(fps):.2f}")
+                    img = image_add_title(imgs[i], f"Frame: {bix[i]}. FPS: {mean(fps):.2f}")
                 img = image_resize(img, *args.output_size)
                 if os.getenv("MPL", "0") == "1":
                     plt.imshow(img)

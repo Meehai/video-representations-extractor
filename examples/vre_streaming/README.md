@@ -8,19 +8,23 @@ This example will show us various ways to stream from VRE to various external to
 
 The easiest thing we can do is use matplotlib. In order to use matplotlib, we can specify the `MPL=1` env variable.
 ```bash
-MPL=1 ./vre_streaming.py | ffplay -f rawvideo -pixel_format rgb24 -video_size 1280x360 -framerate 30 -
+MPL=1 ./vre_streaming.py VIDEO
 ```
 
 ## FFplay
 
 ```bash
-MPL=0 VRE_LOGLEVEL=-1 VRE_PBAR=0 ./vre_streaming.py | ffplay -f rawvideo -pixel_format rgb24 -video_size 1280x360 -framerate 30 -
+MPL=0 VRE_LOGLEVEL=-1 VRE_PBAR=0 ./vre_streaming.py VIDEO | ffplay \
+  -f rawvideo \
+  -pixel_format rgb24 \
+  -video_size 1280x360 \
+  -framerate 30 -
 ```
 
 ## MPV/VLC (via ffmpeg+TCP stream)
 
 ```bash
-MPL=0 VRE_LOGLEVEL=-1 VRE_PBAR=0 ./vre_streaming.py | ffmpeg \
+MPL=0 VRE_LOGLEVEL=-1 VRE_PBAR=0 ./vre_streaming.py VIDEO | ffmpeg \
   -f rawvideo \
   -pixel_format rgb24 \
   -video_size 1280x360 \
@@ -38,7 +42,7 @@ and open in the video player (i.e. vlc) the stream at: `tcp://localhost:9999`.
 ## HTML5 (via ffmpeg+HLS stream)
 
 ```bash
-MPL=0 VRE_LOGLEVEL=-1 VRE_PBAR=0 ./vre_streaming.py | ffmpeg \
+MPL=0 VRE_LOGLEVEL=-1 VRE_PBAR=0 ./vre_streaming.py VIDEO | ffmpeg \
   -f rawvideo \
   -pixel_format rgb24 \
   -video_size 1280x360 \
