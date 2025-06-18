@@ -12,7 +12,7 @@ with open(CWD/"README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 REQUIRED = [
-    "vre-video=>=0.2.1",
+    "vre-video>=0.2.1",
     "numpy>=1.21.6,<2.0.0",
     "PyYAML==6.0",
     "tqdm==4.66.5",
