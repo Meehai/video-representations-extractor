@@ -7,7 +7,6 @@ from functools import partial
 from tempfile import NamedTemporaryFile
 from multiprocessing import Pool
 import shutil
-import ffmpeg
 from natsort import natsorted
 from tqdm import tqdm
 import numpy as np

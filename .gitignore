@@ -17,4 +17,4 @@ logs*.txt
 weights/
 examples/workingdir
 build/
-
+*.log
