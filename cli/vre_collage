@@ -7,7 +7,7 @@ from functools import partial
 from tempfile import NamedTemporaryFile
 from multiprocessing import Pool
 import shutil
-import ffmpeg
+import subprocess
 from natsort import natsorted
 from tqdm import tqdm
 import numpy as np
@@ -114,12 +114,20 @@ def main(args: Namespace):
         for out_png_name in natsorted([x for x in args.output_path.iterdir()], key=lambda p: p.name):
             data.extend([f"file '{out_png_name}'", f"duration {1 / args.fps:.3f}"])
         open(fname := NamedTemporaryFile(suffix=".txt").name, "w").write("\n".join(data))
-        (
-            ffmpeg
-            .input(fname, format="concat", safe=0)
-            .output(vid_path := f"{args.output_path}/collage.mp4", vcodec="libx265", crf=28, pix_fmt="yuv420p")
-            .run()
-        )
+
+        # Build ffmpeg command. TODO: perhaps add support for this in VREVideo (PNGDirReader [lazy] instead of PIL).
+        cmd = [
+            "ffmpeg",
+            "-f", "concat",
+            "-safe", "0",
+            "-i", str(fname),
+            "-vcodec", "libx265",
+            "-crf", "28",
+            "-pix_fmt", "yuv420p",
+            vid_path := f"{args.output_path}/collage.mp4"
+        ]
+        logger.debug(f"Running '{' '.join(cmd)}'")
+        subprocess.run(cmd, check=True)
         logger.info(f"Video written at '{vid_path}'")
 
 if __name__ == "__main__":
