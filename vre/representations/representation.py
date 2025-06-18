@@ -2,9 +2,9 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
 import numpy as np
+from vre_video import VREVideo
 
 from ..utils import parsed_str_type, ReprOut
-from ..vre_video import VREVideo
 from ..logger import vre_logger as logger
 
 class Representation(ABC):

@@ -11,7 +11,7 @@ from overrides import overrides
 from tqdm.auto import tqdm
 from diffusers import AutoencoderKL, DDIMScheduler, LCMScheduler, UNet2DConditionModel
 
-from vre.vre_video import VREVideo
+from vre_video import VREVideo
 from vre.utils import image_read, image_write, MemoryData, vre_load_weights
 from vre.representations import ReprOut, LearnedRepresentationMixin
 from vre_repository.depth import DepthRepresentation

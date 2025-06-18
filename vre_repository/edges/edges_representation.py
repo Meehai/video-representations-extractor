@@ -1,7 +1,7 @@
 """edges_representation.py -- module implementing an Edges Represenatation generic class"""
 from overrides import overrides
 import numpy as np
-from vre.vre_video import VREVideo
+from vre_video import VREVideo
 from vre.utils import ReprOut
 from vre.representations import (
     Representation, NpIORepresentation, NormedRepresentationMixin)

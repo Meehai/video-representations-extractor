@@ -5,7 +5,8 @@ import random
 import time
 import numpy as np
 import pytest
-from vre import VRE, ReprOut, MemoryData, FrameVideo, VREVideo, FFmpegVideo
+from vre_video import VREVideo
+from vre import VRE, ReprOut, MemoryData
 from vre.utils import image_resize_batch, fetch_resource, get_project_root
 
 sys.path.append(str(get_project_root() / "test/vre"))
@@ -14,9 +15,9 @@ from fake_representation import FakeRepresentation
 @pytest.fixture
 def video() -> VREVideo:
     if random.randint(0, 1) % 2 == 0:
-        return FrameVideo(np.random.randint(0, 255, size=(5, 128, 128, 3), dtype=np.uint8), fps=30)
+        return VREVideo(np.random.randint(0, 255, size=(5, 128, 128, 3), dtype=np.uint8), fps=30)
     else:
-        return FFmpegVideo(fetch_resource("test_video.mp4"))
+        return VREVideo(fetch_resource("test_video.mp4"))
 
 def test_vre_ctor(video: VREVideo):
     with pytest.raises(AssertionError) as e:

@@ -9,7 +9,7 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageStat
 from overrides import overrides
 
-from vre.vre_video import VREVideo
+from vre_video import VREVideo
 from vre.representations import Representation, ReprOut, NpIORepresentation, NormedRepresentationMixin
 from vre.utils import image_resize, MemoryData
 

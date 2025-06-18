@@ -1,7 +1,7 @@
 """Helper module to make sense of the arguments sent to vre.run()"""
 from typing import Any
+from vre_video import VREVideo
 
-from .vre_video import VREVideo
 from .utils import parsed_str_type
 from .representations import Representation
 

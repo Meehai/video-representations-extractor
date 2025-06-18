@@ -8,7 +8,7 @@ import torch as tr
 from torch import nn
 from torch.nn import functional as F
 
-from vre.vre_video import VREVideo, FrameVideo
+from vre_video import VREVideo
 from vre.representations import (Representation, ReprOut, LearnedRepresentationMixin,
                                  NpIORepresentation, NormedRepresentationMixin)
 from vre.utils import image_resize_batch, image_read, image_write, MemoryData
@@ -178,7 +178,7 @@ def main(args: Namespace):
     fastsam.device = "cuda" if tr.cuda.is_available() else "cpu"
     fastsam.vre_setup(load_weights=args.model_id != "testing")
     now = datetime.now()
-    pred = fastsam.compute(FrameVideo(img[None], 1), [0])
+    pred = fastsam.compute(VREVideo(img[None], fps=1), [0])
     logger.info(f"Pred took: {datetime.now() - now}")
     semantic_result = fastsam.make_images(pred)[0]
     image_write(semantic_result, args.output_path)

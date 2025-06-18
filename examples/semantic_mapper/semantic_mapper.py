@@ -473,7 +473,7 @@ if __name__ == "__main__":
     # from vre.representations.build_representations import _add_external_representations_dict
     # reprs = _add_external_representations_dict(list(task_types.values()),
     #                                            get_new_semantic_mapped_tasks(include_semantic_output=True), {}, {}, {})
-    # video= FrameVideo(np.array(list(map(lambda x: np.load(x)["arr_0"], (data_path/"rgb/npz").iterdir()))),
+    # video= VREVideo(np.array(list(map(lambda x: np.load(x)["arr_0"], (data_path/"rgb/npz").iterdir()))),
     #                  fps=1, frames=[5,8,22])
     # vre = VRE(video, reprs)
     # vre._compute_one_representation_batch(vre["semantic_output"], [5,8,22], Path.cwd())

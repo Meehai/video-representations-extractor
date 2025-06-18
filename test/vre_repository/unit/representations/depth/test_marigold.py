@@ -1,9 +1,9 @@
 import numpy as np
 from vre_repository.depth.marigold import Marigold
-from vre import FrameVideo
+from vre_video import VREVideo
 
 def test_marigold():
-    video = FrameVideo(np.random.randint(0, 255, size=(20, 64, 128, 3), dtype=np.uint8), fps=30)
+    video = VREVideo(np.random.randint(0, 255, size=(20, 64, 128, 3), dtype=np.uint8), fps=30)
     marigold_repr = Marigold("testing", denoising_steps=1, ensemble_size=1, processing_resolution=30,
                              name="marigold", dependencies=[])
     marigold_repr.vre_setup(load_weights=False)
