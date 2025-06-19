@@ -2,21 +2,20 @@
 """vre_streaming -- Tool that 'streams' a VRE frame (or batch) by frame to other external tools like ffmpeg or mpl"""
 from argparse import ArgumentParser, Namespace
 from datetime import datetime
+from pathlib import Path
 import sys
 import os
 import time
-import torch as tr
 import numpy as np
 import matplotlib.pyplot as plt
 from vre_video import VREVideo
 
-from vre import VRE, ReprOut, Representation
+from vre import VRE, ReprOut
+from vre.representations import build_representations_from_cfg, LearnedRepresentationMixin
 from vre.logger import vre_logger as logger
 from vre.utils import collage_fn, make_batches, image_resize, image_add_title
-from vre_repository.color.rgb import RGB
-from vre_repository.semantic_segmentation.safeuav import SafeUAV
+from vre_repository import get_vre_repository
 
-os.environ["VRE_DEVICE"] = device = "cuda" if tr.cuda.is_available() else "cpu"
 os.environ["VRE_COLORIZE_SEMSEG_FAST"] = "1"
 os.environ["VRE_PBAR"] = "0"
 
@@ -40,6 +39,7 @@ def get_args() -> Namespace:
     """cli args"""
     parser = ArgumentParser()
     parser.add_argument("video_path", type=str)
+    parser.add_argument("config_path", type=Path)
     parser.add_argument("--batch_size", type=int, default=1)
     parser.add_argument("--output_size", nargs=2, type=int, help="h, w", default=[360, 1280])
     parser.add_argument("--disable_title_hud", action="store_true")
@@ -52,13 +52,10 @@ def main(args: Namespace):
     """main fn"""
     video = VREVideo(args.video_path)
     logger.debug(video)
+    representations = build_representations_from_cfg(args.config_path, get_vre_repository())
 
-    representations: list[Representation] = [
-        RGB(name="rgb", dependencies=[]),
-        safeuav := SafeUAV(name="safeuav", dependencies=[], disk_data_argmax=False, variant="model_150k"),
-    ]
-    safeuav.device = device
-    safeuav.vre_setup()
+    for r in [_r for _r in representations if isinstance(_r, LearnedRepresentationMixin)]:
+        r.vre_setup()
     vre = VRE(video, representations)
     vre.set_compute_params(batch_size=1)
     vre.set_io_parameters(image_format="png", output_size=video.shape[1:3], binary_format="npz", compress=False)
