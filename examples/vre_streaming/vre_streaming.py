@@ -65,7 +65,7 @@ def main(args: Namespace):
         plt.figure(figsize=(12, 6))
         plt.ion()
         plt.show()
-    batches = make_batches(list(range(1000, len(video))), batch_size=1)
+    batches = make_batches(list(range(len(video))), batch_size=1)
     fps = [0]
     while True:
         for bix in batches:

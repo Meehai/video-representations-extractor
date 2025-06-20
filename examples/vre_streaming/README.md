@@ -64,3 +64,16 @@ In other terminal, serve the files
 python -m http.server 9999 --bind 0.0.0.0 --cgi
 ```
 And access it at `localhost:9999` (works on chromium at least)
+
+## Stream from webcam
+
+VRE video supports (via `ffmpeg` ofc) to get data from a `/dev/videoX` device on Linux. Follow this [gist](https://gist.github.com/Meehai/ab22a452ece0cd70d2c0da683d7e0122) that I made to get a webcam (from a phone for example) as a device on linux. Then you can just ffplay (or any of the stuff above) and pass as `VIDEO` path the `/dev/videoX` device.
+
+```bash
+VRE_DEVICE=cuda MPL=0 ./vre_streaming.py /dev/video9 cfg_rgb_safeuav.yaml | \
+  ffplay \
+  -f rawvideo \
+  -pixel_format rgb24 \
+  -video_size 1280x360 \
+  -framerate 30 -i -
+```
