@@ -19,11 +19,6 @@ from .representation_metadata import RepresentationMetadata
 from .utils import now_fmt, make_batches, vre_topo_sort, ReprOut, DiskData, SummaryPrinter, random_chars, MemoryData
 from .logger import vre_logger as logger
 
-def _add_data_writers_to_run_metadata(run_metadata, representations, output_dir, output_dir_exists_mode):
-    for vrepr in representations:
-        run_metadata.data_writers[vrepr.name] = DataWriter(output_dir=output_dir, representation=vrepr,
-                                                           output_dir_exists_mode=output_dir_exists_mode).to_dict()
-
 class VideoRepresentationsExtractor:
     """Video Representations Extractor class"""
 
@@ -95,18 +90,19 @@ class VideoRepresentationsExtractor:
                                    logs_dir=logs_dir, now_str=now, run_id=run_id)
         logger.info(runtime_args)
         summary_printer = SummaryPrinter(exported_names, runtime_args)
-        _add_data_writers_to_run_metadata(run_metadata, exported_representations, output_dir, output_dir_exists_mode)
 
-        for vre_repr in exported_representations:
-            repr_metadata = self.do_one_representation(run_id=run_metadata.id, representation=vre_repr,
+        for vrepr in exported_representations:
+            dw = DataWriter(output_dir=output_dir, representation=vrepr, output_dir_exists_mode=output_dir_exists_mode)
+            run_metadata.data_writers[vrepr.name] = dw.to_dict()
+            repr_metadata = self.do_one_representation(run_id=run_metadata.id, representation=vrepr,
                                                        output_dir=output_dir,
                                                        output_dir_exists_mode=output_dir_exists_mode,
-                                                       runtime_args=runtime_args,)
+                                                       runtime_args=runtime_args)
             if repr_metadata.run_had_exceptions and runtime_args.exception_mode == "stop_execution":
-                raise RuntimeError(f"Representation '{vre_repr.name}' threw. "
+                raise RuntimeError(f"Representation '{vrepr.name}' threw. "
                                    f"Check '{logger.get_file_handler().baseFilename}' for information")
             run_metadata.add_run_stats(repr_metadata)
-            summary_printer.repr_metadatas[vre_repr.name] = repr_metadata
+            summary_printer.repr_metadatas[vrepr.name] = repr_metadata
         print(summary_printer())
         return run_metadata
 
@@ -260,8 +256,7 @@ class VideoRepresentationsExtractor:
         if isinstance(ix, range):
             return self[list(ix)]
         assert isinstance(ix, list), type(ix)
-        assert all(isinstance(vre_repr, IORepresentationMixin)
-                   for vre_repr in self.representations), self.representations
+        assert all(isinstance(r, IORepresentationMixin) for r in self.representations), self.representations
 
         res: dict[str, ReprOut] = {}
         for vre_repr in (pbar := tqdm(self.representations, disable=os.getenv("VRE_PBAR", "1") == "0")):
@@ -276,8 +271,8 @@ class VideoRepresentationsExtractor:
                     repr_out = vre_repr.resize(repr_out, vre_repr.output_size)
                 batch_res.append(repr_out)
             combined = ReprOut(frames=np.concatenate([br.frames for br in batch_res]),
-                            key=sum([br.key for br in batch_res], []),
-                            output=MemoryData(np.concatenate([br.output for br in batch_res])))
+                               key=sum([br.key for br in batch_res], []),
+                               output=MemoryData(np.concatenate([br.output for br in batch_res])))
             if vre_repr.image_format.value != "not-set":
                 combined.output_images = vre_repr.make_images(combined)
             res[vre_repr.name] = combined
