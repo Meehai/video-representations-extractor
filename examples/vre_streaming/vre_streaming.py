@@ -41,7 +41,6 @@ def get_args() -> Namespace:
     parser.add_argument("video_path", type=str)
     parser.add_argument("config_path", type=Path)
     parser.add_argument("--batch_size", type=int, default=1)
-    parser.add_argument("--input_size", nargs=2, type=int, help="h, w")
     parser.add_argument("--output_size", nargs=2, type=int, help="h, w", default=[360, 1280])
     parser.add_argument("--disable_title_hud", action="store_true")
     args = parser.parse_args()
@@ -51,8 +50,7 @@ def get_args() -> Namespace:
 
 def main(args: Namespace):
     """main fn"""
-    video_kwargs = {"resolution": args.input_size} if args.video_path == "-" else {}
-    video = VREVideo(args.video_path, **video_kwargs)
+    video = VREVideo(args.video_path)
     logger.debug(video)
     representations = build_representations_from_cfg(args.config_path, get_vre_repository())
 
@@ -72,11 +70,7 @@ def main(args: Namespace):
     while True:
         for bix in batches:
             now = datetime.now()
-            try:
-                res = vre[bix]
-            except StopIteration:
-                logger.info(f"StopIteration raised at {bix=}. Exitting.")
-                exit(0)
+            res = vre[bix]
             imgs = get_imgs(res)
             for i in range(len(bix)):
                 img = imgs[i]
