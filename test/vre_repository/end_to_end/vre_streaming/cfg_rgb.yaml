@@ -1,0 +1,13 @@
+default_io_parameters:
+  binary_format: npz
+  image_format: png
+  compress: True
+
+default_learned_parameters:
+  device: ${oc.env:VRE_DEVICE,cpu}
+
+representations:
+  rgb:
+    type: color/rgb
+    dependencies: []
+    parameters: {}
