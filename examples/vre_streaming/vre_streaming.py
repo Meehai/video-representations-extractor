@@ -2,6 +2,7 @@
 """vre_streaming -- Tool that 'streams' a VRE frame (or batch) by frame to other external tools like ffmpeg or mpl"""
 from argparse import ArgumentParser, Namespace
 from datetime import datetime
+from typing import Any
 from pathlib import Path
 import sys
 import os
@@ -13,16 +14,13 @@ from vre_video import VREVideo
 from vre import VRE, ReprOut
 from vre.representations import build_representations_from_cfg, LearnedRepresentationMixin
 from vre.logger import vre_logger as logger
-from vre.utils import collage_fn, make_batches, image_resize, image_add_title
+from vre.utils import collage_fn, make_batches, image_resize, image_add_title, mean
 from vre_repository import get_vre_repository
 
 os.environ["VRE_COLORIZE_SEMSEG_FAST"] = "1"
 os.environ["VRE_PBAR"] = "0"
 
-def mean(x):
-    return sum(x) / len(x)
-
-def get_imgs(res: dict[str, ReprOut]) -> list[np.ndarray]:
+def _get_imgs(res: dict[str, ReprOut]) -> list[np.ndarray]:
     repr_names = list(res.keys())
     if all(res[r].output_images is None for r in res):
         print("Image format not set, not images were computed. Skipping.")
@@ -32,18 +30,28 @@ def get_imgs(res: dict[str, ReprOut]) -> list[np.ndarray]:
     for i in range(len(res[repr_names[0]].key)):
         imgs = [res[r].output_images[i] if res[r].output_images is not None else None for r in repr_names]
         collage = collage_fn(imgs, titles=repr_names, size_px=70, rows_cols=None) if len(imgs) > 1 else imgs[0]
-        frames_res.append(collage)
+        frames_res.appf(collage)
     return frames_res
+
+def build_reader_kwargs(args: Namespace) -> dict[str, Any]:
+    """builds the video kwargs that's passed to the VREVideo FrameReader"""
+    if args.video_path == "-":
+        return {"resolution": args.input_size}
+    else:
+        assert args.input_size is None, "--input_size cannot be set for video_path that's not stdin"
+    return {}
 
 def get_args() -> Namespace:
     """cli args"""
     parser = ArgumentParser()
     parser.add_argument("video_path", type=str)
     parser.add_argument("config_path", type=Path)
+    # generic parameters
     parser.add_argument("--batch_size", type=int, default=1)
-    parser.add_argument("--input_size", nargs=2, type=int, help="h, w")
     parser.add_argument("--output_size", nargs=2, type=int, help="h, w", default=[360, 1280])
     parser.add_argument("--disable_title_hud", action="store_true")
+    # parameters for video_path='-'
+    parser.add_argument("--input_size", nargs=2, type=int)
     args = parser.parse_args()
     assert args.batch_size > 0, args.batch_size
     assert all(hw > 0 for hw in args.output_size), args.output_size
@@ -51,8 +59,7 @@ def get_args() -> Namespace:
 
 def main(args: Namespace):
     """main fn"""
-    video_kwargs = {"resolution": args.input_size} if args.video_path == "-" else {}
-    video = VREVideo(args.video_path, **video_kwargs)
+    video = VREVideo(args.video_path, **build_reader_kwargs(args))
     logger.debug(video)
     representations = build_representations_from_cfg(args.config_path, get_vre_repository())
 
@@ -67,7 +74,7 @@ def main(args: Namespace):
         plt.figure(figsize=(12, 6))
         plt.ion()
         plt.show()
-    batches = make_batches(list(range(len(video))), batch_size=1)
+    batches = make_batches(list(range(len(video))), batch_size=1) # note: add here a start_index for testing
     fps = [0]
     while True:
         for bix in batches:
@@ -77,11 +84,10 @@ def main(args: Namespace):
             except StopIteration:
                 logger.info(f"StopIteration raised at {bix=}. Exitting.")
                 exit(0)
-            imgs = get_imgs(res)
-            for i in range(len(bix)):
-                img = imgs[i]
+            imgs = _get_imgs(res)
+            for i, img in enumerate(imgs):
                 if not args.disable_title_hud:
-                    img = image_add_title(imgs[i], f"Frame: {bix[i]}. FPS: {mean(fps):.2f}")
+                    img = image_add_title(img, f"Frame: {bix[i]}. FPS: {mean(fps):.2f}")
                 img = image_resize(img, *args.output_size)
                 if os.getenv("MPL", "0") == "1":
                     plt.imshow(img)

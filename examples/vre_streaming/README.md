@@ -75,7 +75,6 @@ VRE video supports (via `ffmpeg` ofc) to get data from a `/dev/videoX` device on
 ```bash
 ffmpeg \
   -f v4l2 \
-  -framerate 30 \
   -video_size 640x480 \
   -i /dev/video9 \
   -pix_fmt rgb24 \
