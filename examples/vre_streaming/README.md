@@ -14,7 +14,8 @@ MPL=1 VRE_DEVICE=cuda ./vre_streaming.py VIDEO CONFIG.YAML
 ## FFplay
 
 ```bash
-VRE_DEVICE=cuda ./vre_streaming.py VIDEO CONFIG.YAML | ffplay \
+VRE_DEVICE=cuda ./vre_streaming.py VIDEO CONFIG.YAML | \
+ffplay \
   -f rawvideo \
   -pixel_format rgb24 \
   -video_size 1280x360 \
@@ -24,7 +25,8 @@ VRE_DEVICE=cuda ./vre_streaming.py VIDEO CONFIG.YAML | ffplay \
 ## MPV/VLC (via ffmpeg+TCP stream)
 
 ```bash
-VRE_DEVICE=cuda ./vre_streaming.py VIDEO CONFIG.YAML | ffmpeg \
+VRE_DEVICE=cuda ./vre_streaming.py VIDEO CONFIG.YAML | \
+ffmpeg \
   -f rawvideo \
   -pixel_format rgb24 \
   -video_size 1280x360 \
@@ -42,7 +44,8 @@ and open in the video player (i.e. vlc) the stream at: `tcp://localhost:9999`.
 ## HTML5 (via ffmpeg+HLS stream)
 
 ```bash
-VRE_DEVICE=cuda ./vre_streaming.py VIDEO CONFIG.YAML | ffmpeg \
+VRE_DEVICE=cuda ./vre_streaming.py VIDEO CONFIG.YAML | \
+ffmpeg \
   -f rawvideo \
   -pixel_format rgb24 \
   -video_size 1280x360 \
@@ -67,13 +70,23 @@ And access it at `localhost:9999` (works on chromium at least)
 
 ## Stream from webcam
 
-VRE video supports (via `ffmpeg` ofc) to get data from a `/dev/videoX` device on Linux. Follow this [gist](https://gist.github.com/Meehai/ab22a452ece0cd70d2c0da683d7e0122) that I made to get a webcam (from a phone for example) as a device on linux. Then you can just ffplay (or any of the stuff above) and pass as `VIDEO` path the `/dev/videoX` device.
+VRE video supports (via `ffmpeg` ofc) to get data from a `/dev/videoX` device on Linux. Follow this [gist](https://gist.github.com/Meehai/ab22a452ece0cd70d2c0da683d7e0122) that I made to get a webcam (from a phone for example) as a device on linux. Then you can just ffplay (or any of the stuff above) and pass as `VIDEO` the standard input (via `-`). Be careful on the resolutions.
 
 ```bash
-VRE_DEVICE=cuda MPL=0 ./vre_streaming.py /dev/video9 cfg_rgb_safeuav.yaml | \
-  ffplay \
+ffmpeg \
+  -f v4l2 \
+  -framerate 30 \
+  -video_size 640x480 \
+  -i /dev/video9 \
+  -pix_fmt rgb24 \
+  -f rawvideo - | \
+VRE_DEVICE=cuda MPL=0 ./vre_streaming.py - CONFIG.YAML \
+  --input_size 480 640 \
+  --output_size 360 1280 | \
+ffplay \
   -f rawvideo \
   -pixel_format rgb24 \
   -video_size 1280x360 \
-  -framerate 30 -i -
+  -framerate 30 \
+  -i -
 ```
