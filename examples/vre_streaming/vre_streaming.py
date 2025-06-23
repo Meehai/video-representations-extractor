@@ -30,7 +30,7 @@ def _get_imgs(res: dict[str, ReprOut]) -> list[np.ndarray]:
     for i in range(len(res[repr_names[0]].key)):
         imgs = [res[r].output_images[i] if res[r].output_images is not None else None for r in repr_names]
         collage = collage_fn(imgs, titles=repr_names, size_px=70, rows_cols=None) if len(imgs) > 1 else imgs[0]
-        frames_res.appf(collage)
+        frames_res.append(collage)
     return frames_res
 
 def build_reader_kwargs(args: Namespace) -> dict[str, Any]:
@@ -96,8 +96,12 @@ def main(args: Namespace):
                     plt.clf()
                 else:
                     # sys.stderr.write(f"{img.shape}, {img.dtype}\n")
-                    sys.stdout.buffer.write(img.tobytes())
-                    sys.stdout.flush()
+                    try:
+                        sys.stdout.buffer.write(img.tobytes())
+                        sys.stdout.flush()
+                    except BrokenPipeError as e:
+                        logger.error(e)
+                        exit(0)
 
             if (diff := (1 / video.fps) - (datetime.now() - now).total_seconds()) > 0:
                 time.sleep(diff)
