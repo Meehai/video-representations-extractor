@@ -36,7 +36,7 @@ def _get_imgs(res: dict[str, ReprOut]) -> list[np.ndarray]:
 def build_reader_kwargs(args: Namespace) -> dict[str, Any]:
     """builds the video kwargs that's passed to the VREVideo FrameReader"""
     if args.video_path == "-":
-        return {"resolution": args.input_size}
+        return {"resolution": args.input_size, "async_worker": not args.disable_async_worker}
     else:
         assert args.input_size is None, "--input_size cannot be set for video_path that's not stdin"
     return {}
@@ -52,6 +52,8 @@ def get_args() -> Namespace:
     parser.add_argument("--disable_title_hud", action="store_true")
     # parameters for video_path='-'
     parser.add_argument("--input_size", nargs=2, type=int)
+    parser.add_argument("--disable_async_worker", action="store_true",
+                        help="Set this to true for sync streaming like reading from an mp4. Keep it on for real time")
     args = parser.parse_args()
     assert args.batch_size > 0, args.batch_size
     assert all(hw > 0 for hw in args.output_size), args.output_size

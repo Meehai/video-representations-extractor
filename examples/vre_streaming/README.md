@@ -89,3 +89,44 @@ ffplay \
   -framerate 30 \
   -i -
 ```
+
+Note: Use `--disable_async_worker` if you want to use a 'frame by frame' (sync) reader, like sending each frame of an actual mp4 video via ffmpeg. For actual real-time streaming, keep it on, otherwise you will experience great lag.
+
+## Stream from video but with vre_streaming on a remote server
+
+vre_streaming doesn't currently support a "bytes tcp listening socket", but we can emulate it with tools like `socat` and `nc`.
+
+On the server, run this:
+```bash
+socat TCP-LISTEN:5000,reuseaddr,fork EXEC:'bash -c "VRE_DEVICE=cuda vre_streaming - CONFIG.YAML --input_size H W --output_size H W"',pty,rawer,echo=0
+```
+
+This will start a tcp server on port 5000 on the remote server that listens to stdin.
+
+On your local machine (where your video or webcam) resides, you can do this:
+
+```bash
+ffmpeg \
+  -f v4l2 \
+  -video_size 640x480 \
+  -i /dev/video9 \
+  -pix_fmt rgb24 \
+  -f rawvideo - | \
+nc REMOTE_SERVER 5000 | \
+ffplay \
+  -f rawvideo \
+  -pixel_format rgb24 \
+  -video_size 1280x360 \
+  -framerate 30 \
+  -i -
+```
+
+#### You can only access your server via SSH (i.e. shared resources env) but it doesn't have a public IP
+
+No problem, on your local machine start a SSH tunnel:
+
+```bash
+ssh -N -L 6000:localhost:5000 REMOTE_SERVER
+```
+
+And switch to `nc localhost 6000` instead of `nc REMOTE_SERVER 5000` which goes through the SSH tunnel.
