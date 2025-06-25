@@ -98,7 +98,7 @@ vre_streaming doesn't currently support a "bytes tcp listening socket", but we c
 
 On the server, run this:
 ```bash
-socat TCP-LISTEN:5000,reuseaddr,fork EXEC:'bash -c "VRE_DEVICE=cuda vre_streaming - CONFIG.YAML --input_size H W --output_size H W"',pty,rawer,echo=0
+VRE_DEVICE=cuda socat -v TCP-LISTEN:5000,reuseaddr EXEC:'vre_streaming - cfg_rgb_safeuav.yaml --input_size 720 1280 --output_size 360 1280 --disable_async_worker',pty,rawer,echo=0
 ```
 
 This will start a tcp server on port 5000 on the remote server that listens to stdin.
