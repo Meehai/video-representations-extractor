@@ -90,18 +90,12 @@ ffplay \
   -i -
 ```
 
-Note: Use `--disable_async_worker` if you want to use a 'frame by frame' (sync) reader, like sending each frame of an actual mp4 video via ffmpeg. For actual real-time streaming, keep it on, otherwise you will experience great lag.
+Note: If you are testing vre_streaming for an mp4 video and you don't want your frames to be skipped (like it'd happen for a continuous streaming session, like webcam), then also use `--disable_async_worker` that enables a sync (frame by frame) reader. For actual real-time streaming, keep it on, otherwise you will experience great lag.
 
 ## Stream from video but with vre_streaming on a remote server
 
-vre_streaming doesn't currently support a "bytes tcp listening socket", but we can emulate it with tools like `socat` and `nc`.
+TODO: We are working towards making a 'vre listening (TCP/UDP?) client'.
 
-On the server, run this:
-```bash
-VRE_DEVICE=cuda socat -v TCP-LISTEN:5000,reuseaddr EXEC:'vre_streaming - cfg_rgb_safeuav.yaml --input_size 720 1280 --output_size 360 1280 --disable_async_worker',pty,rawer,echo=0
-```
-
-This will start a tcp server on port 5000 on the remote server that listens to stdin.
 
 On your local machine (where your video or webcam) resides, you can do this:
 
