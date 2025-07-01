@@ -11,7 +11,7 @@ The easiest thing we can do is use matplotlib. In order to use matplotlib, we ca
 VRE_DEVICE=cuda ./vre_streaming.py VIDEO CONFIG.YAML --output_destination matplotlib
 ```
 
-By default `--output_destinatio` is set to stdout, so it must be combined with something that can understand raw video bytes.
+By default `--output_destination` is set to stdout, so it must be combined with something that can understand raw video bytes.
 
 ## FFplay
 
