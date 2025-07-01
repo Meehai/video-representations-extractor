@@ -4,6 +4,7 @@ from argparse import ArgumentParser, Namespace
 from datetime import datetime
 from typing import Any
 from pathlib import Path
+from io import FileIO
 import sys
 import os
 import time
@@ -44,8 +45,10 @@ def build_reader_kwargs(args: Namespace) -> dict[str, Any]:
     return {}
 
 def process_one_batch(vre: VRE, batch: list[int], output_size: tuple[int, int],
-                      disable_title_hud: bool=False, curr_fps: list[float] | None = None) -> IntOrError:
+                      disable_title_hud: bool=False, curr_fps: list[float] | None = None,
+                      write_buffer: FileIO | None = None) -> IntOrError:
     curr_fps = curr_fps or []
+    write_buffer = write_buffer or sys.stdout.buffer
 
     now = datetime.now()
     try:
@@ -68,8 +71,8 @@ def process_one_batch(vre: VRE, batch: list[int], output_size: tuple[int, int],
         else:
             # sys.stderr.write(f"{img.shape}, {img.dtype}\n")
             try:
-                sys.stdout.buffer.write(img.tobytes())
-                sys.stdout.flush()
+                write_buffer.write(img.tobytes())
+                write_buffer.flush()
             except BrokenPipeError as e:
                 return None, e
     return (datetime.now() - now).total_seconds(), None
@@ -94,7 +97,19 @@ def get_args() -> Namespace:
 
 def main(args: Namespace):
     """main fn"""
-    video = VREVideo(args.video_path, **build_reader_kwargs(args))
+
+    import socket
+
+    # Create and bind a listening socket
+    print("Listening on 0.0.0.port 5000")
+    server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_sock.bind(("0.0.0.0", 5000))
+    server_sock.listen()
+    conn, addr = server_sock.accept()
+    print(f"Accepted connection from {addr}")
+    conn_file = conn.makefile("rwb")
+
+    video = VREVideo(conn_file, **build_reader_kwargs(args))
     logger.debug(video)
     representations = build_representations_from_cfg(args.config_path, get_vre_repository())
 
@@ -113,7 +128,7 @@ def main(args: Namespace):
     fps = [0]
     while True:
         for bix in batches:
-            took_s, err = process_one_batch(vre, bix, args.output_size, args.disable_title_hud, fps)
+            took_s, err = process_one_batch(vre, bix, args.output_size, args.disable_title_hud, fps, conn_file)
             if err is not None:
                 raise err
             if (diff := (1 / video.fps) - took_s) > 0:
