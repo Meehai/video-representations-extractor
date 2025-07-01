@@ -20,6 +20,8 @@ from vre_repository import get_vre_repository
 os.environ["VRE_COLORIZE_SEMSEG_FAST"] = "1"
 os.environ["VRE_PBAR"] = "0"
 
+IntOrError = tuple[int | None, Exception | None]
+
 def _get_imgs(res: dict[str, ReprOut]) -> list[np.ndarray]:
     repr_names = list(res.keys())
     if all(res[r].output_images is None for r in res):
@@ -40,6 +42,37 @@ def build_reader_kwargs(args: Namespace) -> dict[str, Any]:
     else:
         assert args.input_size is None, "--input_size cannot be set for video_path that's not stdin"
     return {}
+
+def process_one_batch(vre: VRE, batch: list[int], output_size: tuple[int, int],
+                      disable_title_hud: bool=False, curr_fps: list[float] | None = None) -> IntOrError:
+    curr_fps = curr_fps or []
+
+    now = datetime.now()
+    try:
+        res = vre[batch]
+    except StopIteration as e:
+        logger.info(f"StopIteration raised at {batch=}. Exitting.")
+        return None, e
+    imgs = _get_imgs(res)
+    for i, img in enumerate(imgs):
+        if not disable_title_hud:
+            title = f"Frame: {batch[i]}."
+            title = title if curr_fps is None else f"{title} FPS {mean(curr_fps):.2f}"
+            img = image_add_title(img, title)
+        img = image_resize(img, *output_size)
+        if os.getenv("MPL", "0") == "1":
+            plt.imshow(img)
+            plt.draw()
+            plt.pause(0.00001)
+            plt.clf()
+        else:
+            # sys.stderr.write(f"{img.shape}, {img.dtype}\n")
+            try:
+                sys.stdout.buffer.write(img.tobytes())
+                sys.stdout.flush()
+            except BrokenPipeError as e:
+                return None, e
+    return (datetime.now() - now).total_seconds(), None
 
 def get_args() -> Namespace:
     """cli args"""
@@ -80,34 +113,12 @@ def main(args: Namespace):
     fps = [0]
     while True:
         for bix in batches:
-            now = datetime.now()
-            try:
-                res = vre[bix]
-            except StopIteration:
-                logger.info(f"StopIteration raised at {bix=}. Exitting.")
-                exit(0)
-            imgs = _get_imgs(res)
-            for i, img in enumerate(imgs):
-                if not args.disable_title_hud:
-                    img = image_add_title(img, f"Frame: {bix[i]}. FPS: {mean(fps):.2f}")
-                img = image_resize(img, *args.output_size)
-                if os.getenv("MPL", "0") == "1":
-                    plt.imshow(img)
-                    plt.draw()
-                    plt.pause(0.00001)
-                    plt.clf()
-                else:
-                    # sys.stderr.write(f"{img.shape}, {img.dtype}\n")
-                    try:
-                        sys.stdout.buffer.write(img.tobytes())
-                        sys.stdout.flush()
-                    except BrokenPipeError as e:
-                        logger.error(e)
-                        exit(0)
-
-            if (diff := (1 / video.fps) - (datetime.now() - now).total_seconds()) > 0:
+            took_s, err = process_one_batch(vre, bix, args.output_size, args.disable_title_hud, fps)
+            if err is not None:
+                raise err
+            if (diff := (1 / video.fps) - took_s) > 0:
                 time.sleep(diff)
-            fps = [*fps[-10:], len(bix) / (datetime.now() - now).total_seconds()]
+            fps = [*fps[-10:], len(bix) / took_s]
 
 if __name__ == "__main__":
     main(get_args())
