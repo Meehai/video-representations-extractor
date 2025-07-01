@@ -1,5 +1,7 @@
 # VRE webcam streaming
 
+Note: also posted as a GitHub [gist](https://gist.github.com/Meehai/ab22a452ece0cd70d2c0da683d7e0122).
+
 We want to use a webcam or (an Android device with camera acting as a webcam) and we want to read data from it and pass to `vre_streaming`.
 
 ## USB webcam

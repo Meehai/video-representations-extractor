@@ -70,7 +70,7 @@ And access it at `localhost:9999` (works on chromium at least)
 
 ## Stream from webcam
 
-VRE video supports (via `ffmpeg` ofc) to get data from a `/dev/videoX` device on Linux. Follow this [gist](https://gist.github.com/Meehai/ab22a452ece0cd70d2c0da683d7e0122) that I made to get a webcam (from a phone for example) as a device on linux. Then you can just ffplay (or any of the stuff above) and pass as `VIDEO` the standard input (via `-`). Be careful on the resolutions.
+VRE video supports (via `ffmpeg` ofc) to get data from a `/dev/videoX` device on Linux. Follow this [tutorial](./how2webcam.md) that I made to get a webcam (from a phone for example) as a device on linux. Then you can just ffplay (or any of the stuff above) and pass as `VIDEO` the standard input (via `-`). Be careful on the resolutions.
 
 ```bash
 ffmpeg \
