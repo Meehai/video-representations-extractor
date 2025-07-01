@@ -118,7 +118,6 @@ def main(args: Namespace):
     vre = VRE(video, representations)
     vre.set_compute_params(batch_size=1)
     vre.set_io_parameters(image_format="png", output_size=video.shape[1:3], binary_format="npz", compress=False)
-    vre.to_graphviz().render("graph", format="png", cleanup=True)
 
     if os.getenv("MPL", "0") == "1":
         plt.figure(figsize=(12, 6))
