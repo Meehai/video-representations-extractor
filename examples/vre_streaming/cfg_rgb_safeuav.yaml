@@ -17,4 +17,4 @@ representations:
     dependencies: []
     parameters:
       disk_data_argmax: False
-      variant: model_150k
+      variant: model_430k
