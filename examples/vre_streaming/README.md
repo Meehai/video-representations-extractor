@@ -8,8 +8,10 @@ This example will show us various ways to stream from VRE to various external to
 
 The easiest thing we can do is use matplotlib. In order to use matplotlib, we can specify the `MPL=1` env variable.
 ```bash
-MPL=1 VRE_DEVICE=cuda ./vre_streaming.py VIDEO CONFIG.YAML
+VRE_DEVICE=cuda ./vre_streaming.py VIDEO CONFIG.YAML --output_destination matplotlib
 ```
+
+By default `--output_destination` is set to stdout, so it must be combined with something that can understand raw video bytes.
 
 ## FFplay
 
@@ -79,7 +81,7 @@ ffmpeg \
   -i /dev/video9 \
   -pix_fmt rgb24 \
   -f rawvideo - | \
-VRE_DEVICE=cuda MPL=0 ./vre_streaming.py - CONFIG.YAML \
+VRE_DEVICE=cuda ./vre_streaming.py - CONFIG.YAML \
   --input_size 480 640 \
   --output_size 360 1280 | \
 ffplay \
@@ -94,8 +96,13 @@ Note: If you are testing vre_streaming for an mp4 video and you don't want your 
 
 ## Stream from video but with vre_streaming on a remote server
 
-TODO: We are working towards making a 'vre listening (TCP/UDP?) client'.
+You can combine the `VIDEO` and `--output_destination` parameters to act as a TCP socket (TODO for UDP):
 
+### On your remote machine where you are processing the video frames
+
+```bash
+VRE_DEVICE=cuda ./vre_stremaing.py tcp://0.0.0.0:5000 CONFIG.YAML --output_destination socket
+```
 
 On your local machine (where your video or webcam) resides, you can do this:
 
@@ -124,3 +131,12 @@ ssh -N -L 6000:localhost:5000 REMOTE_SERVER
 ```
 
 And switch to `nc localhost 6000` instead of `nc REMOTE_SERVER 5000` which goes through the SSH tunnel.
+
+#### Other stuff you can do
+- ffmpeg -i video_path (instead of `v4l2`) with `nc` and `--output_destination socket`
+- ffmpeg -i video_path and use `--output_destination stdout (default)` and pipe from the server to ffplay
+  - the webcam is on device 1 which sends frame by frame to the processing server
+  - the output is one the processing server
+  - note: these can be on the same machine
+
+Remember to use `--disable_async_worker` for mp4 files if you care about processing absolutely every frame.
