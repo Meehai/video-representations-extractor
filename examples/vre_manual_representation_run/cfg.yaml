@@ -21,3 +21,10 @@ representations:
     type: depth/dpt
     dependencies: []
     parameters: {}
+  normals_svd(depth_dpt):
+    type: normals/depth-svd
+    dependencies: [depth_dpt]
+    parameters:
+      sensor_fov: 75
+      sensor_size: [3840, 2160]
+      window_size: 11
