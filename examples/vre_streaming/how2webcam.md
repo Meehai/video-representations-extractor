@@ -23,9 +23,11 @@ On android phone:
 
 #### v4l2loopback module
 - Install `v4l2loopback` from `this repo` or ubuntu (`v4l2loopback-dkms`).
-- load it on your linux kernel: `sudo rmmod v4l2loopback` followed by ` sudo modprobe v4l2loopback video_nr=2 card_label="VirtualCamAA" exclusive_caps=1`
+- load it on your linux kernel: `sudo rmmod v4l2loopback` followed by `sudo modprobe v4l2loopback video_nr=2 card_label="VirtualCamAA" exclusive_caps=1`
 - we put VirtualCamAA to make sure it appears on `v4l2-ctl --list-devices`.
     - Note: it does't really care about your `video_nr` option but put it regardless. Here it's on `/dev/video9`. Potential output:
+- Note: sometimes `rmmod` doesn't work. Use `fuser -k /dev/video*` a bunch of times until no PID is left.
+- Note: sometimes `--video_nr=0` is the only way for this to work (if `v2l2-ctl --list-devices`) complains.
 
 ```
 v4l2-ctl --list-devices
