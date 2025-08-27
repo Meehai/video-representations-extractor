@@ -52,14 +52,14 @@ def _get_rows_cols(n_imgs: int, rows_cols: tuple[int | None, int | None] | None)
 def collage_fn(images: list[np.ndarray], rows_cols: tuple[int, int] = None, pad_bottom: int = 0,
                pad_right: int = 0, titles: list[str] = None, pad_to_max: bool = False, **title_kwargs) -> np.ndarray:
     """
-    Make a concatenated collage based on the desired r,c format
-    Parameters:
+    Make a concatenated collage based on the desired r,c format. Parameters:
     - images A stack of images
     - rows_cols Tuple for number of rows and columns
-    - pad_bottom An integer to pad the images on top, only valid in rows [2: n_rows]. TODO: what is this measured in?
-    - pad_right An integer to pad images on right, only valid on columns [2: n_cols]. TODO: what is this measured in?
+    - pad_bottom An integer to pad the images on top, only valid in rows [2: n_rows]. Pad is in pixels.
+    - pad_right An integer to pad images on right, only valid on columns [2: n_cols]. Pad is in pixels.
     - titles Titles for each image. Optional.
     - pad_to_max If True, pad all images to the max size of all images. If False, all image must be the same shape.
+    - **title_kwargs are forwarded to image_add_title. Note: there is 'top_padding' and 'sixe_px' as well.
 
     Return: A numpy array of stacked images according to (rows, cols) inputs.
     """
