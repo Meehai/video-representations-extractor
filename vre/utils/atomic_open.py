@@ -33,7 +33,7 @@ except ModuleNotFoundError:
 
 class AtomicOpen:
     """
-    lass for ensuring that all file operations are atomic, treat initialization like a standard call to 'open' that
+    Class for ensuring that all file operations are atomic, treat initialization like a standard call to 'open' that
     happens to be atomic. This file opener *must* be used in a "with" block.
     Open the file with arguments provided by user. Then acquire a lock on that file object.
     """
