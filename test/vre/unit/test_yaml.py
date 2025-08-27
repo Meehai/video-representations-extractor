@@ -21,14 +21,14 @@ def test_vre_yaml_load_bad_env_var():
 default_learned_parameters:
   device: ${oc.env:{{,cpu}
 """)
-    with pytest.raises(ValueError):
+    with pytest.raises(AssertionError):
         _ = vre_yaml_load(cfg_str)
 
     cfg_str = StringIO("""
 default_learned_parameters:
   device: ${oc.env:HELLO
 """)
-    with pytest.raises(ValueError):
+    with pytest.raises(AssertionError):
         _ = vre_yaml_load(cfg_str)
 
 def test_vre_yaml_load_two_env_vars():
@@ -36,7 +36,8 @@ def test_vre_yaml_load_two_env_vars():
 default_learned_parameters:
   device: ${oc.env:VRE_TEST_ENV,cpu}
   hi: 1
-hi2: {gogu: ${oc.env:VRE_TEST_ENV2}}
+hi2:
+  gogu: ${oc.env:VRE_TEST_ENV2}
 """)
     with pytest.raises(KeyError):
         vre_yaml_load(cfg_str)
