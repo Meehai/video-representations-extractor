@@ -22,22 +22,26 @@ def pil_image_add_title(image: np.ndarray, text: str, font: str = None, font_col
     pil_image = Image.fromarray(image.astype(np.uint8))
     draw = ImageDraw.Draw(pil_image)
 
-    if top_padding is None:
-        top_padding = int(height * 0.10)
-        logger.debug2(f"Top padding not provided. Giving 10% of the image = {top_padding}")
-
     if size_px is None:
-        size_px = top_padding
+        size_px = int(height * 0.10)
+        logger.debug2(f"Size of the font not provided. Giving 10% of the image = {size_px}")
 
-    if font is None:
-        font = _get_default_font(size_px=size_px)
+    font = font or _get_default_font(size_px=size_px)
+    text_width, text_height = _pil_image_draw_textsize(draw, text, font)
+    logger.debug2(f"Font: {font}")
+
+    top_padding = top_padding or text_height
+    if top_padding < text_height:
+        logger.warning(f"{top_padding=} is below {text_height=} of {size_px=} {text=}.")
 
     # Expand the image with (left=0, top=top_padding, right=0, bottom=0)
     border = (0, top_padding, 0, 0)
     expanded_image = ImageOps.expand(pil_image, border=border, fill=background_color)
     expanded_image = np.array(expanded_image)
-    text_width, text_height = _pil_image_draw_textsize(draw, text, font)
-    position = -text_height // 4.8, (expanded_image.shape[1] - text_width) // 2
+    if text_width > expanded_image.shape[1]:
+        logger.warning(f"{text_width=} of {text=} is larger than {expanded_image.shape=}")
+
+    position = (top_padding - text_height) // 2, (expanded_image.shape[1] - text_width) // 2
     return pil_image_add_text(expanded_image, text=text, position=position, font=font, font_color=font_color)
 
 def pil_image_add_text(image: np.ndarray, text: str, position: tuple[int, int], font: str | None = None,
@@ -105,5 +109,6 @@ def _get_default_font(size_px: int | None = None):
 def _pil_image_draw_textsize(draw: ImageDraw, text: str, font: ImageFont) -> tuple[int, int]:
     im = Image.new(mode="P", size=(0, 0))
     draw = ImageDraw.Draw(im)
-    _, _, width, height = draw.textbbox((0, 0), text=text, font=font)
+    _, _, width, _ = draw.textbbox((0, 0), text=text, font=font)
+    _, _, _, height = draw.textbbox((0, 0), text="g", font=font) # g has highest width
     return width, height
