@@ -64,16 +64,18 @@ class MultiTaskDataset(Dataset):
     Names can be in a different format (i.e. 2022-01-01.npz), but must be consistent and equal across all tasks.
     """
 
-    def __init__(self, path: Path,
-                 task_names: list[str],
-                 task_types: dict[str, type],
-                 normalization: str | None | dict[str],
-                 handle_missing_data: str = "fill_none",
-                 files_suffix: str = "npz",
-                 cache_task_stats: bool = (os.getenv("STATS_CACHE", "1") == "1"),
-                 batch_size_stats: int = int(os.getenv("STATS_BATCH_SIZE", "1")),
-                 num_workers_stats: int = int(os.getenv("NUM_WORKERS_STATS", "0")),
-                 statistics: dict[str, TaskStatistics] | None = None,
+    def __init__(
+        self,
+        path: Path,
+        task_names: list[str],
+        task_types: dict[str, type],
+        normalization: str | None | dict[str],
+        handle_missing_data: str = "fill_none",
+        files_suffix: str = "npz",
+        cache_task_stats: bool = (os.getenv("STATS_CACHE", "1") == "1"),
+        batch_size_stats: int = int(os.getenv("STATS_BATCH_SIZE", "1")),
+        num_workers_stats: int = int(os.getenv("NUM_WORKERS_STATS", "0")),
+        statistics: dict[str, TaskStatistics] | None = None,
     ):
         assert Path(path).exists(), f"Provided path '{path}' doesn't exist!"
         assert handle_missing_data in ("drop", "fill_none", "fill_zero", "fill_nan", "raise"), \
