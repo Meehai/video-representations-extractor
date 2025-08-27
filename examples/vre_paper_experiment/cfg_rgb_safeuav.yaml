@@ -1,0 +1,24 @@
+default_compute_parameters:
+  batch_size: ${oc.decode:${oc.env:BATCH_SIZE}}
+
+default_io_parameters:
+  binary_format: npz
+  image_format: ${oc.env:IMAGE_FORMAT}
+  compress: ${oc.decode:${oc.env:COMPRESS}}
+  output_size: ${oc.decode:${oc.env:OUTPUT_SIZE}}
+
+default_learned_parameters:
+  device: ${oc.env:VRE_DEVICE,cpu}
+
+representations:
+  rgb:
+    type: color/rgb
+    dependencies: []
+    parameters: {}
+
+  safeuav:
+    type: semantic-segmentation/safeuav
+    dependencies: []
+    parameters:
+      disk_data_argmax: False
+      variant: model_430k
