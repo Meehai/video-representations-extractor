@@ -21,9 +21,9 @@ args = []
 args.extend([(False, "not-set", os, bs, 100, dvc) for dvc in devices for bs in batch_sizes for os in resolutions])
 
 #phg-mae
-# for c,i,os,bs,nf,dvc in args:
-#   print(f"VRE_DEVICE={dvc} COMPRESS={c} IMAGE_FORMAT={i} OUTPUT_SIZE='{os}' BATCH_SIZE={bs} vre video_{os[0]}_{os[1]}.mp4 -o safeuav_{dvc}_c{c}_n{nf}_{bs}_{i}_{os[0]}_{os[1]}/ --config_path cfg_rgb_safeuav.yaml --frames 0..{nf} --output_dir_exists_mode skip_computed")
+for c,i,os,bs,nf,dvc in args:
+  print(f"VRE_DEVICE={dvc} COMPRESS={c} IMAGE_FORMAT={i} OUTPUT_SIZE='{os}' BATCH_SIZE={bs} vre video_{os[0]}_{os[1]}.mp4 -o safeuav_{dvc}_c{c}_n{nf}_{bs}_{i}_{os[0]}_{os[1]}/ --config_path cfg_rgb_safeuav.yaml --frames 0..{nf} --output_dir_exists_mode skip_computed")
 
 #dpt
-for c,i,os,bs,nf,dvc in args:
-  print(f"VRE_DEVICE={dvc} COMPRESS={c} IMAGE_FORMAT={i} OUTPUT_SIZE='{os}' BATCH_SIZE={bs} vre video_{os[0]}_{os[1]}.mp4 -o dpt_{dvc}_c{c}_n{nf}_{bs}_{i}_{os[0]}_{os[1]}/ --config_path cfg_rgb_dpt.yaml --frames 0..{nf} --output_dir_exists_mode skip_computed")
+# for c,i,os,bs,nf,dvc in args:
+#   print(f"VRE_DEVICE={dvc} COMPRESS={c} IMAGE_FORMAT={i} OUTPUT_SIZE='{os}' BATCH_SIZE={bs} vre video_{os[0]}_{os[1]}.mp4 -o dpt_{dvc}_c{c}_n{nf}_{bs}_{i}_{os[0]}_{os[1]}/ --config_path cfg_rgb_dpt.yaml --frames 0..{nf} --output_dir_exists_mode skip_computed")
