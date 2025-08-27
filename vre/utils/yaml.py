@@ -44,10 +44,7 @@ def vre_yaml_load(path: Path | str | IOBase) -> dict[str, Any]:
     data: str = fp.read()
     assert len(data) > 0, f"Nothing read from '{path}'"
 
-    try:
-        cfg_raw = yaml.safe_load(StringIO(data))
-    except:
-        breakpoint()
+    cfg_raw = yaml.safe_load(StringIO(data))
     cfg = _parse_atom(cfg_raw)
     fp.close() if isinstance(path, (Path, str)) else None
     return cfg
