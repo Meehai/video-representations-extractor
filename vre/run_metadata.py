@@ -20,6 +20,11 @@ class RunMetadata:
         self.id = run_id or random_chars(n=10)
         self.data_writers = {}
         self.run_stats = {}
+        self.total_stats = {
+            "n_computed": 0,
+            "n_failed": 0,
+            "duration": 0,
+        }
         self.now_str = now_str or now_fmt()
         self.store_on_disk()
 
@@ -36,6 +41,7 @@ class RunMetadata:
             "runtime_args": self.runtime_args,
             "data_writers": self.data_writers,
             "run_stats": self.run_stats,
+            "total": self.total_stats,
         }
 
     def add_run_stats(self, repr_metadata: RepresentationMetadata):
@@ -44,9 +50,14 @@ class RunMetadata:
         frames_computed = repr_metadata.frames_computed(run_id=self.id)
         frames_failed = repr_metadata.frames_failed(run_id=self.id)
 
-        avg_duration = round(mean([repr_metadata.run_stats[ix].duration for ix in frames_computed]), 2)
+        avg_duration = round(mean([repr_metadata.run_stats[ix].duration for ix in frames_computed]), 3)
         self.run_stats[name] = {"n_computed": len(frames_computed), "n_failed": len(frames_failed),
                                 "average_duration": avg_duration}
+        self.total_stats = {
+            "n_computed": self.total_stats["n_computed"] + len(frames_computed),
+            "n_failed": self.total_stats["n_failed"] + len(frames_failed),
+            "duration": round(self.total_stats["duration"] + avg_duration * len(frames_computed), 3)
+        }
         self.store_on_disk()
 
     def store_on_disk(self):

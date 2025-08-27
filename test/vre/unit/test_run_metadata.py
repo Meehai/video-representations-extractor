@@ -24,15 +24,15 @@ def test_RunMetadata_two_representations(tmp_path: Path):
     metadata_r2.add_time(0.1, [0, 1, 2], run_id=run_metadata.id)
     run_metadata.add_run_stats(metadata_r1)
     assert run_metadata.run_stats == {
-        "r1": {"n_computed": 3, "n_failed": 0, "average_duration": 0.03},
+        "r1": {"n_computed": 3, "n_failed": 0, "average_duration": 0.033},
     }
     # cannot run the same representation twice in the same run
     with pytest.raises(AssertionError):
         run_metadata.add_run_stats(metadata_r1)
     run_metadata.add_run_stats(metadata_r2)
     assert run_metadata.run_stats == {
-        "r1": {"n_computed": 3, "n_failed": 0, "average_duration": 0.03},
-        "r2": {"n_computed": 3, "n_failed": 0, "average_duration": 0.03}
+        "r1": {"n_computed": 3, "n_failed": 0, "average_duration": 0.033},
+        "r2": {"n_computed": 3, "n_failed": 0, "average_duration": 0.033}
     }
 
 if __name__ == "__main__":

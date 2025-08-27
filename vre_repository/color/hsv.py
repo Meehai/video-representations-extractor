@@ -62,3 +62,8 @@ class HSV(ColorRepresentation):
     def compute(self, video: VREVideo, ixs: list[int], dep_data: list[ReprOut] | None = None) -> ReprOut:
         assert dep_data is not None and len(dep_data) == 1, dep_data
         return ReprOut(frames=video[ixs], output=rgb2hsv(dep_data[0].output).astype(np.float32), key=ixs)
+
+    @overrides
+    def make_images(self, data: ReprOut) -> np.ndarray:
+        y = self.unnormalize(data.output) if self.normalization is not None else data.output
+        return (y * 255).astype(np.uint8)
