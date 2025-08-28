@@ -1,0 +1,395 @@
+{
+    "id": "kj3Zq3yo98",
+    "runtime_args": {
+        "video_path": "/export/home/proiecte/aux/mihai_cristian.pirvu/code/video-representations-extractor/examples/vre_paper_experiment/video_540_960.mp4",
+        "video_shape": "(9021, 540, 960, 3)",
+        "video_fps": "29.97",
+        "representations": [
+            "rgb",
+            "semantic_mask2former_coco_47429163_0",
+            "semantic_mask2former_mapillary_49189528_0",
+            "semantic_mask2former_mapillary_49189528_1",
+            "depth_marigold",
+            "semantic_mask2former_swin_coco_converted",
+            "semantic_mask2former_swin_mapillary_converted",
+            "semantic_mask2former_r50_mapillary_converted",
+            "buildings",
+            "sky-and-water",
+            "transportation",
+            "containing",
+            "vegetation",
+            "normals_svd(depth_marigold)",
+            "buildings(nearby)",
+            "semantic_output",
+            "safe-landing-no-sseg",
+            "safe-landing-semantics"
+        ],
+        "frames": [
+            36,
+            37,
+            38,
+            39,
+            40,
+            41,
+            42,
+            43,
+            44,
+            45,
+            46,
+            47
+        ],
+        "exception_mode": "skip_representation",
+        "n_threads_data_storer": 4
+    },
+    "data_writers": {
+        "rgb": {
+            "output_dir_exists_mode": "skip_computed",
+            "batch_size": 15,
+            "export_binary": true,
+            "binary_format": "npz",
+            "compress": true,
+            "export_image": false,
+            "image_format": "not-set",
+            "dtype": "uint8",
+            "size": [
+                540,
+                960
+            ]
+        },
+        "semantic_mask2former_coco_47429163_0": {
+            "output_dir_exists_mode": "skip_computed",
+            "batch_size": 1,
+            "export_binary": true,
+            "binary_format": "npz",
+            "compress": true,
+            "export_image": false,
+            "image_format": "not-set",
+            "dtype": "uint8",
+            "size": [
+                540,
+                960
+            ]
+        },
+        "semantic_mask2former_mapillary_49189528_0": {
+            "output_dir_exists_mode": "skip_computed",
+            "batch_size": 1,
+            "export_binary": true,
+            "binary_format": "npz",
+            "compress": true,
+            "export_image": false,
+            "image_format": "not-set",
+            "dtype": "uint8",
+            "size": [
+                540,
+                960
+            ]
+        },
+        "semantic_mask2former_mapillary_49189528_1": {
+            "output_dir_exists_mode": "skip_computed",
+            "batch_size": 1,
+            "export_binary": true,
+            "binary_format": "npz",
+            "compress": true,
+            "export_image": false,
+            "image_format": "not-set",
+            "dtype": "uint8",
+            "size": [
+                540,
+                960
+            ]
+        },
+        "depth_marigold": {
+            "output_dir_exists_mode": "skip_computed",
+            "batch_size": 5,
+            "export_binary": true,
+            "binary_format": "npz",
+            "compress": true,
+            "export_image": false,
+            "image_format": "not-set",
+            "dtype": "<class 'numpy.float32'>",
+            "size": [
+                540,
+                960
+            ]
+        },
+        "semantic_mask2former_swin_coco_converted": {
+            "output_dir_exists_mode": "skip_computed",
+            "batch_size": 15,
+            "export_binary": true,
+            "binary_format": "npz",
+            "compress": true,
+            "export_image": false,
+            "image_format": "not-set",
+            "dtype": "uint8",
+            "size": [
+                540,
+                960
+            ]
+        },
+        "semantic_mask2former_swin_mapillary_converted": {
+            "output_dir_exists_mode": "skip_computed",
+            "batch_size": 15,
+            "export_binary": true,
+            "binary_format": "npz",
+            "compress": true,
+            "export_image": false,
+            "image_format": "not-set",
+            "dtype": "uint8",
+            "size": [
+                540,
+                960
+            ]
+        },
+        "semantic_mask2former_r50_mapillary_converted": {
+            "output_dir_exists_mode": "skip_computed",
+            "batch_size": 15,
+            "export_binary": true,
+            "binary_format": "npz",
+            "compress": true,
+            "export_image": false,
+            "image_format": "not-set",
+            "dtype": "uint8",
+            "size": [
+                540,
+                960
+            ]
+        },
+        "buildings": {
+            "output_dir_exists_mode": "skip_computed",
+            "batch_size": 15,
+            "export_binary": true,
+            "binary_format": "npz",
+            "compress": true,
+            "export_image": false,
+            "image_format": "not-set",
+            "dtype": "bool",
+            "size": [
+                540,
+                960
+            ]
+        },
+        "sky-and-water": {
+            "output_dir_exists_mode": "skip_computed",
+            "batch_size": 15,
+            "export_binary": true,
+            "binary_format": "npz",
+            "compress": true,
+            "export_image": false,
+            "image_format": "not-set",
+            "dtype": "bool",
+            "size": [
+                540,
+                960
+            ]
+        },
+        "transportation": {
+            "output_dir_exists_mode": "skip_computed",
+            "batch_size": 15,
+            "export_binary": true,
+            "binary_format": "npz",
+            "compress": true,
+            "export_image": false,
+            "image_format": "not-set",
+            "dtype": "bool",
+            "size": [
+                540,
+                960
+            ]
+        },
+        "containing": {
+            "output_dir_exists_mode": "skip_computed",
+            "batch_size": 15,
+            "export_binary": true,
+            "binary_format": "npz",
+            "compress": true,
+            "export_image": false,
+            "image_format": "not-set",
+            "dtype": "bool",
+            "size": [
+                540,
+                960
+            ]
+        },
+        "vegetation": {
+            "output_dir_exists_mode": "skip_computed",
+            "batch_size": 15,
+            "export_binary": true,
+            "binary_format": "npz",
+            "compress": true,
+            "export_image": false,
+            "image_format": "not-set",
+            "dtype": "bool",
+            "size": [
+                540,
+                960
+            ]
+        },
+        "normals_svd(depth_marigold)": {
+            "output_dir_exists_mode": "skip_computed",
+            "batch_size": 15,
+            "export_binary": true,
+            "binary_format": "npz",
+            "compress": true,
+            "export_image": false,
+            "image_format": "not-set",
+            "dtype": "float16",
+            "size": [
+                540,
+                960
+            ]
+        },
+        "buildings(nearby)": {
+            "output_dir_exists_mode": "skip_computed",
+            "batch_size": 15,
+            "export_binary": true,
+            "binary_format": "npz",
+            "compress": true,
+            "export_image": false,
+            "image_format": "not-set",
+            "dtype": "bool",
+            "size": [
+                540,
+                960
+            ]
+        },
+        "semantic_output": {
+            "output_dir_exists_mode": "skip_computed",
+            "batch_size": 15,
+            "export_binary": true,
+            "binary_format": "npz",
+            "compress": true,
+            "export_image": false,
+            "image_format": "not-set",
+            "dtype": "uint8",
+            "size": [
+                540,
+                960
+            ]
+        },
+        "safe-landing-no-sseg": {
+            "output_dir_exists_mode": "skip_computed",
+            "batch_size": 15,
+            "export_binary": true,
+            "binary_format": "npz",
+            "compress": true,
+            "export_image": false,
+            "image_format": "not-set",
+            "dtype": "bool",
+            "size": [
+                540,
+                960
+            ]
+        },
+        "safe-landing-semantics": {
+            "output_dir_exists_mode": "skip_computed",
+            "batch_size": 15,
+            "export_binary": true,
+            "binary_format": "npz",
+            "compress": true,
+            "export_image": false,
+            "image_format": "not-set",
+            "dtype": "bool",
+            "size": [
+                540,
+                960
+            ]
+        }
+    },
+    "run_stats": {
+        "rgb": {
+            "n_computed": 12,
+            "n_failed": 0,
+            "average_duration": 0.066
+        },
+        "semantic_mask2former_coco_47429163_0": {
+            "n_computed": 12,
+            "n_failed": 0,
+            "average_duration": 2.927
+        },
+        "semantic_mask2former_mapillary_49189528_0": {
+            "n_computed": 12,
+            "n_failed": 0,
+            "average_duration": 2.41
+        },
+        "semantic_mask2former_mapillary_49189528_1": {
+            "n_computed": 12,
+            "n_failed": 0,
+            "average_duration": 1.135
+        },
+        "depth_marigold": {
+            "n_computed": 12,
+            "n_failed": 0,
+            "average_duration": 4.118
+        },
+        "semantic_mask2former_swin_coco_converted": {
+            "n_computed": 12,
+            "n_failed": 0,
+            "average_duration": 0.35
+        },
+        "semantic_mask2former_swin_mapillary_converted": {
+            "n_computed": 12,
+            "n_failed": 0,
+            "average_duration": 0.211
+        },
+        "semantic_mask2former_r50_mapillary_converted": {
+            "n_computed": 12,
+            "n_failed": 0,
+            "average_duration": 0.206
+        },
+        "buildings": {
+            "n_computed": 12,
+            "n_failed": 0,
+            "average_duration": 0.696
+        },
+        "sky-and-water": {
+            "n_computed": 12,
+            "n_failed": 0,
+            "average_duration": 0.708
+        },
+        "transportation": {
+            "n_computed": 12,
+            "n_failed": 0,
+            "average_duration": 0.707
+        },
+        "containing": {
+            "n_computed": 12,
+            "n_failed": 0,
+            "average_duration": 0.705
+        },
+        "vegetation": {
+            "n_computed": 12,
+            "n_failed": 0,
+            "average_duration": 0.701
+        },
+        "normals_svd(depth_marigold)": {
+            "n_computed": 12,
+            "n_failed": 0,
+            "average_duration": 7.019
+        },
+        "buildings(nearby)": {
+            "n_computed": 12,
+            "n_failed": 0,
+            "average_duration": 0.697
+        },
+        "semantic_output": {
+            "n_computed": 12,
+            "n_failed": 0,
+            "average_duration": 0.078
+        },
+        "safe-landing-no-sseg": {
+            "n_computed": 12,
+            "n_failed": 0,
+            "average_duration": 0.034
+        },
+        "safe-landing-semantics": {
+            "n_computed": 12,
+            "n_failed": 0,
+            "average_duration": 0.585
+        }
+    },
+    "total": {
+        "n_computed": 216,
+        "n_failed": 0,
+        "duration": 280.236
+    }
+}
