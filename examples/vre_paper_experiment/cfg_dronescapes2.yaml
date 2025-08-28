@@ -1,0 +1,74 @@
+default_io_parameters:
+  binary_format: npz
+  image_format: not-set
+  compress: True
+  output_size: [540, 960]
+ 
+default_learned_parameters:
+  device: ${oc.env:VRE_DEVICE,cpu}
+
+default_compute_parameters:
+  batch_size: 15
+
+representations:
+  rgb:
+    type: color/rgb
+    dependencies: []
+    parameters: {}
+
+  # opticalflow_rife:
+  #   type: optical-flow/rife
+  #   dependencies: []
+  #   parameters:
+  #     uhd: False
+  #     compute_backward_flow: False
+  #   compute_parameters:
+  #     output_dtype: float16
+
+  semantic_mask2former_coco_47429163_0:
+    type: semantic-segmentation/mask2former
+    dependencies: []
+    parameters:
+      model_id: "47429163_0"
+      disk_data_argmax: True
+    compute_parameters:
+      batch_size: 1
+
+  semantic_mask2former_mapillary_49189528_0:
+    type: semantic-segmentation/mask2former
+    dependencies: []
+    parameters:
+      model_id: "49189528_0"
+      disk_data_argmax: True
+    compute_parameters:
+      batch_size: 1
+
+  semantic_mask2former_mapillary_49189528_1:
+    type: semantic-segmentation/mask2former
+    dependencies: []
+    parameters:
+      model_id: "49189528_1"
+      disk_data_argmax: True
+    compute_parameters:
+      batch_size: 1
+
+  depth_marigold:
+    type: depth/marigold
+    dependencies: []
+    parameters:
+      variant: marigold-lcm-v1-0
+      denoising_steps: 4
+      ensemble_size: 1
+      processing_resolution: 768
+    compute_parameters:
+      batch_size: 5
+
+  normals_svd(depth_marigold):
+    type: normals/depth-svd
+    dependencies: [depth_marigold]
+    parameters:
+      sensor_fov: 75
+      sensor_size: [3840, 2160]
+      window_size: 11
+    io_parameters:
+      output_dtype: float16
