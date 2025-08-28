@@ -4,7 +4,7 @@ from argparse import ArgumentParser, Namespace
 import sys
 from vre.readers import MultiTaskDataset
 from vre.representations import build_representations_from_cfg, add_external_repositories
-from vre.utils import abs_path, lo
+from vre.utils import abs_path, lo, ReprOut, MemoryData, image_write, collage_fn, str_topk
 from vre.logger import vre_logger as logger
 from vre_repository import get_vre_repository
 from pprint import pformat
@@ -27,6 +27,7 @@ def get_args() -> Namespace:
     parser.add_argument("--num_workers", default=0, type=int)
     parser.add_argument("--handle_missing_data", default="raise")
     parser.add_argument("--normalization")
+    parser.add_argument("--save_collages", action="store_true")
     args = parser.parse_args()
     return args
 
@@ -66,9 +67,17 @@ def main(args: Namespace):
         img_data = {}
         for k, v in batch_data.items():
             img_data[k] = np.zeros((len(names), *reader.data_shape[k][0:2], 3))
-            if v is not None and hasattr(reader.name_to_task[k], "plot_fn"):
-                for i in range(len(names)):
-                    img_data[k][i] = reader.name_to_task[k].plot_fn(v[i])
+            key = range(len(v))
+            try:
+                 img_data[k] = reader.name_to_task[k].make_images(ReprOut(output=MemoryData(v), key=key, frames=None))
+            except Exception as e:
+                logger.error(e)
+                continue
+        if args.save_collages:
+            for i, name in enumerate(names):
+                collage = collage_fn([img_data[k][i] for k in img_data.keys()],
+                                     titles=[str_topk(k, 20) for k in img_data])
+                image_write(collage, f"collage_{name}.png")
 
         logger.info(pformat({k: lo(v) for k, v in img_data.items()}, width=120))
 
