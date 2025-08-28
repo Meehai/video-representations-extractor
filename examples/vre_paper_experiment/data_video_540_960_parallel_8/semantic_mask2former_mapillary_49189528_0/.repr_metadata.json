@@ -2,701 +2,701 @@
     "name": "semantic_mask2former_mapillary_49189528_0",
     "run_stats": {
         "0": {
-            "duration": 19.185186,
-            "run_id": "uRtMuYQFCH",
+            "duration": 4.2319,
+            "run_id": "QwrqiTWzSW",
             "formats": [
                 "npz"
             ]
         },
         "1": {
-            "duration": 0.901714,
-            "run_id": "uRtMuYQFCH",
+            "duration": 0.866843,
+            "run_id": "QwrqiTWzSW",
             "formats": [
                 "npz"
             ]
         },
         "2": {
-            "duration": 0.921074,
-            "run_id": "uRtMuYQFCH",
+            "duration": 0.872344,
+            "run_id": "QwrqiTWzSW",
             "formats": [
                 "npz"
             ]
         },
         "3": {
-            "duration": 0.869406,
-            "run_id": "uRtMuYQFCH",
+            "duration": 0.870807,
+            "run_id": "QwrqiTWzSW",
             "formats": [
                 "npz"
             ]
         },
         "4": {
-            "duration": 0.880299,
-            "run_id": "uRtMuYQFCH",
+            "duration": 0.865499,
+            "run_id": "QwrqiTWzSW",
             "formats": [
                 "npz"
             ]
         },
         "5": {
-            "duration": 0.864251,
-            "run_id": "uRtMuYQFCH",
+            "duration": 0.865146,
+            "run_id": "QwrqiTWzSW",
             "formats": [
                 "npz"
             ]
         },
         "6": {
-            "duration": 0.877056,
-            "run_id": "uRtMuYQFCH",
+            "duration": 0.854328,
+            "run_id": "QwrqiTWzSW",
             "formats": [
                 "npz"
             ]
         },
         "7": {
-            "duration": 0.865935,
-            "run_id": "uRtMuYQFCH",
+            "duration": 0.86048,
+            "run_id": "QwrqiTWzSW",
             "formats": [
                 "npz"
             ]
         },
         "8": {
-            "duration": 0.872469,
-            "run_id": "uRtMuYQFCH",
+            "duration": 0.860896,
+            "run_id": "QwrqiTWzSW",
             "formats": [
                 "npz"
             ]
         },
         "9": {
-            "duration": 0.879313,
-            "run_id": "uRtMuYQFCH",
+            "duration": 0.857351,
+            "run_id": "QwrqiTWzSW",
             "formats": [
                 "npz"
             ]
         },
         "10": {
-            "duration": 0.878654,
-            "run_id": "uRtMuYQFCH",
+            "duration": 0.857449,
+            "run_id": "QwrqiTWzSW",
             "formats": [
                 "npz"
             ]
         },
         "11": {
-            "duration": 0.917758,
-            "run_id": "uRtMuYQFCH",
+            "duration": 0.859133,
+            "run_id": "QwrqiTWzSW",
             "formats": [
                 "npz"
             ]
         },
         "12": {
-            "duration": 18.608042,
-            "run_id": "OBuXDmurYn",
+            "duration": 4.322501,
+            "run_id": "gfEv45LaLM",
             "formats": [
                 "npz"
             ]
         },
         "13": {
-            "duration": 0.880667,
-            "run_id": "OBuXDmurYn",
+            "duration": 0.909234,
+            "run_id": "gfEv45LaLM",
             "formats": [
                 "npz"
             ]
         },
         "14": {
-            "duration": 0.879731,
-            "run_id": "OBuXDmurYn",
+            "duration": 0.915405,
+            "run_id": "gfEv45LaLM",
             "formats": [
                 "npz"
             ]
         },
         "15": {
-            "duration": 0.904722,
-            "run_id": "OBuXDmurYn",
+            "duration": 0.967999,
+            "run_id": "gfEv45LaLM",
             "formats": [
                 "npz"
             ]
         },
         "16": {
-            "duration": 0.86599,
-            "run_id": "OBuXDmurYn",
+            "duration": 0.955666,
+            "run_id": "gfEv45LaLM",
             "formats": [
                 "npz"
             ]
         },
         "17": {
-            "duration": 0.87144,
-            "run_id": "OBuXDmurYn",
+            "duration": 0.892016,
+            "run_id": "gfEv45LaLM",
             "formats": [
                 "npz"
             ]
         },
         "18": {
-            "duration": 0.869656,
-            "run_id": "OBuXDmurYn",
+            "duration": 0.87565,
+            "run_id": "gfEv45LaLM",
             "formats": [
                 "npz"
             ]
         },
         "19": {
-            "duration": 0.857507,
-            "run_id": "OBuXDmurYn",
+            "duration": 0.885628,
+            "run_id": "gfEv45LaLM",
             "formats": [
                 "npz"
             ]
         },
         "20": {
-            "duration": 0.868901,
-            "run_id": "OBuXDmurYn",
+            "duration": 0.882852,
+            "run_id": "gfEv45LaLM",
             "formats": [
                 "npz"
             ]
         },
         "21": {
-            "duration": 0.876386,
-            "run_id": "OBuXDmurYn",
+            "duration": 0.858554,
+            "run_id": "gfEv45LaLM",
             "formats": [
                 "npz"
             ]
         },
         "22": {
-            "duration": 0.862306,
-            "run_id": "OBuXDmurYn",
+            "duration": 0.856017,
+            "run_id": "gfEv45LaLM",
             "formats": [
                 "npz"
             ]
         },
         "23": {
-            "duration": 0.875804,
-            "run_id": "OBuXDmurYn",
+            "duration": 0.904234,
+            "run_id": "gfEv45LaLM",
             "formats": [
                 "npz"
             ]
         },
         "24": {
-            "duration": 19.017836,
-            "run_id": "aA6y0HegPP",
+            "duration": 3.519665,
+            "run_id": "XmncbyPMJu",
             "formats": [
                 "npz"
             ]
         },
         "25": {
-            "duration": 0.905857,
-            "run_id": "aA6y0HegPP",
+            "duration": 0.909275,
+            "run_id": "XmncbyPMJu",
             "formats": [
                 "npz"
             ]
         },
         "26": {
-            "duration": 0.868605,
-            "run_id": "aA6y0HegPP",
+            "duration": 0.846395,
+            "run_id": "XmncbyPMJu",
             "formats": [
                 "npz"
             ]
         },
         "27": {
-            "duration": 0.872372,
-            "run_id": "aA6y0HegPP",
+            "duration": 0.86705,
+            "run_id": "XmncbyPMJu",
             "formats": [
                 "npz"
             ]
         },
         "28": {
-            "duration": 0.978065,
-            "run_id": "aA6y0HegPP",
+            "duration": 0.907571,
+            "run_id": "XmncbyPMJu",
             "formats": [
                 "npz"
             ]
         },
         "29": {
-            "duration": 0.861766,
-            "run_id": "aA6y0HegPP",
+            "duration": 0.894519,
+            "run_id": "XmncbyPMJu",
             "formats": [
                 "npz"
             ]
         },
         "30": {
-            "duration": 0.900126,
-            "run_id": "aA6y0HegPP",
+            "duration": 1.014634,
+            "run_id": "XmncbyPMJu",
             "formats": [
                 "npz"
             ]
         },
         "31": {
-            "duration": 0.890504,
-            "run_id": "aA6y0HegPP",
+            "duration": 0.886496,
+            "run_id": "XmncbyPMJu",
             "formats": [
                 "npz"
             ]
         },
         "32": {
-            "duration": 0.867362,
-            "run_id": "aA6y0HegPP",
+            "duration": 0.861683,
+            "run_id": "XmncbyPMJu",
             "formats": [
                 "npz"
             ]
         },
         "33": {
-            "duration": 0.86626,
-            "run_id": "aA6y0HegPP",
+            "duration": 0.845991,
+            "run_id": "XmncbyPMJu",
             "formats": [
                 "npz"
             ]
         },
         "34": {
-            "duration": 0.875109,
-            "run_id": "aA6y0HegPP",
+            "duration": 0.895264,
+            "run_id": "XmncbyPMJu",
             "formats": [
                 "npz"
             ]
         },
         "35": {
-            "duration": 0.866988,
-            "run_id": "aA6y0HegPP",
+            "duration": 0.850653,
+            "run_id": "XmncbyPMJu",
             "formats": [
                 "npz"
             ]
         },
         "36": {
-            "duration": 19.322483,
-            "run_id": "kj3Zq3yo98",
+            "duration": 3.938493,
+            "run_id": "k3lb6YrFlr",
             "formats": [
                 "npz"
             ]
         },
         "37": {
-            "duration": 0.883898,
-            "run_id": "kj3Zq3yo98",
+            "duration": 0.869001,
+            "run_id": "k3lb6YrFlr",
             "formats": [
                 "npz"
             ]
         },
         "38": {
-            "duration": 0.871124,
-            "run_id": "kj3Zq3yo98",
+            "duration": 0.880155,
+            "run_id": "k3lb6YrFlr",
             "formats": [
                 "npz"
             ]
         },
         "39": {
-            "duration": 0.83441,
-            "run_id": "kj3Zq3yo98",
+            "duration": 0.854401,
+            "run_id": "k3lb6YrFlr",
             "formats": [
                 "npz"
             ]
         },
         "40": {
-            "duration": 0.853101,
-            "run_id": "kj3Zq3yo98",
+            "duration": 0.878982,
+            "run_id": "k3lb6YrFlr",
             "formats": [
                 "npz"
             ]
         },
         "41": {
-            "duration": 0.862349,
-            "run_id": "kj3Zq3yo98",
+            "duration": 0.84344,
+            "run_id": "k3lb6YrFlr",
             "formats": [
                 "npz"
             ]
         },
         "42": {
-            "duration": 0.899193,
-            "run_id": "kj3Zq3yo98",
+            "duration": 0.848559,
+            "run_id": "k3lb6YrFlr",
             "formats": [
                 "npz"
             ]
         },
         "43": {
-            "duration": 0.857259,
-            "run_id": "kj3Zq3yo98",
+            "duration": 0.850097,
+            "run_id": "k3lb6YrFlr",
             "formats": [
                 "npz"
             ]
         },
         "44": {
-            "duration": 0.900245,
-            "run_id": "kj3Zq3yo98",
+            "duration": 0.877494,
+            "run_id": "k3lb6YrFlr",
             "formats": [
                 "npz"
             ]
         },
         "45": {
-            "duration": 0.860366,
-            "run_id": "kj3Zq3yo98",
+            "duration": 0.8504,
+            "run_id": "k3lb6YrFlr",
             "formats": [
                 "npz"
             ]
         },
         "46": {
-            "duration": 0.899943,
-            "run_id": "kj3Zq3yo98",
+            "duration": 0.848871,
+            "run_id": "k3lb6YrFlr",
             "formats": [
                 "npz"
             ]
         },
         "47": {
-            "duration": 0.880984,
-            "run_id": "kj3Zq3yo98",
+            "duration": 0.845606,
+            "run_id": "k3lb6YrFlr",
             "formats": [
                 "npz"
             ]
         },
         "48": {
-            "duration": 18.272459,
-            "run_id": "adN434XFkv",
+            "duration": 3.976083,
+            "run_id": "iUoPrKlOAQ",
             "formats": [
                 "npz"
             ]
         },
         "49": {
-            "duration": 0.90847,
-            "run_id": "adN434XFkv",
+            "duration": 0.857587,
+            "run_id": "iUoPrKlOAQ",
             "formats": [
                 "npz"
             ]
         },
         "50": {
-            "duration": 0.894212,
-            "run_id": "adN434XFkv",
+            "duration": 0.892128,
+            "run_id": "iUoPrKlOAQ",
             "formats": [
                 "npz"
             ]
         },
         "51": {
-            "duration": 0.880277,
-            "run_id": "adN434XFkv",
+            "duration": 0.872774,
+            "run_id": "iUoPrKlOAQ",
             "formats": [
                 "npz"
             ]
         },
         "52": {
-            "duration": 0.903001,
-            "run_id": "adN434XFkv",
+            "duration": 0.85586,
+            "run_id": "iUoPrKlOAQ",
             "formats": [
                 "npz"
             ]
         },
         "53": {
-            "duration": 0.886933,
-            "run_id": "adN434XFkv",
+            "duration": 0.858222,
+            "run_id": "iUoPrKlOAQ",
             "formats": [
                 "npz"
             ]
         },
         "54": {
-            "duration": 0.888332,
-            "run_id": "adN434XFkv",
+            "duration": 0.904717,
+            "run_id": "iUoPrKlOAQ",
             "formats": [
                 "npz"
             ]
         },
         "55": {
-            "duration": 0.908525,
-            "run_id": "adN434XFkv",
+            "duration": 0.854063,
+            "run_id": "iUoPrKlOAQ",
             "formats": [
                 "npz"
             ]
         },
         "56": {
-            "duration": 0.907607,
-            "run_id": "adN434XFkv",
+            "duration": 0.867058,
+            "run_id": "iUoPrKlOAQ",
             "formats": [
                 "npz"
             ]
         },
         "57": {
-            "duration": 0.907709,
-            "run_id": "adN434XFkv",
+            "duration": 0.861553,
+            "run_id": "iUoPrKlOAQ",
             "formats": [
                 "npz"
             ]
         },
         "58": {
-            "duration": 0.910007,
-            "run_id": "adN434XFkv",
+            "duration": 0.85714,
+            "run_id": "iUoPrKlOAQ",
             "formats": [
                 "npz"
             ]
         },
         "59": {
-            "duration": 0.907783,
-            "run_id": "adN434XFkv",
+            "duration": 0.846757,
+            "run_id": "iUoPrKlOAQ",
             "formats": [
                 "npz"
             ]
         },
         "60": {
-            "duration": 18.902645,
-            "run_id": "GMlvVgavhG",
+            "duration": 3.917424,
+            "run_id": "GgoEUNsHrw",
             "formats": [
                 "npz"
             ]
         },
         "61": {
-            "duration": 0.852855,
-            "run_id": "GMlvVgavhG",
+            "duration": 0.875967,
+            "run_id": "GgoEUNsHrw",
             "formats": [
                 "npz"
             ]
         },
         "62": {
-            "duration": 0.836004,
-            "run_id": "GMlvVgavhG",
+            "duration": 0.881834,
+            "run_id": "GgoEUNsHrw",
             "formats": [
                 "npz"
             ]
         },
         "63": {
-            "duration": 0.849246,
-            "run_id": "GMlvVgavhG",
+            "duration": 0.856267,
+            "run_id": "GgoEUNsHrw",
             "formats": [
                 "npz"
             ]
         },
         "64": {
-            "duration": 0.84972,
-            "run_id": "GMlvVgavhG",
+            "duration": 0.868728,
+            "run_id": "GgoEUNsHrw",
             "formats": [
                 "npz"
             ]
         },
         "65": {
-            "duration": 0.907565,
-            "run_id": "GMlvVgavhG",
+            "duration": 0.865333,
+            "run_id": "GgoEUNsHrw",
             "formats": [
                 "npz"
             ]
         },
         "66": {
-            "duration": 0.89474,
-            "run_id": "GMlvVgavhG",
+            "duration": 0.902301,
+            "run_id": "GgoEUNsHrw",
             "formats": [
                 "npz"
             ]
         },
         "67": {
-            "duration": 0.915902,
-            "run_id": "GMlvVgavhG",
+            "duration": 0.885604,
+            "run_id": "GgoEUNsHrw",
             "formats": [
                 "npz"
             ]
         },
         "68": {
-            "duration": 0.900617,
-            "run_id": "GMlvVgavhG",
+            "duration": 0.884743,
+            "run_id": "GgoEUNsHrw",
             "formats": [
                 "npz"
             ]
         },
         "69": {
-            "duration": 0.884087,
-            "run_id": "GMlvVgavhG",
+            "duration": 0.907213,
+            "run_id": "GgoEUNsHrw",
             "formats": [
                 "npz"
             ]
         },
         "70": {
-            "duration": 0.877727,
-            "run_id": "GMlvVgavhG",
+            "duration": 0.887333,
+            "run_id": "GgoEUNsHrw",
             "formats": [
                 "npz"
             ]
         },
         "71": {
-            "duration": 0.902753,
-            "run_id": "GMlvVgavhG",
+            "duration": 0.883165,
+            "run_id": "GgoEUNsHrw",
             "formats": [
                 "npz"
             ]
         },
         "72": {
-            "duration": 18.687624,
-            "run_id": "CK3fqRd3eY",
+            "duration": 3.689684,
+            "run_id": "exNOXysXu9",
             "formats": [
                 "npz"
             ]
         },
         "73": {
-            "duration": 0.849506,
-            "run_id": "CK3fqRd3eY",
+            "duration": 0.874442,
+            "run_id": "exNOXysXu9",
             "formats": [
                 "npz"
             ]
         },
         "74": {
-            "duration": 0.859853,
-            "run_id": "CK3fqRd3eY",
+            "duration": 0.901256,
+            "run_id": "exNOXysXu9",
             "formats": [
                 "npz"
             ]
         },
         "75": {
-            "duration": 0.869414,
-            "run_id": "CK3fqRd3eY",
+            "duration": 0.894497,
+            "run_id": "exNOXysXu9",
             "formats": [
                 "npz"
             ]
         },
         "76": {
-            "duration": 0.836062,
-            "run_id": "CK3fqRd3eY",
+            "duration": 0.932417,
+            "run_id": "exNOXysXu9",
             "formats": [
                 "npz"
             ]
         },
         "77": {
-            "duration": 0.839693,
-            "run_id": "CK3fqRd3eY",
+            "duration": 0.869303,
+            "run_id": "exNOXysXu9",
             "formats": [
                 "npz"
             ]
         },
         "78": {
-            "duration": 0.838188,
-            "run_id": "CK3fqRd3eY",
+            "duration": 0.849507,
+            "run_id": "exNOXysXu9",
             "formats": [
                 "npz"
             ]
         },
         "79": {
-            "duration": 0.842425,
-            "run_id": "CK3fqRd3eY",
+            "duration": 0.847281,
+            "run_id": "exNOXysXu9",
             "formats": [
                 "npz"
             ]
         },
         "80": {
-            "duration": 0.836017,
-            "run_id": "CK3fqRd3eY",
+            "duration": 0.862841,
+            "run_id": "exNOXysXu9",
             "formats": [
                 "npz"
             ]
         },
         "81": {
-            "duration": 0.836686,
-            "run_id": "CK3fqRd3eY",
+            "duration": 0.862864,
+            "run_id": "exNOXysXu9",
             "formats": [
                 "npz"
             ]
         },
         "82": {
-            "duration": 0.839227,
-            "run_id": "CK3fqRd3eY",
+            "duration": 0.874861,
+            "run_id": "exNOXysXu9",
             "formats": [
                 "npz"
             ]
         },
         "83": {
-            "duration": 0.854563,
-            "run_id": "CK3fqRd3eY",
+            "duration": 0.850807,
+            "run_id": "exNOXysXu9",
             "formats": [
                 "npz"
             ]
         },
         "84": {
-            "duration": 15.170543,
-            "run_id": "Oqs2RoOhbo",
+            "duration": 3.416742,
+            "run_id": "z4mWjMIpdl",
             "formats": [
                 "npz"
             ]
         },
         "85": {
-            "duration": 0.860326,
-            "run_id": "Oqs2RoOhbo",
+            "duration": 0.862652,
+            "run_id": "z4mWjMIpdl",
             "formats": [
                 "npz"
             ]
         },
         "86": {
-            "duration": 0.871681,
-            "run_id": "Oqs2RoOhbo",
+            "duration": 0.840856,
+            "run_id": "z4mWjMIpdl",
             "formats": [
                 "npz"
             ]
         },
         "87": {
-            "duration": 0.877655,
-            "run_id": "Oqs2RoOhbo",
+            "duration": 0.870775,
+            "run_id": "z4mWjMIpdl",
             "formats": [
                 "npz"
             ]
         },
         "88": {
-            "duration": 0.870057,
-            "run_id": "Oqs2RoOhbo",
+            "duration": 0.860344,
+            "run_id": "z4mWjMIpdl",
             "formats": [
                 "npz"
             ]
         },
         "89": {
-            "duration": 0.858605,
-            "run_id": "Oqs2RoOhbo",
+            "duration": 0.873757,
+            "run_id": "z4mWjMIpdl",
             "formats": [
                 "npz"
             ]
         },
         "90": {
-            "duration": 0.900794,
-            "run_id": "Oqs2RoOhbo",
+            "duration": 0.884436,
+            "run_id": "z4mWjMIpdl",
             "formats": [
                 "npz"
             ]
         },
         "91": {
-            "duration": 0.906018,
-            "run_id": "Oqs2RoOhbo",
+            "duration": 0.860234,
+            "run_id": "z4mWjMIpdl",
             "formats": [
                 "npz"
             ]
         },
         "92": {
-            "duration": 0.900969,
-            "run_id": "Oqs2RoOhbo",
+            "duration": 0.874919,
+            "run_id": "z4mWjMIpdl",
             "formats": [
                 "npz"
             ]
         },
         "93": {
-            "duration": 0.901681,
-            "run_id": "Oqs2RoOhbo",
+            "duration": 0.858321,
+            "run_id": "z4mWjMIpdl",
             "formats": [
                 "npz"
             ]
         },
         "94": {
-            "duration": 0.930602,
-            "run_id": "Oqs2RoOhbo",
+            "duration": 0.933845,
+            "run_id": "z4mWjMIpdl",
             "formats": [
                 "npz"
             ]
         },
         "95": {
-            "duration": 0.900394,
-            "run_id": "Oqs2RoOhbo",
+            "duration": 0.866623,
+            "run_id": "z4mWjMIpdl",
             "formats": [
                 "npz"
             ]
         },
         "96": {
-            "duration": 0.904465,
-            "run_id": "Oqs2RoOhbo",
+            "duration": 0.91297,
+            "run_id": "z4mWjMIpdl",
             "formats": [
                 "npz"
             ]
         },
         "97": {
-            "duration": 0.901979,
-            "run_id": "Oqs2RoOhbo",
+            "duration": 0.885619,
+            "run_id": "z4mWjMIpdl",
             "formats": [
                 "npz"
             ]
         },
         "98": {
-            "duration": 0.895493,
-            "run_id": "Oqs2RoOhbo",
+            "duration": 0.858924,
+            "run_id": "z4mWjMIpdl",
             "formats": [
                 "npz"
             ]
         },
         "99": {
-            "duration": 1.056458,
-            "run_id": "Oqs2RoOhbo",
+            "duration": 0.880636,
+            "run_id": "z4mWjMIpdl",
             "formats": [
                 "npz"
             ]

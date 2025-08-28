@@ -2,701 +2,701 @@
     "name": "buildings",
     "run_stats": {
         "0": {
-            "duration": 0.6994449166666666,
-            "run_id": "uRtMuYQFCH",
+            "duration": 0.6918506666666667,
+            "run_id": "QwrqiTWzSW",
             "formats": [
                 "npz"
             ]
         },
         "1": {
-            "duration": 0.6994449166666666,
-            "run_id": "uRtMuYQFCH",
+            "duration": 0.6918506666666667,
+            "run_id": "QwrqiTWzSW",
             "formats": [
                 "npz"
             ]
         },
         "2": {
-            "duration": 0.6994449166666666,
-            "run_id": "uRtMuYQFCH",
+            "duration": 0.6918506666666667,
+            "run_id": "QwrqiTWzSW",
             "formats": [
                 "npz"
             ]
         },
         "3": {
-            "duration": 0.6994449166666666,
-            "run_id": "uRtMuYQFCH",
+            "duration": 0.6918506666666667,
+            "run_id": "QwrqiTWzSW",
             "formats": [
                 "npz"
             ]
         },
         "4": {
-            "duration": 0.6994449166666666,
-            "run_id": "uRtMuYQFCH",
+            "duration": 0.6918506666666667,
+            "run_id": "QwrqiTWzSW",
             "formats": [
                 "npz"
             ]
         },
         "5": {
-            "duration": 0.6994449166666666,
-            "run_id": "uRtMuYQFCH",
+            "duration": 0.6918506666666667,
+            "run_id": "QwrqiTWzSW",
             "formats": [
                 "npz"
             ]
         },
         "6": {
-            "duration": 0.6994449166666666,
-            "run_id": "uRtMuYQFCH",
+            "duration": 0.6918506666666667,
+            "run_id": "QwrqiTWzSW",
             "formats": [
                 "npz"
             ]
         },
         "7": {
-            "duration": 0.6994449166666666,
-            "run_id": "uRtMuYQFCH",
+            "duration": 0.6918506666666667,
+            "run_id": "QwrqiTWzSW",
             "formats": [
                 "npz"
             ]
         },
         "8": {
-            "duration": 0.6994449166666666,
-            "run_id": "uRtMuYQFCH",
+            "duration": 0.6918506666666667,
+            "run_id": "QwrqiTWzSW",
             "formats": [
                 "npz"
             ]
         },
         "9": {
-            "duration": 0.6994449166666666,
-            "run_id": "uRtMuYQFCH",
+            "duration": 0.6918506666666667,
+            "run_id": "QwrqiTWzSW",
             "formats": [
                 "npz"
             ]
         },
         "10": {
-            "duration": 0.6994449166666666,
-            "run_id": "uRtMuYQFCH",
+            "duration": 0.6918506666666667,
+            "run_id": "QwrqiTWzSW",
             "formats": [
                 "npz"
             ]
         },
         "11": {
-            "duration": 0.6994449166666666,
-            "run_id": "uRtMuYQFCH",
+            "duration": 0.6918506666666667,
+            "run_id": "QwrqiTWzSW",
             "formats": [
                 "npz"
             ]
         },
         "12": {
-            "duration": 0.6961363333333334,
-            "run_id": "OBuXDmurYn",
+            "duration": 0.6837580833333333,
+            "run_id": "gfEv45LaLM",
             "formats": [
                 "npz"
             ]
         },
         "13": {
-            "duration": 0.6961363333333334,
-            "run_id": "OBuXDmurYn",
+            "duration": 0.6837580833333333,
+            "run_id": "gfEv45LaLM",
             "formats": [
                 "npz"
             ]
         },
         "14": {
-            "duration": 0.6961363333333334,
-            "run_id": "OBuXDmurYn",
+            "duration": 0.6837580833333333,
+            "run_id": "gfEv45LaLM",
             "formats": [
                 "npz"
             ]
         },
         "15": {
-            "duration": 0.6961363333333334,
-            "run_id": "OBuXDmurYn",
+            "duration": 0.6837580833333333,
+            "run_id": "gfEv45LaLM",
             "formats": [
                 "npz"
             ]
         },
         "16": {
-            "duration": 0.6961363333333334,
-            "run_id": "OBuXDmurYn",
+            "duration": 0.6837580833333333,
+            "run_id": "gfEv45LaLM",
             "formats": [
                 "npz"
             ]
         },
         "17": {
-            "duration": 0.6961363333333334,
-            "run_id": "OBuXDmurYn",
+            "duration": 0.6837580833333333,
+            "run_id": "gfEv45LaLM",
             "formats": [
                 "npz"
             ]
         },
         "18": {
-            "duration": 0.6961363333333334,
-            "run_id": "OBuXDmurYn",
+            "duration": 0.6837580833333333,
+            "run_id": "gfEv45LaLM",
             "formats": [
                 "npz"
             ]
         },
         "19": {
-            "duration": 0.6961363333333334,
-            "run_id": "OBuXDmurYn",
+            "duration": 0.6837580833333333,
+            "run_id": "gfEv45LaLM",
             "formats": [
                 "npz"
             ]
         },
         "20": {
-            "duration": 0.6961363333333334,
-            "run_id": "OBuXDmurYn",
+            "duration": 0.6837580833333333,
+            "run_id": "gfEv45LaLM",
             "formats": [
                 "npz"
             ]
         },
         "21": {
-            "duration": 0.6961363333333334,
-            "run_id": "OBuXDmurYn",
+            "duration": 0.6837580833333333,
+            "run_id": "gfEv45LaLM",
             "formats": [
                 "npz"
             ]
         },
         "22": {
-            "duration": 0.6961363333333334,
-            "run_id": "OBuXDmurYn",
+            "duration": 0.6837580833333333,
+            "run_id": "gfEv45LaLM",
             "formats": [
                 "npz"
             ]
         },
         "23": {
-            "duration": 0.6961363333333334,
-            "run_id": "OBuXDmurYn",
+            "duration": 0.6837580833333333,
+            "run_id": "gfEv45LaLM",
             "formats": [
                 "npz"
             ]
         },
         "24": {
-            "duration": 0.6699041666666666,
-            "run_id": "aA6y0HegPP",
+            "duration": 0.6887806666666667,
+            "run_id": "XmncbyPMJu",
             "formats": [
                 "npz"
             ]
         },
         "25": {
-            "duration": 0.6699041666666666,
-            "run_id": "aA6y0HegPP",
+            "duration": 0.6887806666666667,
+            "run_id": "XmncbyPMJu",
             "formats": [
                 "npz"
             ]
         },
         "26": {
-            "duration": 0.6699041666666666,
-            "run_id": "aA6y0HegPP",
+            "duration": 0.6887806666666667,
+            "run_id": "XmncbyPMJu",
             "formats": [
                 "npz"
             ]
         },
         "27": {
-            "duration": 0.6699041666666666,
-            "run_id": "aA6y0HegPP",
+            "duration": 0.6887806666666667,
+            "run_id": "XmncbyPMJu",
             "formats": [
                 "npz"
             ]
         },
         "28": {
-            "duration": 0.6699041666666666,
-            "run_id": "aA6y0HegPP",
+            "duration": 0.6887806666666667,
+            "run_id": "XmncbyPMJu",
             "formats": [
                 "npz"
             ]
         },
         "29": {
-            "duration": 0.6699041666666666,
-            "run_id": "aA6y0HegPP",
+            "duration": 0.6887806666666667,
+            "run_id": "XmncbyPMJu",
             "formats": [
                 "npz"
             ]
         },
         "30": {
-            "duration": 0.6699041666666666,
-            "run_id": "aA6y0HegPP",
+            "duration": 0.6887806666666667,
+            "run_id": "XmncbyPMJu",
             "formats": [
                 "npz"
             ]
         },
         "31": {
-            "duration": 0.6699041666666666,
-            "run_id": "aA6y0HegPP",
+            "duration": 0.6887806666666667,
+            "run_id": "XmncbyPMJu",
             "formats": [
                 "npz"
             ]
         },
         "32": {
-            "duration": 0.6699041666666666,
-            "run_id": "aA6y0HegPP",
+            "duration": 0.6887806666666667,
+            "run_id": "XmncbyPMJu",
             "formats": [
                 "npz"
             ]
         },
         "33": {
-            "duration": 0.6699041666666666,
-            "run_id": "aA6y0HegPP",
+            "duration": 0.6887806666666667,
+            "run_id": "XmncbyPMJu",
             "formats": [
                 "npz"
             ]
         },
         "34": {
-            "duration": 0.6699041666666666,
-            "run_id": "aA6y0HegPP",
+            "duration": 0.6887806666666667,
+            "run_id": "XmncbyPMJu",
             "formats": [
                 "npz"
             ]
         },
         "35": {
-            "duration": 0.6699041666666666,
-            "run_id": "aA6y0HegPP",
+            "duration": 0.6887806666666667,
+            "run_id": "XmncbyPMJu",
             "formats": [
                 "npz"
             ]
         },
         "36": {
-            "duration": 0.69635825,
-            "run_id": "kj3Zq3yo98",
+            "duration": 0.6871301666666666,
+            "run_id": "k3lb6YrFlr",
             "formats": [
                 "npz"
             ]
         },
         "37": {
-            "duration": 0.69635825,
-            "run_id": "kj3Zq3yo98",
+            "duration": 0.6871301666666666,
+            "run_id": "k3lb6YrFlr",
             "formats": [
                 "npz"
             ]
         },
         "38": {
-            "duration": 0.69635825,
-            "run_id": "kj3Zq3yo98",
+            "duration": 0.6871301666666666,
+            "run_id": "k3lb6YrFlr",
             "formats": [
                 "npz"
             ]
         },
         "39": {
-            "duration": 0.69635825,
-            "run_id": "kj3Zq3yo98",
+            "duration": 0.6871301666666666,
+            "run_id": "k3lb6YrFlr",
             "formats": [
                 "npz"
             ]
         },
         "40": {
-            "duration": 0.69635825,
-            "run_id": "kj3Zq3yo98",
+            "duration": 0.6871301666666666,
+            "run_id": "k3lb6YrFlr",
             "formats": [
                 "npz"
             ]
         },
         "41": {
-            "duration": 0.69635825,
-            "run_id": "kj3Zq3yo98",
+            "duration": 0.6871301666666666,
+            "run_id": "k3lb6YrFlr",
             "formats": [
                 "npz"
             ]
         },
         "42": {
-            "duration": 0.69635825,
-            "run_id": "kj3Zq3yo98",
+            "duration": 0.6871301666666666,
+            "run_id": "k3lb6YrFlr",
             "formats": [
                 "npz"
             ]
         },
         "43": {
-            "duration": 0.69635825,
-            "run_id": "kj3Zq3yo98",
+            "duration": 0.6871301666666666,
+            "run_id": "k3lb6YrFlr",
             "formats": [
                 "npz"
             ]
         },
         "44": {
-            "duration": 0.69635825,
-            "run_id": "kj3Zq3yo98",
+            "duration": 0.6871301666666666,
+            "run_id": "k3lb6YrFlr",
             "formats": [
                 "npz"
             ]
         },
         "45": {
-            "duration": 0.69635825,
-            "run_id": "kj3Zq3yo98",
+            "duration": 0.6871301666666666,
+            "run_id": "k3lb6YrFlr",
             "formats": [
                 "npz"
             ]
         },
         "46": {
-            "duration": 0.69635825,
-            "run_id": "kj3Zq3yo98",
+            "duration": 0.6871301666666666,
+            "run_id": "k3lb6YrFlr",
             "formats": [
                 "npz"
             ]
         },
         "47": {
-            "duration": 0.69635825,
-            "run_id": "kj3Zq3yo98",
+            "duration": 0.6871301666666666,
+            "run_id": "k3lb6YrFlr",
             "formats": [
                 "npz"
             ]
         },
         "48": {
-            "duration": 0.6965685,
-            "run_id": "adN434XFkv",
+            "duration": 0.6949439166666668,
+            "run_id": "iUoPrKlOAQ",
             "formats": [
                 "npz"
             ]
         },
         "49": {
-            "duration": 0.6965685,
-            "run_id": "adN434XFkv",
+            "duration": 0.6949439166666668,
+            "run_id": "iUoPrKlOAQ",
             "formats": [
                 "npz"
             ]
         },
         "50": {
-            "duration": 0.6965685,
-            "run_id": "adN434XFkv",
+            "duration": 0.6949439166666668,
+            "run_id": "iUoPrKlOAQ",
             "formats": [
                 "npz"
             ]
         },
         "51": {
-            "duration": 0.6965685,
-            "run_id": "adN434XFkv",
+            "duration": 0.6949439166666668,
+            "run_id": "iUoPrKlOAQ",
             "formats": [
                 "npz"
             ]
         },
         "52": {
-            "duration": 0.6965685,
-            "run_id": "adN434XFkv",
+            "duration": 0.6949439166666668,
+            "run_id": "iUoPrKlOAQ",
             "formats": [
                 "npz"
             ]
         },
         "53": {
-            "duration": 0.6965685,
-            "run_id": "adN434XFkv",
+            "duration": 0.6949439166666668,
+            "run_id": "iUoPrKlOAQ",
             "formats": [
                 "npz"
             ]
         },
         "54": {
-            "duration": 0.6965685,
-            "run_id": "adN434XFkv",
+            "duration": 0.6949439166666668,
+            "run_id": "iUoPrKlOAQ",
             "formats": [
                 "npz"
             ]
         },
         "55": {
-            "duration": 0.6965685,
-            "run_id": "adN434XFkv",
+            "duration": 0.6949439166666668,
+            "run_id": "iUoPrKlOAQ",
             "formats": [
                 "npz"
             ]
         },
         "56": {
-            "duration": 0.6965685,
-            "run_id": "adN434XFkv",
+            "duration": 0.6949439166666668,
+            "run_id": "iUoPrKlOAQ",
             "formats": [
                 "npz"
             ]
         },
         "57": {
-            "duration": 0.6965685,
-            "run_id": "adN434XFkv",
+            "duration": 0.6949439166666668,
+            "run_id": "iUoPrKlOAQ",
             "formats": [
                 "npz"
             ]
         },
         "58": {
-            "duration": 0.6965685,
-            "run_id": "adN434XFkv",
+            "duration": 0.6949439166666668,
+            "run_id": "iUoPrKlOAQ",
             "formats": [
                 "npz"
             ]
         },
         "59": {
-            "duration": 0.6965685,
-            "run_id": "adN434XFkv",
+            "duration": 0.6949439166666668,
+            "run_id": "iUoPrKlOAQ",
             "formats": [
                 "npz"
             ]
         },
         "60": {
-            "duration": 0.6711058333333333,
-            "run_id": "GMlvVgavhG",
+            "duration": 0.6904379166666667,
+            "run_id": "GgoEUNsHrw",
             "formats": [
                 "npz"
             ]
         },
         "61": {
-            "duration": 0.6711058333333333,
-            "run_id": "GMlvVgavhG",
+            "duration": 0.6904379166666667,
+            "run_id": "GgoEUNsHrw",
             "formats": [
                 "npz"
             ]
         },
         "62": {
-            "duration": 0.6711058333333333,
-            "run_id": "GMlvVgavhG",
+            "duration": 0.6904379166666667,
+            "run_id": "GgoEUNsHrw",
             "formats": [
                 "npz"
             ]
         },
         "63": {
-            "duration": 0.6711058333333333,
-            "run_id": "GMlvVgavhG",
+            "duration": 0.6904379166666667,
+            "run_id": "GgoEUNsHrw",
             "formats": [
                 "npz"
             ]
         },
         "64": {
-            "duration": 0.6711058333333333,
-            "run_id": "GMlvVgavhG",
+            "duration": 0.6904379166666667,
+            "run_id": "GgoEUNsHrw",
             "formats": [
                 "npz"
             ]
         },
         "65": {
-            "duration": 0.6711058333333333,
-            "run_id": "GMlvVgavhG",
+            "duration": 0.6904379166666667,
+            "run_id": "GgoEUNsHrw",
             "formats": [
                 "npz"
             ]
         },
         "66": {
-            "duration": 0.6711058333333333,
-            "run_id": "GMlvVgavhG",
+            "duration": 0.6904379166666667,
+            "run_id": "GgoEUNsHrw",
             "formats": [
                 "npz"
             ]
         },
         "67": {
-            "duration": 0.6711058333333333,
-            "run_id": "GMlvVgavhG",
+            "duration": 0.6904379166666667,
+            "run_id": "GgoEUNsHrw",
             "formats": [
                 "npz"
             ]
         },
         "68": {
-            "duration": 0.6711058333333333,
-            "run_id": "GMlvVgavhG",
+            "duration": 0.6904379166666667,
+            "run_id": "GgoEUNsHrw",
             "formats": [
                 "npz"
             ]
         },
         "69": {
-            "duration": 0.6711058333333333,
-            "run_id": "GMlvVgavhG",
+            "duration": 0.6904379166666667,
+            "run_id": "GgoEUNsHrw",
             "formats": [
                 "npz"
             ]
         },
         "70": {
-            "duration": 0.6711058333333333,
-            "run_id": "GMlvVgavhG",
+            "duration": 0.6904379166666667,
+            "run_id": "GgoEUNsHrw",
             "formats": [
                 "npz"
             ]
         },
         "71": {
-            "duration": 0.6711058333333333,
-            "run_id": "GMlvVgavhG",
+            "duration": 0.6904379166666667,
+            "run_id": "GgoEUNsHrw",
             "formats": [
                 "npz"
             ]
         },
         "72": {
-            "duration": 0.6753824166666668,
-            "run_id": "CK3fqRd3eY",
+            "duration": 0.6748615,
+            "run_id": "exNOXysXu9",
             "formats": [
                 "npz"
             ]
         },
         "73": {
-            "duration": 0.6753824166666668,
-            "run_id": "CK3fqRd3eY",
+            "duration": 0.6748615,
+            "run_id": "exNOXysXu9",
             "formats": [
                 "npz"
             ]
         },
         "74": {
-            "duration": 0.6753824166666668,
-            "run_id": "CK3fqRd3eY",
+            "duration": 0.6748615,
+            "run_id": "exNOXysXu9",
             "formats": [
                 "npz"
             ]
         },
         "75": {
-            "duration": 0.6753824166666668,
-            "run_id": "CK3fqRd3eY",
+            "duration": 0.6748615,
+            "run_id": "exNOXysXu9",
             "formats": [
                 "npz"
             ]
         },
         "76": {
-            "duration": 0.6753824166666668,
-            "run_id": "CK3fqRd3eY",
+            "duration": 0.6748615,
+            "run_id": "exNOXysXu9",
             "formats": [
                 "npz"
             ]
         },
         "77": {
-            "duration": 0.6753824166666668,
-            "run_id": "CK3fqRd3eY",
+            "duration": 0.6748615,
+            "run_id": "exNOXysXu9",
             "formats": [
                 "npz"
             ]
         },
         "78": {
-            "duration": 0.6753824166666668,
-            "run_id": "CK3fqRd3eY",
+            "duration": 0.6748615,
+            "run_id": "exNOXysXu9",
             "formats": [
                 "npz"
             ]
         },
         "79": {
-            "duration": 0.6753824166666668,
-            "run_id": "CK3fqRd3eY",
+            "duration": 0.6748615,
+            "run_id": "exNOXysXu9",
             "formats": [
                 "npz"
             ]
         },
         "80": {
-            "duration": 0.6753824166666668,
-            "run_id": "CK3fqRd3eY",
+            "duration": 0.6748615,
+            "run_id": "exNOXysXu9",
             "formats": [
                 "npz"
             ]
         },
         "81": {
-            "duration": 0.6753824166666668,
-            "run_id": "CK3fqRd3eY",
+            "duration": 0.6748615,
+            "run_id": "exNOXysXu9",
             "formats": [
                 "npz"
             ]
         },
         "82": {
-            "duration": 0.6753824166666668,
-            "run_id": "CK3fqRd3eY",
+            "duration": 0.6748615,
+            "run_id": "exNOXysXu9",
             "formats": [
                 "npz"
             ]
         },
         "83": {
-            "duration": 0.6753824166666668,
-            "run_id": "CK3fqRd3eY",
+            "duration": 0.6748615,
+            "run_id": "exNOXysXu9",
             "formats": [
                 "npz"
             ]
         },
         "84": {
-            "duration": 0.6730382666666667,
-            "run_id": "Oqs2RoOhbo",
+            "duration": 0.6786523333333334,
+            "run_id": "z4mWjMIpdl",
             "formats": [
                 "npz"
             ]
         },
         "85": {
-            "duration": 0.6730382666666667,
-            "run_id": "Oqs2RoOhbo",
+            "duration": 0.6786523333333334,
+            "run_id": "z4mWjMIpdl",
             "formats": [
                 "npz"
             ]
         },
         "86": {
-            "duration": 0.6730382666666667,
-            "run_id": "Oqs2RoOhbo",
+            "duration": 0.6786523333333334,
+            "run_id": "z4mWjMIpdl",
             "formats": [
                 "npz"
             ]
         },
         "87": {
-            "duration": 0.6730382666666667,
-            "run_id": "Oqs2RoOhbo",
+            "duration": 0.6786523333333334,
+            "run_id": "z4mWjMIpdl",
             "formats": [
                 "npz"
             ]
         },
         "88": {
-            "duration": 0.6730382666666667,
-            "run_id": "Oqs2RoOhbo",
+            "duration": 0.6786523333333334,
+            "run_id": "z4mWjMIpdl",
             "formats": [
                 "npz"
             ]
         },
         "89": {
-            "duration": 0.6730382666666667,
-            "run_id": "Oqs2RoOhbo",
+            "duration": 0.6786523333333334,
+            "run_id": "z4mWjMIpdl",
             "formats": [
                 "npz"
             ]
         },
         "90": {
-            "duration": 0.6730382666666667,
-            "run_id": "Oqs2RoOhbo",
+            "duration": 0.6786523333333334,
+            "run_id": "z4mWjMIpdl",
             "formats": [
                 "npz"
             ]
         },
         "91": {
-            "duration": 0.6730382666666667,
-            "run_id": "Oqs2RoOhbo",
+            "duration": 0.6786523333333334,
+            "run_id": "z4mWjMIpdl",
             "formats": [
                 "npz"
             ]
         },
         "92": {
-            "duration": 0.6730382666666667,
-            "run_id": "Oqs2RoOhbo",
+            "duration": 0.6786523333333334,
+            "run_id": "z4mWjMIpdl",
             "formats": [
                 "npz"
             ]
         },
         "93": {
-            "duration": 0.6730382666666667,
-            "run_id": "Oqs2RoOhbo",
+            "duration": 0.6786523333333334,
+            "run_id": "z4mWjMIpdl",
             "formats": [
                 "npz"
             ]
         },
         "94": {
-            "duration": 0.6730382666666667,
-            "run_id": "Oqs2RoOhbo",
+            "duration": 0.6786523333333334,
+            "run_id": "z4mWjMIpdl",
             "formats": [
                 "npz"
             ]
         },
         "95": {
-            "duration": 0.6730382666666667,
-            "run_id": "Oqs2RoOhbo",
+            "duration": 0.6786523333333334,
+            "run_id": "z4mWjMIpdl",
             "formats": [
                 "npz"
             ]
         },
         "96": {
-            "duration": 0.6730382666666667,
-            "run_id": "Oqs2RoOhbo",
+            "duration": 0.6786523333333334,
+            "run_id": "z4mWjMIpdl",
             "formats": [
                 "npz"
             ]
         },
         "97": {
-            "duration": 0.6730382666666667,
-            "run_id": "Oqs2RoOhbo",
+            "duration": 0.6786523333333334,
+            "run_id": "z4mWjMIpdl",
             "formats": [
                 "npz"
             ]
         },
         "98": {
-            "duration": 0.6730382666666667,
-            "run_id": "Oqs2RoOhbo",
+            "duration": 0.6786523333333334,
+            "run_id": "z4mWjMIpdl",
             "formats": [
                 "npz"
             ]
         },
         "99": {
-            "duration": 0.484221,
-            "run_id": "Oqs2RoOhbo",
+            "duration": 0.517165,
+            "run_id": "z4mWjMIpdl",
             "formats": [
                 "npz"
             ]
