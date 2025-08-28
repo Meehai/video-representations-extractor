@@ -16,8 +16,7 @@ def _cleanup(processes: list, signum, frame):
 def get_args() -> Namespace:
     """Argument parsing"""
     parser = ArgumentParser(description="Distribute VRE processing across multiple GPUs")
-    parser.add_argument("video_file", type=str, help="Path to the video file")
-    parser.add_argument("--frames", type=str, help="Frame range in the format 'start..end'")
+    parser.add_argument("video_path", type=str, help="Path to the video file")
     parser.add_argument("vre_args", nargs=REMAINDER, help="Additional arguments to pass to VRE")
     args = parser.parse_args()
     return args
@@ -27,15 +26,13 @@ def main(args: Namespace):
 
     assert os.getenv("CUDA_VISIBLE_DEVICES") is not None
     gpu_indices = os.environ["CUDA_VISIBLE_DEVICES"].split(",")
-    assert len(gpu_indices) > 0, gpu_indices
+    assert (n_gpus := len(gpu_indices)) > 0, gpu_indices
 
-    video_file = args.video_file
-    n_gpus = len(gpu_indices)
-    video = VREVideo(args.video_path)
-
-    if args.frames:
-        start_frame, end_frame = map(int, args.frames.split(".."))
+    if "--frames" in args.vre_args:
+        args.vre_args.pop(ix := args.vre_args.index("--frames")) # pop the --frames entry
+        start_frame, end_frame = map(int, args.vre_args.pop(ix).split("..")) # pop the next arg too: the actual frames
     else:
+        video = VREVideo(args.video_path)
         start_frame, end_frame = 0, len(video)
 
     total_frames = end_frame - start_frame
@@ -51,7 +48,7 @@ def main(args: Namespace):
             gpu_end_frame = end_frame
 
         env = {"CUDA_VISIBLE_DEVICES": gpu, "VRE_DEVICE": "cuda"}
-        cmd = ["vre", video_file, "--frames", f"{gpu_start_frame}..{gpu_end_frame}"] + args.vre_args
+        cmd = ["vre", args.video_path, "--frames", f"{gpu_start_frame}..{gpu_end_frame}"] + args.vre_args
 
         env_str = " ".join([f"{k}={v}" for k, v in env.items()])
         print(f"Executing command: {env_str} {' '.join(cmd)}")
