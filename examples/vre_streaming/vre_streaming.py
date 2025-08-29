@@ -2,6 +2,7 @@
 """vre_streaming -- Tool that 'streams' a VRE frame (or batch) by frame to other external tools like ffmpeg or mpl"""
 from argparse import ArgumentParser, Namespace
 from datetime import datetime
+import pandas as pd
 from typing import Any
 from pathlib import Path
 from io import FileIO
@@ -98,6 +99,8 @@ def get_args() -> Namespace:
     assert all(hw > 0 for hw in args.output_size), args.output_size
     if args.video_path == "-" or args.video_path.startswith("tcp://"):
         assert args.input_size is not None
+    else:
+        assert args.disable_async_worker is False, "should be set only for stdin read"
     return args
 
 def main(args: Namespace):
@@ -138,6 +141,7 @@ def main(args: Namespace):
 
     batches = make_batches(list(range(len(video))), batch_size=1) # note: add here a start_index for testing
     fps = [0]
+    durations = []
     while True:
         for bix in batches:
             took_s, err = process_one_batch(vre, bix, args.output_size, args.disable_title_hud, fps, write_buffer)
@@ -145,7 +149,14 @@ def main(args: Namespace):
                 raise err
             if (diff := (1 / video.fps) - took_s) > 0:
                 time.sleep(diff)
-            fps = [*fps[-10:], len(bix) / took_s]
+            fps = [*fps[-100:], len(bix) / took_s]
+            durations.extend([took_s / len(bix)] * len(bix))
+            if len(durations) % 100 == 0 or len(durations) >= 1000:
+                pd.Series(durations, index=range(len(durations)), name="durations_s") \
+                    .to_csv(f"x_durations_{args.config_path.stem}.csv")
+            if len(durations) >= 500:
+                sys.stdout.write("\0")
+                sys.exit(0)
 
 if __name__ == "__main__":
     main(get_args())
