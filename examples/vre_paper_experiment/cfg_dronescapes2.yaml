@@ -3,7 +3,7 @@ default_io_parameters:
   image_format: not-set
   compress: True
   output_size: [540, 960]
- 
+
 default_learned_parameters:
   device: ${oc.env:VRE_DEVICE,cpu}
 

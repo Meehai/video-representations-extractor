@@ -1,11 +1,11 @@
 default_compute_parameters:
-  batch_size: ${oc.decode:${oc.env:BATCH_SIZE}}
+  batch_size: ${oc.decode:${oc.env:BATCH_SIZE,1}}
 
 default_io_parameters:
   binary_format: npz
-  image_format: ${oc.env:IMAGE_FORMAT}
-  compress: ${oc.decode:${oc.env:COMPRESS}}
-  output_size: ${oc.decode:${oc.env:OUTPUT_SIZE}}
+  image_format: ${oc.env:IMAGE_FORMAT,not-set}
+  compress: ${oc.decode:${oc.env:COMPRESS,False}}
+  output_size: ${oc.decode:${oc.env:OUTPUT_SIZE,"[540,960]"}}
 
 default_learned_parameters:
   device: ${oc.env:VRE_DEVICE,cpu}
