@@ -50,24 +50,17 @@ def build_reader_kwargs(args: Namespace) -> dict[str, Any]:
     return {}
 
 def process_one_batch(vre: VRE, batch: list[int], output_size: tuple[int, int],
-                      disable_hud: bool=False, curr_fps: list[float] | None = None,
-                      write_buffer: FileIO | None | plt.Figure = None) -> IntOrError:
-    curr_fps = curr_fps or []
+                      disable_hud: bool=False, write_buffer: FileIO | None | plt.Figure = None):
     write_buffer = write_buffer or sys.stdout.buffer
 
-    now = datetime.now()
     try:
         res = vre[batch]
     except StopIteration as e:
         logger.info(f"StopIteration raised at {batch=}. Exitting.")
-        return None, e
+        raise e
     imgs = _get_imgs(res, disable_hud)
     for i, img in enumerate(imgs):
-        # logger.info(f"Frame: {batch[i]}. Took: {(datetime.now() - now).total_seconds() / len(imgs):.2f}.")
-        if not disable_hud:
-            title = f"Frame: {batch[i]}."
-            title = title if curr_fps is None else f"{title} FPS {mean(curr_fps):.2f}"
-            img = image_add_title(img, title)
+        img = img if disable_hud else image_add_title(img, f"Frame: {batch[i]}.")
         img = image_resize(img, *output_size)
         if isinstance(write_buffer, plt.Figure):
             plt.imshow(img)
@@ -75,12 +68,8 @@ def process_one_batch(vre: VRE, batch: list[int], output_size: tuple[int, int],
             plt.pause(0.00001)
             plt.clf()
         else:
-            try:
-                write_buffer.write(img.tobytes())
-                write_buffer.flush()
-            except BrokenPipeError as e:
-                return None, e
-    return (datetime.now() - now).total_seconds(), None
+            write_buffer.write(img.tobytes())
+            write_buffer.flush()
 
 def get_args() -> Namespace:
     """cli args"""
@@ -142,24 +131,12 @@ def main(args: Namespace):
         write_buffer = video_path
 
     batches = make_batches(list(range(len(video))), batch_size=1) # note: add here a start_index for testing
-    fps = [0]
-    durations = {"durations_s": [], "timestamps": []}
     while True:
         for bix in batches:
-            took_s, err = process_one_batch(vre, bix, args.output_size, args.disable_hud, fps, write_buffer)
-            if err is not None:
-                raise err
-            if (diff := (1 / video.fps) - took_s) > 0:
+            now = datetime.now()
+            process_one_batch(vre, bix, args.output_size, args.disable_hud, write_buffer)
+            if (diff := (1 / video.fps) - (datetime.now() - now).total_seconds()) > 0:
                 time.sleep(diff)
-            fps = [*fps[-100:], len(bix) / took_s]
-            durations["durations_s"].extend([took_s / len(bix)] * len(bix))
-            durations["timestamps"].extend([datetime.now().replace(tzinfo=None).isoformat()] * len(bix))
-            if len(durations["durations_s"]) % 100 == 0 or len(durations["durations_s"]) >= 1000:
-                pd.DataFrame(durations, index=range(len(durations["durations_s"]))) \
-                    .to_csv(f"z_durations_{args.config_path.stem}.csv")
-            if len(durations["durations_s"]) >= 500:
-                sys.stdout.write("\0")
-                sys.exit(0)
 
 if __name__ == "__main__":
     main(get_args())
