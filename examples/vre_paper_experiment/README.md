@@ -56,3 +56,23 @@ for c,i,os,bs,nf in args:
 
 ### 3. Batch size experiment with RGB+DPT and RGB+SafeUAV
 
+two configs:
+- `cfg_rgb_safeuav.yaml`
+- `cfg_rgb_dpt.yaml`
+
+run this:
+```bash
+VRE_DEVICE=cuda CUDA_VISIBLE_DEVICES=0 vre video_540_960.mp4 -o safeuav_video_540_960 --config_path cfg_rgb_safeuav.yaml --output_dir_exists_mode skip_computed --exception_mode skip_representation --n_threads_data_storer 4 -I semantic_mapper.py:get_new_semantic_mapped_tasks --frames 0..100
+```
+
+### 4. Parallel with Dronescapes2 cfg
+
+vre regular
+```bash
+VRE_DEVICE=cuda CUDA_VISIBLE_DEVICES=0 vre video_540_960.mp4 -o data_video_540_960 --config_path cfg_dronescapes2.yaml --output_dir_exists_mode skip_computed --exception_mode skip_representation --n_threads_data_storer 4 -I semantic_mapper.py:get_new_semantic_mapped_tasks --frames 0..100
+```
+
+vre parallel:
+```bash
+VRE_DEVICE=cuda CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 vre_gpu_parallel video_540_960.mp4 -o data_video_540_960_parallel --config_path cfg_dronescapes2.yaml --output_dir_exists_mode skip_computed --exception_mode skip_representation --n_threads_data_storer 4 -I semantic_mapper.py:get_new_semantic_mapped_tasks --frames 0..100
+```
