@@ -80,7 +80,7 @@ VRE_DEVICE=cuda CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 vre_gpu_parallel video_540_
 ### 4. Streaming experiment: video processing on local GPU
 
 ```bash
-# ffmpeg -i video_540_960.mp4 -f rawvideo -pix_fmt rgb24 - | VRE_DEVICE=cuda vre_streaming - cfg_rgb.yaml --output_size 540 960 --input_size 540 960 --disable_hud --disable_async_worker | ffplay -f rawvideo -video_size 960x540 -pixel_format rgb24 -
+# ffmpeg -i video_540_960.mp4 -f rawvideo -pix_fmt rgb24 - | VRE_DEVICE=cuda vre_streaming - cfg_rgb.yaml --output_size 540 960 --input_size 540 960 --disable_hud --disable_async_worker | vre_video_player.py - --resolution 540 960
 ffmpeg -i video_540_960.mp4 -f rawvideo -pix_fmt rgb24 - | VRE_DEVICE=cuda vre_streaming - cfg_rgb.yaml --output_size 540 960 --input_size 540 960 --disable_hud --disable_async_worker > /dev/null
 ffmpeg -i video_540_960.mp4 -f rawvideo -pix_fmt rgb24 - | VRE_DEVICE=cuda vre_streaming -  cfg_rgb_safeuav_150k.yaml --output_size 540 1920 --input_size 540 960  --disable_hud --disable_async_worker > /dev/null
 ffmpeg -i video_540_960.mp4 -f rawvideo -pix_fmt rgb24 - | VRE_DEVICE=cuda vre_streaming -  cfg_rgb_safeuav_430k.yaml --output_size 540 1920 --input_size 540 960  --disable_hud --disable_async_worker > /dev/null
@@ -94,5 +94,12 @@ ffmpeg -i video_540_960.mp4 -f rawvideo -pix_fmt rgb24 - | VRE_DEVICE=cuda vre_s
 ### 5. Streaming experiment: phone camera on local and cloud GPU
 
 ```bash
+# local
+
+ffmpeg -i /dev/video48 -f rawvideo -pix_fmt rgb24 - | VRE_DEVICE=cuda vre_streaming - cfg_rgb_dpt.yaml --output_size 540 1920 --input_size 480 640 | ~/code/others/vre-video/examples/vre-video-player/vre_video_player.py - --resolution 540 1920 --stats_file y_durations_cfg_rgb_dpt.csv
+
+ffmpeg -i /dev/video48 -f rawvideo -pix_fmt rgb24 - | VRE_DEVICE=cuda vre_streaming - cfg_rgb_safeuav.yaml --output_size 540 1920 --input_size 480 640 | ~/code/others/vre-video/examples/vre-video-player/vre_video_player.py - --resolution 540 1920 --stats_file y_durations_cfg_rgb_safeuav.csv
+
+# remote
 
 ```
