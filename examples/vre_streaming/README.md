@@ -2,11 +2,9 @@
 
 This example will show us various ways to stream from VRE to various external tools.
 
-**Note: make sure nothing is printed to stdout except the frame data in case of MPL=0!**
-
 ## Matplotlib
 
-The easiest thing we can do is use matplotlib. In order to use matplotlib, we can specify the `MPL=1` env variable.
+The easiest thing we can do is use matplotlib. In order to use matplotlib, we can specify the `output_destination` flag to `matplotlib`.
 ```bash
 VRE_DEVICE=cuda ./vre_streaming.py VIDEO CONFIG.YAML --output_destination matplotlib
 ```
