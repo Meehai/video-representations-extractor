@@ -63,7 +63,7 @@ def process_one_batch(vre: VRE, batch: list[int], output_size: tuple[int, int],
         return None, e
     imgs = _get_imgs(res, disable_hud)
     for i, img in enumerate(imgs):
-        logger.info(f"Frame: {batch[i]}. Took: {(datetime.now() - now).total_seconds() / len(imgs):.2f}.")
+        # logger.info(f"Frame: {batch[i]}. Took: {(datetime.now() - now).total_seconds() / len(imgs):.2f}.")
         if not disable_hud:
             title = f"Frame: {batch[i]}."
             title = title if curr_fps is None else f"{title} FPS {mean(curr_fps):.2f}"

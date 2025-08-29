@@ -137,4 +137,4 @@ And switch to `nc localhost 6000` instead of `nc REMOTE_SERVER 5000` which goes 
   - the output is one the processing server
   - note: these can be on the same machine
 
-Remember to use `--disable_async_worker` for mp4 files if you care about processing absolutely every frame.
+Remember to use `--disable_async_worker` (for `video_path=-` only) for mp4 files if you care about processing absolutely every frame.
