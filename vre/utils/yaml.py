@@ -13,29 +13,28 @@ import os
 from typing import Any
 import yaml
 
-def _parse_atom(v: list | dict | str | int | float | bool) -> list | dict | str | int | float | bool:
-    """parses the config file and resolves environment variables or decodes them if needed. Emulates omegaconf."""
-    assert isinstance(v, (list, dict, str, int, float, bool)), type(v)
-    if isinstance(v, list):
-        return [_parse_atom(_v) for _v in v]
-    if isinstance(v, dict):
-        return {k: _parse_atom(_v) for k, _v in v.items()}
-    if not isinstance(v, str):
-        return v
-    if v.startswith("${oc.env"):
-        assert v.find("{", 9) == -1, f"cannot have embedded oc inside oc.env: {v}"
-        assert v[-1] == "}", f"doesn't end in '}}': {v}"
-        key_and_default = v[9:-1].split(",")
-        assert len(key_and_default) <= 2, (v, key_and_default)
-        key, default = key_and_default[0], None if len(key_and_default) == 1 else key_and_default[1]
-        if default is None and key not in os.environ:
+def _parse(data: str) -> str:
+    if (ix := data.find("${")) == -1:
+        return data
+    left, current = data[0:ix], data[ix:]
+    if current.startswith("${oc.env:"):
+        current = _parse(current[len("${oc.env:"):]) # recursively resolve inner oc.env:{} stuff
+        assert (ix_r := current.find("}")) != -1, current
+        key_and_default = current[0:ix_r].split(",")
+        assert len(key_and_default) >= 1, current
+        key, default = key_and_default[0], None
+        if len(key_and_default):
+            default = ",".join(key_and_default[1:]) # in case we have list defaults
+        if len(key_and_default) == 1 and key not in os.environ:
             raise KeyError(f"Environment variable: '{key}' not set and no default provided.")
         value = os.getenv(key, default)
-        return value
-    if v.startswith("${oc.decode"):
-        inner = _parse_atom(v[12:-1])
-        return ast.literal_eval(inner)
-    return v
+        current = f"{value}{current[ix_r+1:]}" # get rid of the '}' of this oc.env and replace it with the env value
+    if current.startswith("${oc.decode:"):
+        current = _parse(current[len("${oc.decode:"):]) # recursively resolve inner oc.env:{} stuff
+        assert (ix_r := current.find("}")) != -1, current
+        value = ast.literal_eval(current[0:ix_r])
+        current = f"{value}{current[ix_r+1:]}" # get rid of the '}' of this oc.decode and replace it with the decoded
+    return f"{left}{current}"
 
 def vre_yaml_load(path: Path | str | IOBase) -> dict[str, Any]:
     """reads a yaml file and resolves the env varaibles if needed"""
@@ -44,7 +43,11 @@ def vre_yaml_load(path: Path | str | IOBase) -> dict[str, Any]:
     data: str = fp.read()
     assert len(data) > 0, f"Nothing read from '{path}'"
 
-    cfg_raw = yaml.safe_load(StringIO(data))
-    cfg = _parse_atom(cfg_raw)
+    cfg_str = _parse(data)
+    try:
+        cfg = yaml.safe_load(StringIO(cfg_str))
+    except Exception as e:
+        print(f"-Could not parse:\n{cfg_str}\n-Exception: {e}")
+        raise e
     fp.close() if isinstance(path, (Path, str)) else None
     return cfg
