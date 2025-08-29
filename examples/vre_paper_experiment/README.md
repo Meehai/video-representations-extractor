@@ -81,12 +81,12 @@ VRE_DEVICE=cuda CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 vre_gpu_parallel video_540_
 
 ```bash
 
-ffmpeg -i video_540_960.mp4 -f rawvideo -pix_fmt rgb24 - | VRE_DEVICE=cuda vre_streaming - cfg_rgb.yaml --output_size 540 960 --input_size 540 960 --disable_async_worker > /dev/null
-ffmpeg -i video_540_960.mp4 -f rawvideo -pix_fmt rgb24 - | VRE_DEVICE=cuda vre_streaming -  cfg_rgb_safeuav_150k.yaml --output_size 540 1920 --disable_hud > /dev/null
-ffmpeg -i video_540_960.mp4 -f rawvideo -pix_fmt rgb24 - | VRE_DEVICE=cuda vre_streaming -  cfg_rgb_safeuav_430k.yaml --output_size 540 1920 --disable_hud > /dev/null
-ffmpeg -i video_540_960.mp4 -f rawvideo -pix_fmt rgb24 - | VRE_DEVICE=cuda vre_streaming -  cfg_rgb_safeuav_1M.yaml --output_size 540 1920 --disable_hud > /dev/null
-ffmpeg -i video_540_960.mp4 -f rawvideo -pix_fmt rgb24 - | VRE_DEVICE=cuda vre_streaming -  cfg_rgb_safeuav_4M.yaml --output_size 540 1920 --disable_hud > /dev/null
-ffmpeg -i video_540_960.mp4 -f rawvideo -pix_fmt rgb24 - | VRE_DEVICE=cuda vre_streaming -  cfg_rgb_dpt.yaml --output_size 540 1920 --disable_hud > /dev/null
-ffmpeg -i video_540_960.mp4 -f rawvideo -pix_fmt rgb24 - | VRE_DEVICE=cuda vre_streaming -  cfg_rgb_mask2former.yaml --output_size 540 1920 --disable_hud > /dev/null
-ffmpeg -i video_540_960.mp4 -f rawvideo -pix_fmt rgb24 - | VRE_DEVICE=cuda vre_streaming -  cfg_rgb_marigold.yaml --output_size 540 1920 --disable_hud > /dev/null
+ffmpeg -i video_540_960.mp4 -f rawvideo -pix_fmt rgb24 - | VRE_DEVICE=cuda vre_streaming - cfg_rgb.yaml --output_size 540 960 --input_size 540 960 --disable_hud --disable_async_worker > /dev/null
+ffmpeg -i video_540_960.mp4 -f rawvideo -pix_fmt rgb24 - | VRE_DEVICE=cuda vre_streaming -  cfg_rgb_safeuav_150k.yaml --output_size 540 1920 --input_size 540 960  --disable_hud --disable_async_worker > /dev/null
+ffmpeg -i video_540_960.mp4 -f rawvideo -pix_fmt rgb24 - | VRE_DEVICE=cuda vre_streaming -  cfg_rgb_safeuav_430k.yaml --output_size 540 1920 --input_size 540 960  --disable_hud --disable_async_worker > /dev/null
+ffmpeg -i video_540_960.mp4 -f rawvideo -pix_fmt rgb24 - | VRE_DEVICE=cuda vre_streaming -  cfg_rgb_safeuav_1M.yaml --output_size 540 1920 --input_size 540 960  --disable_hud --disable_async_worker > /dev/null
+ffmpeg -i video_540_960.mp4 -f rawvideo -pix_fmt rgb24 - | VRE_DEVICE=cuda vre_streaming -  cfg_rgb_safeuav_4M.yaml --output_size 540 1920 --input_size 540 960  --disable_hud --disable_async_worker > /dev/null
+ffmpeg -i video_540_960.mp4 -f rawvideo -pix_fmt rgb24 - | VRE_DEVICE=cuda vre_streaming -  cfg_rgb_dpt.yaml --output_size 540 1920 --input_size 540 960  --disable_hud --disable_async_worker > /dev/null
+ffmpeg -i video_540_960.mp4 -f rawvideo -pix_fmt rgb24 - | VRE_DEVICE=cuda vre_streaming -  cfg_rgb_mask2former.yaml --output_size 540 1920 --input_size 540 960  --disable_hud --disable_async_worker > /dev/null
+ffmpeg -i video_540_960.mp4 -f rawvideo -pix_fmt rgb24 - | VRE_DEVICE=cuda vre_streaming -  cfg_rgb_marigold.yaml --output_size 540 1920 --input_size 540 960  --disable_hud --disable_async_worker > /dev/null
 ```
