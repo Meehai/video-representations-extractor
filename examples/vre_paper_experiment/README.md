@@ -77,10 +77,10 @@ vre parallel:
 VRE_DEVICE=cuda CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 vre_gpu_parallel video_540_960.mp4 -o data_video_540_960_parallel --config_path cfg_dronescapes2.yaml --output_dir_exists_mode skip_computed --exception_mode skip_representation --n_threads_data_storer 4 -I semantic_mapper.py:get_new_semantic_mapped_tasks --frames 0..100
 ```
 
-### 4. Streaming experiment
+### 4. Streaming experiment: video processing on local GPU
 
 ```bash
-
+# ffmpeg -i video_540_960.mp4 -f rawvideo -pix_fmt rgb24 - | VRE_DEVICE=cuda vre_streaming - cfg_rgb.yaml --output_size 540 960 --input_size 540 960 --disable_hud --disable_async_worker | ffplay -f rawvideo -video_size 960x540 -pixel_format rgb24 -
 ffmpeg -i video_540_960.mp4 -f rawvideo -pix_fmt rgb24 - | VRE_DEVICE=cuda vre_streaming - cfg_rgb.yaml --output_size 540 960 --input_size 540 960 --disable_hud --disable_async_worker > /dev/null
 ffmpeg -i video_540_960.mp4 -f rawvideo -pix_fmt rgb24 - | VRE_DEVICE=cuda vre_streaming -  cfg_rgb_safeuav_150k.yaml --output_size 540 1920 --input_size 540 960  --disable_hud --disable_async_worker > /dev/null
 ffmpeg -i video_540_960.mp4 -f rawvideo -pix_fmt rgb24 - | VRE_DEVICE=cuda vre_streaming -  cfg_rgb_safeuav_430k.yaml --output_size 540 1920 --input_size 540 960  --disable_hud --disable_async_worker > /dev/null
@@ -89,4 +89,10 @@ ffmpeg -i video_540_960.mp4 -f rawvideo -pix_fmt rgb24 - | VRE_DEVICE=cuda vre_s
 ffmpeg -i video_540_960.mp4 -f rawvideo -pix_fmt rgb24 - | VRE_DEVICE=cuda vre_streaming -  cfg_rgb_dpt.yaml --output_size 540 1920 --input_size 540 960  --disable_hud --disable_async_worker > /dev/null
 ffmpeg -i video_540_960.mp4 -f rawvideo -pix_fmt rgb24 - | VRE_DEVICE=cuda vre_streaming -  cfg_rgb_mask2former.yaml --output_size 540 1920 --input_size 540 960  --disable_hud --disable_async_worker > /dev/null
 ffmpeg -i video_540_960.mp4 -f rawvideo -pix_fmt rgb24 - | VRE_DEVICE=cuda vre_streaming -  cfg_rgb_marigold.yaml --output_size 540 1920 --input_size 540 960  --disable_hud --disable_async_worker > /dev/null
+```
+
+### 5. Streaming experiment: phone camera on local and cloud GPU
+
+```bash
+
 ```

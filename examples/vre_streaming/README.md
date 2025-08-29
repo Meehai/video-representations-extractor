@@ -99,7 +99,7 @@ You can combine the `VIDEO` and `--output_destination` parameters to act as a TC
 ### On your remote machine where you are processing the video frames
 
 ```bash
-VRE_DEVICE=cuda ./vre_stremaing.py tcp://0.0.0.0:5000 CONFIG.YAML --output_destination socket
+VRE_DEVICE=cuda ./vre_streaming.py tcp://0.0.0.0:5000 CONFIG.YAML --output_destination socket
 ```
 
 On your local machine (where your video or webcam) resides, you can do this:

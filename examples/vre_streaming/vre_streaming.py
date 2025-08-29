@@ -143,7 +143,7 @@ def main(args: Namespace):
 
     batches = make_batches(list(range(len(video))), batch_size=1) # note: add here a start_index for testing
     fps = [0]
-    durations = []
+    durations = {"durations_s": [], "timestamps": []}
     while True:
         for bix in batches:
             took_s, err = process_one_batch(vre, bix, args.output_size, args.disable_hud, fps, write_buffer)
@@ -152,11 +152,12 @@ def main(args: Namespace):
             if (diff := (1 / video.fps) - took_s) > 0:
                 time.sleep(diff)
             fps = [*fps[-100:], len(bix) / took_s]
-            durations.extend([took_s / len(bix)] * len(bix))
-            if len(durations) % 100 == 0 or len(durations) >= 1000:
-                pd.Series(durations, index=range(len(durations)), name="durations_s") \
-                    .to_csv(f"x_durations_{args.config_path.stem}.csv")
-            if len(durations) >= 500:
+            durations["durations_s"].extend([took_s / len(bix)] * len(bix))
+            durations["timestamps"].extend([datetime.now().replace(tzinfo=None).isoformat()] * len(bix))
+            if len(durations["durations_s"]) % 100 == 0 or len(durations["durations_s"]) >= 1000:
+                pd.DataFrame(durations, index=range(len(durations["durations_s"]))) \
+                    .to_csv(f"z_durations_{args.config_path.stem}.csv")
+            if len(durations["durations_s"]) >= 500:
                 sys.stdout.write("\0")
                 sys.exit(0)
 
