@@ -8,12 +8,11 @@ from tempfile import NamedTemporaryFile
 from multiprocessing import Pool
 import subprocess
 import shutil
-from natsort import natsorted
 from tqdm import tqdm
 import numpy as np
 import torch as tr
 
-from vre.utils import image_write, collage_fn, abs_path, reorder_dict, MemoryData, image_resize, str_topk
+from vre.utils import image_write, collage_fn, abs_path, reorder_dict, MemoryData, image_resize, str_topk, natsorted
 from vre.representations import build_representations_from_cfg, add_external_repositories, Representation, ReprOut
 from vre.readers.multitask_dataset import MultiTaskDataset
 from vre.logger import vre_logger as logger
