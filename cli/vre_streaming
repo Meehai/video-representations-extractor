@@ -16,29 +16,29 @@ from vre_video import VREVideo
 from vre import VRE, ReprOut
 from vre.representations import build_representations_from_cfg, LearnedRepresentationMixin
 from vre.logger import vre_logger as logger
-from vre.utils import collage_fn, make_batches, image_resize, image_add_title, mean
+from vre.utils import collage_fn, image_resize, image_add_title
 from vre_repository import get_vre_repository
 
 os.environ["VRE_COLORIZE_SEMSEG_FAST"] = "1"
 os.environ["VRE_PBAR"] = "0"
 
-IntOrError = tuple[int | None, Exception | None]
-
-def _get_imgs(res: dict[str, ReprOut], disable_hud: bool) -> list[np.ndarray]:
+def _get_img(res: dict[str, ReprOut], disable_hud: bool, title: str, output_size: tuple[int, int]) -> np.ndarray | None:
     repr_names = list(res.keys())
     if all(res[r].output_images is None for r in res):
         print("Image format not set, not images were computed. Skipping.")
-        return [None] * res[repr_names[0]].key
+        return None
+    assert all(len(res[r].key) == 1 for r in repr_names), f"computed for batch >1 which is not allowed: {res}"
 
-    frames_res = []
-    for i in range(len(res[repr_names[0]].key)):
-        imgs = [res[r].output_images[i] if res[r].output_images is not None else None for r in repr_names]
-        titles = None if disable_hud else repr_names
-        collage = collage_fn(imgs, titles=titles, size_px=70, rows_cols=None) if len(imgs) > 1 else imgs[0]
-        frames_res.append(collage)
-    return frames_res
+    imgs = [res[r].output_images[0] if res[r].output_images is not None else None for r in repr_names]
+    if len(imgs) > 1:
+        res = collage_fn(imgs, titles=None if disable_hud else repr_names)
+    else:
+        res = imgs[0] if disable_hud else image_add_title(imgs[0], repr_names[0])
+    res = res if disable_hud else image_add_title(res, title)
+    res = image_resize(res, *output_size)
+    return res
 
-def build_reader_kwargs(args: Namespace) -> dict[str, Any]:
+def _build_reader_kwargs(args: Namespace) -> dict[str, Any]:
     """builds the video kwargs that's passed to the VREVideo FrameReader"""
     if args.video_path == "-":
         return {"resolution": args.input_size, "async_worker": not args.disable_async_worker}
@@ -48,27 +48,16 @@ def build_reader_kwargs(args: Namespace) -> dict[str, Any]:
         assert args.input_size is None, "--input_size cannot be set for video_path that's not stdin"
     return {}
 
-def process_one_batch(vre: VRE, batch: list[int], output_size: tuple[int, int],
-                      disable_hud: bool=False, write_buffer: FileIO | None | plt.Figure = None):
-    write_buffer = write_buffer or sys.stdout.buffer
-
-    try:
-        res = vre[batch]
-    except StopIteration as e:
-        logger.info(f"StopIteration raised at {batch=}. Exitting.")
-        raise e
-    imgs = _get_imgs(res, disable_hud)
-    for i, img in enumerate(imgs):
-        img = img if disable_hud else image_add_title(img, f"Frame: {batch[i]}.")
-        img = image_resize(img, *output_size)
-        if isinstance(write_buffer, plt.Figure):
-            plt.imshow(img)
-            plt.draw()
-            plt.pause(0.00001)
-            plt.clf()
-        else:
-            write_buffer.write(img.tobytes())
-            write_buffer.flush()
+def _write_to_output(write_buffer: plt.Figure | FileIO, img: np.ndarray):
+    """writes the final image to the destination buffer or matplotlib"""
+    if isinstance(write_buffer, plt.Figure):
+        plt.imshow(img)
+        plt.draw()
+        plt.pause(0.00001)
+        plt.clf()
+    else:
+        write_buffer.write(img.tobytes())
+        write_buffer.flush()
 
 def get_args() -> Namespace:
     """cli args"""
@@ -76,7 +65,6 @@ def get_args() -> Namespace:
     parser.add_argument("video_path", type=str)
     parser.add_argument("config_path", type=Path)
     # generic parameters
-    parser.add_argument("--batch_size", type=int, default=1)
     parser.add_argument("--output_size", nargs=2, type=int, help="h, w", default=[360, 1280])
     parser.add_argument("--disable_hud", action="store_true")
     parser.add_argument("--output_destination", choices=["matplotlib", "socket", "stdout"], default="stdout")
@@ -85,7 +73,6 @@ def get_args() -> Namespace:
     parser.add_argument("--disable_async_worker", action="store_true",
                         help="Set this to true for sync streaming like reading from an mp4. Keep it on for real time")
     args = parser.parse_args()
-    assert args.batch_size > 0, args.batch_size
     assert all(hw > 0 for hw in args.output_size), args.output_size
     if args.video_path == "-" or args.video_path.startswith("tcp://"):
         assert args.input_size is not None
@@ -109,7 +96,7 @@ def main(args: Namespace):
     else:
         video_path = args.video_path
 
-    video = VREVideo(video_path, **build_reader_kwargs(args))
+    video = VREVideo(video_path, **_build_reader_kwargs(args))
     logger.debug(video)
     representations = build_representations_from_cfg(args.config_path, get_vre_repository())
 
@@ -129,11 +116,21 @@ def main(args: Namespace):
         assert hasattr(video_path, "write") and hasattr(video_path, "flush"), type(video_path)
         write_buffer = video_path
 
-    batches = make_batches(list(range(len(video))), batch_size=1) # note: add here a start_index for testing
+    ixs = list(range(len(video)))
     while True:
-        for bix in batches:
+        for ix in ixs:
             now = datetime.now()
-            process_one_batch(vre, bix, args.output_size, args.disable_hud, write_buffer)
+
+            write_buffer = write_buffer or sys.stdout.buffer
+
+            try:
+                res = vre[ix] # TODO: frame=video[ix] + vre[frame]
+            except StopIteration as e:
+                logger.info(f"StopIteration raised at {ix=}. Exitting.")
+                raise e
+            img = _get_img(res, args.disable_hud, title=f"Frame: {ix}.", output_size=args.output_size)
+            _write_to_output(write_buffer, img)
+
             if (diff := (1 / video.fps) - (datetime.now() - now).total_seconds()) > 0:
                 time.sleep(diff)
 
