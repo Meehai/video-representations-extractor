@@ -6,12 +6,12 @@ from pathlib import Path
 from typing import Iterable, NamedTuple
 from pprint import pformat
 from copy import deepcopy
-from natsort import natsorted
 import torch as tr
 from torch.utils.data import Dataset
 
 from vre.representations import Representation, NormedRepresentationMixin, IORepresentationMixin, TaskMapper
 from vre.logger import vre_logger as logger
+from vre.utils import natsorted
 
 from .statistics import compute_statistics, load_external_statistics, TaskStatistics
 
