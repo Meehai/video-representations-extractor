@@ -22,6 +22,14 @@ class _SupportsDunderGT:
         ...
 Sortable = _SupportsDunderLT | _SupportsDunderGT
 
+class _SupportsDunderLT:
+    def __lt__(self, __other: Any) -> bool:
+        ...
+class _SupportsDunderGT:
+    def __gt__(self, __other: Any) -> bool:
+        ...
+Sortable = _SupportsDunderLT | _SupportsDunderGT
+
 class DownloadProgressBar(tqdm):
     """requests + tqdm"""
     def update_to(self, b=1, bsize=1, tsize=None):

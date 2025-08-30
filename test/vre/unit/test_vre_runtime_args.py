@@ -5,7 +5,7 @@ from vre.vre_runtime_args import VRERuntimeArgs
 import numpy as np
 import pytest
 
-sys.path.append(str(get_project_root() / "test"))
+sys.path.append(str(get_project_root() / "test/vre"))
 from fake_representation import FakeRepresentation
 
 def test_VRERuntimeArgs_ctor():

@@ -5,7 +5,7 @@ from vre.utils import get_project_root
 from vre import VRE
 from vre_video import VREVideo
 
-sys.path.append(str(get_project_root() / "test"))
+sys.path.append(str(get_project_root() / "test/vre"))
 from fake_representation import FakeRepresentation
 
 def test_vre_hidden_duplicates_1():
@@ -43,3 +43,6 @@ def test_vre_hidden_duplicates_2():
     video = VREVideo(np.random.randint(0, 255, size=(10, 20, 30, 3), dtype=np.uint8), fps=1)
     with pytest.raises(ValueError):
         VRE(video, [repr1, repr2, dep1, dep2])
+
+if __name__ == "__main__":
+    test_vre_hidden_duplicates_1()

@@ -165,7 +165,7 @@ representations:
         logger.info(f"{k}: {u:.2f} vs {b:.2f} ({u / b:.2f})")
     logger.info(f"Total: {total_u:.2f} vs {total_b:.2f} ({total_u / total_b:.2f})")
 
-    for r_name in vre.repr_names:
+    for r_name in vre.representations.names:
         for t in range(start_frame, end_frame):
             a = np.load(tmp_dir / r_name / "npz/" / f"{t}.npz")["arr_0"]
             b = np.load(tmp_dir_bs / r_name / "npz/" / f"{t}.npz")["arr_0"]

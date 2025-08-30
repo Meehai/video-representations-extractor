@@ -67,7 +67,7 @@ def test_RunMetadata_exported_representations():
     representations=[FakeRepresentation("rgb", n_channels=3), FakeRepresentation("hsv", n_channels=3)]
     vre = VRE(video=video, representations=representations)
     vre.set_io_parameters(binary_format="npz", image_format="not-set", compress=True, output_size=(128, 128))
-    res = vre.run(output_dir := Path(TemporaryDirectory().name), exported_representations=["rgb"])
+    res = vre.run(output_dir := Path(TemporaryDirectory().name), subset_exported_representations=["rgb"])
     assert res.repr_names == ["rgb"], res.repr_names
     assert res.runtime_args["frames"] == [0, 1], res.runtime_args["frames"]
     assert (output_dir / "rgb/.repr_metadata.json").exists()
