@@ -1,0 +1,29 @@
+default_compute_parameters:
+  batch_size: ${oc.decode:${oc.env:BATCH_SIZE,1}}
+
+default_io_parameters:
+  binary_format: npz
+  image_format: ${oc.env:IMAGE_FORMAT,not-set}
+  compress: ${oc.decode:${oc.env:COMPRESS,False}}
+  output_size: ${oc.decode:${oc.env:OUTPUT_SIZE,"[540,960]"}}
+
+default_learned_parameters:
+  device: ${oc.env:VRE_DEVICE,cpu}
+
+representations:
+  rgb:
+    type: color/rgb
+    dependencies: []
+    parameters: {}
+
+  depth_marigold:
+    type: depth/marigold
+    dependencies: []
+    parameters:
+      variant: marigold-lcm-v1-0
+      denoising_steps: 4
+      ensemble_size: 1
+      processing_resolution: 768
+    compute_parameters:
+      batch_size: 1
+
