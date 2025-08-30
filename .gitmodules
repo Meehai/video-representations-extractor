@@ -1,0 +1,3 @@
+[submodule "vre-video"]
+	path = vre-video
+	url = git@gitlab.com:video-representations-extractor/vre-video.git
