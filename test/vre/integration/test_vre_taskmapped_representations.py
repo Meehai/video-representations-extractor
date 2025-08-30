@@ -4,6 +4,7 @@ from pathlib import Path
 from overrides import overrides
 import shutil
 import numpy as np
+from vre import VRE
 from vre_video import VREVideo
 from vre.utils import (colorize_semantic_segmentation, semantic_mapper, DiskData,
                        MemoryData, ReprOut, get_project_root, image_resize_batch, natsorted)

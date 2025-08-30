@@ -11,8 +11,8 @@ from importlib.machinery import SourceFileLoader
 from tqdm import tqdm
 import numpy as np
 import torch as tr
-from vre.logger import vre_logger as logger
 from natsort import natsorted as natsorted_orig
+from vre.logger import vre_logger as logger
 
 class _SupportsDunderLT:
     def __lt__(self, __other: Any) -> bool:
