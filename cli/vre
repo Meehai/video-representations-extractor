@@ -58,7 +58,7 @@ def main(args: Namespace):
     vre.run(args.output_path, frames=args.frames or range(len(video)),
             output_dir_exists_mode=args.output_dir_exists_mode,
             n_threads_data_storer=args.n_threads_data_storer, exception_mode=args.exception_mode,
-            exported_representations=args.representations)
+            subset_exported_representations=args.representations)
 
     if args.collage:
         vre_collage_main = load_function_from_module(Path(__file__).parent / "vre_collage", "main")

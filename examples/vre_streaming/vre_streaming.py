@@ -47,6 +47,7 @@ def build_reader_kwargs(args: Namespace) -> dict[str, Any]:
         assert args.input_size is None, "--input_size cannot be set for video_path that's not stdin"
     return {}
 
+# TODO: simplify and use process one frame.
 def process_one_batch(vre: VRE, batch: list[int], output_size: tuple[int, int],
                       disable_title_hud: bool=False, curr_fps: list[float] | None = None,
                       write_buffer: FileIO | None | plt.Figure = None) -> IntOrError:

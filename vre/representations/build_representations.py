@@ -2,10 +2,40 @@
 from pathlib import Path
 from typing import Type
 from .representation import Representation
+from .representations_list import RepresentationsList
 from .io_representation_mixin import IORepresentationMixin
 from .learned_representation_mixin import LearnedRepresentationMixin
 from ..logger import vre_logger as logger
 from ..utils import topological_sort, load_function_from_module, vre_yaml_load
+
+def build_representations_from_cfg(cfg: Path | str | dict,
+                                   representation_types: dict[str, type[Representation]],
+                                   external_representations: list[Path] | None = None) -> RepresentationsList:
+    """builds a list of representations given a dict config (yaml file)"""
+    assert isinstance(cfg, (Path, str, dict)), type(cfg)
+    cfg = vre_yaml_load(cfg) if isinstance(cfg, (Path, str)) else cfg
+    assert len(repr_cfg := cfg["representations"]) > 0 and isinstance(repr_cfg, dict), repr_cfg
+
+    logger.debug("Doing topological sort...")
+    dep_graph = {repr_name: repr_cfg_values["dependencies"] for repr_name, repr_cfg_values in repr_cfg.items()}
+    topo_sorted = {k: repr_cfg[k] for k in topological_sort(dep_graph)}
+
+    compute_defaults = cfg.get("default_compute_parameters", {})
+    learned_defaults = cfg.get("default_learned_parameters", {})
+    io_defaults = cfg.get("default_io_parameters", {})
+
+    built_so_far: list[Representation] = []
+    for name, repr_cfg in topo_sorted.items():
+        obj = build_representation_from_cfg(repr_cfg=repr_cfg, name=name, representation_types=representation_types,
+                                            built_so_far=built_so_far, compute_defaults=compute_defaults,
+                                            learned_defaults=learned_defaults, io_defaults=io_defaults)
+        built_so_far.append(obj)
+
+    for external_repr in (external_representations or []):
+        built_so_far = _add_one_external_representation_list(built_so_far, external_repr,
+                                                             compute_params=compute_defaults,
+                                                             learned_params=learned_defaults, io_params=io_defaults)
+    return RepresentationsList(built_so_far)
 
 def add_external_repositories(external_paths: list[str],
                               default_representations: dict[str, type[Representation]] | None = None) \
@@ -17,21 +47,6 @@ def add_external_repositories(external_paths: list[str],
         assert (diff := set(representation_types.keys()).intersection(external_types)) == set(), diff
         representation_types = {**representation_types, **external_types}
     return representation_types
-
-def _add_one_external_repository(external_path: str) -> dict[str, type[Representation]]:
-    path, fn = external_path.split(":")
-    external_reprs: dict[str, Representation] = load_function_from_module(path, fn)()
-    assert all(isinstance(v, Type) for v in external_reprs.values()), external_reprs
-    return external_reprs
-
-def _validate_repr_cfg(repr_cfg: dict, name: str):
-    assert isinstance(repr_cfg, dict), f"Broken format (not a dict) for {name}. Type: {type(repr_cfg)}."
-    valid_keys = {"type", "parameters", "dependencies", "compute_parameters", "learned_parameters", "io_parameters"}
-    required_keys = {"type", "parameters", "dependencies"}
-    assert set(repr_cfg).issubset(valid_keys), f"{name} wrong keys: {repr_cfg.keys()}"
-    assert (diff := required_keys.difference(repr_cfg)) == set(), f"{name} missing keys: {diff}"
-    assert isinstance(repr_cfg["parameters"], dict), type(repr_cfg["parameters"])
-    assert name.find("/") == -1, "No '/' allowed in the representation name. Got '{name}'"
 
 def build_representation_from_cfg(repr_cfg: dict, name: str, representation_types: dict[str, type[Representation]],
                                   built_so_far: list[Representation],
@@ -65,35 +80,6 @@ def build_representation_from_cfg(repr_cfg: dict, name: str, representation_type
     if isinstance(obj, IORepresentationMixin):
         obj.set_io_params(**io_params)
     return obj
-
-def build_representations_from_cfg(cfg: Path | str | dict,
-                                   representation_types: dict[str, type[Representation]],
-                                   external_representations: list[Path] | None = None) -> list[Representation]:
-    """builds a list of representations given a dict config (yaml file)"""
-    assert isinstance(cfg, (Path, str, dict)), type(cfg)
-    cfg = vre_yaml_load(cfg) if isinstance(cfg, (Path, str)) else cfg
-    assert len(repr_cfg := cfg["representations"]) > 0 and isinstance(repr_cfg, dict), repr_cfg
-
-    logger.debug("Doing topological sort...")
-    dep_graph = {repr_name: repr_cfg_values["dependencies"] for repr_name, repr_cfg_values in repr_cfg.items()}
-    topo_sorted = {k: repr_cfg[k] for k in topological_sort(dep_graph)}
-
-    compute_defaults = cfg.get("default_compute_parameters", {})
-    learned_defaults = cfg.get("default_learned_parameters", {})
-    io_defaults = cfg.get("default_io_parameters", {})
-
-    built_so_far: list[Representation] = []
-    for name, repr_cfg in topo_sorted.items():
-        obj = build_representation_from_cfg(repr_cfg=repr_cfg, name=name, representation_types=representation_types,
-                                            built_so_far=built_so_far, compute_defaults=compute_defaults,
-                                            learned_defaults=learned_defaults, io_defaults=io_defaults)
-        built_so_far.append(obj)
-
-    for external_repr in (external_representations or []):
-        built_so_far = _add_one_external_representation_list(built_so_far, external_repr,
-                                                             compute_params=compute_defaults,
-                                                             learned_params=learned_defaults, io_params=io_defaults)
-    return built_so_far
 
 def _add_external_representations_dict(built_so_far: list[Representation],
                                        external_reprs: dict[str, Representation],
@@ -131,3 +117,18 @@ def _add_one_external_representation_list(built_so_far: list[Representation], ex
     assert isinstance(external_reprs, dict) and len(external_reprs) > 0, (external_path, external_reprs)
     logger.info(f"Adding {list(external_reprs)} from {path}")
     return _add_external_representations_dict(built_so_far, external_reprs, compute_params, learned_params, io_params)
+
+def _add_one_external_repository(external_path: str) -> dict[str, type[Representation]]:
+    path, fn = external_path.split(":")
+    external_reprs: dict[str, Representation] = load_function_from_module(path, fn)()
+    assert all(isinstance(v, Type) for v in external_reprs.values()), external_reprs
+    return external_reprs
+
+def _validate_repr_cfg(repr_cfg: dict, name: str):
+    assert isinstance(repr_cfg, dict), f"Broken format (not a dict) for {name}. Type: {type(repr_cfg)}."
+    valid_keys = {"type", "parameters", "dependencies", "compute_parameters", "learned_parameters", "io_parameters"}
+    required_keys = {"type", "parameters", "dependencies"}
+    assert set(repr_cfg).issubset(valid_keys), f"{name} wrong keys: {repr_cfg.keys()}"
+    assert (diff := required_keys.difference(repr_cfg)) == set(), f"{name} missing keys: {diff}"
+    assert isinstance(repr_cfg["parameters"], dict), type(repr_cfg["parameters"])
+    assert name.find("/") == -1, "No '/' allowed in the representation name. Got '{name}'"

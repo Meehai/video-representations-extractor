@@ -9,31 +9,35 @@ import torch as tr
 import numpy as np
 from vre_video import VREVideo
 
-from .representations import Representation, LearnedRepresentationMixin
-from .representations.io_representation_mixin import IORepresentationMixin
+from .representations import Representation, LearnedRepresentationMixin, RepresentationsList, IORepresentationMixin
 from .vre_runtime_args import VRERuntimeArgs
 from .data_writer import DataWriter
 from .data_storer import DataStorer
 from .run_metadata import RunMetadata
 from .representation_metadata import RepresentationMetadata
-from .utils import now_fmt, make_batches, vre_topo_sort, ReprOut, DiskData, SummaryPrinter, random_chars, MemoryData
+from .utils import now_fmt, make_batches, ReprOut, DiskData, SummaryPrinter, random_chars, MemoryData
 from .logger import vre_logger as logger
+
+# 3 classes:
+# RepresentationsList DONE
+# vre_batched = VREBatched(VREVideo, RepresentationsList); vre_batch.run(...)
+# vre_streaming = VREStreaming(VREVIdeo(??) RepresentationsList); vre_streaming[0:5]
 
 class VideoRepresentationsExtractor:
     """Video Representations Extractor class"""
 
-    def __init__(self, video: VREVideo, representations: list[Representation]):
+    def __init__(self, video: VREVideo, representations: RepresentationsList | list[Representation]):
         """
         Parameters:
         - video The video we are performing VRE one
         - representations The list instantiated representations. Must be topo-sortable based on name and deps.
         """
-        assert len(representations) > 0, "At least one representation must be provided"
-        assert all(isinstance(x, Representation) for x in representations), [(x.name, type(x)) for x in representations]
         assert isinstance(video, VREVideo), (type(video), video)
+        assert isinstance(representations, (list, tuple, RepresentationsList)), type(representations)
+        representations = RepresentationsList(representations)
+        assert isinstance(representations, RepresentationsList)
         self.video = video
-        self.representations: list[Representation] = vre_topo_sort(representations)
-        self.repr_names = [r.name for r in representations]
+        self.representations = representations
 
     def set_compute_params(self, **kwargs) -> VideoRepresentationsExtractor:
         """Set the required params for all representations"""
@@ -47,23 +51,9 @@ class VideoRepresentationsExtractor:
             r.set_io_params(**kwargs)
         return self
 
-    def to_graphviz(self, **kwargs) -> "Digraph":
-        """Returns a graphviz object from this graph. Used for plotting the graph. Best for smaller graphs."""
-        from graphviz import Digraph # pylint: disable=import-outside-toplevel
-        g = Digraph()
-        for k, v in kwargs.items():
-            g.attr(**{k: v})
-        g.attr(rankdir="LR")
-        for node in self.representations:
-            g.node(name=f"{node.name}", shape="oval")
-        edges: list[tuple[str, str]] = [(r.name, dep.name) for r in self.representations for dep in r.dependencies]
-        for l, r in edges:
-            g.edge(r, l) # reverse?
-        return g
-
     def run(self, output_dir: Path, frames: list[int] | None = None, output_dir_exists_mode: str = "raise",
             exception_mode: str = "stop_execution", n_threads_data_storer: int = 0,
-            exported_representations: list[str] | None = None) -> RunMetadata:
+            subset_exported_representations: list[str] | None = None) -> RunMetadata:
         """
         The main loop of the VRE. This will run all the representations on the video and store results in the output_dir
         Parameters:
@@ -74,24 +64,26 @@ class VideoRepresentationsExtractor:
           - 'skip_representation' Will stop the run of the current representation and start the next one
           - 'stop_execution' (default) Will stop the execution of VRE
         - n_threads_data_storer The number of threads used by the DataStorer
-        - exported_representations If set, only this subset of representations are exported, otherwise all of them
-            based on these provided to the VRE constructor.
+        - subset_exported_representations If set, only this subset of representations are exported, otherwise all of
+            them based on these provided to the VRE constructor.
         Returns:
         - A RunMetadata object representing the run statistics for all representations of this run.
         """
         self._setup_logger(logs_dir := output_dir / ".logs", run_id := random_chars(n=10), now := now_fmt())
         self._setup_graphviz(logs_dir, run_id, now)
+        if (subset := subset_exported_representations) is not None:
+            logger.info(f"Explicit subset provided: {subset}. Exporting only these.")
 
-        exported_representations: list[Representation] = self._get_output_representations(exported_representations)
-        exported_names = [r.name for r in exported_representations]
-        runtime_args = VRERuntimeArgs(video=self.video, representations=exported_representations, frames=frames,
+        exported_reprs = self.representations.get_output_representations(subset=subset)
+        assert len(exported_reprs) > 0, f"No output reprs returned, set I/O! {self.representations=}, {subset=}"
+        runtime_args = VRERuntimeArgs(video=self.video, representations=exported_reprs, frames=frames,
                                       exception_mode=exception_mode, n_threads_data_storer=n_threads_data_storer)
-        run_metadata = RunMetadata(repr_names=exported_names, runtime_args=runtime_args,
+        run_metadata = RunMetadata(repr_names=exported_reprs.names, runtime_args=runtime_args,
                                    logs_dir=logs_dir, now_str=now, run_id=run_id)
         logger.info(runtime_args)
-        summary_printer = SummaryPrinter(exported_names, runtime_args)
+        summary_printer = SummaryPrinter(exported_reprs.names, runtime_args)
 
-        for vrepr in exported_representations:
+        for vrepr in exported_reprs:
             dw = DataWriter(output_dir=output_dir, representation=vrepr, output_dir_exists_mode=output_dir_exists_mode)
             run_metadata.data_writers[vrepr.name] = dw.to_dict()
             repr_metadata = self.do_one_representation(run_id=run_metadata.id, representation=vrepr,
@@ -194,7 +186,8 @@ class VideoRepresentationsExtractor:
 
     def _setup_graphviz(self, logs_dir: Path, run_id: str, now_str: str):
         try:
-            self.to_graphviz().render(pth := f"{logs_dir}/graph-{run_id}-{now_str}", format="png", cleanup=True)
+            self.representations.to_graphviz().render(pth := f"{logs_dir}/graph-{run_id}-{now_str}",
+                                                      format="png", cleanup=True)
             logger.info(f"Stored graphviz representation at: '{pth}.png'")
         except Exception as e:
             logger.error(e)
@@ -210,39 +203,13 @@ class VideoRepresentationsExtractor:
         open(logs_file, "a").write(f"{'=' * 80}\n{now_fmt()}\n{msg}\n{'=' * 80}")
         logger.debug(f"Error: {msg}")
 
-    def _get_output_representations(self, exported_representations: list[str] | None) -> list[Representation]:
-        """
-        Given all the representations, keep those that actually export something. RunMetadata uses only these.
-        We do a bunch of checks:
-        - at least one representation is provided
-        - they are exportable: IORpresentations are set, like npz, png etc.
-        - no duplicates provided
-        Returns a subset of representations from the ones given at constructor that will be exported.
-        """
-        crs: list[IORepresentationMixin] = [_r for _r in self.representations if isinstance(_r, IORepresentationMixin)]
-        assert len(crs) > 0, f"No I/O Representation found in {self.repr_names}"
-        out_r: list[Representation] = [r for r in crs if r.export_binary or r.export_image]
-        if (er := exported_representations) is not None:
-            assert all(r_name in self.repr_names for r_name in er), f"Wrong names: {er=} vs {self.repr_names=}"
-            assert sorted(set(er)) == sorted(er), f"Duplicates found: {er} in --representations."
-            logger.info(f"Explicit subset provided: {exported_representations}. Exporting only these.")
-            out_r = [r for r in out_r if r.name in exported_representations]
-
-        assert len(out_r) > 0, f"No output format set for any I/O Representation: {', '.join([r.name for r in crs])}"
-        for vre_repr in out_r:
-            assert isinstance(vre_repr, Representation), vre_repr
-            assert isinstance(vre_repr, IORepresentationMixin), vre_repr
-            assert vre_repr.binary_format is not None or vre_repr.image_format is not None, vre_repr
-
-        return out_r
-
     def __call__(self, *args, **kwargs) -> RunMetadata:
         return self.run(*args, **kwargs)
 
     def __str__(self) -> str:
         return f"""\n[VRE]
 - Video: {self.video}
-- Representations ({len(self.representations)}): [{", ".join(self.repr_names)}]"""
+- Representations: {self.representations}"""
 
     def __repr__(self) -> str:
         return str(self)

@@ -12,6 +12,11 @@ from .io_representation_mixin import IORepresentationMixin, MemoryData, DiskData
 
 _CACHE = FixedSizeOrderedDict(maxlen=1024)
 
+"""
+Question for future self:
+How can a NPIORepresentation have "not-set" on binary but "jpg" or "png" on image ? Seems like bad design.
+"""
+
 class NpIORepresentation(IORepresentationMixin):
     """Generic Task with data read from/saved to numpy files. Tries to read data as-is from disk and store it as well"""
     @property
