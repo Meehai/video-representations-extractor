@@ -62,7 +62,7 @@ def test_load_RepresentationMetadata_1():
         assert meta2.run_stats[frame] == meta.run_stats[frame]
         assert meta2.run_stats[frame]._asdict() == disk_data["run_stats"][str(frame)] # note json conversion
 
-def test_RunMetadata_exported_representations():
+def test_RunMetadata_subset_exported_representations():
     video = VREVideo(np.random.randint(0, 255, size=(2, 128, 128, 3), dtype=np.uint8), fps=30)
     representations=[FakeRepresentation("rgb", n_channels=3), FakeRepresentation("hsv", n_channels=3)]
     vre = VRE(video=video, representations=representations)
