@@ -19,7 +19,6 @@ from .utils import now_fmt, make_batches, ReprOut, DiskData, SummaryPrinter, ran
 from .logger import vre_logger as logger
 
 # 3 classes:
-# RepresentationsList DONE
 # vre_batched = VREBatched(VREVideo, RepresentationsList); vre_batch.run(...)
 # vre_streaming = VREStreaming(VREVIdeo(??) RepresentationsList); vre_streaming[0:5]
 
