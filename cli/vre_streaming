@@ -12,6 +12,7 @@ import time
 import numpy as np
 import matplotlib.pyplot as plt
 from vre_video import VREVideo
+from vre_video.readers import FdFrameReader
 
 from vre import VRE, ReprOut
 from vre.representations import build_representations_from_cfg, LearnedRepresentationMixin
@@ -110,21 +111,20 @@ def main(args: Namespace):
         write_buffer = plt.figure(figsize=(12, 6))
         plt.ion()
         plt.show()
-    elif args.output_destination == "stdout":
-        write_buffer = sys.stdout.buffer
     elif args.output_destination == "socket":
         assert hasattr(video_path, "write") and hasattr(video_path, "flush"), type(video_path)
         write_buffer = video_path
+    else:
+        write_buffer = sys.stdout.buffer
 
     ixs = list(range(len(video)))
     while True:
         for ix in ixs:
             now = datetime.now()
-
-            write_buffer = write_buffer or sys.stdout.buffer
-
             try:
-                res = vre[ix] # TODO: frame=video[ix] + vre[frame]
+                res = vre[ix]
+                if isinstance(video.reader, FdFrameReader): # for streaming, we use the internal counter for frame ix
+                    ix = video.reader.current_frame_ix
             except StopIteration as e:
                 logger.info(f"StopIteration raised at {ix=}. Exitting.")
                 raise e
