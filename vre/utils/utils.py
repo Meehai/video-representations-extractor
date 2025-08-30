@@ -1,5 +1,5 @@
 """utils for vre"""
-from typing import Any, T, Callable
+from typing import Any, T, Callable, Iterable
 from types import ModuleType
 from pathlib import Path
 from datetime import datetime, timezone as tz
@@ -11,7 +11,16 @@ from importlib.machinery import SourceFileLoader
 from tqdm import tqdm
 import numpy as np
 import torch as tr
+from natsort import natsorted as natsorted_orig
 from vre.logger import vre_logger as logger
+
+class _SupportsDunderLT:
+    def __lt__(self, __other: Any) -> bool:
+        ...
+class _SupportsDunderGT:
+    def __gt__(self, __other: Any) -> bool:
+        ...
+Sortable = _SupportsDunderLT | _SupportsDunderGT
 
 class DownloadProgressBar(tqdm):
     """requests + tqdm"""
@@ -175,3 +184,7 @@ def str_topk(s: str, k: int) -> str:
     first_part = s[0: k // 2 - 1 + (k%2 == 1)]
     last_part = s[-(k//2 - 1):]
     return f"{first_part}..{last_part}"
+
+def natsorted(seq: Iterable[T], key: Callable[[T], Sortable] | None = None, reverse: bool=False) -> list[T]:
+    """wrapper on top of natsorted so we can properly remove it"""
+    return natsorted_orig(seq, key, reverse)
