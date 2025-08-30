@@ -24,7 +24,7 @@ os.environ["VRE_PBAR"] = "0"
 
 IntOrError = tuple[int | None, Exception | None]
 
-def _get_imgs(res: dict[str, ReprOut]) -> list[np.ndarray]:
+def _get_imgs(res: dict[str, ReprOut], disable_hud: bool) -> list[np.ndarray]:
     repr_names = list(res.keys())
     if all(res[r].output_images is None for r in res):
         print("Image format not set, not images were computed. Skipping.")
@@ -33,7 +33,8 @@ def _get_imgs(res: dict[str, ReprOut]) -> list[np.ndarray]:
     frames_res = []
     for i in range(len(res[repr_names[0]].key)):
         imgs = [res[r].output_images[i] if res[r].output_images is not None else None for r in repr_names]
-        collage = collage_fn(imgs, titles=repr_names, size_px=70, rows_cols=None) if len(imgs) > 1 else imgs[0]
+        titles = None if disable_hud else repr_names
+        collage = collage_fn(imgs, titles=titles, size_px=70, rows_cols=None) if len(imgs) > 1 else imgs[0]
         frames_res.append(collage)
     return frames_res
 
@@ -47,25 +48,18 @@ def build_reader_kwargs(args: Namespace) -> dict[str, Any]:
         assert args.input_size is None, "--input_size cannot be set for video_path that's not stdin"
     return {}
 
-# TODO: simplify and use process one frame.
 def process_one_batch(vre: VRE, batch: list[int], output_size: tuple[int, int],
-                      disable_title_hud: bool=False, curr_fps: list[float] | None = None,
-                      write_buffer: FileIO | None | plt.Figure = None) -> IntOrError:
-    curr_fps = curr_fps or []
+                      disable_hud: bool=False, write_buffer: FileIO | None | plt.Figure = None):
     write_buffer = write_buffer or sys.stdout.buffer
 
-    now = datetime.now()
     try:
         res = vre[batch]
     except StopIteration as e:
         logger.info(f"StopIteration raised at {batch=}. Exitting.")
-        return None, e
-    imgs = _get_imgs(res)
+        raise e
+    imgs = _get_imgs(res, disable_hud)
     for i, img in enumerate(imgs):
-        if not disable_title_hud:
-            title = f"Frame: {batch[i]}."
-            title = title if curr_fps is None else f"{title} FPS {mean(curr_fps):.2f}"
-            img = image_add_title(img, title)
+        img = img if disable_hud else image_add_title(img, f"Frame: {batch[i]}.")
         img = image_resize(img, *output_size)
         if isinstance(write_buffer, plt.Figure):
             plt.imshow(img)
@@ -73,12 +67,8 @@ def process_one_batch(vre: VRE, batch: list[int], output_size: tuple[int, int],
             plt.pause(0.00001)
             plt.clf()
         else:
-            try:
-                write_buffer.write(img.tobytes())
-                write_buffer.flush()
-            except BrokenPipeError as e:
-                return None, e
-    return (datetime.now() - now).total_seconds(), None
+            write_buffer.write(img.tobytes())
+            write_buffer.flush()
 
 def get_args() -> Namespace:
     """cli args"""
@@ -88,7 +78,7 @@ def get_args() -> Namespace:
     # generic parameters
     parser.add_argument("--batch_size", type=int, default=1)
     parser.add_argument("--output_size", nargs=2, type=int, help="h, w", default=[360, 1280])
-    parser.add_argument("--disable_title_hud", action="store_true")
+    parser.add_argument("--disable_hud", action="store_true")
     parser.add_argument("--output_destination", choices=["matplotlib", "socket", "stdout"], default="stdout")
     # parameters for video_path='-' or video_path='tcp://ip:port'
     parser.add_argument("--input_size", nargs=2, type=int)
@@ -99,6 +89,8 @@ def get_args() -> Namespace:
     assert all(hw > 0 for hw in args.output_size), args.output_size
     if args.video_path == "-" or args.video_path.startswith("tcp://"):
         assert args.input_size is not None
+    else:
+        assert args.disable_async_worker is False, "should be set only for stdin read"
     return args
 
 def main(args: Namespace):
@@ -138,15 +130,12 @@ def main(args: Namespace):
         write_buffer = video_path
 
     batches = make_batches(list(range(len(video))), batch_size=1) # note: add here a start_index for testing
-    fps = [0]
     while True:
         for bix in batches:
-            took_s, err = process_one_batch(vre, bix, args.output_size, args.disable_title_hud, fps, write_buffer)
-            if err is not None:
-                raise err
-            if (diff := (1 / video.fps) - took_s) > 0:
+            now = datetime.now()
+            process_one_batch(vre, bix, args.output_size, args.disable_hud, write_buffer)
+            if (diff := (1 / video.fps) - (datetime.now() - now).total_seconds()) > 0:
                 time.sleep(diff)
-            fps = [*fps[-10:], len(bix) / took_s]
 
 if __name__ == "__main__":
     main(get_args())
