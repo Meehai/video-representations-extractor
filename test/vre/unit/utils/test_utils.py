@@ -1,5 +1,4 @@
 from vre.utils import array_blend, str_topk, make_batches, natsorted
-from natsort import natsorted as ns
 import numpy as np
 import pytest
 
