@@ -16,7 +16,6 @@ REQUIRED = [
     "numpy>=1.21.6,<2.0.0",
     "PyYAML==6.0",
     "tqdm==4.66.5",
-    "natsort==8.2.0",
     "torch==2.6.0",
     "torchvision==0.21.0",
     "overrides==7.7.0",
