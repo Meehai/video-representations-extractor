@@ -1,4 +1,5 @@
-from vre.utils import array_blend, str_topk, make_batches
+from vre.utils import array_blend, str_topk, make_batches, natsorted
+from natsort import natsorted as ns
 import numpy as np
 import pytest
 
@@ -42,3 +43,8 @@ def test_make_batches():
         make_batches([1, 2, 3, 4, 5], -1)
     with pytest.raises(AssertionError):
         make_batches([1, 2, 3, 4, 5], "a")
+
+def test_natsorted_1():
+    x = ["2.npz", "0.npz", "10.npz"]
+    assert natsorted(x) == ["0.npz", "2.npz", "10.npz"]
+    assert natsorted(x, reverse=True) == ["10.npz", "2.npz", "0.npz"]

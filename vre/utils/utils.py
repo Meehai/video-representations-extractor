@@ -4,6 +4,7 @@ from types import ModuleType
 from pathlib import Path
 from datetime import datetime, timezone as tz
 from collections import OrderedDict
+from functools import partial
 from math import sqrt
 import random
 import sys
@@ -11,24 +12,7 @@ from importlib.machinery import SourceFileLoader
 from tqdm import tqdm
 import numpy as np
 import torch as tr
-from natsort import natsorted as natsorted_orig
 from vre.logger import vre_logger as logger
-
-class _SupportsDunderLT:
-    def __lt__(self, __other: Any) -> bool:
-        ...
-class _SupportsDunderGT:
-    def __gt__(self, __other: Any) -> bool:
-        ...
-Sortable = _SupportsDunderLT | _SupportsDunderGT
-
-class _SupportsDunderLT:
-    def __lt__(self, __other: Any) -> bool:
-        ...
-class _SupportsDunderGT:
-    def __gt__(self, __other: Any) -> bool:
-        ...
-Sortable = _SupportsDunderLT | _SupportsDunderGT
 
 class DownloadProgressBar(tqdm):
     """requests + tqdm"""
@@ -193,6 +177,24 @@ def str_topk(s: str, k: int) -> str:
     last_part = s[-(k//2 - 1):]
     return f"{first_part}..{last_part}"
 
-def natsorted(seq: Iterable[T], key: Callable[[T], Sortable] | None = None, reverse: bool=False) -> list[T]:
+def natsorted(seq: Iterable[T], key: Callable[[T], "SupportsGTAndLT"] | None = None, reverse: bool=False) -> list[T]:
     """wrapper on top of natsorted so we can properly remove it"""
-    return natsorted_orig(seq, key, reverse)
+    def _try_convert_to_num(x: str) -> str | int | float:
+        try:
+            return int(x)
+        except ValueError:
+            try:
+                return float(x)
+            except ValueError:
+                return x
+
+    def natsorted_key(item: T, key: Callable) -> "SupportsGTAndLT":
+        item = key(item)
+        if isinstance(item, str):
+            ix_dot = item.rfind(".")
+            item = item[0:ix_dot] if ix_dot != -1 else item
+            item = _try_convert_to_num(item)
+        return item
+
+    key = key or (lambda item: item)
+    return sorted(seq, key=partial(natsorted_key, key=key), reverse=reverse)
