@@ -54,9 +54,9 @@ ffmpeg \
   -c:v libx264 \
   -preset ultrafast \
   -tune zerolatency \
-  -g 30 \
+  -g 1 \
   -f hls \
-  -hls_time 0.1 \
+  -hls_time 0.01 \
   -hls_list_size 100 \
   -hls_flags delete_segments \
   -hls_segment_filename "stream_%03d.ts" \

@@ -18,7 +18,7 @@ from .representation_metadata import RepresentationMetadata
 from .utils import now_fmt, make_batches, ReprOut, DiskData, SummaryPrinter, random_chars, MemoryData
 from .logger import vre_logger as logger
 
-# 3 classes:
+# TODO: split in 2 classes ?
 # vre_batched = VREBatched(VREVideo, RepresentationsList); vre_batch.run(...)
 # vre_streaming = VREStreaming(VREVIdeo(??) RepresentationsList); vre_streaming[0:5]
 
@@ -33,10 +33,8 @@ class VideoRepresentationsExtractor:
         """
         assert isinstance(video, VREVideo), (type(video), video)
         assert isinstance(representations, (list, tuple, RepresentationsList)), type(representations)
-        representations = RepresentationsList(representations)
-        assert isinstance(representations, RepresentationsList)
         self.video = video
-        self.representations = representations
+        self.representations = RepresentationsList(representations)
 
     def set_compute_params(self, **kwargs) -> VideoRepresentationsExtractor:
         """Set the required params for all representations"""
