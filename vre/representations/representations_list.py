@@ -29,7 +29,8 @@ class RepresentationsList(list):
         Returns a subset of representations from the ones given at constructor that will be exported.
         """
         subset = subset or self.names
-        assert all(name in self.names for name in subset), (subset, self.names)
+        assert all(name in self.names for name in subset), (
+            f"{subset=}\n{self.names=}\nmissing={[n for n in subset if n not in self.names]}")
 
         io_reprs: list[IORepresentationMixin] = [_r for _r in self if isinstance(_r, IORepresentationMixin)]
         res = []
