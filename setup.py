@@ -28,10 +28,15 @@ REQUIRED = [
     "graphviz==0.20.3",
 ]
 
-def _all_files(path: str) -> list[str]:
-    return [str(x) for x in Path(path).glob("**/*")
-            if x.is_file() and x.suffix not in (".py", ".pyc", ".png", ".jpg", "*.md") and x.name != ".gitignore"]
-data_files = [("", [*_all_files("vre/"), *_all_files("vre_repository")])]
+def _filter_file(x: Path) -> bool:
+    return (x.is_file() and x.suffix not in (".py", ".pyc", ".png", ".jpg", "*.md")
+            and x.name != ".gitignore" and "weights" not in x.parts)
+glob_files = lambda x: list(Path(x).glob("**/*"))
+vre_files = [str(x) for x in glob_files("vre/") if _filter_file(x)]
+vre_repo_files = [str(x) for x in glob_files("vre_repository/") if _filter_file(x)]
+data_files = [("", [*vre_files, *vre_repo_files])]
+
+packages = find_packages()
 
 setup(
     name=NAME,
@@ -40,10 +45,10 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url=URL,
-    packages=find_packages(),
+    packages=packages,
     data_files=data_files,
     package_data={"": data_files[0][1]},
-    include_package_data=True,
+    include_package_data=False,
     install_requires=REQUIRED,
     dependency_links=[],
     license="MIT",
