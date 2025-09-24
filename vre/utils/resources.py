@@ -1,4 +1,4 @@
-"""Weights utils. Stuff related to weights repository, downloading and loading weights"""
+"""Resources utils. Stuff related to the resources stored in the repo via git-lfs. Weights are not in resources!"""
 from pathlib import Path
 from urllib.request import urlretrieve
 import os
