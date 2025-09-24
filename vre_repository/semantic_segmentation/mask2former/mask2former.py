@@ -56,11 +56,11 @@ class Mask2Former(SemanticRepresentation, LearnedRepresentationMixin):
     @staticmethod
     @overrides
     def get_weights_paths(variant: str | None = None) -> list[str]:
-        match kwargs["model_id"]:
-            case "49189528_0": return ["semantic_segmentation/mask2former/49189528_0.ckpt"]
-            case "49189528_1": return ["semantic_segmentation/mask2former/49189528_1.ckpt"]
-            case "47429163_0": return ["semantic_segmentation/mask2former/47429163_0.ckpt"]
-            case _: raise NotImplementedError(kwargs)
+        match variant:
+            case "49189528_0": return [Path(__file__).parent / "weights/49189528_0.ckpt"]
+            case "49189528_1": return [Path(__file__).parent / "weights/49189528_1.ckpt"]
+            case "47429163_0": return [Path(__file__).parent / "weights/47429163_0.ckpt"]
+            case _: raise NotImplementedError(variant)
 
     @overrides
     def vre_setup(self, load_weights = True):
@@ -70,7 +70,7 @@ class Mask2Former(SemanticRepresentation, LearnedRepresentationMixin):
         params["metadata"] = SimpleNamespace(thing_dataset_id_to_contiguous_id=self.thing_dataset_id_to_contiguous_id)
         self.model = MaskFormer(**{**params, "semantic_on": True, "panoptic_on": False, "instance_on": False})
         if load_weights:
-            ckpt_path = fetch_weights(Mask2Former.get_weights_paths(model_id=self.model_id))[0]
+            ckpt_path = fetch_weights(Mask2Former.get_weights_paths(variant=self.model_id))[0]
             ckpt_data = tr.load(ckpt_path, map_location="cpu")
             res = self.model.load_state_dict(ckpt_data["state_dict"], strict=False) # inference only: remove criterion
             assert res.unexpected_keys in (["criterion.empty_weight"], []), res

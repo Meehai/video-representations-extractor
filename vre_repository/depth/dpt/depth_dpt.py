@@ -1,4 +1,5 @@
 """DPT Depth Estimation representation"""
+from pathlib import Path
 import numpy as np
 import torch as tr
 import torch.nn.functional as F
@@ -33,7 +34,8 @@ class DepthDpt(DepthRepresentation, LearnedRepresentationMixin):
     @staticmethod
     @overrides
     def get_weights_paths(variant: str | None = None) -> list[str]:
-        return ["depth/dpt/depth_dpt_midas.pth"]
+        assert variant is None, variant
+        return [Path(__file__).parent / "weights/depth_dpt_midas.pth"]
 
     @overrides
     def vre_setup(self, load_weights: bool = True):

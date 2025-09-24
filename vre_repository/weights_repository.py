@@ -1,6 +1,7 @@
 """Weights Repository module for Learnable Representations in the default repository"""
 from pathlib import Path
 from urllib.request import urlretrieve
+import torch as tr
 
 from vre.utils import DownloadProgressBar, is_git_lfs
 from vre.logger import vre_logger as logger
@@ -24,10 +25,13 @@ def fetch_weights(paths: list[str | Path]) -> list[Path]:
     The paths must be of the format: "/path/to/vre_repository/..representation../weights/ckpt(s)".
     """
     assert isinstance(paths, list), (paths, type(paths))
-    assert all(isinstance(p, (str, Path)) for p in paths), paths
+    assert all(isinstance(p, (str, Path, list)) for p in paths), paths
     assert all(str(x).find("/vre_repository/") for x in paths), paths
     res = []
     for path in paths:
         src = VRE_REPO_URL + str(path)[str(path).index("vre_repository")+14:]
-        res.append(_fetch_from_repo(src, path))
+        if isinstance(path, list):
+            res.append(fetch_weights(path))
+        else:
+            res.append(_fetch_from_repo(src, path))
     return res

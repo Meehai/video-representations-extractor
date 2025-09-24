@@ -91,11 +91,11 @@ class FastSam(Representation, LearnedRepresentationMixin, NpIORepresentation, No
     @staticmethod
     @overrides
     def get_weights_paths(variant: str | None = None) -> list[str]:
-        match kwargs["variant"]:
-            case "fastsam-x": return ["soft_segmentation/fastsam/FastSAM-x.pt"]
-            case "fastsam-s": return ["soft_segmentation/fastsam/FastSAM-s.pt"]
+        match variant:
+            case "fastsam-x": return [Path(__file__).parent / "weights/FastSAM-x.pt"]
+            case "fastsam-s": return [Path(__file__).parent / "weights/FastSAM-s.pt"]
             case "testing": return []
-            case _: raise NotImplementedError(kwargs)
+            case _: raise NotImplementedError(variant)
 
     @overrides
     def vre_setup(self, load_weights: bool = True):

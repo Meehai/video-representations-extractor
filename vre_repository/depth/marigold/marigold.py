@@ -39,11 +39,19 @@ class Marigold(DepthRepresentation, LearnedRepresentationMixin):
     @staticmethod
     @overrides
     def get_weights_paths(variant: str | None = None) -> list[str]:
-        return [
-            "depth/marigold/vae.pt",
-            ["depth/marigold/marigold-lcm-v1-0_unet.pt/0000.pt", "depth/marigold/marigold-lcm-v1-0_unet.pt/0001.pt",
-             "depth/marigold/marigold-lcm-v1-0_unet.pt/0002.pt", "depth/marigold/marigold-lcm-v1-0_unet.pt/0003.pt"],
-        ]
+        assert variant is not None, variant
+        vae_path = Path(__file__).parent / "weights/vae.pt"
+        match variant:
+            case "marigold-lcm-v1-0":
+                unet_path = [
+                    Path(__file__).parent / "weights/marigold-lcm-v1-0_unet.pt/0000.pt",
+                    Path(__file__).parent / "weights/marigold-lcm-v1-0_unet.pt/0001.pt",
+                    Path(__file__).parent / "weights/marigold-lcm-v1-0_unet.pt/0002.pt",
+                    Path(__file__).parent / "weights/marigold-lcm-v1-0_unet.pt/0003.pt",
+                ]
+                return [vae_path, unet_path]
+            case _: raise NotImplementedError(variant)
+        assert variant is None, variant
 
     @overrides
     def vre_setup(self, load_weights: bool=True):
@@ -52,8 +60,8 @@ class Marigold(DepthRepresentation, LearnedRepresentationMixin):
         vae = AutoencoderKL(**self._get_vae_cfg())
         if load_weights:
             assert self.variant != "testing"
-            paths = fetch_weights(Marigold.get_weights_paths())
-            vae.load_state_dict(vre_load_weights(paths[0]))
+            paths = fetch_weights(Marigold.get_weights_paths(self.variant))
+            vae.load_state_dict(tr.load(paths[0], map_location="cpu"))
             unet.load_state_dict(vre_load_weights(paths[1]))
 
         if self.variant == "marigold-lcm-v1-0":

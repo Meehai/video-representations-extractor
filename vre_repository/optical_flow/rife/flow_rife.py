@@ -1,4 +1,5 @@
 """FlowRife representation"""
+from pathlib import Path
 import numpy as np
 import torch as tr
 import torch.nn.functional as F
@@ -36,10 +37,11 @@ class FlowRife(OpticalFlowRepresentation, LearnedRepresentationMixin):
     @staticmethod
     @overrides
     def get_weights_paths(variant: str | None = None) -> list[str]:
+        assert variant is None, variant
         return [
-            "optical_flow/rife/contextnet.ckpt",
-            "optical_flow/rife/unet.ckpt",
-            "optical_flow/rife/flownet.ckpt"
+            Path(__file__).parent / "weights/contextnet.ckpt",
+            Path(__file__).parent / "weights/unet.ckpt",
+            Path(__file__).parent / "weights/flownet.ckpt"
         ]
 
     @overrides

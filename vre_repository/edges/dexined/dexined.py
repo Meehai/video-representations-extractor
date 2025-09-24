@@ -1,11 +1,12 @@
 """Dexined representation."""
+from pathlib import Path
 import numpy as np
 import torch as tr
 from overrides import overrides
 
 from vre_video import VREVideo
 from vre.logger import vre_logger as logger
-from vre.utils import image_resize_batch, MemoryData, vre_load_weights
+from vre.utils import image_resize_batch, MemoryData
 from vre.representations import ReprOut, LearnedRepresentationMixin
 from vre_repository.weights_repository import fetch_weights
 from vre_repository.edges import EdgesRepresentation
@@ -31,14 +32,16 @@ class DexiNed(EdgesRepresentation, LearnedRepresentationMixin):
     @staticmethod
     @overrides
     def get_weights_paths(variant: str | None = None) -> list[str]:
-        return ["edges/dexined/dexined.pth"]
+        assert variant is None, variant
+        return [Path(__file__).parent / "weights/dexined.pth"]
 
     @overrides
     def vre_setup(self, load_weights: bool = True):
         assert self.setup_called is False
         self.model = Model().eval()
         if load_weights:
-            self.model.load_state_dict(vre_load_weights(fetch_weights(DexiNed.get_weights_paths())[0]))
+            weights_path = fetch_weights(DexiNed.get_weights_paths())[0]
+            self.model.load_state_dict(tr.load(weights_path, map_location="cpu"))
         self.model = self.model.to(self.device)
         self.setup_called = True
 

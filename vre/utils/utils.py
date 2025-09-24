@@ -129,16 +129,20 @@ def make_batches(frames: list[int], batch_size: int) -> list[int]:
         batches.append(frames[i * batch_size: (i + 1) * batch_size])
     return batches
 
-def vre_load_weights(path: Path) -> dict[str, tr.Tensor]:
+def vre_load_weights(path: Path | list[Path | str]) -> dict[str, tr.Tensor]:
     """load weights from disk. weights can be sharded as well. Sometimes we store this due to git-lfs big files bug."""
     logger.debug(f"Loading weights from '{path}'")
 
-    if path.is_dir():
+    if isinstance(path, (str, Path)) and path.is_dir():
+        path = list(path.iterdir())
+
+    if isinstance(path, list):
         res = {}
-        for item in path.iterdir():
+        for item in path:
             res = {**res, **tr.load(item, map_location="cpu")}
-        return res
-    return tr.load(path, map_location="cpu")
+    else:
+        res = tr.load(path, map_location="cpu")
+    return res
 
 def clip(x: T, _min: T, _max: T) -> T:
     """clips a value between [min, max]"""

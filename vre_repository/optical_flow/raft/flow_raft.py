@@ -1,8 +1,9 @@
 """FlowRaft representation"""
-from overrides import overrides
+from pathlib import Path
 import numpy as np
 import torch as tr
 from torch.nn import functional as F
+from overrides import overrides
 
 from vre_video import VREVideo
 from vre.utils import MemoryData
@@ -45,7 +46,8 @@ class FlowRaft(OpticalFlowRepresentation, LearnedRepresentationMixin):
     @staticmethod
     @overrides
     def get_weights_paths(variant: str | None = None) -> list[str]:
-        return ["optical_flow/raft/raft-things.ckpt"]
+        assert variant is None, variant
+        return [Path(__file__).parent / "weights/raft-things.ckpt"]
 
     @overrides
     def vre_setup(self, load_weights: bool = True):
@@ -53,8 +55,8 @@ class FlowRaft(OpticalFlowRepresentation, LearnedRepresentationMixin):
         tr.manual_seed(self.seed) if self.seed is not None else None
         self.model = RAFT(self).to("cpu")
         if load_weights:
-            path = fetch_weights(FlowRaft.get_weights_paths())[0]
-            self.model.load_state_dict(tr.load(path, map_location="cpu"))
+            weights_path = fetch_weights(FlowRaft.get_weights_paths())[0]
+            self.model.load_state_dict(tr.load(weights_path, map_location="cpu"))
         self.model = self.model.eval().to(self.device)
         self.setup_called = True
 
