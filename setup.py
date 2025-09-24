@@ -31,7 +31,7 @@ REQUIRED = [
 def _filter_file(x: Path) -> bool:
     return (x.is_file() and x.suffix not in (".py", ".pyc", ".png", ".jpg", "*.md")
             and x.name != ".gitignore" and "weights" not in x.parts)
-glob_files = lambda x: list(Path(x).glob("**/*"))
+glob_files = lambda x: list(Path(x).glob("**/*")) # pylint: disable=all
 vre_files = [str(x) for x in glob_files("vre/") if _filter_file(x)]
 vre_repo_files = [str(x) for x in glob_files("vre_repository/") if _filter_file(x)]
 data_files = [("", [*vre_files, *vre_repo_files])]
