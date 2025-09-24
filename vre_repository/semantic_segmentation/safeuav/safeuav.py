@@ -60,7 +60,7 @@ class SafeUAV(SemanticRepresentation, LearnedRepresentationMixin):
 
     @staticmethod
     @overrides
-    def get_weights_paths(variant: str | None) -> list[str]:
+    def get_weights_paths(variant: str | None = None) -> list[str]:
         assert variant is not None and variant != "testing", variant
         return [Path(__file__).parent / f"weights/{variant}.ckpt"]
 

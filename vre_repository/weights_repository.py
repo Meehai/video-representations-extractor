@@ -1,7 +1,6 @@
 """Weights Repository module for Learnable Representations in the default repository"""
 from pathlib import Path
 from urllib.request import urlretrieve
-import torch as tr
 
 from vre.utils import DownloadProgressBar, is_git_lfs
 from vre.logger import vre_logger as logger
