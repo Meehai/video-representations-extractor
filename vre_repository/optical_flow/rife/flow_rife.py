@@ -35,7 +35,7 @@ class FlowRife(OpticalFlowRepresentation, LearnedRepresentationMixin):
 
     @staticmethod
     @overrides
-    def weights_repository_links(**kwargs) -> list[str]:
+    def get_weights_paths(variant: str | None = None) -> list[str]:
         return [
             "optical_flow/rife/contextnet.ckpt",
             "optical_flow/rife/unet.ckpt",
@@ -47,7 +47,7 @@ class FlowRife(OpticalFlowRepresentation, LearnedRepresentationMixin):
         assert self.setup_called is False
         self.model: Model = Model().eval()
         if load_weights:
-            paths = fetch_weights(FlowRife.weights_repository_links())
+            paths = fetch_weights(FlowRife.get_weights_paths())
             self.model.load_model(paths[0].parent)
         self.model = self.model.to(self.device)
         self.setup_called = True

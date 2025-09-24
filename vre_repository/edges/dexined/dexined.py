@@ -30,7 +30,7 @@ class DexiNed(EdgesRepresentation, LearnedRepresentationMixin):
 
     @staticmethod
     @overrides
-    def weights_repository_links(**kwargs) -> list[str]:
+    def get_weights_paths(variant: str | None = None) -> list[str]:
         return ["edges/dexined/dexined.pth"]
 
     @overrides
@@ -38,7 +38,7 @@ class DexiNed(EdgesRepresentation, LearnedRepresentationMixin):
         assert self.setup_called is False
         self.model = Model().eval()
         if load_weights:
-            self.model.load_state_dict(vre_load_weights(fetch_weights(DexiNed.weights_repository_links())[0]))
+            self.model.load_state_dict(vre_load_weights(fetch_weights(DexiNed.get_weights_paths())[0]))
         self.model = self.model.to(self.device)
         self.setup_called = True
 

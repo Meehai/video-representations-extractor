@@ -19,6 +19,8 @@ try:
 except ImportError:
     from model import SafeUAV as Model
 
+SUPPORTED_VARIANTS = ("model_1M", "model_4M", "model_430k", "model_150k", "testing")
+
 class SafeUAV(SemanticRepresentation, LearnedRepresentationMixin):
     """SafeUAV semantic segmentation representation"""
     def __init__(self, disk_data_argmax: bool, variant: str, **kwargs):
@@ -58,9 +60,9 @@ class SafeUAV(SemanticRepresentation, LearnedRepresentationMixin):
 
     @staticmethod
     @overrides
-    def weights_repository_links(**kwargs: dict) -> list[str]:
-        assert (variant := kwargs["variant"]) != "testing", variant
-        return [f"semantic_segmentation/safeuav/{variant}.ckpt"]
+    def get_weights_paths(variant: str | None) -> list[str]:
+        assert variant is not None and variant != "testing", variant
+        return [Path(__file__).parent / f"weights/{variant}.ckpt"]
 
     @overrides
     def vre_setup(self, load_weights: bool = True):
@@ -90,13 +92,14 @@ class SafeUAV(SemanticRepresentation, LearnedRepresentationMixin):
             }
         else:
             assert load_weights is True, load_weights
-            if self.variant not in (variants := ("model_1M", "model_4M", "model_430k", "model_150k", "testing")):
-                logger.warning(f"'{self.variant}' not in {variants}. Most likely a ckpt path.")
+            if self.variant in SUPPORTED_VARIANTS:
+                weights = fetch_weights(SafeUAV.get_weights_paths(variant=self.variant))[0]
+                ckpt = tr.load(weights, map_location="cpu")
+            else:
+                logger.warning(f"'{self.variant}' not in {SUPPORTED_VARIANTS}. Most likely a ckpt path.")
                 assert Path(self.variant).exists(), self.variant
                 ckpt = tr.load(self.variant, map_location="cpu")
-            else:
-                weights = fetch_weights(SafeUAV.weights_repository_links(variant=self.variant))[0]
-                ckpt = tr.load(weights, map_location="cpu")
+
             self.cfg = ckpt["hyper_parameters"]["cfg"]
             self.statistics = ckpt["hyper_parameters"]["statistics"]
             self.model = Model(**self.cfg["model"]["parameters"])

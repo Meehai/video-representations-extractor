@@ -20,7 +20,7 @@ class MyRepresentation(Representation, LearnedRepresentationMixin, NpIORepresent
         self.vre_free_called = False
         self.make_called = False
     @staticmethod
-    def weights_repository_links(**kwargs):
+    def get_weights_paths(mode: str | None = None):
         raise NotImplementedError("should not be called")
     def make_images(self, data: ReprOut):
         return data.output

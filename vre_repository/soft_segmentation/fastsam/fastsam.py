@@ -90,7 +90,7 @@ class FastSam(Representation, LearnedRepresentationMixin, NpIORepresentation, No
 
     @staticmethod
     @overrides
-    def weights_repository_links(**kwargs) -> list[str]:
+    def get_weights_paths(variant: str | None = None) -> list[str]:
         match kwargs["variant"]:
             case "fastsam-x": return ["soft_segmentation/fastsam/FastSAM-x.pt"]
             case "fastsam-s": return ["soft_segmentation/fastsam/FastSAM-s.pt"]
@@ -103,7 +103,7 @@ class FastSam(Representation, LearnedRepresentationMixin, NpIORepresentation, No
         assert load_weights is False or (load_weights is True and self.variant != "testing"), "no weights for testing"
         weights_file = "testing"
         if self.variant != "testing":
-            weights_file = fetch_weights(FastSam.weights_repository_links(variant=self.variant))[0]
+            weights_file = fetch_weights(FastSam.get_weights_paths(variant=self.variant))[0]
         self._imgsz = 1024 if self.variant != "testing" else 64
         _overrides = {"task": "segment", "imgsz": self._imgsz, "single_cls": False, "model": str(weights_file),
                       "conf": self.conf, "device": "cpu", "retina_masks": False, "iou": self.iou,

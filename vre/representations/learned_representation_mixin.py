@@ -28,8 +28,8 @@ class LearnedRepresentationMixin(ABC):
 
     @staticmethod
     @abstractmethod
-    def weights_repository_links(**kwargs) -> list[str]:
-        """Returns a name and a list of links to the weightss. The names are first checked in the local resources dir"""
+    def get_weights_paths(variant: str | None = None) -> list[str]:
+        """Returns the list of paths to the weights of this model"""
 
     @property
     def device(self) -> VREDevice:

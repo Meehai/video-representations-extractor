@@ -38,7 +38,7 @@ class Marigold(DepthRepresentation, LearnedRepresentationMixin):
 
     @staticmethod
     @overrides
-    def weights_repository_links(**kwargs) -> list[str]:
+    def get_weights_paths(variant: str | None = None) -> list[str]:
         return [
             "depth/marigold/vae.pt",
             ["depth/marigold/marigold-lcm-v1-0_unet.pt/0000.pt", "depth/marigold/marigold-lcm-v1-0_unet.pt/0001.pt",
@@ -52,7 +52,7 @@ class Marigold(DepthRepresentation, LearnedRepresentationMixin):
         vae = AutoencoderKL(**self._get_vae_cfg())
         if load_weights:
             assert self.variant != "testing"
-            paths = fetch_weights(Marigold.weights_repository_links())
+            paths = fetch_weights(Marigold.get_weights_paths())
             vae.load_state_dict(vre_load_weights(paths[0]))
             unet.load_state_dict(vre_load_weights(paths[1]))
 

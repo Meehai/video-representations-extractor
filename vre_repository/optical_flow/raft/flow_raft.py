@@ -44,7 +44,7 @@ class FlowRaft(OpticalFlowRepresentation, LearnedRepresentationMixin):
 
     @staticmethod
     @overrides
-    def weights_repository_links(**kwargs) -> list[str]:
+    def get_weights_paths(variant: str | None = None) -> list[str]:
         return ["optical_flow/raft/raft-things.ckpt"]
 
     @overrides
@@ -53,7 +53,7 @@ class FlowRaft(OpticalFlowRepresentation, LearnedRepresentationMixin):
         tr.manual_seed(self.seed) if self.seed is not None else None
         self.model = RAFT(self).to("cpu")
         if load_weights:
-            path = fetch_weights(FlowRaft.weights_repository_links())[0]
+            path = fetch_weights(FlowRaft.get_weights_paths())[0]
             self.model.load_state_dict(tr.load(path, map_location="cpu"))
         self.model = self.model.eval().to(self.device)
         self.setup_called = True

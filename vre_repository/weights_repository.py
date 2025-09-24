@@ -1,37 +1,33 @@
 """Weights Repository module for Learnable Representations in the default repository"""
 from pathlib import Path
 from urllib.request import urlretrieve
-import os
 
-from vre.utils import get_project_root, DownloadProgressBar, is_git_lfs
+from vre.utils import DownloadProgressBar, is_git_lfs
 from vre.logger import vre_logger as logger
 
 REPO_URL = "https://gitlab.com/video-representations-extractor/video-representations-extractor"
-RESOURCES_URL = f"{REPO_URL}/-/raw/master/resources"
-RESOURCES_DIR = Path(os.getenv("VRE_RESOURCES_DIR", get_project_root() / "resources"))
+VRE_REPO_URL = f"{REPO_URL}/-/raw/master/vre_repository"
 
-def fetch_resource(resource_name: str) -> Path:
-    """fetches a resources from gitlab LFS if needed"""
-    url = f"{RESOURCES_URL}/{resource_name}"
-    (path := RESOURCES_DIR / resource_name).parent.mkdir(exist_ok=True, parents=True)
-    if not Path(path).exists() or is_git_lfs(path):
-        with DownloadProgressBar(unit="B", unit_scale=True, miniters=1, desc=resource_name) as t:
+def _fetch_from_repo(src: str, dst: Path) -> Path:
+    if not dst.exists() or is_git_lfs(dst):
+        with DownloadProgressBar(unit="B", unit_scale=True, miniters=1, desc=dst.name) as t:
             try:
-                urlretrieve(url, filename=path, reporthook=t.update_to)
+                urlretrieve(src, filename=dst, reporthook=t.update_to)
             except Exception as e:
-                logger.info(f"Failed to download '{url}' to '{path}'")
+                logger.info(f"Failed to download '{src}' to '{dst}'")
                 raise e
-    return path
+    return dst
 
-def fetch_weights(paths: list[str], depth: int = 0) -> list[Path]:
-    """fetches weights for a representation from the repository (if needed) and returns the local path"""
+def fetch_weights(paths: list[str | Path]) -> list[Path]:
+    """
+    Fetches weights for a representation from the repository (if needed) and returns the local path.
+    The paths must be of the format: "/path/to/vre_repository/..representation../weights/ckpt(s)".
+    """
     assert isinstance(paths, list), (paths, type(paths))
-    assert depth <= 1, depth
+    assert all(isinstance(p, (str, Path)) for p in paths), paths
+    assert all(str(x).find("/vre_repository/") for x in paths), paths
     res = []
     for path in paths:
-        if isinstance(path, list): # cases like marigold where 1 ckpt file is split across multiple ckpt files
-            local_path = fetch_weights(path, depth + 1)[0].parent
-        else:
-            local_path = fetch_resource(f"weights/{path}")
-        res.append(local_path)
+        src = VRE_REPO_URL + str(path)[str(path).index("vre_repository")+14:]
+        res.append(_fetch_from_repo(src, path))
     return res
