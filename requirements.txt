@@ -1,6 +1,6 @@
 vre-video>=0.3.3
 numpy>=1.21.6,<2.0.0
-PyYAML==6.0
+PyYAML==6.0.3
 tqdm==4.66.5
 torch==2.6.0
 torchvision==0.21.0
