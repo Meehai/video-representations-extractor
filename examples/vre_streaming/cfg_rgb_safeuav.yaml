@@ -17,4 +17,4 @@ representations:
     dependencies: []
     parameters:
       disk_data_argmax: False
-      variant: ${oc.env:MODEL_VARIANT,model_430k}
+      variant: ${oc.env:MODEL_VARIANT,model_150k}
