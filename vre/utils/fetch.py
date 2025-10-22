@@ -1,7 +1,7 @@
 """fetch.py -- The VRE files fetcher"""
 from pathlib import Path
-from tqdm import tqdm
 from urllib.request import urlretrieve
+from tqdm import tqdm
 
 from ..logger import vre_logger as logger
 
@@ -24,6 +24,7 @@ def is_git_lfs(path: Path) -> bool:
             return False
 
 def fetch(src: str, dst: Path) -> Path:
+    """fetches the source url to a destionat path. Returns that path. Support for git lfs and recursive mkdir()"""
     if not dst.exists() or is_git_lfs(dst):
         dst.parent.mkdir(exist_ok=True, parents=True)
         with DownloadProgressBar(unit="B", unit_scale=True, miniters=1, desc=dst.name) as t:

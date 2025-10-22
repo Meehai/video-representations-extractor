@@ -2,7 +2,6 @@
 from pathlib import Path
 
 from vre.utils import fetch
-from vre.logger import vre_logger as logger
 
 REPO_URL = "https://gitlab.com/video-representations-extractor/video-representations-extractor"
 VRE_REPO_URL = f"{REPO_URL}/-/raw/master/vre_repository"
