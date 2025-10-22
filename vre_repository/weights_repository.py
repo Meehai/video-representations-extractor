@@ -1,22 +1,10 @@
 """Weights Repository module for Learnable Representations in the default repository"""
 from pathlib import Path
-from urllib.request import urlretrieve
 
-from vre.utils import DownloadProgressBar, is_git_lfs
-from vre.logger import vre_logger as logger
+from vre.utils import fetch
 
 REPO_URL = "https://gitlab.com/video-representations-extractor/video-representations-extractor"
 VRE_REPO_URL = f"{REPO_URL}/-/raw/master/vre_repository"
-
-def _fetch_from_repo(src: str, dst: Path) -> Path:
-    if not dst.exists() or is_git_lfs(dst):
-        with DownloadProgressBar(unit="B", unit_scale=True, miniters=1, desc=dst.name) as t:
-            try:
-                urlretrieve(src, filename=dst, reporthook=t.update_to)
-            except Exception as e:
-                logger.info(f"Failed to download '{src}' to '{dst}'")
-                raise e
-    return dst
 
 def fetch_weights(paths: list[str | Path]) -> list[Path]:
     """
@@ -32,5 +20,5 @@ def fetch_weights(paths: list[str | Path]) -> list[Path]:
         if isinstance(path, list):
             res.append(fetch_weights(path))
         else:
-            res.append(_fetch_from_repo(src, path))
+            res.append(fetch(src, path))
     return res
