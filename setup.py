@@ -12,7 +12,7 @@ with open(CWD/"README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 REQUIRED = [
-    "vre-video>=0.4.0",
+    "vre-video>=0.4.1",
     "numpy>=1.21.6,<2.0.0",
     "PyYAML==6.0.3",
     "tqdm==4.66.5",
@@ -21,7 +21,7 @@ REQUIRED = [
     "overrides==7.7.0",
     "loggez==0.4.4",
     "opencv-python==4.7.0.68",
-    "Pillow==10.3.0",
+    "Pillow==11.3.0",
     "pycocotools==2.0.7",
     "timm==1.0.9",
     "diffusers==0.30.3",

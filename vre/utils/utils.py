@@ -9,18 +9,9 @@ from math import sqrt
 import random
 import sys
 from importlib.machinery import SourceFileLoader
-from tqdm import tqdm
 import numpy as np
 import torch as tr
 from vre.logger import vre_logger as logger
-
-class DownloadProgressBar(tqdm):
-    """requests + tqdm"""
-    def update_to(self, b=1, bsize=1, tsize=None):
-        """Callback from tqdm"""
-        if tsize is not None:
-            self.total = tsize
-        self.update(b * bsize - self.n)
 
 class FixedSizeOrderedDict(OrderedDict):
     """An OrderedDict with a fixed size. Useful for caching purposes."""
@@ -46,16 +37,6 @@ def is_dir_empty(dir_path: Path, pattern: str = "*") -> bool:
     """returns true if directory is not empty, false if it is empty"""
     assert pattern.startswith("*"), pattern
     return len(list(dir_path.glob(pattern))) == 0
-
-def is_git_lfs(path: Path) -> bool:
-    """Returns true if a path is a git lfs link"""
-    if path.is_dir():
-        return False
-    with open(path, "rb") as fp:
-        try:
-            return fp.read(7).decode("utf-8") == "version"
-        except UnicodeDecodeError:
-            return False
 
 def get_closest_square(n: int) -> tuple[int, int]:
     """
