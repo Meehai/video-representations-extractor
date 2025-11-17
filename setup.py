@@ -24,7 +24,7 @@ REQUIRED = [
     "graphviz==0.20.3",
     # TODO(deps): remove
     "opencv-python==4.7.0.68",
-    "pycocotools==2.0.7",
+    "pycocotools==2.0.10",
     "timm==1.0.9",
     "diffusers==0.30.3",
 ]
