@@ -23,7 +23,7 @@ REQUIRED = [
     "Pillow==11.3.0",
     "graphviz==0.20.3",
     # TODO(deps): remove
-    "opencv-python==4.7.0.68",
+    "opencv-python==4.12.0.88", 
     "pycocotools==2.0.10",
     "timm==1.0.9",
     "diffusers==0.30.3",
