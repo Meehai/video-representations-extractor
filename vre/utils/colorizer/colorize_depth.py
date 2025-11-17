@@ -23,7 +23,7 @@ def _spectral(grayscale_array: np.ndarray):
     Returns:
         np.ndarray: RGB array with values in the range [0, 1], shape (H, W, 3).
     """
-    assert np.issubsctype(grayscale_array, np.floating), grayscale_array.dtype
+    assert np.issubdtype(grayscale_array.dtype, np.floating), grayscale_array.dtype
     assert (_min := grayscale_array.min()) >= 0 and grayscale_array.max() <= 1, (_min, grayscale_array.max())
     spectral_colors = np.array([
         [158/255,   1/255,  66/255],  # Dark Red
