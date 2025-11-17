@@ -1,6 +1,6 @@
 """summary printer at the end of a vre run"""
 import numpy as np
-from .utils import str_maxk
+from .utils import str_topk
 
 class SummaryPrinter:
     """summary printer at the end of a vre run"""
@@ -25,12 +25,12 @@ class SummaryPrinter:
         res = ""
         frames = self.runtime_args["frames"]
         chosen_frames = sorted(np.random.choice(frames, size=min(5, len(frames)), replace=False))
-        res = f"{'Name':<20}" + "|" + "|".join([f"{str_maxk(str(k), 9):<9}" for k in chosen_frames]) + "|Total"
+        res = f"{'Name':<20}" + "|" + "|".join([f"{str_topk(str(k), 9):<9}" for k in chosen_frames]) + "|Total"
         for vrepr in self.representations:
             if vrepr not in self.run_stats:
                 continue
             stats = np.array([x.duration or float("nan") for x in self.run_stats[vrepr].values()]).round(3)
-            res += "\n" + f"{str_maxk(vrepr, 20):<20}"
+            res += "\n" + f"{str_topk(vrepr, 20):<20}"
             for chosen_frame in chosen_frames:
                 res += "|" + f"{stats[frames.index(chosen_frame)]:<9}"
             res += "|" + f"{stats.sum().round(2)}"

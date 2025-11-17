@@ -81,10 +81,6 @@ def reorder_dict(data: dict[str, Any], keys: list[str]) -> dict[str, Any]:
         data = {k: data[k], **{k: v for k, v in data.items() if data != k}}
     return data
 
-def str_maxk(s: str, k: int) -> str:
-    """returns the string if it is smaller than k, otherwise returns the first k-2 and last 5"""
-    return f"{s[0:k-7]}..{s[-5:]}" if len(s) > k else s
-
 def array_blend(x: np.ndarray, y: np.ndarray, alpha: float | np.ndarray) -> np.ndarray:
     """Blends two arrays of the same shape with an alpha: number of array"""
     alpha_arr = np.asarray(alpha)
