@@ -3,6 +3,7 @@
 import warnings
 try:
     from diffusers.utils.logging import disable_progress_bar
+    disable_progress_bar() # pylint: disable=all
 except ImportError:
     pass
 
@@ -18,7 +19,6 @@ except ImportError:
     pass
 
 monkey_patch()
-disable_progress_bar()
 
 warnings.filterwarnings("ignore", "You are using `torch.load` with `weights_only=False`*.")
 warnings.filterwarnings("ignore", "`clean_up_tokenization_spaces` was not set*.")
