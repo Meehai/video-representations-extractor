@@ -236,7 +236,8 @@ class VideoRepresentationsExtractor:
                 batch_res.append(repr_out)
             combined = ReprOut(frames=np.concatenate([br.frames for br in batch_res]),
                                key=sum([br.key for br in batch_res], []),
-                               output=MemoryData(np.concatenate([br.output for br in batch_res])))
+                               output=MemoryData(np.concatenate([br.output for br in batch_res])),
+                               extra=sum([br.extra if br.extra is not None else [] for br in batch_res], []))
             if vre_repr.image_format.value != "not-set":
                 combined.output_images = vre_repr.make_images(combined)
             res[vre_repr.name] = combined
