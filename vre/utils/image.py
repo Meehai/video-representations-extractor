@@ -10,7 +10,7 @@ from .cv2_utils import cv2_image_resize, cv2_image_write, cv2_image_read
 from .pil_utils import pil_image_resize, pil_image_add_title, pil_image_read, pil_image_write
 
 def image_resize(data: np.ndarray, height: int | None, width: int | None, interpolation: str = "bilinear",
-                 library: str = "cv2", **kwargs) -> np.ndarray:
+                 library: str = "PIL", **kwargs) -> np.ndarray:
     """image resize. Allows 2 libraries: PIL and cv2 (to alleviate potential pre-trained issues)"""
     assert ((width is None) or width == -1) + ((height is None) or height == -1) <= 1, "At least one must be set"
     _scale = lambda a, b, c: int(b / a * c) # pylint: disable=unnecessary-lambda-assignment
@@ -29,7 +29,7 @@ def image_write(x: np.ndarray, path: Path, library: str = "PIL"):
     assert x.dtype == np.uint8, x.dtype
     return {"cv2": cv2_image_write, "PIL": pil_image_write}[library](x, path)
 
-def image_read(path: Path, library: str = "cv2") -> np.ndarray:
+def image_read(path: Path, library: str = "PIL") -> np.ndarray:
     """Read an image from a path. Return uint8 [0:255] ndarray"""
     return {"cv2": cv2_image_read, "PIL": pil_image_read}[library](path)
 

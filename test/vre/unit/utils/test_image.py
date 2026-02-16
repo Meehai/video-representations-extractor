@@ -74,4 +74,4 @@ def test_image_blend():
     assert (image_blend(x, y, np.full((100, 100, 1), 0.6)) == 60).all()
 
 def test_image_resize_width_None():
-    assert image_resize(np.random.randint(0, 255, size=(100, 200, 3)), height=200, width=None).shape == (200, 400, 3)
+    assert image_resize(np.random.randint(0, 255, size=(100, 200, 3), dtype=np.uint8), height=200, width=None).shape == (200, 400, 3)

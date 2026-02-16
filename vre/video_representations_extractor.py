@@ -5,7 +5,6 @@ from datetime import datetime
 import os
 import traceback
 from tqdm import tqdm
-import torch as tr
 import numpy as np
 from vre_video import VREVideo
 
@@ -89,7 +88,7 @@ class VideoRepresentationsExtractor:
                                                        runtime_args=runtime_args)
             if repr_metadata.run_had_exceptions and runtime_args.exception_mode == "stop_execution":
                 raise RuntimeError(f"Representation '{vrepr.name}' threw. "
-                                   f"Check '{logger.get_file_handler().baseFilename}' for information")
+                                   f"Check '{logger.get_file_handler().file_path}' for information")
             run_metadata.add_run_stats(repr_metadata)
             summary_printer.repr_metadatas[vrepr.name] = repr_metadata
         print(summary_printer())
@@ -122,7 +121,7 @@ class VideoRepresentationsExtractor:
                 continue
 
             try:
-                tr.cuda.empty_cache() # might empty some unused memory, not 100% if needed.
+                # tr.cuda.empty_cache()?
                 rep_data = self._compute_one_representation_batch(rep, batch=batch, output_dir=data_writer.output_dir)
                 if not rep.is_classification and rep.name.find("fastsam") == -1: # TODO: MemoryData of FSAM is binary...
                     assert rep_data.output.shape[-1] == rep.n_channels, (rep, rep_data.output, rep.n_channels)
@@ -196,7 +195,7 @@ class VideoRepresentationsExtractor:
         logger.info(f"Logging run at: '{logs_file}")
 
     def _log_error(self, msg: str):
-        logs_file = logger.get_file_handler().baseFilename
+        logs_file = logger.get_file_handler().file_path
         open(logs_file, "a").write(f"{'=' * 80}\n{now_fmt()}\n{msg}\n{'=' * 80}")
         logger.debug(f"Error: {msg}")
 
