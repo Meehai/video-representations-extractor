@@ -121,11 +121,7 @@ class VideoRepresentationsExtractor:
                 continue
 
             try:
-                try:
-                    import torch as tr
-                    tr.cuda.empty_cache() # might empty some unused memory, not 100% if needed.
-                except ImportError:
-                    pass
+                # tr.cuda.empty_cache()?
                 rep_data = self._compute_one_representation_batch(rep, batch=batch, output_dir=data_writer.output_dir)
                 if not rep.is_classification and rep.name.find("fastsam") == -1: # TODO: MemoryData of FSAM is binary...
                     assert rep_data.output.shape[-1] == rep.n_channels, (rep, rep_data.output, rep.n_channels)

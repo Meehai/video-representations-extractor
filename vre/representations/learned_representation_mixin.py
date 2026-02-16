@@ -44,11 +44,7 @@ class LearnedRepresentationMixin(ABC):
 
     @device.setter
     def device(self, dev: VREDevice):
-        try:
-            import torch as tr
-            assert isinstance(dev, (str, tr.device)), dev
-        except ImportError:
-            assert isinstance(dev, str), dev
+        assert isinstance(dev, str) or (hasattr(dev, "type") and isinstance(dev.type, str)), dev
         self._device = dev
 
     def set_learned_params(self, **kwargs):
