@@ -8,9 +8,14 @@ from ..logger import vre_logger as logger
 def pil_image_resize(data: np.ndarray, height: int, width: int, interpolation: str, **kwargs) -> np.ndarray:
     """Wrapper on top of Image(arr).resize((w, h), args)"""
     interpolation = {"nearest": Image.Resampling.NEAREST, "bilinear": Image.Resampling.BILINEAR}[interpolation]
-    assert data.dtype == np.uint8, f"Only uint8 allowed, got {data.dtype}"
-    pil_image = Image.fromarray(data).resize((width, height), interpolation, **kwargs)
-    return np.asarray(pil_image)
+    if data.dtype == np.uint8:
+        return np.asarray(Image.fromarray(data).resize((width, height), interpolation, **kwargs))
+    # For non-uint8 (e.g. float32), resize each channel via PIL mode "F" and reassemble
+    assert np.issubdtype(data.dtype, np.floating), f"Only uint8 or float allowed, got {data.dtype}"
+    channels = [data[..., c] for c in range(data.shape[-1])] if data.ndim == 3 else [data]
+    resized = [np.asarray(Image.fromarray(ch.astype(np.float32), mode="F").resize((width, height), interpolation, **kwargs))
+               for ch in channels]
+    return np.stack(resized, axis=-1).astype(data.dtype) if data.ndim == 3 else resized[0].astype(data.dtype)
 
 def pil_image_add_title(image: np.ndarray, text: str, font: str = None, font_color: str = "white",
                         background_color: str = "black", top_padding: int = None, size_px: int = None) -> np.ndarray:

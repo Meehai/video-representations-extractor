@@ -147,4 +147,4 @@ class IORepresentationMixin(ABC):
         if data.output_images is not None:
             output_images = image_resize_batch(data.output_images, *new_size, interpolation="nearest")
         return ReprOut(frames=data.frames, key=data.key, extra=data.extra, output_images=output_images,
-                       output=image_resize_batch(data.output, *new_size, interpolation=interpolation, library="cv2"))
+                       output=image_resize_batch(data.output, *new_size, interpolation=interpolation))
