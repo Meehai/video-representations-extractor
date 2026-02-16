@@ -13,7 +13,7 @@ with open(CWD/"README.md", "r", encoding="utf-8") as fh:
 
 REQUIRED_CORE = [
     "vre-video>=0.5.0",
-    "loggez>=0.5.0",
+    "loggez>=0.8.4",
     "numpy>=1.21.6",
     "PyYAML==6.0.3",
     "tqdm==4.66.5",
