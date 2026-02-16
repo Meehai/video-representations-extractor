@@ -143,9 +143,8 @@ class IORepresentationMixin(ABC):
         """resizes the data. size is provided in (h, w)"""
         assert data is not None, "No data provided"
         interpolation = "nearest" if np.issubdtype(d := data.output.dtype, np.integer) or d == bool else "bilinear"
-        library = "PIL" if data.output.dtype == np.uint8 and (data.output.ndim == 2 or data.output.shape[-1] in (1, 3, 4)) else "cv2"
         output_images = None
         if data.output_images is not None:
             output_images = image_resize_batch(data.output_images, *new_size, interpolation="nearest")
         return ReprOut(frames=data.frames, key=data.key, extra=data.extra, output_images=output_images,
-                       output=image_resize_batch(data.output, *new_size, interpolation=interpolation, library=library))
+                       output=image_resize_batch(data.output, *new_size, interpolation=interpolation, library="cv2"))

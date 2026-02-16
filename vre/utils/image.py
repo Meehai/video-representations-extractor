@@ -6,6 +6,7 @@ from ..logger import vre_logger as logger
 from .utils import get_closest_square, array_blend
 from .lovely import lo
 from .repr_memory_layout import MemoryData
+from .cv2_utils import cv2_image_resize, cv2_image_write, cv2_image_read
 from .pil_utils import pil_image_resize, pil_image_add_title, pil_image_read, pil_image_write
 
 def image_resize(data: np.ndarray, height: int | None, width: int | None, interpolation: str = "bilinear",
@@ -16,10 +17,7 @@ def image_resize(data: np.ndarray, height: int | None, width: int | None, interp
     width = _scale(data.shape[0], height, data.shape[1]) if (width is None or width == -1) else width
     height = _scale(data.shape[1], width, data.shape[0]) if (height is None or height == -1) else height
     assert isinstance(height, int) and isinstance(width, int), (type(height), type(width))
-    if library == "cv2":
-        from .cv2_utils import cv2_image_resize # pylint: disable=import-outside-toplevel
-        return cv2_image_resize(data, height, width, interpolation, **kwargs)
-    return pil_image_resize(data, height, width, interpolation, **kwargs)
+    return {"cv2": cv2_image_resize, "PIL": pil_image_resize}[library](data, height, width, interpolation, **kwargs)
 
 def image_resize_batch(x_batch: np.ndarray | list[np.ndarray], *args, **kwargs) -> np.ndarray:
     """resizes a bath of images to the given height and width"""
@@ -29,17 +27,11 @@ def image_resize_batch(x_batch: np.ndarray | list[np.ndarray], *args, **kwargs) 
 def image_write(x: np.ndarray, path: Path, library: str = "PIL"):
     """writes an image to a bytes string"""
     assert x.dtype == np.uint8, x.dtype
-    if library == "cv2":
-        from .cv2_utils import cv2_image_write # pylint: disable=import-outside-toplevel
-        return cv2_image_write(x, path)
-    return pil_image_write(x, path)
+    return {"cv2": cv2_image_write, "PIL": pil_image_write}[library](x, path)
 
 def image_read(path: Path, library: str = "PIL") -> np.ndarray:
     """Read an image from a path. Return uint8 [0:255] ndarray"""
-    if library == "cv2":
-        from .cv2_utils import cv2_image_read # pylint: disable=import-outside-toplevel
-        return cv2_image_read(path)
-    return pil_image_read(path)
+    return {"cv2": cv2_image_read, "PIL": pil_image_read}[library](path)
 
 def _get_rows_cols(n_imgs: int, rows_cols: tuple[int | None, int | None] | None) -> tuple[int, int]:
     assert isinstance(n_imgs, int) and n_imgs > 0, n_imgs
