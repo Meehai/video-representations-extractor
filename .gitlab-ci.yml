@@ -19,7 +19,7 @@ before_script:
   - export VRE_LOGLEVEL=3
   - export PYTHONPATH="$PYTHONPATH:$VRE_ROOT"
   - export PATH="$PATH:$VRE_ROOT/cli"
-  - cat requirements.txt | sed "s/torch==2.8.0/torch @ https:\/\/download.pytorch.org\/whl\/cpu\/torch-2.8.0%2Bcpu-cp311-cp311-manylinux_2_28_x86_64.whl/g" | sed "s/torchvision==0.23.0/torchvision @ https:\/\/download.pytorch.org\/whl\/cpu\/torchvision-0.23.0%2Bcpu-cp311-cp311-manylinux_2_28_x86_64.whl/g" > /tmp/requirements_ci.txt
+  - cat requirements-extra.txt | sed "s/torch==2.8.0/torch @ https:\/\/download.pytorch.org\/whl\/cpu\/torch-2.8.0%2Bcpu-cp311-cp311-manylinux_2_28_x86_64.whl/g" | sed "s/torchvision==0.23.0/torchvision @ https:\/\/download.pytorch.org\/whl\/cpu\/torchvision-0.23.0%2Bcpu-cp311-cp311-manylinux_2_28_x86_64.whl/g" > /tmp/requirements_ci.txt
   - pip install -r /tmp/requirements_ci.txt
   - pip install pylint==3.2.7 pytest pytest-rerunfailures
   - pip install sphinx sphinx_rtd_theme myst-parser
@@ -40,6 +40,17 @@ pylint:
     - python -m pylint --rcfile=.pylintrc $(git ls-files "*.py" | grep -v "test/\|examples/")
 
 vre_unit_integration:
+  before_script:
+    - apt-get update
+    - apt-get install -y ffmpeg fonts-open-sans graphviz
+    - export VRE_ROOT=`pwd`
+    - export VRE_WEIGHTS_DIR=$VRE_ROOT/weights
+    - export VRE_LOGLEVEL=3
+    - export VRE_COLORIZE_SEMSEG_FAST=1
+    - export PYTHONPATH="$PYTHONPATH:$VRE_ROOT"
+    - export PATH="$PATH:$VRE_ROOT/cli"
+    - pip install -r requirements.txt
+    - pip install pytest pytest-rerunfailures
   script:
     - python3 -m pytest test/vre
 

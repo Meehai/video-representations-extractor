@@ -6,12 +6,31 @@ import requests
 from .utils import get_project_root
 from ..logger import vre_logger as logger
 
+def _pil_resize_one(data: np.ndarray, height: int, width: int, interpolation, **kwargs) -> np.ndarray:
+    """Resize a single 2D or standard 3-channel image via PIL. Handles dtype conversion."""
+    orig_dtype = data.dtype
+    squeezed = data.ndim == 3 and data.shape[-1] == 1
+    if squeezed:
+        data = data[..., 0]
+    if data.dtype != np.uint8:
+        data = (data * 255).clip(0, 255).astype(np.uint8) if np.issubdtype(data.dtype, np.floating) else data.astype(np.uint8)
+    pil_image = Image.fromarray(data).resize((width, height), interpolation, **kwargs)
+    res = np.asarray(pil_image)
+    if np.issubdtype(orig_dtype, np.floating):
+        res = res.astype(orig_dtype) / 255
+    if squeezed:
+        res = res[..., None]
+    return res
+
 def pil_image_resize(data: np.ndarray, height: int, width: int, interpolation: str, **kwargs) -> np.ndarray:
     """Wrapper on top of Image(arr).resize((w, h), args)"""
     interpolation = {"nearest": Image.Resampling.NEAREST, "bilinear": Image.Resampling.BILINEAR}[interpolation]
-    assert data.dtype == np.uint8, f"Only uint8 allowed, got {data.dtype}"
-    pil_image = Image.fromarray(data).resize((width, height), interpolation, **kwargs)
-    return np.asarray(pil_image)
+    n_channels = data.shape[-1] if data.ndim == 3 else 0
+    # PIL only supports 1/3/4 channel images natively; for others, resize per-channel
+    if n_channels not in (0, 1, 3, 4):
+        return np.stack([_pil_resize_one(data[..., c], height, width, interpolation, **kwargs)
+                         for c in range(n_channels)], axis=-1)
+    return _pil_resize_one(data, height, width, interpolation, **kwargs)
 
 def pil_image_add_title(image: np.ndarray, text: str, font: str = None, font_color: str = "white",
                         background_color: str = "black", top_padding: int = None, size_px: int = None) -> np.ndarray:

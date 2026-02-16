@@ -20,14 +20,13 @@ REQUIRED_CORE = [
     "overrides==7.7.0",
     "Pillow==11.3.0",
     "graphviz==0.20.3",
-    "pycocotools==2.0.10",
 ]
 
 REQUIRED_REPOSITORY = [
     "torch==2.8.0",
     "torchvision==0.23.0",
-    # TODO(deps): remove
     "opencv-python==4.12.0.88",
+    "pycocotools==2.0.10",
     "timm==1.0.9",
     "diffusers==0.30.3",
 ]
