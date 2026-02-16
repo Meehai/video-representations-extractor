@@ -5,7 +5,6 @@ from datetime import datetime
 import os
 import traceback
 from tqdm import tqdm
-import torch as tr
 import numpy as np
 from vre_video import VREVideo
 
@@ -122,7 +121,11 @@ class VideoRepresentationsExtractor:
                 continue
 
             try:
-                tr.cuda.empty_cache() # might empty some unused memory, not 100% if needed.
+                try:
+                    import torch as tr
+                    tr.cuda.empty_cache() # might empty some unused memory, not 100% if needed.
+                except ImportError:
+                    pass
                 rep_data = self._compute_one_representation_batch(rep, batch=batch, output_dir=data_writer.output_dir)
                 if not rep.is_classification and rep.name.find("fastsam") == -1: # TODO: MemoryData of FSAM is binary...
                     assert rep_data.output.shape[-1] == rep.n_channels, (rep, rep_data.output, rep.n_channels)
