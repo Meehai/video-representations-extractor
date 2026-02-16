@@ -1,7 +1,6 @@
 """cv2 utils. All the calls to opencv must be condensed here"""
 import numpy as np
 from PIL import Image, ImageDraw, ImageOps, ImageFont
-import requests
 
 from .utils import get_project_root
 from ..logger import vre_logger as logger
@@ -116,6 +115,7 @@ def _get_default_font(size_px: int | None = None):
     if not font_path.exists():
         font_path.parent.mkdir(exist_ok=True, parents=True)
         with open(font_path, "wb") as file:
+            import requests # pylint: disable=import-outside-toplevel
             file.write(requests.get("https://github.com/edx/edx-fonts/raw/refs/heads/master/open-sans/fonts/Bold/OpenSans-Bold.ttf").content) # pylint: disable=all
     logger.debug2(f"Getting default font from '{font_path}' for desired height = '{size_px}' px")
     size = default_font_heights[size_px]
