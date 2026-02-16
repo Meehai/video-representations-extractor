@@ -88,7 +88,7 @@ class VideoRepresentationsExtractor:
                                                        runtime_args=runtime_args)
             if repr_metadata.run_had_exceptions and runtime_args.exception_mode == "stop_execution":
                 raise RuntimeError(f"Representation '{vrepr.name}' threw. "
-                                   f"Check '{logger.get_file_handler().baseFilename}' for information")
+                                   f"Check '{logger.get_file_handler().file_path}' for information")
             run_metadata.add_run_stats(repr_metadata)
             summary_printer.repr_metadatas[vrepr.name] = repr_metadata
         print(summary_printer())
@@ -195,7 +195,7 @@ class VideoRepresentationsExtractor:
         logger.info(f"Logging run at: '{logs_file}")
 
     def _log_error(self, msg: str):
-        logs_file = logger.get_file_handler().baseFilename
+        logs_file = logger.get_file_handler().file_path
         open(logs_file, "a").write(f"{'=' * 80}\n{now_fmt()}\n{msg}\n{'=' * 80}")
         logger.debug(f"Error: {msg}")
 
