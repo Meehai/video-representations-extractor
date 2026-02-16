@@ -11,7 +11,7 @@ test -e $CWD/imgur.sh || wget https://raw.githubusercontent.com/tremby/imgur.sh/
 chmod +x $CWD/imgur.sh
 
 # make sure we start from scratch
-test -f $CWD/cfg.yaml || ( echo "$CWD/cfg.yaml does not exist"; kill $$ )
+test -f $CWD/cfg.yaml || { echo "$CWD/cfg.yaml does not exist"; exit 1; }
 n_frames=$(ffprobe -v error -select_streams v:0 -count_packets -show_entries stream=nb_read_packets -of csv=p=0 $VID)
 X=$(shuf -i 1-"$n_frames" -n 1)
 # rm -rf $CWD/test_imgur/
@@ -22,5 +22,5 @@ vre_reader $CWD/test_imgur/ --config_path $CWD/cfg.yaml
 vre_collage $CWD/test_imgur/ --config_path $CWD/cfg.yaml -o $CWD/collage --overwrite
 
 out_img=$CWD/collage/$X.png
-test -f $out_img || ( echo "Image $out_img not found"; kill $$ )
-bash $CWD/imgur.sh $out_img
+test -f $out_img || { echo "Image $out_img not found"; exit 1; }
+bash $CWD/imgur.sh $out_img || { echo "Could not upload to imgur"; }

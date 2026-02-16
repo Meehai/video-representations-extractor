@@ -1,13 +1,11 @@
 """colorize semantic segmentation module -- based on the original M2F implementation but without matplotlib"""
 import os
-import pycocotools.mask as mask_util
 from PIL import Image, ImageDraw
 import numpy as np
 
 from ..lovely import lo
 from ..pil_utils import _get_default_font, _pil_image_draw_textsize
 from ..image import image_blend
-from ..cv2_utils import cv2_findContours, cv2_RETR_CCOMP, cv2_CHAIN_APPROX_NONE, cv2_connectedComponentsWithStats
 
 _AREA_THRESHOLD = 10
 _LINE_WIDTH = 1.2
@@ -26,7 +24,7 @@ def colorize_semantic_segmentation(semantic_map: np.ndarray, classes: list[str],
     alpha = alpha if rgb is not None else 1
     rgb = rgb if rgb is not None else np.zeros((*semantic_map.shape, 3), dtype=np.uint8)
     if os.getenv("VRE_COLORIZE_SEMSEG_FAST", "0") == "1":
-        return np.array(color_map)[semantic_map]
+        return np.array(color_map, dtype=np.uint8)[semantic_map]
     else:
         return np.array([_colorize_sem_seg(sema=_s, rgb=_r, classes=classes, color_map=color_map,
                                           alpha=alpha, size_px=size_px)
@@ -52,6 +50,7 @@ class _GenericMask:
         self.polygons, self.has_holes = self._mask_to_polygons(self.mask)
 
     def _mask_to_polygons(self, mask) -> tuple[list[tuple[int, int]], bool]:
+        from ..cv2_utils import cv2_findContours, cv2_RETR_CCOMP, cv2_CHAIN_APPROX_NONE # pylint: disable=import-outside-toplevel
         # cv2_RETR_CCOMP flag retrieves all the contours and arranges them to a 2-level
         # hierarchy. External contours (boundary) of the object are placed in hierarchy-1.
         # Internal contours (holes) are placed in hierarchy-2.
@@ -98,6 +97,7 @@ def _draw_text_in_mask(res: np.ndarray, binary_mask: np.ndarray, text: str, colo
     """
     Find proper places to draw text given a binary mask.
     """
+    from ..cv2_utils import cv2_connectedComponentsWithStats # pylint: disable=import-outside-toplevel
     _num_cc, cc_labels, stats, _ = cv2_connectedComponentsWithStats(binary_mask, 8)
     if stats[1:, -1].size == 0:
         return res
@@ -154,6 +154,7 @@ def _colorize_sem_seg(sema: np.ndarray, rgb: np.ndarray | None, classes: list[st
                       color_map: list[tuple[int, int, int]], alpha: float=0.8,
                       size_px: int | None = None) -> np.ndarray:
     """colorize semantic segmentation -- based on Mask2Former's approach but without MPL"""
+    import pycocotools.mask as mask_util # pylint: disable=import-outside-toplevel
     classes = list(map(str, classes)) if all(isinstance(x, int) for x in classes) else classes
     assert all(isinstance(x, str) for x in classes), classes
     sema_rgb = np.zeros((*sema.shape, 3), dtype=np.uint8)

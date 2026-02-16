@@ -3,7 +3,7 @@ from pathlib import Path
 from setuptools import setup, find_packages
 
 NAME = "video-representations-extractor"
-VERSION = "1.15.0"
+VERSION = "1.16.0"
 DESCRIPTION = "Video Representations Extractor (VRE) for computing algorithmic or neural representations of each frame."
 URL = "https://gitlab.com/video-representations-extractor/video-representations-extractor"
 
@@ -11,19 +11,21 @@ CWD = Path(__file__).absolute().parent
 with open(CWD/"README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
-REQUIRED = [
+REQUIRED_CORE = [
     "vre-video>=0.5.0",
-    "loggez>=0.5.0",
+    "loggez>=0.8.4",
     "numpy>=1.21.6",
     "PyYAML==6.0.3",
     "tqdm==4.66.5",
-    "torch==2.8.0",
-    "torchvision==0.23.0",
     "overrides==7.7.0",
     "Pillow==11.3.0",
     "graphviz==0.20.3",
-    # TODO(deps): remove
-    "opencv-python==4.12.0.88", 
+]
+
+REQUIRED_REPOSITORY = [
+    "torch==2.8.0",
+    "torchvision==0.23.0",
+    "opencv-python==4.12.0.88",
     "pycocotools==2.0.10",
     "timm==1.0.9",
     "diffusers==0.30.3",
@@ -50,7 +52,11 @@ setup(
     data_files=data_files,
     package_data={"": data_files[0][1]},
     include_package_data=False,
-    install_requires=REQUIRED,
+    install_requires=REQUIRED_CORE,
+    extras_require={
+        "core": [],
+        "repository": REQUIRED_REPOSITORY,
+    },
     dependency_links=[],
     license="MIT",
     python_requires=">=3.10",

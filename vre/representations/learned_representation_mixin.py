@@ -3,11 +3,14 @@ Helper mixin class that adds the weights/device relevant methods & properties fo
 A representation that inherits this also must have weights in the weights repository.
 """
 from abc import abstractmethod, ABC
-import torch as tr
 
 from vre.logger import vre_logger as logger
 
-VREDevice = str | tr.device # not only torch, but this is what we support atm
+try:
+    import torch as tr
+    VREDevice = str | tr.device # not only torch, but this is what we support atm
+except ImportError:
+    VREDevice = str
 
 class LearnedRepresentationMixin(ABC):
     """Learned Representastion Mixin for VRE implementation"""
@@ -41,7 +44,7 @@ class LearnedRepresentationMixin(ABC):
 
     @device.setter
     def device(self, dev: VREDevice):
-        assert isinstance(dev, (str, tr.device)), dev
+        assert isinstance(dev, str) or (hasattr(dev, "type") and isinstance(dev.type, str)), dev
         self._device = dev
 
     def set_learned_params(self, **kwargs):

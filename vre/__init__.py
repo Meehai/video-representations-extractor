@@ -20,5 +20,9 @@ except ImportError:
 
 monkey_patch()
 
-warnings.filterwarnings("ignore", "You are using `torch.load` with `weights_only=False`*.")
-warnings.filterwarnings("ignore", "`clean_up_tokenization_spaces` was not set*.")
+try:
+    import torch # noqa: F401
+    warnings.filterwarnings("ignore", "You are using `torch.load` with `weights_only=False`*.")
+    warnings.filterwarnings("ignore", "`clean_up_tokenization_spaces` was not set*.")
+except ImportError:
+    pass
