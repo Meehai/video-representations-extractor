@@ -4,7 +4,6 @@ from argparse import ArgumentParser, Namespace
 from datetime import datetime
 from typing import Any
 from pathlib import Path
-from io import FileIO
 import socket
 import sys
 import os
@@ -22,6 +21,21 @@ from vre_repository import get_vre_repository
 
 os.environ["VRE_COLORIZE_SEMSEG_FAST"] = "1"
 os.environ["VRE_PBAR"] = "0"
+
+class _MPLWindow:
+    """Minimal interface for matplotlib to adhere to the write/flush pattern of FileIO used below"""
+    def __init__(self, *args, **kwargs):
+        self.figure = plt.figure(*args, **kwargs)
+        self.ax = self.figure.gca()
+        plt.ion()
+    def write(self, img: np.ndarray):
+        """write the image to the figure"""
+        plt.imshow(img)
+    def flush(self):
+        """flushes the figure"""
+        plt.draw()
+        plt.pause(0.00001)
+        plt.clf()
 
 def _get_img(res: dict[str, ReprOut], disable_hud: bool, title: str, output_size: tuple[int, int]) -> np.ndarray | None:
     repr_names = list(res.keys())
@@ -48,17 +62,6 @@ def _build_reader_kwargs(args: Namespace) -> dict[str, Any]:
     else:
         assert args.input_size is None, "--input_size cannot be set for video_path that's not stdin"
     return {}
-
-def _write_to_output(write_buffer: plt.Figure | FileIO, img: np.ndarray):
-    """writes the final image to the destination buffer or matplotlib"""
-    if isinstance(write_buffer, plt.Figure):
-        plt.imshow(img)
-        plt.draw()
-        plt.pause(0.00001)
-        plt.clf()
-    else:
-        write_buffer.write(img.tobytes())
-        write_buffer.flush()
 
 def get_args() -> Namespace:
     """cli args"""
@@ -109,9 +112,7 @@ def main(args: Namespace):
     vre.set_io_parameters(image_format="png", output_size=video.shape[1:3], binary_format="npz", compress=False)
 
     if args.output_destination == "matplotlib":
-        write_buffer = plt.figure(figsize=(12, 6))
-        plt.ion()
-        plt.show()
+        write_buffer = _MPLWindow(figsize=(12, 6))
     elif args.output_destination == "socket":
         assert hasattr(video_path, "write") and hasattr(video_path, "flush"), type(video_path)
         write_buffer = video_path
@@ -130,7 +131,8 @@ def main(args: Namespace):
                 logger.info(f"StopIteration raised at {ix=}. Exitting.")
                 raise e
             img = _get_img(res, args.disable_hud, title=f"Frame: {ix}.", output_size=args.output_size)
-            _write_to_output(write_buffer, img)
+            write_buffer.write(img.tobytes() if not isinstance(write_buffer, _MPLWindow) else img)
+            write_buffer.flush()
 
             if (diff := (1 / video.fps) - (datetime.now() - now).total_seconds()) > 0:
                 time.sleep(diff)
