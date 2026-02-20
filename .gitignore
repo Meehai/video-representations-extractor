@@ -18,3 +18,5 @@ weights/
 examples/workingdir
 build/
 *.log
+.venv/
+
