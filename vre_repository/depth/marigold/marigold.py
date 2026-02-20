@@ -15,7 +15,7 @@ from vre_video import VREVideo
 from vre.utils import image_read, image_write, MemoryData
 from vre.representations import ReprOut, LearnedRepresentationMixin
 from vre_repository.depth import DepthRepresentation
-from vre_repository.weights_repository import fetch_weights, vre_load_weights
+from vre_repository.utils import fetch_weights, vre_load_weights
 
 try:
     from .marigold_impl import MarigoldPipeline

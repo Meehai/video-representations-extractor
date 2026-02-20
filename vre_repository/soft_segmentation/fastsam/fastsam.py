@@ -13,7 +13,7 @@ from vre.representations import (Representation, ReprOut, LearnedRepresentationM
                                  NpIORepresentation, NormedRepresentationMixin)
 from vre.utils import image_resize_batch, image_read, image_write, MemoryData
 from vre.logger import vre_logger as logger
-from vre_repository.weights_repository import fetch_weights
+from vre_repository.utils import fetch_weights
 
 try:
     from .fastsam_impl import (
