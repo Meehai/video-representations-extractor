@@ -1,3 +1,4 @@
+# TODO: move to vre_repository integration
 import sys
 from tempfile import TemporaryDirectory
 from pathlib import Path
@@ -6,9 +7,9 @@ import shutil
 import numpy as np
 from vre import VRE
 from vre_video import VREVideo
-from vre.utils import (colorize_semantic_segmentation, semantic_mapper, DiskData,
-                       MemoryData, ReprOut, get_project_root, image_resize_batch, natsorted)
+from vre.utils import DiskData, MemoryData, ReprOut, get_project_root, image_resize_batch, natsorted
 from vre.representations import Representation, TaskMapper, NpIORepresentation
+from vre_repository.utils import colorize_semantic_segmentation, semantic_mapper
 
 sys.path.append(str(get_project_root() / "test/vre"))
 from fake_representation import FakeRepresentation

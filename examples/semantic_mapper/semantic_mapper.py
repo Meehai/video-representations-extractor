@@ -7,8 +7,7 @@ from pprint import pprint
 import numpy as np
 import torch as tr
 
-from vre.utils import (semantic_mapper, colorize_semantic_segmentation, DiskData, MemoryData,
-                       ReprOut, reorder_dict, collage_fn, image_add_title, lo, image_write)
+from vre.utils import DiskData, MemoryData, ReprOut, reorder_dict, collage_fn, image_add_title, lo, image_write
 from vre.logger import vre_logger as logger
 from vre.readers.multitask_dataset import MultiTaskDataset, MultiTaskItem
 from vre.representations import TaskMapper, NpIORepresentation, Representation, build_representations_from_cfg
@@ -16,6 +15,7 @@ from vre_repository import get_vre_repository
 from vre_repository.depth import DepthRepresentation
 from vre_repository.normals import NormalsRepresentation
 from vre_repository.semantic_segmentation import SemanticRepresentation
+from vre_repository.utils import semantic_mapper, colorize_semantic_segmentation
 
 def plot_one(data: MultiTaskItem, title: str, order: list[str] | None,
              name_to_task: dict[str, Representation], return_origs: bool = False) \
