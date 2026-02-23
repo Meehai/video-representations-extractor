@@ -2,10 +2,8 @@
 import numpy as np
 from pathlib import Path
 from PIL import Image
+from image_utils import image_resize
 from .repr_memory_layout import MemoryData
-
-def image_resize(*args, **kwargs):
-    raise NotImplementedError("TODO")
 
 def image_resize_batch(x_batch: np.ndarray | list[np.ndarray], *args, **kwargs) -> np.ndarray:
     """resizes a bath of images to the given height and width"""

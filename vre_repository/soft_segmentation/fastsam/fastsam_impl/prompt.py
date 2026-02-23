@@ -1,12 +1,14 @@
 # pylint: disable=all
 import numpy as np
 import torch
-from .utils import image_to_np_ndarray
 from PIL import Image
+from image_utils import image_resize
 
-from vre.utils.cv2_utils import (cv2_findContours, cv2_boundingRect, cv2_drawContours, cv2_RETR_TREE,
-                                 cv2_CHAIN_APPROX_SIMPLE, cv2_RETR_EXTERNAL, cv2_COLOR_BGR2RGB, cv2_cvtColor)
-from vre.utils import image_resize, array_blend
+from vre.utils import array_blend
+from vre_repository.utils.cv2_utils import (cv2_findContours, cv2_boundingRect, cv2_drawContours, cv2_RETR_TREE,
+                                            cv2_CHAIN_APPROX_SIMPLE, cv2_RETR_EXTERNAL, cv2_COLOR_BGR2RGB, cv2_cvtColor)
+
+from .utils import image_to_np_ndarray
 
 class FastSAMPrompt:
     def __init__(self, image, results, device='cuda'):

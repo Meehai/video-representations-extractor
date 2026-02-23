@@ -2,8 +2,8 @@
 import numpy as np
 from PIL import Image, ImageDraw, ImageOps, ImageFont
 
-from .utils import get_project_root
-from ..logger import vre_logger as logger
+from vre.utils import get_project_root
+from vre.logger import vre_logger as logger
 
 def pil_image_resize(data: np.ndarray, height: int, width: int, interpolation: str, **kwargs) -> np.ndarray:
     """Wrapper on top of Image(arr).resize((w, h), args)"""
