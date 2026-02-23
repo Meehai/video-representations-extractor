@@ -2,9 +2,8 @@
 from pathlib import Path
 import numpy as np
 
-from ..logger import vre_logger as logger
-from .utils import get_closest_square, array_blend
-from .lovely import lo
+from vre.logger import vre_logger as logger
+from vre.utils import lo, get_closest_square, array_blend
 from .cv2_utils import cv2_image_write, cv2_image_read
 from .pil_utils import pil_image_add_title, pil_image_read, pil_image_write
 
