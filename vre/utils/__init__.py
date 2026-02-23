@@ -10,4 +10,5 @@ from .atomic_open import AtomicOpen
 from .summary_printer import SummaryPrinter
 from .yaml import vre_yaml_load
 from .fetch import fetch
-from .image import image_resize_batch
+from .image import image_resize_batch, image_read, image_write
+

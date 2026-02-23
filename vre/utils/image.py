@@ -4,8 +4,6 @@ from pathlib import Path
 from PIL import Image
 from .repr_memory_layout import MemoryData
 
-from image_utils 
-
 def image_resize(*args, **kwargs):
     raise NotImplementedError("TODO")
 
@@ -17,3 +15,7 @@ def image_resize_batch(x_batch: np.ndarray | list[np.ndarray], *args, **kwargs) 
 def image_read(path: Path) -> np.ndarray:
     """wrapper over pil for image read"""
     return np.array(Image.open(path), dtype=np.uint8)[..., 0:3]
+
+def image_write(image: np.ndarray, path: Path):
+    """wrapper over pil for image write"""
+    Image.fromarray(image, "RGB").save(path)
