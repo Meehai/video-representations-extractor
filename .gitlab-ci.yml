@@ -61,7 +61,7 @@ vre_repository_unit:
 
 vre_repository_integration:
   script:
-    - python3 -m pytest test/vre_repository/integration
+    - python3 -m pytest test/vre_repository/integration test/vre_repository/end_to_end
 
 vre_repository_e2e_imgur:
   script:

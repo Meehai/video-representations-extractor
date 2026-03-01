@@ -45,7 +45,7 @@ class Mask2Former(SemanticRepresentation, LearnedRepresentationMixin):
     def compute(self, video: VREVideo, ixs: list[int], dep_data: list[ReprOut] | None = None) -> ReprOut:
         height, width = video.frame_shape[0:2]
         _os = get_output_shape(height, width, self.cfg.INPUT.MIN_SIZE_TEST, self.cfg.INPUT.MAX_SIZE_TEST)
-        imgs = image_resize_batch(video[ixs], _os[0], _os[1], "bilinear", "PIL").transpose(0, 3, 1, 2).astype("float32")
+        imgs = image_resize_batch(video[ixs], _os[0], _os[1], "bilinear").transpose(0, 3, 1, 2).astype("float32")
         inputs = [{"image": tr.from_numpy(img), "height": height, "width": width} for img in imgs]
         predictions: list[tr.Tensor] = [x["sem_seg"] for x in self.model(inputs)]
         res = []

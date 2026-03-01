@@ -52,7 +52,8 @@ def test_DataWriter_all_batches_exist():
 @pytest.mark.parametrize("n_threads", [0, 1, 4])
 def test_DataStorer(n_threads: int):
     tmp_dir = Path(TemporaryDirectory().name)
-    rgb, hsv = FakeRepresentation("rgb", [], output_dtype="float32"), FakeRepresentation("hsv", [], output_dtype="float32")
+    rgb = FakeRepresentation("rgb", [], output_dtype="float32")
+    hsv = FakeRepresentation("hsv", [], output_dtype="float32")
     rgb.set_io_params(binary_format="npz", image_format="png")
     hsv.set_io_params(binary_format="npz", image_format="jpg")
     writer_rgb = DataWriter(tmp_dir, rgb, output_dir_exists_mode="skip_computed")
