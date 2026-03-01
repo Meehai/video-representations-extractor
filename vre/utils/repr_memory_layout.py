@@ -32,8 +32,10 @@ class ReprOut:
 
     def __post_init__(self):
         assert isinstance(self.output, MemoryData), f"Use MemoryData(arr) if array. Got: {type(self.output)}"
-        assert len(self.output) == len(self.key), (len(self.output), len(self.key))
-        assert self.frames is None or len(self.frames) == len(self.output), (len(self.frames), len(self.output))
+        assert len(self.output) == (nk := len(self.key)), (len(self.output), nk)
+        assert self.frames is None or len(self.frames) == nk, (len(self.frames), nk)
+        assert self.output_images is None or len(self.output_images) == nk, (len(self.self.output_images), nk)
+        assert self.extra is None or len(self.extra) == nk, (len(self.self.extra), nk)
 
     def __repr__(self):
         return (f"[ReprOut] key={self.key}, output={lo(self.output)}, output_images={lo(self.output_images)}, "
