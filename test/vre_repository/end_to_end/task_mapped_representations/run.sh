@@ -22,4 +22,4 @@ vre_collage $CWD/data_ci/ --config_path $CWD/cfg.yaml \
 
 out_img=$CWD/collage/$(ls $CWD/collage/ | grep png | shuf | head -n 1)
 test -f $out_img || ( echo "Image $out_img not found"; kill $$ )
-bash $CWD/imgur.sh $out_img
+bash $CWD/imgur.sh $out_img || { echo "Could not upload to imgur"; }
