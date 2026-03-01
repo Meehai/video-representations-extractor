@@ -72,6 +72,7 @@ def test_DataWriter_all_batches_exist():
         writer.all_batch_exists([-1, 0, 1, 2])
     with pytest.raises(AssertionError):
         writer.all_batch_exists([1, "asdf", 3])
+<<<<<<< Updated upstream:test/vre/unit/test_data_writer_storer.py
 
 @pytest.mark.parametrize("n_threads", [0, 1, 4])
 def test_DataStorer(n_threads: int):
@@ -96,3 +97,5 @@ def test_DataStorer(n_threads: int):
             storer(ReprOut(frames=None, output=MemoryData(y[0:1]), output_images=imgs[0:1], key=[0]))
     assert writer_rgb.all_batch_exists(list(range(10)))
     assert writer_hsv.all_batch_exists(list(range(10)))
+=======
+>>>>>>> Stashed changes:test/vre/unit/test_data_writer.py
