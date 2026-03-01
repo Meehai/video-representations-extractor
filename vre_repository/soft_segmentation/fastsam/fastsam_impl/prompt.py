@@ -113,7 +113,7 @@ class FastSAMPrompt:
                     mask = mask['segmentation']
                 annotation = mask.astype(np.uint8)
                 if not retina:
-                    annotation = image_resize(annotation, original_h, original_w, "nearest", library="cv2")
+                    annotation = image_resize(annotation, original_h, original_w, "nearest", backend="cv2")
                 contours, _ = cv2_findContours(annotation, cv2_RETR_TREE, cv2_CHAIN_APPROX_SIMPLE)
                 for contour in contours:
                     contour_all.append(contour)
@@ -155,7 +155,7 @@ class FastSAMPrompt:
         show[h_indices, w_indices, :] = mask_image[indices]
         show_cpu = show.cpu().numpy()
         if not retinamask:
-            show_cpu = image_resize(show_cpu, target_height, target_width, "nearest", library="cv2")
+            show_cpu = image_resize(show_cpu, target_height, target_width, interpolation="nearest", backend="cv2")
         return show_cpu
 
     # clip
