@@ -29,7 +29,7 @@ class DataWriter:
     def __init__(self, output_dir: Path, representation: Repr, output_dir_exists_mode: str):
         assert output_dir_exists_mode in ("overwrite", "skip_computed", "raise"), output_dir_exists_mode
         self.rep = representation
-        assert self.rep.binary_format is not None or self.rep.image_format is not None, f"One must be set: {self.rep}"
+        assert self.rep.export_binary or self.rep.export_image, f"One must be set: {self.rep}"
         self.output_dir = output_dir
         self.output_dir_exists_mode = output_dir_exists_mode
         self.rep_out_dir = self.output_dir / self.rep.name
@@ -37,14 +37,7 @@ class DataWriter:
 
     def write(self, y_repr: ReprOut):
         """store the data in the right format"""
-        assert y_repr is not None and y_repr.output is not None
-        # TODO: this should be in ReprOut setter
-        if self.rep.export_image:
-            assert y_repr.output_images is not None, (self.rep, y_repr)
-            assert len(y_repr.output_images) == len(y_repr.key), (len(y_repr.output_images), len(y_repr.key))
-        if y_repr.extra is not None:
-            assert len(y_repr.extra) == len(y_repr.key), (len(y_repr.extra), len(y_repr.extra))
-
+        assert y_repr.output is not None, y_repr
         if isinstance(self.rep.output_size, tuple):
             y_repr = self.rep.resize(y_repr, self.rep.output_size)
 
@@ -63,9 +56,11 @@ class DataWriter:
 
             if self.rep.export_image:
                 ext = self.rep.image_format.value
+                image: np.ndarray = y_repr.output_images[i]
+                assert image.dtype == np.uint8, image
                 if (img_path := self.rep_out_dir / ext / f"{t}.{ext}").exists():
                     logger.warning(f"[{self.rep}] '{img_path}' already exists. Overwriting.")
-                image_write(y_repr.output_images[i], img_path)
+                image_write(image, img_path)
 
     def all_batch_exists(self, frames: list[int]) -> bool:
         """true if all batch [l:r] exists on the disk"""
