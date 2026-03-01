@@ -1,3 +1,4 @@
+import pytest
 from vre.utils import MemoryData, ReprOut
 import numpy as np
 
@@ -28,3 +29,8 @@ def test_ReprOut_equals():
 
     r5 = ReprOut(frames=None, key=[1, 3, 2], output=MemoryData(np.array([1, 2, 3])))
     assert r1 != r5
+
+def test_ReprOut_bad_key():
+    with pytest.raises(AssertionError):
+        _ = ReprOut(frames=None, key=[1, 2], output=MemoryData(np.array([1, 2, 3])))
+    ReprOut(frames=None, key=[1, 2, 5], output=MemoryData(np.array([1, 2, 3])))

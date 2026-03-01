@@ -11,23 +11,47 @@ from vre.data_storer import DataStorer
 sys.path.append(str(get_project_root() / "test/vre"))
 from fake_representation import FakeRepresentation
 
-def test_DataWriter_ctor_and_basic_writes():
-    tmp_dir = Path(TemporaryDirectory().name)
+def test_DataWriter_ctor(tmp_path: Path):
     rgb = FakeRepresentation("rgb", [], output_dtype="float32")
-    rgb.set_io_params(binary_format="npz", image_format="png")
-    writer = DataWriter(tmp_dir, rgb, output_dir_exists_mode="skip_computed")
+    with pytest.raises(AssertionError): # must set binary_format or image_format
+        _ = DataWriter(tmp_path, rgb, output_dir_exists_mode="skip_computed")
+    rgb.binary_format = "npz"
+    writer = DataWriter(tmp_path, rgb, output_dir_exists_mode="skip_computed")
+    assert writer.rep_out_dir.exists()
+
+def test_DataWriter_write_png(tmp_path: Path):
+    # set image_format but then at write() time, the ReprOut has no image data. Then, we store data.
+    rgb = FakeRepresentation("rgb", [], output_dtype="float32")
+    rgb.image_format = "png"
+    writer = DataWriter(tmp_path, rgb, output_dir_exists_mode="skip_computed")
 
     imgs = np.random.randint(0, 255, size=(3, 240, 240, 3)).astype(np.uint8)
     output = MemoryData(np.random.randn(3, 240, 240))
-    with pytest.raises(AssertionError): # image_format is set
+    with pytest.raises(TypeError): # image_format is set
         writer.write(ReprOut(frames=None, output=output, output_images=None, key=[0, 1, 2]))
-    with pytest.raises(AssertionError): # bad frames dtype
+    with pytest.raises(AssertionError): # bad image dtype
         writer.write(ReprOut(frames=None, output=output, output_images=imgs.astype(np.int16), key=[0, 1, 2]))
     writer.write(ReprOut(frames=None, output=output, output_images=imgs, key=[0, 1, 2]))
-    assert Path(tmp_dir / "rgb/npz/0.npz").exists()
-    writer.write(ReprOut(frames=None, output=output, output_images=imgs, key=[0, 1, 2]))
-    with pytest.raises(AssertionError): # wrong key shape
-        writer.write(ReprOut(frames=None, output=output, output_images=imgs, key=[0, 1]))
+    assert (tmp_path / "rgb/png/0.png").exists()
+    assert (tmp_path / "rgb/png/1.png").exists()
+    assert (tmp_path / "rgb/png/2.png").exists()
+    assert not (tmp_path / "rgb/png/3.png").exists()
+
+def test_DataWriter_write_npz(tmp_path: Path):
+    # same as write_png, but with npz. First no data, then other stuff.
+    rgb = FakeRepresentation("rgb", [], output_dtype="float32")
+    rgb.binary_format = "npz"
+    writer = DataWriter(tmp_path, rgb, output_dir_exists_mode="skip_computed")
+
+    with pytest.raises(AssertionError):
+        writer.write(ReprOut(frames=None, output=None, key=[0, 1, 2]))
+
+    output = MemoryData(np.random.randn(3, 240, 240))
+    writer.write(ReprOut(frames=None, output=output, key=[0, 1, 2]))
+    assert (tmp_path / "rgb/npz/0.npz").exists()
+    assert (tmp_path / "rgb/npz/1.npz").exists()
+    assert (tmp_path / "rgb/npz/2.npz").exists()
+    assert not (tmp_path / "rgb/npz/3.npz").exists()
 
 def test_DataWriter_all_batches_exist():
     tmp_dir = Path(TemporaryDirectory().name)
