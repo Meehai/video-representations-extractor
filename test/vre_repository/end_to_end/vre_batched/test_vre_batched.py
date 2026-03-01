@@ -136,8 +136,8 @@ representations:
     # representations = {k: v for k, v in all_representations.items() if k in chosen}
     logger.info(f"Kept representations: {chosen}")
 
-    tmp_dir = Path("here1" if __name__ == "__main__" else TemporaryDirectory().name)
-    tmp_dir_bs = Path("here2" if __name__ == "__main__" else TemporaryDirectory().name)
+    tmp_dir = Path(__file__).parent / "here1" if __name__ == "__main__" else Path(TemporaryDirectory().name)
+    tmp_dir_bs = Path(__file__).parent / "here2" if __name__ == "__main__" else Path(TemporaryDirectory().name)
     shutil.rmtree(tmp_dir, ignore_errors=True)
     shutil.rmtree(tmp_dir_bs, ignore_errors=True)
 
