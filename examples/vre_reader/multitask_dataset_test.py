@@ -1,7 +1,8 @@
+import sys
 from pathlib import Path
 from copy import deepcopy
 from tempfile import TemporaryDirectory
-from vre.readers import MultiTaskDataset
+from vre.utils import get_project_root
 from vre.representations import Representation
 from vre.representations.mixins import NormedRepresentationMixin
 from vre_repository.semantic_segmentation import SemanticRepresentation
@@ -11,6 +12,11 @@ from torch.utils.data import DataLoader
 import numpy as np
 import torch as tr
 import pytest
+
+try:
+    from multitask_dataset import MultiTaskDataset
+except ImportError:
+    from .multitask_dataset import MultiTaskDataset
 
 def fake_dronescapes_task_types() -> dict[str, Representation]:
     color_map_8classes = [[0, 255, 0], [0, 127, 0], [255, 255, 0], [255, 255, 255],

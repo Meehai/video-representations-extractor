@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """vre_collage tool -- makes a collage from a directory output by vre (for all image representations)"""
+import sys
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
 from pprint import pformat
@@ -13,12 +14,15 @@ import numpy as np
 import torch as tr
 from image_utils import image_resize
 
-from vre.utils import image_write, reorder_dict, MemoryData, str_topk, natsorted
+from vre.utils import image_write, reorder_dict, MemoryData, str_topk, natsorted, get_project_root
 from vre.representations import build_representations_from_cfg, add_external_repositories, Representation, ReprOut
-from vre.readers.multitask_dataset import MultiTaskDataset
 from vre.logger import vre_logger as logger
 from vre_repository import get_vre_repository
 from vre_repository.utils import collage_fn
+
+sys.path.append((get_project_root() / "examples/vre_reader").__str__())
+from multitask_dataset import MultiTaskDataset
+
 
 def plot_one(data: dict[str, tr.Tensor], file_name: str, dataset_path: Path,
              name_to_task: dict[str, Representation]) -> dict[str, np.ndarray]:
