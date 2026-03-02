@@ -10,9 +10,9 @@ import os
 import time
 import numpy as np
 import matplotlib.pyplot as plt
-from image_utils import image_resize
 from vre_video import VREVideo
 from vre_video.readers import FdFrameReader
+from image_utils import image_resize
 
 from vre import VRE, ReprOut
 from vre.representations import build_representations_from_cfg
