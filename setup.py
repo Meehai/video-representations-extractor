@@ -8,11 +8,13 @@ DESCRIPTION = "Video Representations Extractor (VRE) for computing algorithmic o
 URL = "https://gitlab.com/video-representations-extractor/video-representations-extractor"
 
 CWD = Path(__file__).absolute().parent
+for _submodule in ("vre-video/vre_video", "image_utils"):
+    assert (CWD / _submodule / "__init__.py").exists(), \
+        f"Submodule '{_submodule}' not found. Run: git submodule update --init --recursive"
 with open(CWD/"README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 REQUIRED_CORE = [
-    "vre-video>=0.5.0",
     "loggez>=0.8.4",
     "numpy>=1.21.6",
     "PyYAML==6.0.3",
@@ -39,7 +41,7 @@ vre_files = [str(x) for x in glob_files("vre/") if _filter_file(x)]
 vre_repo_files = [str(x) for x in glob_files("vre_repository/") if _filter_file(x)]
 data_files = [("", [*vre_files, *vre_repo_files])]
 
-packages = find_packages()
+packages = find_packages() + find_packages(where="vre-video")
 
 setup(
     name=NAME,
@@ -49,6 +51,7 @@ setup(
     long_description_content_type="text/markdown",
     url=URL,
     packages=packages,
+    package_dir={"vre_video": "vre-video/vre_video"},
     data_files=data_files,
     package_data={"": data_files[0][1]},
     include_package_data=False,
