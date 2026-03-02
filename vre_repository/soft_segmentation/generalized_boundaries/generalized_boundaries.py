@@ -5,8 +5,7 @@ from overrides import overrides
 
 from vre_video import VREVideo
 from vre.utils import MemoryData
-from vre.representations import Representation, ReprOut
-from vre.representations.mixins import NpIORepresentation, NormedRepresentationMixin
+from vre.representations import ReprOut
 from vre_repository.soft_segmentation import SoftSegmentationRepresentation
 from .gb_impl.softseg import soft_seg
 

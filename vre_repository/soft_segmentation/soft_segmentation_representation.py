@@ -5,6 +5,7 @@ from vre.representations.mixins import NpIORepresentation, ResizableRepresentati
 
 class SoftSegmentationRepresentation(Representation, NpIORepresentation,
                                      NormedRepresentationMixin, ResizableRepresentationMixin):
+    """Generic class for all the soft segmentation algorithms"""
     def __init__(self, name: str, **kwargs):
         Representation.__init__(self, name, **kwargs)
         NpIORepresentation.__init__(self)
@@ -12,5 +13,6 @@ class SoftSegmentationRepresentation(Representation, NpIORepresentation,
         ResizableRepresentationMixin.__init__(self)
 
     @overrides
+    @property
     def n_channels(self):
         return 3
