@@ -16,7 +16,7 @@ from vre.utils import image_read, image_write, MemoryData
 from vre.representations.mixins import LearnedRepresentationMixin
 from vre.representations import ReprOut
 from vre_repository.depth import DepthRepresentation
-from vre_repository.weights_repository import fetch_weights, vre_load_weights
+from vre_repository.utils import fetch_weights, vre_load_weights
 
 try:
     from .marigold_impl import MarigoldPipeline
@@ -192,7 +192,7 @@ def main():
 
     for rgb_path in (pbar := tqdm(image_paths, leave=True)):
         pbar.set_description(f"Estimating depth: {rgb_path.name}")
-        rgb = image_read(rgb_path, "PIL")
+        rgb = image_read(rgb_path)
         depth = marigold.compute(rgb[None], [0])
         if marigold.variant == "marigold-lcm-v1-0" and rgb_path.name in expected.keys() \
                 and marigold.seed is not None and marigold.seed == 42 and str(device) in expected[rgb_path.name]:

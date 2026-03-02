@@ -7,14 +7,14 @@ import numpy as np
 import torch as tr
 from torch import nn
 from torch.nn import functional as F
-
 from vre_video import VREVideo
+
+from vre.utils import image_resize_batch, image_write, image_read, MemoryData
 from vre.logger import vre_logger as logger
-from vre.utils import image_resize_batch, image_read, image_write, MemoryData
 from vre.representations import ReprOut
 from vre.representations.mixins import LearnedRepresentationMixin
+from vre_repository.utils import fetch_weights
 from vre_repository.soft_segmentation import SoftSegmentationRepresentation
-from vre_repository.weights_repository import fetch_weights
 
 try:
     from .fastsam_impl import (

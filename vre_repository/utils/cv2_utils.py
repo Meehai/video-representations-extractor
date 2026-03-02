@@ -2,7 +2,7 @@
 # pylint: disable=invalid-name, no-member
 from pathlib import Path
 import numpy as np
-from ..logger import vre_logger as logger
+from vre.logger import vre_logger as logger
 
 try:
     import cv2

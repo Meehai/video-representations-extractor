@@ -24,26 +24,14 @@ class TaskMapper(Representation, IORepresentationMixin, ResizableRepresentationM
         assert all(isinstance(dep, IORepresentationMixin) for dep in self.dependencies), self.dependencies
         self._n_channels = n_channels
 
-    @property
-    @overrides
-    def n_channels(self) -> int:
-        return self._n_channels
-
     @abstractmethod
     def merge_fn(self, dep_data: list[MemoryData]) -> MemoryData:
         """merges all the dependencies (as MemoryData coming from their respective data) into a new MemoryData"""
 
-    def compute_from_dependencies_paths(self, paths: Path | list[Path]) -> MemoryData:
-        """used in MultiTaskReader. Unclear if it's a good idea"""
-        paths = [paths] if isinstance(paths, Path) else paths
-        assert isinstance(paths, list) and len(paths) == len(self.dependencies), (paths, self.dependencies)
-        deps_memory_data = []
-        dep: IORepresentationMixin
-        for i, dep in enumerate(self.dependencies):
-            deps_memory_data.append(dep.disk_to_memory_fmt(dep.load_from_disk(paths[i])))
-        merged_data = self.merge_fn(deps_memory_data)
-        assert isinstance(merged_data, MemoryData), (self, type(merged_data)) # TODO(!82): unittest this
-        return merged_data
+    @property
+    @overrides
+    def n_channels(self) -> int:
+        return self._n_channels
 
     @overrides
     def compute(self, video: VREVideo, ixs: list[int], dep_data: list[ReprOut] | None = None) -> ReprOut:
@@ -58,3 +46,15 @@ class TaskMapper(Representation, IORepresentationMixin, ResizableRepresentationM
             res.append(item)
         assert all(isinstance(item, MemoryData) for item in res), (self, [type(item) for item in res])
         return ReprOut(video[ixs], MemoryData(res), key=ixs)
+
+    def compute_from_dependencies_paths(self, paths: Path | list[Path]) -> MemoryData:
+        """used in MultiTaskReader. Unclear if it's a good idea"""
+        paths = [paths] if isinstance(paths, Path) else paths
+        assert isinstance(paths, list) and len(paths) == len(self.dependencies), (paths, self.dependencies)
+        deps_memory_data = []
+        dep: IORepresentationMixin
+        for i, dep in enumerate(self.dependencies):
+            deps_memory_data.append(dep.disk_to_memory_fmt(dep.load_from_disk(paths[i])))
+        merged_data = self.merge_fn(deps_memory_data)
+        assert isinstance(merged_data, MemoryData), (self, type(merged_data)) # TODO(!82): unittest this
+        return merged_data

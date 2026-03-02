@@ -14,7 +14,7 @@ chmod +x $CWD/imgur.sh
 test -f $CWD/cfg.yaml || { echo "$CWD/cfg.yaml does not exist"; exit 1; }
 n_frames=$(ffprobe -v error -select_streams v:0 -count_packets -show_entries stream=nb_read_packets -of csv=p=0 $VID)
 X=$(shuf -i 1-"$n_frames" -n 1)
-# rm -rf $CWD/test_imgur/
+rm -rf $CWD/test_imgur/
 
 # run vre, vre_reader & vre_collage
 vre $VID --config_path $CWD/cfg.yaml -o $CWD/test_imgur/ --frames $X --output_dir_exists_mode skip_computed

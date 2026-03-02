@@ -11,9 +11,9 @@ import numpy as np
 from vre_video import VREVideo
 from vre.logger import vre_logger as logger
 from vre.utils import image_resize_batch, image_read, image_write, MemoryData
-from vre.representations.mixins import LearnedRepresentationMixin
 from vre.representations import ReprOut
-from vre_repository.weights_repository import fetch_weights
+from vre.representations.mixins import LearnedRepresentationMixin
+from vre_repository.utils import fetch_weights
 from vre_repository.semantic_segmentation import SemanticRepresentation
 
 try:
@@ -46,13 +46,11 @@ class Mask2Former(SemanticRepresentation, LearnedRepresentationMixin):
     def compute(self, video: VREVideo, ixs: list[int], dep_data: list[ReprOut] | None = None) -> ReprOut:
         height, width = video.frame_shape[0:2]
         _os = get_output_shape(height, width, self.cfg.INPUT.MIN_SIZE_TEST, self.cfg.INPUT.MAX_SIZE_TEST)
-        imgs = image_resize_batch(video[ixs], _os[0], _os[1], "bilinear", "PIL").transpose(0, 3, 1, 2).astype("float32")
-        inputs = [{"image": tr.from_numpy(img), "height": height, "width": width} for img in imgs]
+        imgs = image_resize_batch(video[ixs], _os[0], _os[1], "bilinear", backend="PIL").transpose(0, 3, 1, 2)
+        inputs = [{"image": tr.from_numpy(img), "height": height, "width": width} for img in imgs.astype("float32")]
         predictions: list[tr.Tensor] = [x["sem_seg"] for x in self.model(inputs)]
-        res = []
-        for pred in predictions:
-            res.append(pred.permute(1, 2, 0).to("cpu").numpy())
-        return ReprOut(frames=video[ixs], output=MemoryData(res), key=ixs)
+        output = MemoryData([pred.permute(1, 2, 0).to("cpu").numpy() for pred in predictions])
+        return ReprOut(frames=video[ixs], output=output, key=ixs)
 
     @staticmethod
     @overrides
