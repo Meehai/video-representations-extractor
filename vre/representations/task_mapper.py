@@ -6,6 +6,7 @@ from vre_video import VREVideo
 
 from .io_representation_mixin import IORepresentationMixin, MemoryData
 from .representation import Representation, ReprOut
+from .resizable_representation_mixin import ResizableRepresentationMixin
 
 class TaskMapper(Representation, IORepresentationMixin, ABC):
     """
@@ -49,7 +50,9 @@ class TaskMapper(Representation, IORepresentationMixin, ABC):
         assert all(dep.key == ixs for dep in dep_data), ([dep.key for dep in dep_data], ixs)
         data = [dep.output for dep in dep_data]
         res = []
-        for i in range(len(data[0])):
-            res.append(self.merge_fn([x[i] for x in data]))
+        for i in range(len(ixs)):
+            item = self.merge_fn([x[i] for x in data])
+            assert len(item.shape) == 3, f"Expected (H, W, C), got {item.shape}."
+            res.append(item)
         assert all(isinstance(item, MemoryData) for item in res), (self, [type(item) for item in res])
         return ReprOut(video[ixs], MemoryData(res), key=ixs)
