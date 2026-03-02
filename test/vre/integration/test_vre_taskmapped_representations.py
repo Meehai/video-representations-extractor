@@ -75,19 +75,22 @@ class Buildings(TaskMapper, NpIORepresentation):
 
     def disk_to_memory_fmt(self, disk_data: DiskData) -> MemoryData:
         assert not isinstance(disk_data, MemoryData), type(disk_data)
-        return MemoryData(np.eye(2)[disk_data.astype(int)].astype(np.float32))
+        return MemoryData(disk_data[..., None].astype(np.float32)) # (H, W, 1) f32
 
     def memory_to_disk_fmt(self, memory_data: MemoryData) -> DiskData:
-        return memory_data.argmax(-1).astype(bool)
+        return memory_data.argmax(-1).astype(bool) # (H, W) bool
 
     def merge_fn(self, dep_data: list[MemoryData]) -> MemoryData:
+        assert all(isinstance(x, MemoryData) for x in dep_data), [type(x) for x in dep_data]
         dep_data_converted = [semantic_mapper(x.argmax(-1), mapping, oc)
                               for x, mapping, oc in zip(dep_data, self.mapping, self.original_classes)]
-        res = self.disk_to_memory_fmt(sum(dep_data_converted) > 0)
-        return res
+        y = sum(dep_data_converted) > 0 # (H, W) bool
+        return MemoryData(y[..., None].astype("float32")) # (H, W, 1) f32
 
     def make_images(self, data: ReprOut) -> np.ndarray:
-        return colorize_semantic_segmentation(data.output.argmax(-1), self.classes, self.color_map)
+        assert len(data.output.shape) == 4 and data.output.shape[-1] == 1, data.output.shape # (B, H, W, 1)
+        x = (data.output > 0.5)[..., 0].astype(np.uint8) # (B, H, W) u8
+        return colorize_semantic_segmentation(x, classes=self.classes, color_map=self.color_map) # (B, H, W) u8
 
 def _generate_random_data(n: int) -> Path:
     tmp_dir = Path(__file__).parent / "data" if __name__ == "__main__" else Path(TemporaryDirectory().name)

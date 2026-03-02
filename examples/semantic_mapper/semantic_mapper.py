@@ -225,9 +225,9 @@ class BinaryMapper(TaskMapper, NpIORepresentation):
     @overrides
     def make_images(self, data: ReprOut) -> np.ndarray:
         assert isinstance(data.output, MemoryData), type(data.output)
-        x = data.output.argmax(-1) if self.disk_mode == "one_hot" else (data.output > 0.5).astype(int)
-        x = x[..., 0] if x.shape[-1] == 1 else x
-        return colorize_semantic_segmentation(x, self.classes, self.color_map)
+        assert len(data.output.shape) == 4 and data.output.shape[-1] == 1, data.output.shape # (B, H, W, 1)
+        x = (data.output > 0.5)[..., 0] # (B, H, W) bool
+        return colorize_semantic_segmentation(semantic_map=x, classes=self.classes, color_map=self.color_map)
 
     @overrides
     def disk_to_memory_fmt(self, disk_data: DiskData) -> MemoryData:
