@@ -13,7 +13,8 @@ from diffusers import AutoencoderKL, DDIMScheduler, LCMScheduler, UNet2DConditio
 
 from vre_video import VREVideo
 from vre.utils import image_read, image_write, MemoryData
-from vre.representations import ReprOut, LearnedRepresentationMixin
+from vre.representations.mixins import LearnedRepresentationMixin
+from vre.representations import ReprOut
 from vre_repository.depth import DepthRepresentation
 from vre_repository.weights_repository import fetch_weights, vre_load_weights
 

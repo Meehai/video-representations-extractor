@@ -9,10 +9,11 @@ from torch import nn
 from torch.nn import functional as F
 
 from vre_video import VREVideo
-from vre.representations import (Representation, ReprOut, LearnedRepresentationMixin,
-                                 NpIORepresentation, NormedRepresentationMixin)
-from vre.utils import image_resize_batch, image_read, image_write, MemoryData
 from vre.logger import vre_logger as logger
+from vre.utils import image_resize_batch, image_read, image_write, MemoryData
+from vre.representations import ReprOut
+from vre.representations.mixins import LearnedRepresentationMixin
+from vre_repository.soft_segmentation import SoftSegmentationRepresentation
 from vre_repository.weights_repository import fetch_weights
 
 try:
@@ -22,13 +23,11 @@ except ImportError:
     from vre_repository.soft_segmentation.fastsam.fastsam_impl import (
         FastSAM as Model, FastSAMPredictor, FastSAMPrompt, Results, bbox_iou, non_max_suppression, process_mask_native)
 
-class FastSam(Representation, LearnedRepresentationMixin, NpIORepresentation, NormedRepresentationMixin):
+class FastSam(SoftSegmentationRepresentation, LearnedRepresentationMixin):
     """FastSAM representation."""
     def __init__(self, variant: str, iou: float, conf: float, **kwargs):
-        Representation.__init__(self, **kwargs)
+        SoftSegmentationRepresentation.__init__(self, **kwargs)
         LearnedRepresentationMixin.__init__(self)
-        NpIORepresentation.__init__(self)
-        NormedRepresentationMixin.__init__(self)
         assert variant in ("fastsam-s", "fastsam-x", "testing"), variant
         self.variant = variant
         self.conf = conf
@@ -126,6 +125,7 @@ class FastSam(Representation, LearnedRepresentationMixin, NpIORepresentation, No
     @property
     @overrides
     def n_channels(self) -> int:
+        # TODO: most likely fast sam is not part of 'soft segmentation' but something like 'object detection'
         raise ValueError("I hate inheritance. Makes no sense for this representation")
 
     def _postprocess(self, preds: tr.Tensor, inference_height: int, inference_width: int,

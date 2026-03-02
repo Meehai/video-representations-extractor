@@ -3,7 +3,8 @@ from overrides import overrides
 import numpy as np
 
 from vre_video import VREVideo
-from vre.utils import MemoryData, ReprOut
+from vre.utils import MemoryData
+from vre.representations import ReprOut
 from vre_repository.normals import NormalsRepresentation
 
 from .depth_svd_impl import depths_to_normals

@@ -2,20 +2,22 @@
 from overrides import overrides
 import numpy as np
 from vre_video import VREVideo
-from vre.representations import Representation, NpIORepresentation
-from vre.utils import DiskData, MemoryData, image_resize_batch, colorize_semantic_segmentation, ReprOut
+from vre.representations import Representation, ReprOut
+from vre.representations.mixins import NpIORepresentation, ResizableRepresentationMixin
+from vre.utils import DiskData, MemoryData, image_resize_batch, colorize_semantic_segmentation
 from vre.logger import vre_logger as logger
 
 # TODO: ideally we'd not need to specify disk_data_argmax explicitly
 # TODO: we may need a way to specify memory data format (one-hot, softmax, logits, index etc.)
 
-class SemanticRepresentation(Representation, NpIORepresentation):
+class SemanticRepresentation(Representation, NpIORepresentation, ResizableRepresentationMixin):
     """SemanticRepresentation. Implements semantic task-specific stuff, like argmaxing if needed"""
     def __init__(self, *args, classes: int | list[str], color_map: list[tuple[int, int, int]],
                  disk_data_argmax: bool, **kwargs):
         self.n_classes = len(list(range(classes)) if isinstance(classes, int) else classes)
         Representation.__init__(self, *args, **kwargs)
         NpIORepresentation.__init__(self)
+        ResizableRepresentationMixin.__init__(self)
         self.classes = list(range(classes)) if isinstance(classes, int) else classes
         self.color_map = color_map
         self.disk_data_argmax = disk_data_argmax

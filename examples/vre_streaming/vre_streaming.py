@@ -14,7 +14,8 @@ from vre_video import VREVideo
 from vre_video.readers import FdFrameReader
 
 from vre import VRE, ReprOut
-from vre.representations import build_representations_from_cfg, LearnedRepresentationMixin
+from vre.representations import build_representations_from_cfg
+from vre.representations.mixins import LearnedRepresentationMixin
 from vre.logger import vre_logger as logger
 from vre.utils import collage_fn, image_resize, image_add_title
 from vre_repository import get_vre_repository

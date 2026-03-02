@@ -3,7 +3,8 @@ from __future__ import annotations
 from overrides import overrides
 
 from vre_video import VREVideo
-from vre.utils import MemoryData, ReprOut
+from vre.representations import ReprOut
+from vre.utils import MemoryData
 
 from .color_representation import ColorRepresentation
 

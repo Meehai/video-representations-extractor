@@ -12,7 +12,6 @@ from vre.representation_metadata import RepresentationMetadata
 sys.path.append(str(get_project_root() / "test/vre"))
 from fake_representation import FakeRepresentation
 
-
 def test_RunMetadata_two_representations(tmp_path: Path):
     r1, r2 = FakeRepresentation("r1", dependencies=[]), FakeRepresentation("r2", dependencies=[])
     video = VREVideo(np.random.randint(0, 255, size=(10, 20, 30, 3), dtype=np.uint8), fps=1)
