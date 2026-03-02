@@ -232,6 +232,7 @@ disable = logging-fstring-interpolation,
           expression-not-assigned,
           unnecessary-dunder-call,
           no-else-return,
+          unnecessary-lambda-assignment,
 
 [FORMAT]
 

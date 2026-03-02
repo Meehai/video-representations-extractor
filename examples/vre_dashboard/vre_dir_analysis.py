@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """usage `vre_dir_analysis root_dir > res.json`. root_dir must be like: [subdir1/[repr1,...,reprn], subdir2[], ... ]"""
-import pandas as pd
-from pathlib import Path
 import sys
+from pathlib import Path
+import pandas as pd
 
 def cnts(base_path: Path) -> pd.DataFrame:
     """compute the cunts of all the subdirs (vre out dirs) in a root dir. Max depth=2."""
