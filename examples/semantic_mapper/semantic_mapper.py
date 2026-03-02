@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 """semantic_mapper.py -- primivites for new tasks based on existing CV/dronescapes tasks"""
+# NOTE: Tehcnically some representations can implement merge_fn at DiskDAta level (semantic),
+# but we first must make it correct. That's an optimization. It's fine to work with one-hot f32 data as well.
 from overrides import overrides
 from pathlib import Path
 from functools import reduce
@@ -269,7 +271,7 @@ class BuildingsFromM2FDepth(BinaryMapper):
         assert all(isinstance(x, MemoryData) for x in dep_data), [type(x) for x in dep_data]
         buildings = super().merge_fn(dep_data[0:-1])
         buildings_depth = buildings.argmax(-1, keepdims=True) * (dep_data[-1] <= BuildingsFromM2FDepth.THR) # (H, W, 1)
-        return MemoryData(buildings_depth.astype(np.uint8))
+        return MemoryData(buildings_depth.astype(np.uint8)) # uint8 for potential resizes as we don't support bool
 
 class SemanticMedian(TaskMapper, SemanticRepresentation):
     def __init__(self, name: str, deps: list[TaskMapper | SemanticRepresentation]):
@@ -280,6 +282,7 @@ class SemanticMedian(TaskMapper, SemanticRepresentation):
 
     @overrides
     def merge_fn(self, dep_data: list[MemoryData]) -> MemoryData:
+        assert all(isinstance(x, MemoryData) for x in dep_data), [type(x) for x in dep_data]
         return MemoryData(np.eye(self.n_classes)[sum(dep_data).argmax(-1)].astype(np.float32))
 
 class SafeLandingAreas(BinaryMapper):
@@ -319,16 +322,17 @@ class SafeLandingAreas(BinaryMapper):
 
     @overrides
     def merge_fn(self, dep_data: list[MemoryData]) -> MemoryData:
-        depth, normals = dep_data[0] if len(dep_data[0].shape) == 2 else dep_data[0][..., 0], dep_data[1]
-        v1, v2, v3 = normals.transpose(2, 0, 1)
-        where_safe = (v2 > 0.8) * ((v1 + v3) < 1.2) * (depth <= 0.9)
+        assert all(isinstance(x, MemoryData) for x in dep_data), [type(x) for x in dep_data]
+        depth, normals = dep_data[0], dep_data[1]
+        v1, v2, v3 = normals.transpose(2, 0, 1) # (H, W, 1); (H, W, 3)
+        where_safe: np.ndarray = ((v2 > 0.8) * ((v1 + v3) < 1.2) * (depth[..., 0] <= 0.9))[..., None] # (H, W, 1)
         if self.include_semantics:
-            conv1 = np.isin(dep_data[2].argmax(-1), self.safe_mapillary_ix).astype(int)
-            conv2 = np.isin(dep_data[3].argmax(-1), self.safe_coco_ix).astype(int)
-            conv3 = np.isin(dep_data[4].argmax(-1), self.safe_mapillary_ix).astype(int)
-            sema_safe = (conv1 + conv2 + conv3) >= 2
-            where_safe = sema_safe * where_safe
-        return self.disk_to_memory_fmt(where_safe)
+            conv1 = np.isin(dep_data[2].argmax(-1), self.safe_mapillary_ix) # (H, W) bool
+            conv2 = np.isin(dep_data[3].argmax(-1), self.safe_coco_ix) # (H, W) bool
+            conv3 = np.isin(dep_data[4].argmax(-1), self.safe_mapillary_ix) # (H, W) bool
+            sema_safe = ((conv1.astype(np.uint8) + conv2 + conv3) >= 2)[..., None] # At least 2 / 3. (H, W, 1) bool
+            where_safe = sema_safe * where_safe # (H, W, 1) bool
+        return MemoryData(where_safe.astype(np.uint8)) # uint8 for potential resizes as we don't support bool (yet?)
 
 def get_new_semantic_mapped_tasks(tasks_subset: list[str] | None = None,
                                   include_semantic_output: bool = True) -> dict[str, TaskMapper]:
