@@ -6,8 +6,7 @@ from pathlib import Path
 import numpy as np
 
 from vre.logger import vre_logger as logger
-from vre.utils import image_resize_batch, MemoryData, DiskData
-from .representation import ReprOut
+from vre.utils import MemoryData, DiskData
 
 class BinaryFormat(Enum):
     """types of binary outputs from a representation"""
@@ -138,13 +137,3 @@ class IORepresentationMixin(ABC):
                 res += f"\n-{attr}: {kwargs[attr]}"
         if len(res) > 0:
             logger.debug(f"[{self}] Set node specific 'IO' params:{res}")
-
-    def resize(self, data: ReprOut, new_size: tuple[int, int]):
-        """resizes the data. size is provided in (h, w)"""
-        assert data is not None, "No data provided"
-        interpolation = "nearest" if np.issubdtype(d := data.output.dtype, np.integer) or d == bool else "bilinear"
-        output_images = None
-        if data.output_images is not None:
-            output_images = image_resize_batch(data.output_images, *new_size, interpolation="nearest")
-        return ReprOut(frames=data.frames, key=data.key, extra=data.extra, output_images=output_images,
-                       output=image_resize_batch(data.output, *new_size, interpolation=interpolation))

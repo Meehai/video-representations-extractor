@@ -7,8 +7,9 @@ import numpy as np
 from vre import VRE
 from vre_video import VREVideo
 from vre.utils import (colorize_semantic_segmentation, semantic_mapper, DiskData,
-                       MemoryData, ReprOut, get_project_root, image_resize_batch, natsorted)
-from vre.representations import Representation, TaskMapper, NpIORepresentation
+                       MemoryData, get_project_root, image_resize_batch, natsorted)
+from vre.representations import Representation, TaskMapper, ReprOut
+from vre.representations.mixins import NpIORepresentation
 
 sys.path.append(str(get_project_root() / "test/vre"))
 from fake_representation import FakeRepresentation

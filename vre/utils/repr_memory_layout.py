@@ -1,6 +1,5 @@
 """repr_memory_layout.py implements the data structures for holding Representation Outputs (ReprOut) and MemoryData."""
 from __future__ import annotations
-from dataclasses import dataclass
 import numpy as np
 from .lovely import lo
 
@@ -20,39 +19,3 @@ class MemoryData(np.ndarray):
 
     def __repr__(self):
         return lo(self)
-
-@dataclass
-class ReprOut:
-    """The output of representation.compute()"""
-    frames: np.ndarray | None
-    output: MemoryData
-    key: list[int]
-    extra: list[dict] | None = None
-    output_images: np.ndarray | None = None
-
-    def __post_init__(self):
-        assert isinstance(self.output, MemoryData), f"Use MemoryData(arr) if array. Got: {type(self.output)}"
-        assert len(self.output) == (nk := len(self.key)), (len(self.output), nk)
-        assert self.frames is None or len(self.frames) == nk, (len(self.frames), nk)
-        assert self.output_images is None or len(self.output_images) == nk, (len(self.output_images), nk)
-        assert self.extra is None or len(self.extra) == nk, (len(self.extra), nk)
-
-    def __repr__(self):
-        return (f"[ReprOut] key={self.key}, output={lo(self.output)}, output_images={lo(self.output_images)}, "
-                f"extra set={self.extra is not None}, frames={lo(self.frames)}")
-
-    def __eq__(self, other: ReprOut) -> bool:
-        if not isinstance(other, ReprOut):
-            return False
-        if self.key != other.key:
-            return False
-        if (self.extra is not None) ^ (other.extra is not None):
-            return False
-        if (self.output_images is not None) ^ (other.output_images is not None):
-            return False
-        if not np.allclose(self.output, other.output):
-            return False
-        # we know both are not none or both are none as per the xor check above
-        if self.output_images is not None and not np.allclose(self.output_images, other.output_images):
-            return False
-        return True

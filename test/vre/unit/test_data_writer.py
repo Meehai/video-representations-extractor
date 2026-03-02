@@ -6,7 +6,6 @@ import pytest
 from vre import ReprOut
 from vre.utils import get_project_root, MemoryData
 from vre.data_writer import DataWriter
-from vre.data_storer import DataStorer
 
 sys.path.append(str(get_project_root() / "test/vre"))
 from fake_representation import FakeRepresentation

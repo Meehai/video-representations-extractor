@@ -9,7 +9,8 @@ import numpy as np
 from tqdm import tqdm
 
 from vre.logger import vre_logger as logger
-from vre.representations import NormedRepresentationMixin, Representation
+from vre.representations import Representation
+from vre.representations.mixins import NormedRepresentationMixin
 
 TaskStatistics = tuple[tr.Tensor, tr.Tensor, tr.Tensor, tr.Tensor] # (min, max, mean, std)
 

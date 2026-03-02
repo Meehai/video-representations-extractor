@@ -3,8 +3,8 @@
 from argparse import ArgumentParser, Namespace
 import sys
 from vre.readers import MultiTaskDataset
-from vre.representations import build_representations_from_cfg, add_external_repositories
-from vre.utils import abs_path, lo, ReprOut, MemoryData, image_write, collage_fn, str_topk
+from vre.representations import build_representations_from_cfg, add_external_repositories, ReprOut
+from vre.utils import abs_path, lo, MemoryData, image_write, collage_fn, str_topk
 from vre.logger import vre_logger as logger
 from vre_repository import get_vre_repository
 from pprint import pformat

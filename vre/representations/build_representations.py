@@ -3,9 +3,8 @@ from pathlib import Path
 from typing import Type
 from .representation import Representation
 from .representations_list import RepresentationsList
-from .io_representation_mixin import IORepresentationMixin
-from .learned_representation_mixin import LearnedRepresentationMixin
 from ..logger import vre_logger as logger
+from .mixins import IORepresentationMixin, LearnedRepresentationMixin
 from ..utils import topological_sort, load_function_from_module, vre_yaml_load
 
 def build_representations_from_cfg(cfg: Path | str | dict,

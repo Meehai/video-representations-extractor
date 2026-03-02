@@ -4,7 +4,8 @@ from abc import ABC, abstractmethod
 import numpy as np
 from vre_video import VREVideo
 
-from ..utils import parsed_str_type, ReprOut
+from .repr_out import ReprOut
+from ..utils import parsed_str_type
 from ..logger import vre_logger as logger
 
 class Representation(ABC):

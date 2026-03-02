@@ -6,9 +6,10 @@ from overrides import overrides
 from vre_video import VREVideo
 from vre.logger import vre_logger as logger
 from vre.utils import MemoryData
-from vre.representations import Representation, ReprOut, NpIORepresentation
+from vre.representations import Representation, ReprOut
+from vre.representations.mixins import NpIORepresentation, ResizableRepresentationMixin
 
-class FakeRepresentation(Representation, NpIORepresentation):
+class FakeRepresentation(Representation, NpIORepresentation, ResizableRepresentationMixin):
     """FakeRepresentation that is used in unit tests and some basic classes, like RGB."""
     def __init__(self, *args, n_channels: int = 1, output_dtype: str = "uint8", **kwargs):
         Representation.__init__(self, *args, **kwargs)

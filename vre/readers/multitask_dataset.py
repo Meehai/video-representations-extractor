@@ -9,7 +9,8 @@ from copy import deepcopy
 import torch as tr
 from torch.utils.data import Dataset
 
-from vre.representations import Representation, NormedRepresentationMixin, IORepresentationMixin, TaskMapper
+from vre.representations import Representation, TaskMapper
+from vre.representations.mixins import IORepresentationMixin, NormedRepresentationMixin
 from vre.logger import vre_logger as logger
 from vre.utils import natsorted
 
