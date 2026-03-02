@@ -10,6 +10,7 @@ import os
 import time
 import numpy as np
 import matplotlib.pyplot as plt
+from image_utils import image_resize
 from vre_video import VREVideo
 from vre_video.readers import FdFrameReader
 
@@ -17,7 +18,7 @@ from vre import VRE, ReprOut
 from vre.representations import build_representations_from_cfg
 from vre.representations.mixins import LearnedRepresentationMixin
 from vre.logger import vre_logger as logger
-from vre.utils import collage_fn, image_resize, image_add_title
+from vre_repository.utils import collage_fn, image_add_title
 from vre_repository import get_vre_repository
 
 os.environ["VRE_COLORIZE_SEMSEG_FAST"] = "1"
