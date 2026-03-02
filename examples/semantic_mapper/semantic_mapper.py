@@ -210,13 +210,22 @@ class BinaryMapper(TaskMapper, NpIORepresentation):
 
     @overrides
     def disk_to_memory_fmt(self, disk_data: DiskData) -> MemoryData:
-        assert len(disk_data.shape) == 2 and disk_data.dtype == bool, f"{self.name}: {lo(disk_data)}"
-        y = np.eye(2)[disk_data.astype(int)] if self.load_mode == "one_hot" else disk_data
-        return MemoryData(y.astype(np.float32))
+        assert len(disk_data.shape) == 2, f"{self.name}: {lo(disk_data)}"
+        y_disk = disk_data
+        if self.load_mode == "one_hot":
+            y_disk = np.eye(2)[disk_data.astype(int)]
+        y_memory = y_disk.astype(np.float32)[..., None] # (H, W) -> (H, W, 1)
+        return MemoryData(y_memory)
 
     @overrides
     def memory_to_disk_fmt(self, memory_data: MemoryData) -> DiskData:
-        return memory_data.argmax(-1).astype(bool) if self.load_mode == "one_hot" else memory_data.astype(bool)
+        if self.load_mode == "one_hot": # should kinda be named 'store_mode' but we mean how the data is stored/loaded
+            y_disk = memory_data.argmax(-1).astype(bool) # (H, W, 1) -> (H, W)
+        else:
+            assert len(ms := memory_data.shape) == 3 and ms[-1] == 1, f"Expected (H, W, 1). Got: {ms}"
+            y_disk = memory_data[..., 0]
+        assert len(y_disk.shape) == 2, f"Expected (H, W), got {y_disk.shape}"
+        return y_disk
 
     @overrides
     def merge_fn(self, dep_data: list[MemoryData]) -> MemoryData:
@@ -243,7 +252,8 @@ class BuildingsFromM2FDepth(BinaryMapper):
 
     def merge_fn(self, dep_data: list[MemoryData]) -> MemoryData:
         buildings = super().merge_fn(dep_data[0:-1])
-        depth = dep_data[-1] if len(dep_data[-1].shape) == 2 else dep_data[-1][..., 0]
+        depth = dep_data[-1]
+        assert len(depth.shape) == 3 and depth.shape[-1] == 1, f"Expected (H, W, 1). Got {depth.shape}"
         thr = 0.3 # np.percentile(depth.numpy(), 0.8)
         buildings_depth = buildings * (depth <= thr)
         return self.disk_to_memory_fmt(buildings_depth.astype(bool))
