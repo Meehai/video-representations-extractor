@@ -5,7 +5,8 @@ from pathlib import Path
 import numpy as np
 
 from .utils import image_write, is_dir_empty
-from .representations import ReprOut, Representation, IORepresentationMixin
+from .representations import ReprOut, Representation
+from .representations.mixins import IORepresentationMixin
 from .logger import vre_logger as logger
 
 Repr = Representation | IORepresentationMixin

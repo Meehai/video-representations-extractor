@@ -8,7 +8,8 @@ from tqdm import tqdm
 import numpy as np
 from vre_video import VREVideo
 
-from .representations import Representation, LearnedRepresentationMixin, RepresentationsList, IORepresentationMixin
+from .representations import Representation, RepresentationsList
+from .representations.mixins import LearnedRepresentationMixin, IORepresentationMixin
 from .vre_runtime_args import VRERuntimeArgs
 from .data_writer import DataWriter
 from .data_storer import DataStorer
