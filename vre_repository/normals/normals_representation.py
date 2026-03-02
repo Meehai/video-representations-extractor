@@ -2,14 +2,16 @@
 from overrides import overrides
 import numpy as np
 from vre.representations import Representation, ReprOut
-from vre.representations.mixins import NpIORepresentation, NormedRepresentationMixin
+from vre.representations.mixins import NpIORepresentation, NormedRepresentationMixin, ResizableRepresentationMixin
 
-class NormalsRepresentation(Representation, NpIORepresentation, NormedRepresentationMixin):
+class NormalsRepresentation(Representation, NpIORepresentation,
+                            NormedRepresentationMixin, ResizableRepresentationMixin):
     """NormalsRepresentation -- CV representation for world and camera normals"""
     def __init__(self, name: str, **kwargs):
         Representation.__init__(self, name, **kwargs)
         NpIORepresentation.__init__(self)
         NormedRepresentationMixin.__init__(self)
+        ResizableRepresentationMixin.__init__(self)
 
     @overrides
     def make_images(self, data: ReprOut) -> np.ndarray:

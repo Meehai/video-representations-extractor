@@ -3,14 +3,15 @@ from overrides import overrides
 import numpy as np
 from vre_video import VREVideo
 from vre.representations import Representation, ReprOut
-from vre.representations.mixins import NpIORepresentation, NormedRepresentationMixin
+from vre.representations.mixins import NpIORepresentation, NormedRepresentationMixin, ResizableRepresentationMixin
 
-class EdgesRepresentation(Representation, NpIORepresentation, NormedRepresentationMixin):
+class EdgesRepresentation(Representation, NpIORepresentation, NormedRepresentationMixin, ResizableRepresentationMixin):
     """EdgesRepresentation -- CV representation for 1-channeled edges/boundaries"""
     def __init__(self, name: str, **kwargs):
         Representation.__init__(self, name, **kwargs)
         NpIORepresentation.__init__(self)
         NormedRepresentationMixin.__init__(self)
+        ResizableRepresentationMixin.__init__(self)
 
     @property
     @overrides
