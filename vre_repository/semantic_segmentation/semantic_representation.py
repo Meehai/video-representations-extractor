@@ -2,14 +2,9 @@
 from overrides import overrides
 import numpy as np
 from vre_video import VREVideo
-<<<<<<< HEAD
-from vre.representations import Representation, NpIORepresentation
-from vre.utils import DiskData, MemoryData, image_resize_batch, ReprOut
-=======
 from vre.representations import Representation, ReprOut
 from vre.representations.mixins import NpIORepresentation, ResizableRepresentationMixin
-from vre.utils import DiskData, MemoryData, image_resize_batch, colorize_semantic_segmentation
->>>>>>> master
+from vre.utils import DiskData, MemoryData, image_resize_batch
 from vre.logger import vre_logger as logger
 from vre_repository.utils import colorize_semantic_segmentation
 

@@ -2,8 +2,8 @@
 from overrides import overrides
 import numpy as np
 from vre_video import VREVideo
-from vre.utils import ReprOut, clip
-from vre.representations import Representation
+from vre.utils import clip
+from vre.representations import Representation, ReprOut
 from vre_repository.utils import colorize_optical_flow
 from vre.representations.mixins import NpIORepresentation, NormedRepresentationMixin, ResizableRepresentationMixin
 
