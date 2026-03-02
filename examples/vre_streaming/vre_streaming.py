@@ -9,7 +9,7 @@ import sys
 import os
 import time
 import numpy as np
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt # pylint: disable=import-error
 from vre_video import VREVideo
 from vre_video.readers import FdFrameReader
 from image_utils import image_resize

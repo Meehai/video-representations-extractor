@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """usage `vre_dir_analysis root_dir > res.json`. root_dir must be like: [subdir1/[repr1,...,reprn], subdir2[], ... ]"""
+# pylint: disable=import-error
 import sys
 from pathlib import Path
 import pandas as pd
