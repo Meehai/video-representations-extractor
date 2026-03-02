@@ -8,10 +8,11 @@ import numpy as np
 import torch as tr
 
 from vre.utils import (semantic_mapper, colorize_semantic_segmentation, DiskData, MemoryData,
-                       ReprOut, reorder_dict, collage_fn, image_add_title, lo, image_write)
+                       reorder_dict, collage_fn, image_add_title, lo, image_write)
 from vre.logger import vre_logger as logger
 from vre.readers.multitask_dataset import MultiTaskDataset, MultiTaskItem
-from vre.representations import TaskMapper, NpIORepresentation, Representation, build_representations_from_cfg
+from vre.representations import TaskMapper, Representation, build_representations_from_cfg, ReprOut
+from vre.representations.mixins import NpIORepresentation
 from vre_repository import get_vre_repository
 from vre_repository.depth import DepthRepresentation
 from vre_repository.normals import NormalsRepresentation
