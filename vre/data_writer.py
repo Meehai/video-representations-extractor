@@ -48,7 +48,7 @@ class DataWriter:
                 if (bin_path := self.rep_out_dir / ext / f"{t}.{ext}").exists():
                     logger.warning(f"[{self.rep}] '{bin_path}' already exists. Overwriting.")
                 disk_fmt = self.rep.memory_to_disk_fmt(y_repr.output[i])
-                if disk_fmt.dtype != self.rep.output_dtype:
+                if disk_fmt.dtype != self.rep.output_dtype: # TODO: is output_dtype only related to disk_data ??
                     _check_dtype_compat(disk_fmt.dtype, self.rep.output_dtype)
                     disk_fmt = disk_fmt.astype(self.rep.output_dtype)
                 self.rep.save_to_disk(disk_fmt, bin_path)

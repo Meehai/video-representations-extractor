@@ -205,18 +205,18 @@ class BinaryMapper(TaskMapper, NpIORepresentation):
     TaskMapper is the only high level interface that makes sense, so we should focus on keeping that generic and easy.
     """
     def __init__(self, name: str, dependencies: list[Representation], mapping: list[dict[str, list]],
-                 mode: str, load_mode: str = "binary"):
+                 mode: str, disk_mode: str = "binary"):
         TaskMapper.__init__(self, name=name, dependencies=dependencies, n_channels=2)
         NpIORepresentation.__init__(self)
         assert mode in ("all_agree", "at_least_one", "majority"), (name, mode)
-        assert load_mode in ("one_hot", "binary"), (name, load_mode)
+        assert disk_mode in ("float", "binary"), (name, disk_mode)
         assert len(mapping[0]) == 2, (name, mapping)
         assert len(mapping) == len(dependencies), (name, len(mapping), len(dependencies))
         assert all(mapping[0].keys() == m.keys() for m in mapping), (name, [m.keys() for m in mapping])
         self.original_classes: list[list[str]] = [dep.classes for dep in dependencies]
         self.mapping = mapping
         self.mode = mode
-        self.load_mode = load_mode
+        self.disk_mode = disk_mode
         self.classes = list(mapping[0].keys())
         self.n_classes = len(self.classes)
         self.color_map = [[0, 0, 0], [255, 255, 255]]
@@ -224,21 +224,29 @@ class BinaryMapper(TaskMapper, NpIORepresentation):
 
     @overrides
     def make_images(self, data: ReprOut) -> np.ndarray:
-        x = data.output.argmax(-1) if self.load_mode == "one_hot" else (data.output > 0.5).astype(int)
+        assert isinstance(data.output, MemoryData), type(data.output)
+        x = data.output.argmax(-1) if self.disk_mode == "one_hot" else (data.output > 0.5).astype(int)
         x = x[..., 0] if x.shape[-1] == 1 else x
         return colorize_semantic_segmentation(x, self.classes, self.color_map)
 
     @overrides
     def disk_to_memory_fmt(self, disk_data: DiskData) -> MemoryData:
-        assert not isinstance(disk_data, MemoryData), type(disk_data)
+        assert not isinstance(disk_data, MemoryData), type(disk_data) # (H, W) bool
         assert len(disk_data.shape) == 2 and disk_data.dtype == bool, f"{self.name}: {lo(disk_data)}"
-        memory_data = np.eye(2)[disk_data.astype(int)] if self.load_mode == "one_hot" else disk_data
-        assert len(memory_data.shape) == 3 and memory_data.shape[-1] == 2, memory_data
-        return MemoryData(memory_data)
+        memory_data = MemoryData(disk_data[..., None].astype("float32")) # (H, W, 1)
+        assert len(memory_data.shape) == 3 and memory_data.shape[-1] == 1, memory_data
+        return memory_data
 
     @overrides
     def memory_to_disk_fmt(self, memory_data: MemoryData) -> DiskData:
-        return memory_data.argmax(-1).astype(bool) if self.load_mode == "one_hot" else memory_data.astype(bool)
+        # note: one hot memory data, so 2 float32 channels with 0 and 1.
+        assert isinstance(memory_data, MemoryData), type(memory_data)
+        assert len(shp := memory_data.shape) == 3 and shp[-1] == 1, memory_data.shape
+        if self.disk_mode == "binary":
+            res = memory_data[..., 0].astype(bool) # Careful not to argmax() here :). (H, W) bool
+        else:
+            res = memory_data.astype("float32") # (H, W, 1) float
+        return res
 
     @overrides
     def merge_fn(self, dep_data: list[MemoryData]) -> MemoryData:
@@ -260,10 +268,10 @@ class BinaryMapper(TaskMapper, NpIORepresentation):
 class BuildingsFromM2FDepth(BinaryMapper):
     THR = 0.3
     def __init__(self, name: str, dependencies: list[Representation], buildings: BinaryMapper, mode: str,
-                 load_mode: str = "binary"):
+                 disk_mode: str = "binary"):
         assert len(dependencies) == 1 and isinstance(dependencies[-1], DepthRepresentation), dependencies
-        BinaryMapper.__init__(self, name=name, dependencies=buildings.dependencies,
-                              mapping=buildings.mapping, mode=mode, load_mode=load_mode)
+        super().__init__(name=name, dependencies=buildings.dependencies,
+                         mapping=buildings.mapping, mode=mode, disk_mode=disk_mode)
         self.dependencies = [*buildings.dependencies, dependencies[0]]
         self.classes = ["others", name]
 
@@ -286,21 +294,22 @@ class SemanticMedian(TaskMapper, SemanticRepresentation):
         return MemoryData(np.eye(self.n_classes)[sum(dep_data).argmax(-1)].astype(np.float32))
 
 class SafeLandingAreas(BinaryMapper):
+        # TODO: split tihs in two: SafeLandingAreas(BinaryMapper) and SafeLandingAreasSemantic(Representation)
     def __init__(self, name: str, depth: DepthRepresentation, camera_normals: NormalsRepresentation,
                  include_semantics: bool, original_classes: tuple[list[str], list[str]] | None = None,
-                 semantics: list[SemanticRepresentation] | None = None, load_mode: str = "binary"):
+                 semantics: list[SemanticRepresentation] | None = None, disk_mode: str = "binary"):
         dependencies = [depth, camera_normals]
         if include_semantics:
             assert len(original_classes) == 3
             assert len(semantics) == 3
             dependencies = [*dependencies, *semantics]
-        TaskMapper.__init__(self, name, dependencies=dependencies, n_channels=2)
+        TaskMapper.__init__(self, name, dependencies=dependencies, n_channels=2) # TODO: call super()
         self.color_map = [[255, 0, 0], [0, 255, 0]]
         self.original_classes = original_classes
         self.classes = ["unsafe-landing", "safe-landing"]
         self.n_classes = len(self.classes)
         self.semantics = semantics
-        self.load_mode = load_mode
+        self.disk_mode = disk_mode
         self.include_semantics = include_semantics
         self.output_dtype = "bool"
 
