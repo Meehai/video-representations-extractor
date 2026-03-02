@@ -226,7 +226,7 @@ class BinaryMapper(TaskMapper, NpIORepresentation):
     def make_images(self, data: ReprOut) -> np.ndarray:
         assert isinstance(data.output, MemoryData), type(data.output)
         assert len(data.output.shape) == 4 and data.output.shape[-1] == 1, data.output.shape # (B, H, W, 1)
-        x = (data.output > 0.5)[..., 0] # (B, H, W) bool
+        x = (data.output > 0.5)[..., 0].astype(np.uint8) # (B, H, W) u8
         return colorize_semantic_segmentation(semantic_map=x, classes=self.classes, color_map=self.color_map)
 
     @overrides
@@ -278,8 +278,8 @@ class BuildingsFromM2FDepth(BinaryMapper):
 
     def merge_fn(self, dep_data: list[MemoryData]) -> MemoryData:
         assert all(isinstance(x, MemoryData) for x in dep_data), [type(x) for x in dep_data]
-        buildings = super().merge_fn(dep_data[0:-1])
-        buildings_depth = buildings.argmax(-1, keepdims=True) * (dep_data[-1] <= BuildingsFromM2FDepth.THR) # (H, W, 1)
+        buildings = super().merge_fn(dep_data[0:-1]) # (H, W, 1) bool
+        buildings_depth = buildings * (dep_data[-1] <= BuildingsFromM2FDepth.THR) # (H, W, 1)
         return MemoryData(buildings_depth.astype(np.uint8)) # uint8 for potential resizes as we don't support bool
 
 class SemanticMedian(TaskMapper, SemanticRepresentation):
