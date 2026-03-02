@@ -251,11 +251,12 @@ class BuildingsFromM2FDepth(BinaryMapper):
         self.classes = ["others", name]
 
     def merge_fn(self, dep_data: list[MemoryData]) -> MemoryData:
-        buildings = super().merge_fn(dep_data[0:-1])
-        depth = dep_data[-1]
+        buildings: MemoryData = super().merge_fn(dep_data[0:-1])
+        depth: MemoryData = dep_data[-1]
         assert len(depth.shape) == 3 and depth.shape[-1] == 1, f"Expected (H, W, 1). Got {depth.shape}"
         thr = 0.3 # np.percentile(depth.numpy(), 0.8)
         buildings_depth = buildings * (depth <= thr)
+        breakpoint()
         return self.disk_to_memory_fmt(buildings_depth.astype(bool))
 
 class SemanticMedian(TaskMapper, SemanticRepresentation):
