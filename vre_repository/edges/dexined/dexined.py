@@ -8,8 +8,8 @@ from vre_video import VREVideo
 from vre.logger import vre_logger as logger
 from vre.utils import image_resize_batch, MemoryData
 from vre.representations import ReprOut
-from vre_repository.utils import fetch_weights
 from vre.representations.mixins import LearnedRepresentationMixin
+from vre_repository.utils import fetch_weights
 from vre_repository.edges import EdgesRepresentation
 
 from .model_dexined import DexiNed as Model

@@ -192,7 +192,7 @@ def main():
 
     for rgb_path in (pbar := tqdm(image_paths, leave=True)):
         pbar.set_description(f"Estimating depth: {rgb_path.name}")
-        rgb = image_read(rgb_path, "PIL")
+        rgb = image_read(rgb_path)
         depth = marigold.compute(rgb[None], [0])
         if marigold.variant == "marigold-lcm-v1-0" and rgb_path.name in expected.keys() \
                 and marigold.seed is not None and marigold.seed == 42 and str(device) in expected[rgb_path.name]:

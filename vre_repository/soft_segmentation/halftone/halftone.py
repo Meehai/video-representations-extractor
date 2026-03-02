@@ -8,9 +8,9 @@ import numpy as np
 
 from PIL import Image, ImageDraw, ImageStat
 from overrides import overrides
+from vre_video import VREVideo
 from image_utils import image_resize
 
-from vre_video import VREVideo
 from vre.representations import ReprOut
 from vre.utils import MemoryData
 from vre_repository.soft_segmentation import SoftSegmentationRepresentation

@@ -4,8 +4,8 @@ import numpy as np
 from vre_video import VREVideo
 from vre.utils import clip
 from vre.representations import Representation, ReprOut
-from vre_repository.utils import colorize_optical_flow
 from vre.representations.mixins import NpIORepresentation, NormedRepresentationMixin, ResizableRepresentationMixin
+from vre_repository.utils import colorize_optical_flow
 
 def _get_delta_frames(video: VREVideo, ixs: list[int], delta: int) -> list[int]:
     assert delta != 0, delta

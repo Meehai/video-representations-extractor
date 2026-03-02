@@ -1,3 +1,4 @@
+"""generic utils for VRE repository"""
 import numpy as np
 
 def semantic_mapper(semantic_original: np.ndarray, mapping: dict[str, list[str]],

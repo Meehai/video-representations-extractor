@@ -1,6 +1,6 @@
 """image.py -- Basic wrapper over image_utils. Mostly a module so we don't do cyclic imports."""
-import numpy as np
 from pathlib import Path
+import numpy as np
 from PIL import Image
 from image_utils import image_resize
 from .repr_memory_layout import MemoryData
