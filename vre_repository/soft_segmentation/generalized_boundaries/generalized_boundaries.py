@@ -19,7 +19,7 @@ class GeneralizedBoundaries(SoftSegmentationRepresentation):
     - max_channels: Max segmentation maps. Upper bounded at ~60.
     """
     def __init__(self, use_median_filtering: bool, adjust_to_rgb: bool, max_channels: int, **kwargs):
-        super().__init__(self, **kwargs)
+        super().__init__(**kwargs)
         self.use_median_filtering = use_median_filtering
         self.adjust_to_rgb = adjust_to_rgb
         self.max_channels = max_channels
