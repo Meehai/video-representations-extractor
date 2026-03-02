@@ -7,8 +7,8 @@ from tempfile import TemporaryDirectory
 from pathlib import Path
 import numpy as np
 from vre import VideoRepresentationsExtractor as VRE
-from vre.representations import (
-    Representation, LearnedRepresentationMixin, ReprOut, NpIORepresentation)
+from vre.representations import Representation, ReprOut
+from vre.representations.mixins import LearnedRepresentationMixin, NpIORepresentation
 from vre_video import VREVideo
 
 class MyRepresentation(Representation, LearnedRepresentationMixin, NpIORepresentation):

@@ -8,7 +8,7 @@ from .image import (image_resize, image_resize_batch, image_write, image_read,
 from .resources import fetch_resource
 from .colorizer import colorize_depth, colorize_semantic_segmentation, colorize_optical_flow
 from .lovely import lo, monkey_patch
-from .repr_memory_layout import ReprOut, MemoryData, DiskData
+from .repr_memory_layout import MemoryData, DiskData
 from .atomic_open import AtomicOpen
 from .summary_printer import SummaryPrinter
 from .yaml import vre_yaml_load

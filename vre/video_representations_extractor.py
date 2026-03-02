@@ -8,14 +8,14 @@ from tqdm import tqdm
 import numpy as np
 from vre_video import VREVideo
 
-from .representations import Representation, RepresentationsList
+from .representations import Representation, RepresentationsList, ReprOut
 from .representations.mixins import LearnedRepresentationMixin, IORepresentationMixin
 from .vre_runtime_args import VRERuntimeArgs
 from .data_writer import DataWriter
 from .data_storer import DataStorer
 from .run_metadata import RunMetadata
 from .representation_metadata import RepresentationMetadata
-from .utils import now_fmt, make_batches, ReprOut, DiskData, SummaryPrinter, random_chars, MemoryData
+from .utils import now_fmt, make_batches, DiskData, SummaryPrinter, random_chars, MemoryData
 from .logger import vre_logger as logger
 
 # TODO: split in 2 classes ?
