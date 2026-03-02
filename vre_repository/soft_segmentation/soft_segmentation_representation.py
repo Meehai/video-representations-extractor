@@ -12,7 +12,7 @@ class SoftSegmentationRepresentation(Representation, NpIORepresentation,
         NormedRepresentationMixin.__init__(self)
         ResizableRepresentationMixin.__init__(self)
 
-    @overrides
     @property
+    @overrides
     def n_channels(self):
         return 3
