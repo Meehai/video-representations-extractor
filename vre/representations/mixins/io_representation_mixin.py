@@ -123,7 +123,7 @@ class IORepresentationMixin(ABC):
 
     @output_dtype.setter
     def output_dtype(self, dtype: str | np.dtype):
-        assert isinstance(dtype, (str, np.dtype)), dtype
+        assert isinstance(dtype, (str, np.dtype)), dtype # TODO: is output dtype only related to disk_data?
         self._output_dtype = np.dtype(dtype)
 
     def set_io_params(self, **kwargs):
