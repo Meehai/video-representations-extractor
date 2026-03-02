@@ -4,7 +4,7 @@ from typing import Any, Iterator
 from overrides import overrides
 from vre.utils import vre_topo_sort
 from .representation import Representation
-from .io_representation_mixin import IORepresentationMixin
+from .mixins import IORepresentationMixin
 
 class RepresentationsList(list):
     """module that topo-sorts and implements helper functions on top of a representation list"""

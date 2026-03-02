@@ -3,7 +3,7 @@ import numpy as np
 from overrides import overrides
 
 from vre_video import VREVideo
-from vre.utils import ReprOut
+from vre.representations import ReprOut
 
 from .rgb import RGB
 from .color_representation import ColorRepresentation

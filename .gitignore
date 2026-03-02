@@ -20,4 +20,5 @@ build/
 *.log
 .venv/
 .vscode/
+image_utils/
 

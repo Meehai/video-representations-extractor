@@ -11,10 +11,11 @@ from overrides import overrides
 from image_utils import image_resize
 
 from vre_video import VREVideo
-from vre.representations import Representation, ReprOut, NpIORepresentation, NormedRepresentationMixin
+from vre.representations import ReprOut
 from vre.utils import MemoryData
+from vre_repository.soft_segmentation import SoftSegmentationRepresentation
 
-class Halftone(Representation, NpIORepresentation, NormedRepresentationMixin):
+class Halftone(SoftSegmentationRepresentation):
     """
     Halftone representation
     Parameters:
@@ -27,9 +28,7 @@ class Halftone(Representation, NpIORepresentation, NormedRepresentationMixin):
 
     def __init__(self, sample: float, scale: float, percentage: float, angles: list[int],
                  antialias: bool, resolution: tuple[int, int], **kwargs):
-        Representation.__init__(self, **kwargs)
-        NpIORepresentation.__init__(self)
-        NormedRepresentationMixin.__init__(self)
+        super().__init__(**kwargs)
         assert len(resolution) == 2, resolution
         self.sample = sample
         self.scale = scale

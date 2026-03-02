@@ -3,19 +3,22 @@ from overrides import overrides
 import numpy as np
 from vre_video import VREVideo
 from vre.utils import ReprOut, clip
-from vre.representations import Representation, NpIORepresentation, NormedRepresentationMixin
+from vre.representations import Representation
 from vre_repository.utils import colorize_optical_flow
+from vre.representations.mixins import NpIORepresentation, NormedRepresentationMixin, ResizableRepresentationMixin
 
 def _get_delta_frames(video: VREVideo, ixs: list[int], delta: int) -> list[int]:
     assert delta != 0, delta
     return [clip(ix + delta, 0, len(video) - 1) for ix in ixs]
 
-class OpticalFlowRepresentation(Representation, NpIORepresentation, NormedRepresentationMixin):
+class OpticalFlowRepresentation(Representation, NpIORepresentation,
+                                NormedRepresentationMixin, ResizableRepresentationMixin):
     """OpticalFlowRepresentation. Implements flow task-specific stuff."""
     def __init__(self, name: str, delta: int, **kwargs):
         Representation.__init__(self, name, **kwargs)
         NpIORepresentation.__init__(self)
         NormedRepresentationMixin.__init__(self)
+        ResizableRepresentationMixin.__init__(self)
         assert isinstance(delta, int) and delta != 0, delta
         self.delta = delta
 

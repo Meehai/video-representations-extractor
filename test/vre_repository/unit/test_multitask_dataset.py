@@ -2,7 +2,8 @@ from pathlib import Path
 from copy import deepcopy
 from tempfile import TemporaryDirectory
 from vre.readers import MultiTaskDataset
-from vre.representations import NormedRepresentationMixin, Representation
+from vre.representations import Representation
+from vre.representations.mixins import NormedRepresentationMixin
 from vre_repository.semantic_segmentation import SemanticRepresentation
 from vre_repository.depth import DepthRepresentation
 from vre_repository.color import ColorRepresentation

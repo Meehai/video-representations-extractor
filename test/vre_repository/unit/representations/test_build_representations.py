@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 from vre.representations.build_representations import build_representation_from_cfg
-from vre.representations import LearnedRepresentationMixin, IORepresentationMixin
+from vre.representations.mixins import LearnedRepresentationMixin, IORepresentationMixin
 from vre.utils import parsed_str_type
 from vre_repository import get_vre_repository as greps
 
