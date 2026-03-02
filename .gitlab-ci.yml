@@ -39,7 +39,7 @@ pages:
 
 pylint:
   script:
-    - python -m pylint --rcfile=.pylintrc $(git ls-files "*.py" | grep -v "test/\|examples/")
+    - python -m pylint --rcfile=.pylintrc $(git ls-files "*.py" | grep -v "test/\|examples/") $(git ls-files cli/)
 
 vre_unit_integration:
   before_script:
