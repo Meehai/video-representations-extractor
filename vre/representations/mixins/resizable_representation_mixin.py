@@ -1,8 +1,7 @@
 """resizable_representation_mixin.py -- Interface that allows us to resize a ReprOut but also overwrite it"""
 from abc import ABC
-from vre.utils import image_resize_batch
+from vre.utils import image_resize_batch, ReprOut
 import numpy as np
-from .representation import ReprOut
 
 class ResizableRepresentationMixin(ABC):
     """Interface that allows us to resize a ReprOut but also overwrite it"""

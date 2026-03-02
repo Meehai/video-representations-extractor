@@ -4,11 +4,11 @@ from abc import ABC, abstractmethod
 from overrides import overrides
 from vre_video import VREVideo
 
-from .io_representation_mixin import IORepresentationMixin, MemoryData
+from vre.utils import MemoryData
 from .representation import Representation, ReprOut
-from .resizable_representation_mixin import ResizableRepresentationMixin
+from .mixins import IORepresentationMixin, ResizableRepresentationMixin
 
-class TaskMapper(Representation, IORepresentationMixin, ABC):
+class TaskMapper(Representation, IORepresentationMixin, ResizableRepresentationMixin, ABC):
     """
     TaskMapper abstract class for >=1 dependency that is transformed (mapped) (e.g. mapillary -> 8 classes).
     Must implement:
