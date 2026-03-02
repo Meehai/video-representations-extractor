@@ -110,6 +110,7 @@ normals_svd_marigold = NormalsRepresentation("normals_svd(depth_marigold)")
 
 class SemanticMask2FormerMapillaryConvertedPaper(TaskMapper, SemanticRepresentation):
     def __init__(self, name: str, dependencies: list[SemanticRepresentation]):
+        assert len(dependencies) == 1, dependencies
         TaskMapper.__init__(self, name=name, n_channels=8, dependencies=dependencies)
         self.mapping = {
             "land": ["Terrain", "Sand", "Snow"],
@@ -135,13 +136,29 @@ class SemanticMask2FormerMapillaryConvertedPaper(TaskMapper, SemanticRepresentat
         self.original_classes = dependencies[0].classes
         assert set(reduce(lambda x, y: x + y, self.mapping.values(), [])) == set(self.original_classes)
 
+    def _XX(self, disk_data: DiskData) -> MemoryData:
+        assert not isinstance(disk_data, MemoryData), type(disk_data)
+        memory_data = MemoryData(disk_data)
+        if self.disk_data_argmax:
+            if disk_data.dtype not in (np.uint8, np.uint16):
+                # below case is for distillation where in some cases we need float32 (perhaps refactor someplace else?)
+                logger.debug2(f"[self.name]. {disk_data.dtype=} but self.disk_data_argmax is True")
+                memory_data = MemoryData(disk_data)
+            else:
+                memory_data = MemoryData(np.eye(len(self.classes))[disk_data].astype(np.float32))
+        assert memory_data.dtype == np.float32 and memory_data.shape[-1] == self.n_classes, (self.name, memory_data)
+        return memory_data
+
     @overrides
     def merge_fn(self, dep_data: list[MemoryData]) -> MemoryData:
-        m2f_mapillary_converted = semantic_mapper(dep_data[0].argmax(-1), self.mapping, self.original_classes)
-        return self.disk_to_memory_fmt(m2f_mapillary_converted)
+        assert all(isinstance(x, MemoryData) for x in dep_data), [(x, type(x)) for x in dep_data]
+        m2f_mapillary_converted = semantic_mapper(dep_data[0].argmax(-1), self.mapping, self.original_classes) # (H, W)
+        res = MemoryData(np.eye(len(self.classes))[m2f_mapillary_converted].astype(np.float32)) # (H, W, C) f32
+        return res
 
 class SemanticMask2FormerCOCOConverted(TaskMapper, SemanticRepresentation):
     def __init__(self, name: str, dependencies: list[Representation]):
+        assert len(dependencies) == 1, dependencies
         TaskMapper.__init__(self, name=name, n_channels=8, dependencies=dependencies)
         self.mapping = {
             "land": ["grass-merged", "dirt-merged", "sand", "gravel", "flower", "playingfield", "snow", "platform"],
@@ -175,8 +192,9 @@ class SemanticMask2FormerCOCOConverted(TaskMapper, SemanticRepresentation):
 
     @overrides
     def merge_fn(self, dep_data: list[MemoryData]) -> MemoryData:
-        m2f_mapillary_converted = semantic_mapper(dep_data[0].argmax(-1), self.mapping, self.original_classes)
-        res = self.disk_to_memory_fmt(m2f_mapillary_converted)
+        assert all(isinstance(x, MemoryData) for x in dep_data), [(x, type(x)) for x in dep_data]
+        m2f_mapillary_converted = semantic_mapper(dep_data[0].argmax(-1), self.mapping, self.original_classes) # (H, W)
+        res = MemoryData(np.eye(len(self.classes))[m2f_mapillary_converted].astype(np.float32)) # (H, W, C) f32
         return res
 
 class BinaryMapper(TaskMapper, NpIORepresentation):
@@ -212,8 +230,9 @@ class BinaryMapper(TaskMapper, NpIORepresentation):
     def disk_to_memory_fmt(self, disk_data: DiskData) -> MemoryData:
         assert not isinstance(disk_data, MemoryData), type(disk_data)
         assert len(disk_data.shape) == 2 and disk_data.dtype == bool, f"{self.name}: {lo(disk_data)}"
-        y = np.eye(2)[disk_data.astype(int)] if self.load_mode == "one_hot" else disk_data
-        return MemoryData(y.astype(np.float32))
+        memory_data = np.eye(2)[disk_data.astype(int)] if self.load_mode == "one_hot" else disk_data
+        assert len(memory_data.shape) == 3 and memory_data.shape[-1] == 2, memory_data
+        return MemoryData(memory_data)
 
     @overrides
     def memory_to_disk_fmt(self, memory_data: MemoryData) -> DiskData:
@@ -221,33 +240,36 @@ class BinaryMapper(TaskMapper, NpIORepresentation):
 
     @overrides
     def merge_fn(self, dep_data: list[MemoryData]) -> MemoryData:
+        assert all(isinstance(x, MemoryData) for x in dep_data), [type(x) for x in dep_data]
         dep_data_argmaxed = [data.argmax(-1) for data in dep_data]
         dep_data_converted = [semantic_mapper(x, mapping, oc)
                               for x, mapping, oc in zip(dep_data_argmaxed, self.mapping, self.original_classes)]
 
         if self.mode == "all_agree":
-            res_argmax = sum(dep_data_converted) == len(self.dependencies)
+            res_argmax = sum(dep_data_converted) == len(self.dependencies) # (H, W) bool
         elif self.mode == "at_least_one":
-            res_argmax = sum(dep_data_converted) > 0
+            res_argmax = sum(dep_data_converted) > 0 # (H, W) bool
         else:
-            res_argmax = sum(dep_data_converted) > len(dep_data_converted) // 2
-        return self.disk_to_memory_fmt(res_argmax)
+            res_argmax = sum(dep_data_converted) > len(dep_data_converted) // 2 # (H, W) bool
+
+        memory_data = np.eye(2)[res_argmax.astype(int)].astype("float32")
+        return MemoryData(memory_data)
 
 class BuildingsFromM2FDepth(BinaryMapper):
+    THR = 0.3
     def __init__(self, name: str, dependencies: list[Representation], buildings: BinaryMapper, mode: str,
                  load_mode: str = "binary"):
-        assert len(dependencies) == 1, dependencies
+        assert len(dependencies) == 1 and isinstance(dependencies[-1], DepthRepresentation), dependencies
         BinaryMapper.__init__(self, name=name, dependencies=buildings.dependencies,
                               mapping=buildings.mapping, mode=mode, load_mode=load_mode)
         self.dependencies = [*buildings.dependencies, dependencies[0]]
         self.classes = ["others", name]
 
     def merge_fn(self, dep_data: list[MemoryData]) -> MemoryData:
+        assert all(isinstance(x, MemoryData) for x in dep_data), [type(x) for x in dep_data]
         buildings = super().merge_fn(dep_data[0:-1])
-        depth = dep_data[-1] if len(dep_data[-1].shape) == 2 else dep_data[-1][..., 0]
-        thr = 0.3 # np.percentile(depth.numpy(), 0.8)
-        buildings_depth = buildings * (depth <= thr)
-        return self.disk_to_memory_fmt(buildings_depth.astype(bool))
+        buildings_depth = buildings.argmax(-1, keepdims=True) * (dep_data[-1] <= BuildingsFromM2FDepth.THR) # (H, W, 1)
+        return MemoryData(buildings_depth.astype(np.uint8))
 
 class SemanticMedian(TaskMapper, SemanticRepresentation):
     def __init__(self, name: str, deps: list[TaskMapper | SemanticRepresentation]):
