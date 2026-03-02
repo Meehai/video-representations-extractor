@@ -9,7 +9,6 @@ import sys
 import os
 import time
 import numpy as np
-import matplotlib.pyplot as plt # pylint: disable=import-error
 from vre_video import VREVideo
 from vre_video.readers import FdFrameReader
 from image_utils import image_resize
@@ -20,6 +19,11 @@ from vre.representations.mixins import LearnedRepresentationMixin
 from vre.logger import vre_logger as logger
 from vre_repository.utils import collage_fn, image_add_title
 from vre_repository import get_vre_repository
+
+try: # pylint: disable=all
+    import matplotlib.pyplot as plt
+except ImportError:
+    logger.error("Matplotlib not installed. Cannot use --output_destination=matplotlib")
 
 os.environ["VRE_COLORIZE_SEMSEG_FAST"] = "1"
 os.environ["VRE_PBAR"] = "0"
