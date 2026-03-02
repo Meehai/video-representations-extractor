@@ -2,9 +2,8 @@
 from overrides import overrides
 import numpy as np
 from vre_video import VREVideo
-from vre.utils import ReprOut
-from vre.representations import (
-    Representation, NpIORepresentation, NormedRepresentationMixin)
+from vre.representations import Representation, ReprOut
+from vre.representations.mixins import NpIORepresentation, NormedRepresentationMixin
 
 class EdgesRepresentation(Representation, NpIORepresentation, NormedRepresentationMixin):
     """EdgesRepresentation -- CV representation for 1-channeled edges/boundaries"""

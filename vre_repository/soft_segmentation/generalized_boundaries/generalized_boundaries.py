@@ -5,7 +5,8 @@ from overrides import overrides
 
 from vre_video import VREVideo
 from vre.utils import MemoryData
-from vre.representations import Representation, ReprOut, NpIORepresentation, NormedRepresentationMixin
+from vre.representations import Representation, ReprOut
+from vre.representations.mixins import NpIORepresentation, NormedRepresentationMixin
 from .gb_impl.softseg import soft_seg
 
 class GeneralizedBoundaries(Representation, NpIORepresentation, NormedRepresentationMixin):

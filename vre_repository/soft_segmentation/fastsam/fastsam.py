@@ -9,8 +9,9 @@ from torch import nn
 from torch.nn import functional as F
 
 from vre_video import VREVideo
-from vre.representations import (Representation, ReprOut, LearnedRepresentationMixin,
-                                 NpIORepresentation, NormedRepresentationMixin)
+from vre.representations import Representation, ReprOut
+from vre.representations.mixins import (
+    NpIORepresentation, NormedRepresentationMixin, LearnedRepresentationMixin, ResizableRepresentationMixin)
 from vre.utils import image_resize_batch, image_read, image_write, MemoryData
 from vre.logger import vre_logger as logger
 from vre_repository.weights_repository import fetch_weights
@@ -22,7 +23,8 @@ except ImportError:
     from vre_repository.soft_segmentation.fastsam.fastsam_impl import (
         FastSAM as Model, FastSAMPredictor, FastSAMPrompt, Results, bbox_iou, non_max_suppression, process_mask_native)
 
-class FastSam(Representation, LearnedRepresentationMixin, NpIORepresentation, NormedRepresentationMixin):
+class FastSam(Representation, LearnedRepresentationMixin, NpIORepresentation,
+              NormedRepresentationMixin, ResizableRepresentationMixin):
     """FastSAM representation."""
     def __init__(self, variant: str, iou: float, conf: float, **kwargs):
         Representation.__init__(self, **kwargs)

@@ -1,8 +1,8 @@
 """normals_representation.py -- module implementing an Normals & Cameras Normals Represenatation generic class"""
 from overrides import overrides
 import numpy as np
-from vre.utils import ReprOut
-from vre.representations import Representation, NpIORepresentation, NormedRepresentationMixin
+from vre.representations import Representation, ReprOut
+from vre.representations.mixins import NpIORepresentation, NormedRepresentationMixin
 
 class NormalsRepresentation(Representation, NpIORepresentation, NormedRepresentationMixin):
     """NormalsRepresentation -- CV representation for world and camera normals"""

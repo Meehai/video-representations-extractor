@@ -2,8 +2,9 @@
 from overrides import overrides
 import numpy as np
 from vre_video import VREVideo
-from vre.representations import Representation, NpIORepresentation
-from vre.utils import DiskData, MemoryData, image_resize_batch, colorize_semantic_segmentation, ReprOut
+from vre.representations import Representation, ReprOut
+from vre.representations.mixins import NpIORepresentation
+from vre.utils import DiskData, MemoryData, image_resize_batch, colorize_semantic_segmentation
 from vre.logger import vre_logger as logger
 
 # TODO: ideally we'd not need to specify disk_data_argmax explicitly

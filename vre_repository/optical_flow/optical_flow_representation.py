@@ -2,8 +2,9 @@
 from overrides import overrides
 import numpy as np
 from vre_video import VREVideo
-from vre.utils import colorize_optical_flow, ReprOut, clip
-from vre.representations import Representation, NpIORepresentation, NormedRepresentationMixin
+from vre.utils import colorize_optical_flow, clip
+from vre.representations.mixins import NpIORepresentation, NormedRepresentationMixin
+from vre.representations import Representation, ReprOut
 
 def _get_delta_frames(video: VREVideo, ixs: list[int], delta: int) -> list[int]:
     assert delta != 0, delta
