@@ -4,7 +4,7 @@ from argparse import ArgumentParser, Namespace
 from pathlib import Path
 from vre_video import VREVideo
 from vre import VRE
-from vre.utils import abs_path, load_function_from_module
+from vre.utils import load_function_from_module
 from vre.representations import build_representations_from_cfg, add_external_repositories
 from vre.logger import vre_logger as logger
 from vre_repository import get_vre_repository
@@ -12,10 +12,12 @@ from vre_repository import get_vre_repository
 def get_args() -> Namespace:
     """cli args"""
     parser = ArgumentParser()
-    parser.add_argument("video_path", help="Path to the scene video we are processing", type=abs_path)
-    parser.add_argument("--output_path", "-o", required=True, type=abs_path,
+    parser.add_argument("video_path", type=lambda p: Path(p).absolute(),
+                        help="Path to the scene video we are processing")
+    parser.add_argument("--output_path", "-o", required=True, type=lambda p: Path(p).absolute(),
                         help="Path to the output directory where representations are stored")
-    parser.add_argument("--config_path", required=True, help="Path to global YAML cfg file", type=abs_path)
+    parser.add_argument("--config_path", required=True,  type=lambda p: Path(p).absolute(),
+                        help="Path to global YAML cfg file")
     parser.add_argument("--representations", nargs="+", help="Subset of representations to run VRE for")
     # run parameters
     parser.add_argument("--frames", nargs="+", help="The list of frames to be exported from the video or a l..r range")

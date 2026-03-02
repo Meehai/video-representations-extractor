@@ -55,10 +55,6 @@ def now_fmt() -> str:
     """Returns now() as a UTC isoformat string"""
     return datetime.now(tz=tz.utc).replace(tzinfo=None).isoformat(timespec="milliseconds")
 
-def abs_path(x: str | Path) -> Path:
-    """returns the absolute path of a string/path"""
-    return Path(x).absolute()
-
 def reorder_dict(data: dict[str, Any], keys: list[str]) -> dict[str, Any]:
     """simply puts in front the desired keys from the original dict, keeping the others intact"""
     assert (diff := set(keys).difference(data.keys())) == set(),diff

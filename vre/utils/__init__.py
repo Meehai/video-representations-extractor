@@ -1,6 +1,6 @@
 """init file"""
 from .utils import (get_project_root, parsed_str_type, is_dir_empty, get_closest_square, array_blend, now_fmt,
-                    FixedSizeOrderedDict, abs_path, reorder_dict, make_batches, clip,
+                    FixedSizeOrderedDict, reorder_dict, make_batches, clip,
                     load_function_from_module, random_chars, mean, str_topk, natsorted)
 from .topological_sort import topological_sort, vre_topo_sort
 from .resources import fetch_resource
