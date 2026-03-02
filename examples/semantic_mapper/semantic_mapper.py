@@ -147,7 +147,7 @@ class SemanticMask2FormerMapillaryConvertedPaper(TaskMapper, SemanticRepresentat
                 logger.debug2(f"[self.name]. {disk_data.dtype=} but self.disk_data_argmax is True")
                 memory_data = MemoryData(disk_data)
             else:
-                memory_data = MemoryData(np.eye(len(self.classes))[disk_data].astype(np.float32))
+                memory_data = MemoryData(np.eye(len(self.classes))[disk_data].astype(np.float32)) # (H, W, C) f32
         assert memory_data.dtype == np.float32 and memory_data.shape[-1] == self.n_classes, (self.name, memory_data)
         return memory_data
 
@@ -245,7 +245,7 @@ class BinaryMapper(TaskMapper, NpIORepresentation):
         if self.disk_mode == "binary":
             res = memory_data[..., 0].astype(bool) # Careful not to argmax() here :). (H, W) bool
         else:
-            res = memory_data.astype("float32") # (H, W, 1) float
+            res = memory_data.astype("float32") # (H, W, 1) f32
         return res
 
     @overrides
@@ -262,7 +262,8 @@ class BinaryMapper(TaskMapper, NpIORepresentation):
         else:
             res_argmax = sum(dep_data_converted) > len(dep_data_converted) // 2 # (H, W) bool
 
-        memory_data = np.eye(2)[res_argmax.astype(int)].astype("float32")
+        memory_data = res_argmax[..., None].astype("float32") # (H, W, 1) f32
+        assert len(shp := memory_data.shape) == 3 and shp[-1] == 1, memory_data.shape
         return MemoryData(memory_data)
 
 class BuildingsFromM2FDepth(BinaryMapper):
@@ -291,7 +292,7 @@ class SemanticMedian(TaskMapper, SemanticRepresentation):
     @overrides
     def merge_fn(self, dep_data: list[MemoryData]) -> MemoryData:
         assert all(isinstance(x, MemoryData) for x in dep_data), [type(x) for x in dep_data]
-        return MemoryData(np.eye(self.n_classes)[sum(dep_data).argmax(-1)].astype(np.float32))
+        return MemoryData(np.eye(self.n_classes)[sum(dep_data).argmax(-1)].astype(np.float32)) # (H, W, C) f32
 
 class SafeLandingAreas(BinaryMapper):
         # TODO: split tihs in two: SafeLandingAreas(BinaryMapper) and SafeLandingAreasSemantic(Representation)
