@@ -2,6 +2,7 @@
 from abc import ABC
 import numpy as np
 from vre.utils import image_resize_batch
+from ..repr_out import ReprOut # important not to use from .. or from vre.representations to not make cycles
 
 class ResizableRepresentationMixin(ABC):
     """Interface that allows us to resize a ReprOut but also overwrite it"""
