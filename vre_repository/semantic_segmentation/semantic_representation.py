@@ -31,6 +31,7 @@ class SemanticRepresentation(Representation, NpIORepresentation, ResizableRepres
 
     @overrides
     def disk_to_memory_fmt(self, disk_data: DiskData) -> MemoryData:
+        assert not isinstance(disk_data, MemoryData), type(disk_data)
         memory_data = MemoryData(disk_data)
         if self.disk_data_argmax:
             if disk_data.dtype not in (np.uint8, np.uint16):

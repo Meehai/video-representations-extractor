@@ -210,6 +210,7 @@ class BinaryMapper(TaskMapper, NpIORepresentation):
 
     @overrides
     def disk_to_memory_fmt(self, disk_data: DiskData) -> MemoryData:
+        assert not isinstance(disk_data, MemoryData), type(disk_data)
         assert len(disk_data.shape) == 2 and disk_data.dtype == bool, f"{self.name}: {lo(disk_data)}"
         y = np.eye(2)[disk_data.astype(int)] if self.load_mode == "one_hot" else disk_data
         return MemoryData(y.astype(np.float32))

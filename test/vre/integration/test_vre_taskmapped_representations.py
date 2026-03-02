@@ -38,6 +38,7 @@ class SemaCompute(Representation, NpIORepresentation):
 
     @overrides
     def disk_to_memory_fmt(self, disk_data: DiskData) -> MemoryData:
+        assert not isinstance(disk_data, MemoryData), type(disk_data)
         memory_data = MemoryData(disk_data)
         if self.disk_data_argmax:
             assert disk_data.dtype in (np.uint8, np.uint16), disk_data.dtype
@@ -73,6 +74,7 @@ class Buildings(TaskMapper, NpIORepresentation):
         self.output_dtype = "uint8"
 
     def disk_to_memory_fmt(self, disk_data: DiskData) -> MemoryData:
+        assert not isinstance(disk_data, MemoryData), type(disk_data)
         return MemoryData(np.eye(2)[disk_data.astype(int)].astype(np.float32))
 
     def memory_to_disk_fmt(self, memory_data: MemoryData) -> DiskData:
