@@ -5,7 +5,7 @@ from overrides import overrides
 from vre_video import VREVideo
 from vre.utils import MemoryData
 from vre.representations import ReprOut
-from vre.utils.cv2_utils import cv2_Canny # TODO: remove, it is part of this representation
+from vre_repository.utils.cv2_utils import cv2_Canny
 
 from ..edges import EdgesRepresentation
 

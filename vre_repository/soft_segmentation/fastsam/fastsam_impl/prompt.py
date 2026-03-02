@@ -1,12 +1,14 @@
 # pylint: disable=all
 import numpy as np
 import torch
-from .utils import image_to_np_ndarray
 from PIL import Image
+from image_utils import image_resize
 
-from vre.utils.cv2_utils import (cv2_findContours, cv2_boundingRect, cv2_drawContours, cv2_RETR_TREE,
-                                 cv2_CHAIN_APPROX_SIMPLE, cv2_RETR_EXTERNAL, cv2_COLOR_BGR2RGB, cv2_cvtColor)
-from vre.utils import image_resize, array_blend
+from vre.utils import array_blend
+from vre_repository.utils.cv2_utils import (cv2_findContours, cv2_boundingRect, cv2_drawContours, cv2_RETR_TREE,
+                                            cv2_CHAIN_APPROX_SIMPLE, cv2_RETR_EXTERNAL, cv2_COLOR_BGR2RGB, cv2_cvtColor)
+
+from .utils import image_to_np_ndarray
 
 class FastSAMPrompt:
     def __init__(self, image, results, device='cuda'):
@@ -109,10 +111,10 @@ class FastSAMPrompt:
             for mask in annotations_np:
                 if type(mask) == dict:
                     mask = mask['segmentation']
-                annotation = mask.astype(np.uint8)
+                annotation = mask.astype(np.uint8)[..., None] # (32, 64, 1)
                 if not retina:
-                    annotation = image_resize(annotation, original_h, original_w, "nearest", library="cv2")
-                contours, _ = cv2_findContours(annotation, cv2_RETR_TREE, cv2_CHAIN_APPROX_SIMPLE)
+                    annotation = image_resize(annotation, original_h, original_w, interpolation="nearest") # (h, w, 1)
+                contours, _ = cv2_findContours(annotation[..., 0], cv2_RETR_TREE, cv2_CHAIN_APPROX_SIMPLE)
                 for contour in contours:
                     contour_all.append(contour)
             cv2_drawContours(temp, contour_all, -1, (255, 255, 255), 2)
@@ -153,7 +155,7 @@ class FastSAMPrompt:
         show[h_indices, w_indices, :] = mask_image[indices]
         show_cpu = show.cpu().numpy()
         if not retinamask:
-            show_cpu = image_resize(show_cpu, target_height, target_width, "nearest", library="cv2")
+            show_cpu = image_resize(show_cpu, target_height, target_width, interpolation="nearest", backend="cv2")
         return show_cpu
 
     # clip

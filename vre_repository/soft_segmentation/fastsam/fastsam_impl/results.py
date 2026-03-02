@@ -7,9 +7,9 @@ import torch
 import numpy as np
 import os
 from copy import deepcopy
-from vre.utils import image_resize
-from vre.utils.cv2_utils import (cv2_copyMakeBorder, cv2_BORDER_CONSTANT, cv2_rectangle, cv2_putText, cv2_getTextSize,
-                                 cv2_LINE_AA)
+from image_utils import image_resize
+from vre_repository.utils.cv2_utils import (cv2_copyMakeBorder, cv2_BORDER_CONSTANT, cv2_rectangle,
+                                            cv2_putText, cv2_getTextSize, cv2_LINE_AA)
 from .ops import xyxy2xywh, xywh2xyxy, clip_boxes
 
 class Colors:
@@ -734,7 +734,7 @@ class LetterBox:
             labels['ratio_pad'] = (labels['ratio_pad'], (dw, dh))  # for evaluation
 
         if shape[::-1] != new_unpad:  # resize
-            img = image_resize(img, new_unpad[1], new_unpad[0], "bilinear", library="cv2")
+            img = image_resize(img, new_unpad[1], new_unpad[0], interpolation="bilinear", backend="cv2")
         top, bottom = int(round(dh - 0.1)), int(round(dh + 0.1))
         left, right = int(round(dw - 0.1)), int(round(dw + 0.1))
         img = cv2_copyMakeBorder(img, top, bottom, left, right, cv2_BORDER_CONSTANT,

@@ -4,8 +4,9 @@ import numpy as np
 from vre_video import VREVideo
 from vre.representations import Representation, ReprOut
 from vre.representations.mixins import NpIORepresentation, ResizableRepresentationMixin
-from vre.utils import DiskData, MemoryData, image_resize_batch, colorize_semantic_segmentation
+from vre.utils import DiskData, MemoryData, image_resize_batch
 from vre.logger import vre_logger as logger
+from vre_repository.utils import colorize_semantic_segmentation
 
 # TODO: ideally we'd not need to specify disk_data_argmax explicitly
 # TODO: we may need a way to specify memory data format (one-hot, softmax, logits, index etc.)

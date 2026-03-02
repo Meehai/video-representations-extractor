@@ -12,7 +12,7 @@ from vre.logger import vre_logger as logger
 from vre.utils import MemoryData, image_read, image_write
 from vre.representations import ReprOut
 from vre.representations.mixins import LearnedRepresentationMixin
-from vre_repository.weights_repository import fetch_weights
+from vre_repository.utils import fetch_weights
 from vre_repository.semantic_segmentation import SemanticRepresentation
 
 try:

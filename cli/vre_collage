@@ -11,12 +11,14 @@ import shutil
 from tqdm import tqdm
 import numpy as np
 import torch as tr
+from image_utils import image_resize
 
-from vre.utils import image_write, collage_fn, abs_path, reorder_dict, MemoryData, image_resize, str_topk, natsorted
+from vre.utils import image_write, reorder_dict, MemoryData, str_topk, natsorted
 from vre.representations import build_representations_from_cfg, add_external_repositories, Representation, ReprOut
 from vre.readers.multitask_dataset import MultiTaskDataset
 from vre.logger import vre_logger as logger
 from vre_repository import get_vre_repository
+from vre_repository.utils import collage_fn
 
 def plot_one(data: dict[str, tr.Tensor], file_name: str, dataset_path: Path,
              name_to_task: dict[str, Representation]) -> dict[str, np.ndarray]:
@@ -56,12 +58,14 @@ def get_args() -> Namespace:
     """CLI args"""
     parser = ArgumentParser()
     parser.add_argument("vre_export_dir", type=lambda p: Path(p).absolute(), help="Path to the dir where VRE exported")
-    parser.add_argument("--config_path", required=True, type=abs_path, help="Path to the config for representations")
+    parser.add_argument("--config_path", required=True, type=lambda p: Path(p).absolute(),
+                        help="Path to the config for representations")
     parser.add_argument("--external_representations", "-I", nargs="+", default=[],
                         help="Path to external reprs. Format: /path/to/file.py:fn_name. fn -> [Representation]")
     parser.add_argument("--external_repositories", "-J", nargs="+", default=[],
                         help="Path to external reprs. Format: /path/to/file.py:fn_name. fn -> {str: Type[Repr]}")
-    parser.add_argument("--output_path", "-o", required=True, type=abs_path, help="Path to the collage is stored")
+    parser.add_argument("--output_path", "-o", required=True, type=lambda p: Path(p).absolute(),
+                        help="Path to the collage is stored")
     parser.add_argument("--overwrite", action="store_true")
     parser.add_argument("--video", action="store_true")
     parser.add_argument("--fps", type=float)

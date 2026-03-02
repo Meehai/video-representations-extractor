@@ -10,7 +10,7 @@ from vre.utils import MemoryData
 from vre.representations import ReprOut
 from vre.representations.mixins import LearnedRepresentationMixin
 from vre_repository.optical_flow import OpticalFlowRepresentation
-from vre_repository.weights_repository import fetch_weights
+from vre_repository.utils import fetch_weights
 
 from .rife_impl import Model
 

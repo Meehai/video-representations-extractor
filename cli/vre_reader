@@ -1,23 +1,26 @@
 #!/usr/bin/env python3
 """vre_reader tool -- iterates over a directory output by vre (in the --output_path argument)"""
 from argparse import ArgumentParser, Namespace
+from pathlib import Path
 import sys
 import random
 from pprint import pformat
-from vre.readers import MultiTaskDataset
-from vre.representations import build_representations_from_cfg, add_external_repositories, ReprOut
-from vre.utils import abs_path, lo, MemoryData, image_write, collage_fn, str_topk
-from vre.logger import vre_logger as logger
-from vre_repository import get_vre_repository
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 import numpy as np
 
+from vre.readers import MultiTaskDataset
+from vre.representations import build_representations_from_cfg, add_external_repositories, ReprOut
+from vre.utils import lo, MemoryData, image_write, str_topk
+from vre.logger import vre_logger as logger
+from vre_repository import get_vre_repository
+from vre_repository.utils import collage_fn
+
 def get_args() -> Namespace:
     """CLI args"""
     parser = ArgumentParser()
-    parser.add_argument("dataset_path", type=abs_path)
-    parser.add_argument("--config_path", type=abs_path, required=True)
+    parser.add_argument("dataset_path", type=lambda p: Path(p).absolute())
+    parser.add_argument("--config_path", type=lambda p: Path(p).absolute(), required=True)
     parser.add_argument("--mode", choices=["read_one_batch", "iterate_all_data"], default="read_one_batch")
     parser.add_argument("--external_representations", "-I", nargs="+", default=[],
                         help="Path to external reprs. Format: /path/to/file.py:fn_name. fn -> [Representation]")

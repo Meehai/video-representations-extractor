@@ -2,10 +2,10 @@
 import os
 from PIL import Image, ImageDraw
 import numpy as np
+from vre.utils import lo
 
-from ..lovely import lo
 from ..pil_utils import _get_default_font, _pil_image_draw_textsize
-from ..image import image_blend
+from ..image_old import image_blend
 
 _AREA_THRESHOLD = 10
 _LINE_WIDTH = 1.2
