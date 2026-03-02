@@ -58,4 +58,5 @@ class NpIORepresentation(IORepresentationMixin):
 
     @overrides
     def disk_to_memory_fmt(self, disk_data: DiskData) -> MemoryData:
+        assert not isinstance(disk_data, MemoryData), type(disk_data)
         return MemoryData(disk_data)

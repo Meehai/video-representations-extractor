@@ -7,15 +7,18 @@ from ..logger import vre_logger as logger
 
 def pil_image_resize(data: np.ndarray, height: int, width: int, interpolation: str, **kwargs) -> np.ndarray:
     """Wrapper on top of Image(arr).resize((w, h), args)"""
-    interpolation = {"nearest": Image.Resampling.NEAREST, "bilinear": Image.Resampling.BILINEAR}[interpolation]
+    resample = {"nearest": Image.Resampling.NEAREST, "bilinear": Image.Resampling.BILINEAR}[interpolation]
+    out = np.empty((height, width, channels := data.shape[2]), dtype=data.dtype)
     if data.dtype == np.uint8:
-        return np.asarray(Image.fromarray(data).resize((width, height), interpolation, **kwargs))
-    # For non-uint8 (e.g. float32), resize each channel via PIL mode "F" and reassemble
-    assert np.issubdtype(data.dtype, np.floating), f"Only uint8 or float allowed, got {data.dtype}"
-    channels = [data[..., c] for c in range(data.shape[-1])] if data.ndim == 3 else [data]
-    resized = [np.asarray(Image.fromarray(ch.astype(np.float32), mode="F").resize((width, height), interpolation, **kwargs))
-               for ch in channels]
-    return np.stack(resized, axis=-1).astype(data.dtype) if data.ndim == 3 else resized[0].astype(data.dtype)
+        if data.shape[-1] == 1:
+            data = data[..., 0] # grayscale pil uint8 needs to be 2D
+        pil_image = Image.fromarray(data).resize((width, height), resample=resample, **kwargs)
+        out[:] = np.asarray(pil_image).reshape(height, width, channels)
+    elif data.dtype == np.float32:
+        for c in range(channels):
+            pil_image_c = Image.fromarray(data[..., c]).resize((width, height), resample=resample, **kwargs)
+            out[..., c] = np.asarray(pil_image_c)
+    return out
 
 def pil_image_add_title(image: np.ndarray, text: str, font: str = None, font_color: str = "white",
                         background_color: str = "black", top_padding: int = None, size_px: int = None) -> np.ndarray:
