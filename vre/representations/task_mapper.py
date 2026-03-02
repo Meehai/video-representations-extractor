@@ -37,6 +37,7 @@ class TaskMapper(Representation, IORepresentationMixin, ResizableRepresentationM
     def compute(self, video: VREVideo, ixs: list[int], dep_data: list[ReprOut] | None = None) -> ReprOut:
         assert dep_data is not None, dep_data
         assert all(dep.key == ixs for dep in dep_data), ([dep.key for dep in dep_data], ixs)
+        assert all(isinstance(dep.output, MemoryData) for dep in dep_data), [type(x.output) for x in dep_data]
         data = [dep.output for dep in dep_data]
         res = []
         for i in range(len(ixs)):
