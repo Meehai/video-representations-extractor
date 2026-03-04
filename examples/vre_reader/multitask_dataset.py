@@ -16,7 +16,7 @@ from vre.logger import vre_logger as logger
 from vre.utils import natsorted, get_project_root
 
 sys.path.append((get_project_root() / "examples/vre_reader").__str__())
-from statistics import compute_statistics, load_external_statistics, TaskStatistics
+from multitask_statistics import compute_statistics, load_external_statistics, TaskStatistics
 
 BuildDatasetTuple = NamedTuple("build_dataset_res", [("files_per_task", dict[list[Path]]), ("all_names", list[str]),
                                                      ("task_types", dict[str, type[Representation]])])
