@@ -1,4 +1,5 @@
 #!/usr/bin/bash
+set -e
 
 export CWD=$(dirname $(readlink -f ${BASH_SOURCE[0]}))
 export PYTHONPATH="$PYTHONPATH:$CWD/../../../"

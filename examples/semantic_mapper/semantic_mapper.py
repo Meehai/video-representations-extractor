@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """semantic_mapper.py -- primivites for new tasks based on existing CV/dronescapes tasks"""
-# NOTE: Tehcnically some representations can implement merge_fn at DiskDAta level (semantic),
+# NOTE: Tehcnically some representations can implement merge_fn at DiskData level (semantic),
 # but we first must make it correct. That's an optimization. It's fine to work with one-hot f32 data as well.
+import sys
 from overrides import overrides
 from pathlib import Path
 from functools import reduce
@@ -9,9 +10,8 @@ from pprint import pprint
 import numpy as np
 import torch as tr
 
-from vre.utils import DiskData, MemoryData,  reorder_dict, lo, image_write
+from vre.utils import DiskData, MemoryData,  reorder_dict, lo, image_write, get_project_root
 from vre.logger import vre_logger as logger
-from vre.readers.multitask_dataset import MultiTaskDataset, MultiTaskItem
 from vre.representations import TaskMapper, Representation, build_representations_from_cfg, ReprOut
 from vre.representations.mixins import NpIORepresentation
 from vre_repository import get_vre_repository
@@ -19,6 +19,10 @@ from vre_repository.depth import DepthRepresentation
 from vre_repository.normals import NormalsRepresentation
 from vre_repository.semantic_segmentation import SemanticRepresentation
 from vre_repository.utils import semantic_mapper, colorize_semantic_segmentation, collage_fn, image_add_title
+
+sys.path.append((get_project_root() / "examples/vre_reader").__str__())
+from multitask_dataset import MultiTaskDataset, MultiTaskItem
+
 
 def plot_one(data: MultiTaskItem, title: str, order: list[str] | None,
              name_to_task: dict[str, Representation], return_origs: bool = False) \
