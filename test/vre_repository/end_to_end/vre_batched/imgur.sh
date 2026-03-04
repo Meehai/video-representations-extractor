@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 
-# Upload images to 0x0.st and output their URLs to stdout.
-# Originally used imgur (which stopped working in 2025), now uses 0x0.st.
+# Upload images to imgur and output their URLs to stdout.
+# Uses imgur's browser upload endpoint (the v3 API stopped working in 2025).
 
 # Function to output usage instructions
 function usage {
 	echo "Usage: $(basename $0) [<filename> [...]]" >&2
 	echo
-	echo "Upload images to 0x0.st and output their new URLs to stdout." >&2
+	echo "Upload images to imgur and output their new URLs to stdout." >&2
 	echo
 	echo "A filename can be - to read from stdin. If no filename is given, stdin is read." >&2
 	echo
@@ -15,9 +15,11 @@ function usage {
 	echo "the URLs are put on the X selection or clipboard for easy pasting." >&2
 }
 
-# Function to upload a file
+# Function to upload a file via imgur's browser upload endpoint
 function upload {
-	curl -s -A "vre-upload/1.0" -F "file=$1" https://0x0.st
+	curl -s -X POST "https://imgur.com/upload" \
+		-H "Referer: https://imgur.com/upload" \
+		-F "Filedata=$1"
 }
 
 # Check arguments
@@ -51,20 +53,28 @@ while [ $# -gt 0 ]; do
 	fi
 
 	# Upload the image
-	url=$(upload "@$file")
+	response=$(upload "@$file")
 
-	if [ $? -ne 0 ] || [ -z "$url" ]; then
+	if [ $? -ne 0 ] || [ -z "$response" ]; then
 		echo "Upload failed" >&2
-		errors=true
-		continue
-	elif ! echo "$url" | grep -q '^https\?://'; then
-		echo "Error from 0x0.st:" >&2
-		echo "$url" >&2
 		errors=true
 		continue
 	fi
 
+	# Parse JSON response to extract the hash
+	hash=$(echo "$response" | grep -o '"hash":"[^"]*"' | head -1 | cut -d'"' -f4)
+
+	if [ -z "$hash" ]; then
+		echo "Error from imgur:" >&2
+		echo "$response" >&2
+		errors=true
+		continue
+	fi
+
+	url="https://i.imgur.com/${hash}.png"
 	echo "$url"
+	delete_hash=$(echo "$response" | grep -o '"deletehash":"[^"]*"' | head -1 | cut -d'"' -f4)
+	echo "Delete page: https://imgur.com/delete/$delete_hash" >&2
 
 	# Append the URL to a string so we can put them all on the clipboard later
 	clip+="$url"
