@@ -21,8 +21,7 @@ from vre_repository import get_vre_repository
 from vre_repository.utils import collage_fn
 
 sys.path.append((get_project_root() / "examples/vre_reader").__str__())
-from multitask_dataset import MultiTaskDataset
-
+from multitask_dataset import MultiTaskDataset # pylint: disable=all
 
 def plot_one(data: dict[str, tr.Tensor], file_name: str, dataset_path: Path,
              name_to_task: dict[str, Representation]) -> dict[str, np.ndarray]:
