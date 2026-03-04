@@ -2,6 +2,7 @@
 """MultiTask Dataset module compatible with torch.utils.data.Dataset & DataLoader."""
 from __future__ import annotations
 import os
+import sys
 from pathlib import Path
 from typing import Iterable, NamedTuple
 from pprint import pformat
@@ -12,9 +13,10 @@ from torch.utils.data import Dataset
 from vre.representations import Representation, TaskMapper
 from vre.representations.mixins import IORepresentationMixin, NormedRepresentationMixin
 from vre.logger import vre_logger as logger
-from vre.utils import natsorted
+from vre.utils import natsorted, get_project_root
 
-from .statistics import compute_statistics, load_external_statistics, TaskStatistics
+sys.path.append((get_project_root() / "examples/vre_reader").__str__())
+from multitask_statistics import compute_statistics, load_external_statistics, TaskStatistics
 
 BuildDatasetTuple = NamedTuple("build_dataset_res", [("files_per_task", dict[list[Path]]), ("all_names", list[str]),
                                                      ("task_types", dict[str, type[Representation]])])

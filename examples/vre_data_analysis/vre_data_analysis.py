@@ -1,5 +1,6 @@
+"""vre_data_analysis - exports a JSON file on top of an vre exported dir"""
 import sys
-from vre.readers import MultiTaskDataset
+from vre.utils import get_project_root
 from vre.representations import build_representations_from_cfg, Representation
 from vre_repository import get_vre_repository
 from vre_repository.semantic_segmentation import SemanticRepresentation
@@ -11,6 +12,9 @@ import base64
 import bs4
 from PIL import Image
 import seaborn as sns
+
+sys.path.append((get_project_root() / "examples/vre_reader").__str__())
+from multitask_dataset import MultiTaskDataset, MultiTaskItem
 
 def extract_pil_from_b64_image(base64_buf: str) -> Image:
     return Image.open(io.BytesIO(base64.b64decode(base64_buf)))
