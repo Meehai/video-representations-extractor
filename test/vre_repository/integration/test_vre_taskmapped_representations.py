@@ -1,64 +1,18 @@
-# TODO: move to vre_repository integration
 import sys
 from tempfile import TemporaryDirectory
 from pathlib import Path
-from overrides import overrides
 import shutil
 import numpy as np
 from vre import VRE
 from vre_video import VREVideo
-from vre.utils import DiskData, MemoryData, get_project_root, image_resize_batch, natsorted
+from vre.utils import DiskData, MemoryData, get_project_root, natsorted
 from vre.representations import Representation, TaskMapper, ReprOut
 from vre.representations.mixins import NpIORepresentation
 from vre_repository.utils import colorize_semantic_segmentation, semantic_mapper
+from vre_repository.semantic_segmentation import SemanticRepresentation
 
 sys.path.append(str(get_project_root() / "test/vre"))
 from fake_representation import FakeRepresentation
-
-class SemaCompute(Representation, NpIORepresentation):
-    """SemanticRepresentation. Implements semantic task-specific stuff, like argmaxing if needed"""
-    def __init__(self, *args, classes: int | list[str], color_map: list[tuple[int, int, int]],
-                 disk_data_argmax: bool, **kwargs):
-        self.n_classes = len(list(range(classes)) if isinstance(classes, int) else classes)
-        Representation.__init__(self, *args, **kwargs)
-        NpIORepresentation.__init__(self)
-        self.classes = list(range(classes)) if isinstance(classes, int) else classes
-        self.color_map = color_map
-        self.disk_data_argmax = disk_data_argmax
-        assert len(color_map) == self.n_classes and self.n_classes > 1, (color_map, self.n_classes)
-        self._output_dtype = "uint8" if disk_data_argmax else "float16"
-
-    @property
-    @overrides
-    def n_channels(self) -> int:
-        return self.n_classes
-
-    @overrides
-    def compute(self, video: VREVideo, ixs: list[int], dep_data: list[ReprOut] | None = None) -> ReprOut:
-        raise NotImplementedError(f"[{self}] compute() must be overriden. We inherit it for output_dtype/size etc.")
-
-    @overrides
-    def disk_to_memory_fmt(self, disk_data: DiskData) -> MemoryData:
-        assert not isinstance(disk_data, MemoryData), type(disk_data)
-        memory_data = MemoryData(disk_data)
-        if self.disk_data_argmax:
-            assert disk_data.dtype in (np.uint8, np.uint16), disk_data.dtype
-            memory_data = MemoryData(np.eye(len(self.classes))[disk_data].astype(np.float32))
-        assert memory_data.dtype == np.float32, memory_data.dtype
-        return memory_data
-
-    @overrides
-    def memory_to_disk_fmt(self, memory_data: MemoryData) -> DiskData:
-        assert memory_data.shape[-1] == self.n_classes, (memory_data.shape, self.n_classes)
-        return memory_data.argmax(-1) if self.disk_data_argmax else memory_data
-
-    @overrides
-    def make_images(self, data: ReprOut) -> np.ndarray:
-        assert data is not None, f"[{self}] data must be first computed using compute()"
-        frames_rsz = None
-        if data.frames is not None:
-            frames_rsz = image_resize_batch(data.frames, *data.output.shape[1:3])
-        return colorize_semantic_segmentation(data.output.argmax(-1), self.classes, self.color_map, rgb=frames_rsz)
 
 class Buildings(TaskMapper, NpIORepresentation):
     def __init__(self, name: str, dependencies: list[Representation]):
@@ -113,8 +67,8 @@ def test_vre_stored_representation():
     video = VREVideo(np.array(raw_data, dtype=np.uint8), fps=1)
 
     rgb = FakeRepresentation("rgb", n_channels=3)
-    sema1 = SemaCompute("sema1", classes=8, color_map=[[i, i, i] for i in range(8)], disk_data_argmax=True)
-    sema2 = SemaCompute("sema2", classes=8, color_map=[[i, i, i] for i in range(8)], disk_data_argmax=True)
+    sema1 = SemanticRepresentation("sema1", classes=8, color_map=[[i, i, i] for i in range(8)], disk_data_argmax=True)
+    sema2 = SemanticRepresentation("sema2", classes=8, color_map=[[i, i, i] for i in range(8)], disk_data_argmax=True)
     representations = [rgb, Buildings("buildings", [sema1, sema2]), sema1, sema2,
                        FakeRepresentation("hsv", n_channels=3, dependencies=[rgb])]
     vre = VRE(video, representations).set_io_parameters(binary_format="npz", image_format="png")

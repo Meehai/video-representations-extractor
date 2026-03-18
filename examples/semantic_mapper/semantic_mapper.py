@@ -231,7 +231,7 @@ class BinaryMapper(TaskMapper, NpIORepresentation):
         assert isinstance(data.output, MemoryData), type(data.output)
         assert len(data.output.shape) == 4 and data.output.shape[-1] == 1, data.output.shape # (B, H, W, 1)
         x = (data.output > 0.5)[..., 0].astype(np.uint8) # (B, H, W) u8
-        return colorize_semantic_segmentation(semantic_map=x, classes=self.classes, color_map=self.color_map)
+        return colorize_semantic_segmentation(semantic_map=x, color_map=self.color_map, classes=self.classes)
 
     @overrides
     def disk_to_memory_fmt(self, disk_data: DiskData) -> MemoryData:
