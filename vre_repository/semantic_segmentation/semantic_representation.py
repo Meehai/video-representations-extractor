@@ -55,8 +55,7 @@ class SemanticRepresentation(Representation, NpIORepresentation, ResizableRepres
         frames_rsz = None
         if data.frames is not None:
             frames_rsz = image_resize_batch(data.frames, *data.output.shape[1:3])
-        return colorize_semantic_segmentation(semantic_map=data.output.argmax(-1), color_map=self.color_map,
-                                              classes=self.classes, rgb=frames_rsz)
+        return colorize_semantic_segmentation(data.output.argmax(-1), self.classes, self.color_map, rgb=frames_rsz)
 
     @overrides
     def compute(self, video: VREVideo, ixs: list[int], dep_data = None) -> ReprOut:
