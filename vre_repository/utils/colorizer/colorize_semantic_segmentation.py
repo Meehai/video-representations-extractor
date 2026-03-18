@@ -13,19 +13,24 @@ _LARGE_MASK_AREA_THRESH = 120_000
 _WHITE = (255, 255, 255)
 COLOR = tuple[int, int, int]
 
-def colorize_semantic_segmentation(semantic_map: np.ndarray, classes: list[str], color_map: list[tuple[int, int, int]],
+def colorize_semantic_segmentation(semantic_map: np.ndarray, color_map: list[tuple[int, int, int]],
+                                   method: str | None = None, classes: list[str] | None = None,
                                    rgb: np.ndarray | None = None, alpha: float = 0.8,
                                    size_px: int | None = None) -> np.ndarray:
     """Colorize semantic segmentation maps. Must be argmaxed (H, W). Can paint over the original RGB frame or not."""
+    method = method or ("fast_simple" if os.getenv("VRE_COLORIZE_SEMSEG_FAST", "0") == "1" else "with_classes")
+    assert method in ("fast_simple", "with_classes"), method
     assert np.issubdtype(semantic_map.dtype, np.integer), semantic_map.dtype
     assert (max_class := semantic_map.max()) <= len(color_map), (max_class, len(color_map))
     assert len(shp := semantic_map.shape) == 3, shp
-    assert rgb is None or (rgb.shape[0:-1] == shp), (rgb.shape, shp)
-    alpha = alpha if rgb is not None else 1
-    rgb = rgb if rgb is not None else np.zeros((*semantic_map.shape, 3), dtype=np.uint8)
-    if os.getenv("VRE_COLORIZE_SEMSEG_FAST", "0") == "1":
+
+    if method == "fast_simple":
         return np.array(color_map, dtype=np.uint8)[semantic_map]
-    else:
+    else: # method=="with_classes"
+        assert rgb is None or (rgb.shape[0:-1] == shp), (rgb.shape, shp)
+        alpha = alpha if rgb is not None else 1
+        rgb = rgb if rgb is not None else np.zeros((*semantic_map.shape, 3), dtype=np.uint8)
+        assert classes is not None, f"For method={method} classes must be set"
         return np.array([_colorize_sem_seg(sema=_s, rgb=_r, classes=classes, color_map=color_map,
                                           alpha=alpha, size_px=size_px)
                         for _r, _s in zip(rgb, semantic_map)])
