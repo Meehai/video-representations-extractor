@@ -3,7 +3,7 @@ from pathlib import Path
 from setuptools import setup, find_packages
 
 NAME = "video-representations-extractor"
-VERSION = "1.17.3"
+VERSION = "1.17.4"
 DESCRIPTION = "Video Representations Extractor (VRE) for computing algorithmic or neural representations of each frame."
 URL = "https://gitlab.com/video-representations-extractor/video-representations-extractor"
 
@@ -34,14 +34,30 @@ REQUIRED_REPOSITORY = [
 ]
 
 def _filter_file(x: Path) -> bool:
-    return (x.is_file() and x.suffix not in (".py", ".pyc", ".png", ".jpg", "*.md")
+    return (x.is_file() and x.suffix not in (".py", ".pyc", ".png", ".jpg", ".md")
             and x.name != ".gitignore" and "weights" not in x.parts)
 glob_files = lambda x: list(Path(x).glob("**/*")) # pylint: disable=all
-vre_files = [str(x) for x in glob_files("vre/") if _filter_file(x)]
-vre_repo_files = [str(x) for x in glob_files("vre_repository/") if _filter_file(x)]
-data_files = [("", [*vre_files, *vre_repo_files])]
 
 packages = find_packages() + find_packages(where="vre-video")
+
+def _build_package_data(roots: list[str]) -> dict[str, list[str]]:
+    """Ship non-py data files (e.g. marigold's empty_text_embed.pkl, mask2former's *.json) as package_data
+    keyed by their owning package, so they install *into* site-packages next to the code where
+    `Path(__file__).parent / ...` can find them. data_files installs relative to sys.prefix instead, which
+    flattens the paths and breaks those runtime lookups."""
+    pkg_dirs = {p: Path(p.replace(".", "/")) for p in find_packages()}
+    result: dict[str, list[str]] = {}
+    for root in roots:
+        for f in glob_files(root):
+            if not _filter_file(f):
+                continue
+            owners = [(p, d) for p, d in pkg_dirs.items() if d in f.parents]
+            assert owners, f"data file '{f}' is not inside any package; it won't be importable at runtime"
+            pkg, pkg_dir = max(owners, key=lambda pd: len(pd[1].parts)) # deepest enclosing package
+            result.setdefault(pkg, []).append(str(f.relative_to(pkg_dir)))
+    return result
+
+package_data = _build_package_data(["vre/", "vre_repository/"])
 
 setup(
     name=NAME,
@@ -52,8 +68,7 @@ setup(
     url=URL,
     packages=packages,
     package_dir={"vre_video": "vre-video/vre_video"},
-    data_files=data_files,
-    package_data={"": data_files[0][1]},
+    package_data=package_data,
     include_package_data=False,
     install_requires=REQUIRED_CORE,
     extras_require={
