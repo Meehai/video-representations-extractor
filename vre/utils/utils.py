@@ -96,6 +96,7 @@ def load_function_from_module(module_path: str | Path, function_name: str) -> Ca
     module_path = Path(module_path).absolute()
     assert module_path.exists(), module_path
     module = ModuleType(module_path.stem)
+    module.__file__ = str(module_path) # needed so Path(__file__) works inside the dynamically loaded modules
     loader = SourceFileLoader(module_path.stem, str(module_path))
     loader.exec_module(module)
     sys.path.append(str(module_path.parent))
