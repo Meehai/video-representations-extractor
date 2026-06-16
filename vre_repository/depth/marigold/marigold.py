@@ -61,7 +61,7 @@ class Marigold(DepthRepresentation, LearnedRepresentationMixin):
         vae = AutoencoderKL(**self._get_vae_cfg())
         if load_weights:
             assert self.variant != "testing"
-            paths = fetch_weights(Marigold.get_weights_paths(self.variant))
+            paths = fetch_weights(type(self).get_weights_paths(self.variant))
             vae.load_state_dict(tr.load(paths[0], map_location="cpu"))
             unet.load_state_dict(vre_load_weights(paths[1]))
 
