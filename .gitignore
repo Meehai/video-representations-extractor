@@ -21,3 +21,6 @@ build/
 .vscode/
 image_utils/
 
+
+# pdoc docs build output (docs/build_docs.sh)
+/public/

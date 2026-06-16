@@ -24,15 +24,15 @@ before_script:
   - cat requirements-extra.txt | grep -v "^-r " | sed "s/torch==2.8.0/torch @ https:\/\/download.pytorch.org\/whl\/cpu\/torch-2.8.0%2Bcpu-cp311-cp311-manylinux_2_28_x86_64.whl/g" | sed "s/torchvision==0.23.0/torchvision @ https:\/\/download.pytorch.org\/whl\/cpu\/torchvision-0.23.0%2Bcpu-cp311-cp311-manylinux_2_28_x86_64.whl/g" > /tmp/requirements_ci_extra.txt
   - pip install -r /tmp/requirements_ci_extra.txt
   - pip install pylint==3.2.7 pytest pytest-rerunfailures
-  - pip install sphinx sphinx_rtd_theme myst-parser
 
 pages:
+  # docs site is built by pdoc (docs/build_docs.sh), not sphinx. The script auto-installs pdoc and
+  # emits the static site into public/, which GitLab Pages serves.
   script:
-    - bash docs/makedocs.sh
-  publish: docs/build/html
+    - bash docs/build_docs.sh public
   artifacts:
     paths:
-      - docs/build/html
+      - public
     expire_in: 1 day
   rules:
     - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
