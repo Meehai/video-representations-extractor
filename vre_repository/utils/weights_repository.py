@@ -2,7 +2,7 @@
 from pathlib import Path
 
 import torch as tr
-from vre.utils import fetch
+from vre.utils import fetch, is_git_lfs
 from vre.logger import vre_logger as logger
 
 REPO_URL = "https://gitlab.com/video-representations-extractor/video-representations-extractor"
@@ -18,11 +18,14 @@ def fetch_weights(paths: list[str | Path]) -> list[Path]:
     assert all(str(x).find("/vre_repository/") for x in paths), paths
     res = []
     for path in paths:
-        src = VRE_REPO_URL + str(path)[str(path).index("vre_repository")+14:]
         if isinstance(path, list):
             res.append(fetch_weights(path))
         else:
-            res.append(fetch(src, path))
+            if not Path(path).exists() or is_git_lfs(Path(path)):
+                src = VRE_REPO_URL + str(path)[str(path).index("vre_repository")+14:]
+                res.append(fetch(src, path))
+            else:
+                res.append(path)
     return res
 
 def vre_load_weights(path: Path | list[Path | str]) -> dict[str, tr.Tensor]:

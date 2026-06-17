@@ -25,12 +25,14 @@ def is_git_lfs(path: Path) -> bool:
 
 def fetch(src: str, dst: Path) -> Path:
     """fetches the source url to a destionat path. Returns that path. Support for git lfs and recursive mkdir()"""
-    if not dst.exists() or is_git_lfs(dst):
-        dst.parent.mkdir(exist_ok=True, parents=True)
-        with DownloadProgressBar(unit="B", unit_scale=True, miniters=1, desc=dst.name) as t:
-            try:
-                urlretrieve(src, filename=dst, reporthook=t.update_to)
-            except Exception as e:
-                logger.info(f"Failed to download '{src}' to '{dst}'")
-                raise e
+    assert not Path(dst).exists() or is_git_lfs(dst), \
+        f"'{dst}' exists (or is a dir). Remove first or provide destination file path + name"
+
+    dst.parent.mkdir(exist_ok=True, parents=True)
+    with DownloadProgressBar(unit="B", unit_scale=True, miniters=1, desc=dst.name) as t:
+        try:
+            urlretrieve(src, filename=dst, reporthook=t.update_to)
+        except Exception as e:
+            logger.info(f"Failed to download '{src}' to '{dst}'")
+            raise e
     return dst
