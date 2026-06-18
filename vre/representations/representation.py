@@ -1,6 +1,6 @@
 """VRE Representation module"""
 from __future__ import annotations
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 import numpy as np
 from pathlib import Path
 from vre_video import VREVideo
@@ -9,7 +9,7 @@ from vre.utils import parsed_str_type, ReprOut, DiskData, MemoryData
 from vre.logger import vre_logger as logger
 from .io_representation import IORepresentation
 
-class Representation(IORepresentation):
+class Representation(IORepresentation, ABC):
     """Generic Representation class for VRE"""
     def __init__(self, name: str, dependencies: list[Representation] | None = None):
         IORepresentation.__init__(self)

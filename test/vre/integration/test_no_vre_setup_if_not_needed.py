@@ -7,10 +7,10 @@ from tempfile import TemporaryDirectory
 from pathlib import Path
 import numpy as np
 from vre import VideoRepresentationsExtractor as VRE, ReprOut, Representation
-from vre.representations.mixins import LearnedRepresentationMixin
+from vre.representations.mixins import LearnedRepresentationMixin, NpIORepresentationMixin
 from vre_video import VREVideo
 
-class MyRepresentation(Representation, LearnedRepresentationMixin):
+class MyRepresentation(LearnedRepresentationMixin, NpIORepresentationMixin, Representation):
     def __init__(self, *args, **kwargs):
         Representation.__init__(self, *args, **kwargs)
         LearnedRepresentationMixin.__init__(self)
