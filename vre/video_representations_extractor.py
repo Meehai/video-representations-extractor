@@ -8,14 +8,14 @@ from tqdm import tqdm
 import numpy as np
 from vre_video import VREVideo
 
-from .representations import Representation, RepresentationsList, ReprOut
-from .representations.mixins import LearnedRepresentationMixin, IORepresentationMixin
+from .representations import Representation, RepresentationsList
+from .representations.mixins import LearnedRepresentationMixin
 from .vre_runtime_args import VRERuntimeArgs
 from .data_writer import DataWriter
 from .data_storer import DataStorer
 from .run_metadata import RunMetadata
 from .representation_metadata import RepresentationMetadata
-from .utils import now_fmt, make_batches, DiskData, SummaryPrinter, random_chars, MemoryData
+from .utils import now_fmt, make_batches, DiskData, SummaryPrinter, random_chars, MemoryData, ReprOut
 from .logger import vre_logger as logger
 
 # TODO: split in 2 classes ?
@@ -44,7 +44,7 @@ class VideoRepresentationsExtractor:
 
     def set_io_parameters(self, **kwargs) -> VideoRepresentationsExtractor:
         """Set the required params for all representations of IORepresentationMixin type"""
-        for r in [_r for _r in self.representations if isinstance(_r, IORepresentationMixin)]:
+        for r in self.representations:
             r.set_io_params(**kwargs)
         return self
 
@@ -100,12 +100,13 @@ class VideoRepresentationsExtractor:
     def do_one_representation(self, run_id: str, representation: Representation, output_dir: Path,
                               output_dir_exists_mode: str, runtime_args: VRERuntimeArgs) -> RepresentationMetadata:
         """The loop of each representation. Returns a representation metadata with information about this repr's run"""
+        rep: Representation = representation
         data_writer = DataWriter(output_dir=output_dir, representation=representation,
                                  output_dir_exists_mode=output_dir_exists_mode)
         data_storer = DataStorer(data_writer=data_writer, n_threads=runtime_args.n_threads_data_storer)
+
         logger.debug(f"Running {run_id=}:\n{representation}\n{data_storer}")
-        rep: Representation | IORepresentationMixin = representation
-        formats = sorted([f for f in [rep.image_format.value, rep.binary_format.value] if f != "not-set"])
+        formats = sorted([f for f in [rep.image_format, rep.binary_format] if f != "not-set"])
         repr_metadata = RepresentationMetadata(repr_name=representation.name, formats=formats,
                                                disk_location=data_writer.rep_out_dir / ".repr_metadata.json",
                                                frames=list(range(len(self.video))))
@@ -127,7 +128,8 @@ class VideoRepresentationsExtractor:
                 # tr.cuda.empty_cache()?
                 rep_data = self._compute_one_representation_batch(rep, batch=batch, output_dir=data_writer.output_dir)
                 if not rep.is_classification and rep.name.find("fastsam") == -1: # TODO: MemoryData of FSAM is binary...
-                    assert rep_data.output.shape[-1] == rep.n_channels, (rep, rep_data.output, rep.n_channels)
+                    shapes = [r.shape for r in rep_data.output] # in case of (N, ?, NF) object arrays, e.g. sift/yolo
+                    assert all(shp[-1] == rep.n_channels for shp in shapes), (rep, rep_data.output, rep.n_channels)
                 rep_data.output_images = rep.make_images(rep_data) if rep.export_image else None
                 data_storer(rep_data)
             except Exception:
@@ -153,7 +155,6 @@ class VideoRepresentationsExtractor:
     def _load_from_disk_if_possible(self, rep: Representation, video: VREVideo, ixs: list[int],
                                     output_dir: Path) -> ReprOut | None:
         """loads (batched) data from disk if possible."""
-        assert isinstance(rep, IORepresentationMixin), rep
         assert isinstance(ixs, list) and all(isinstance(ix, int) for ix in ixs), (type(ixs), [type(ix) for ix in ixs])
         assert output_dir is not None and output_dir.exists(), output_dir
         # TODO: use data writer to create the paths as they can be non-npz for example
@@ -222,9 +223,9 @@ class VideoRepresentationsExtractor:
         if isinstance(ix, range):
             return self[list(ix)]
         assert isinstance(ix, list), type(ix)
-        assert all(isinstance(r, IORepresentationMixin) for r in self.representations), self.representations
 
         res: dict[str, ReprOut] = {}
+        vre_repr: Representation
         for vre_repr in (pbar := tqdm(self.representations, disable=os.getenv("VRE_PBAR", "1") == "0")):
             pbar.set_description(f"[VRE Streaming] {vre_repr.name}")
             dep_names = [r.name for r in vre_repr.dependencies]

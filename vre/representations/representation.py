@@ -1,18 +1,18 @@
 """VRE Representation module"""
 from __future__ import annotations
-from abc import abstractmethod
+from abc import ABC, abstractmethod
+from pathlib import Path
 import numpy as np
 from vre_video import VREVideo
 
-from .repr_out import ReprOut
-from .mixins import IORepresentationMixin
-from ..utils import parsed_str_type
-from ..logger import vre_logger as logger
+from vre.utils import parsed_str_type, ReprOut, DiskData, MemoryData
+from vre.logger import vre_logger as logger
+from .io_representation import IORepresentation
 
-class Representation(IORepresentationMixin):
+class Representation(IORepresentation, ABC):
     """Generic Representation class for VRE"""
     def __init__(self, name: str, dependencies: list[Representation] | None = None):
-        IORepresentationMixin.__init__(self)
+        IORepresentation.__init__(self)
         deps = [] if dependencies is None else dependencies
         assert isinstance(deps, list), type(deps)
         self.name = name
@@ -22,6 +22,18 @@ class Representation(IORepresentationMixin):
     @abstractmethod
     def make_images(self, data: ReprOut) -> np.ndarray:
         """Given the output of self.compute(video, ixs) of type ReprOut, return a [0:255] image for each frame"""
+
+    @abstractmethod
+    def resize(self, data: ReprOut, new_size: tuple[int, int]):
+        """resizes the data. size is provided in (h, w)"""
+
+    @abstractmethod
+    def load_from_disk(self, path: Path) -> DiskData:
+        """Reads the data from the disk into disk_fmt"""
+
+    @abstractmethod
+    def save_to_disk(self, memory_data: MemoryData, path: Path):
+        """Stores the disk_fmt data to disk"""
 
     @property
     @abstractmethod
@@ -52,6 +64,14 @@ class Representation(IORepresentationMixin):
     def is_classification(self) -> bool:
         """if we have self.classes. Used in MultiTaskReader."""
         return hasattr(self, "classes") and self.classes is not None # pylint: disable=no-member
+
+    def disk_to_memory_fmt(self, disk_data: DiskData) -> MemoryData:
+        """Transforms the data from disk_fmt into memory_fmt (usable in VRE)"""
+        return MemoryData(disk_data)
+
+    def memory_to_disk_fmt(self, memory_data: MemoryData) -> DiskData:
+        """Transformes the data from memory_fmt (usable in VRE) to disk_fmt"""
+        return np.array(memory_data)
 
     def size(self, repr_out: ReprOut) -> tuple[int, ...]:
         """Returns the (b, h, w, c) tuple of the size of the current representation"""

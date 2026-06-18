@@ -11,7 +11,7 @@ from overrides import overrides
 from vre_video import VREVideo
 from image_utils import image_resize
 
-from vre.representations import ReprOut
+from vre import ReprOut
 from vre.utils import MemoryData
 from vre_repository.soft_segmentation import SoftSegmentationRepresentation
 

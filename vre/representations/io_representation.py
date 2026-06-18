@@ -1,26 +1,23 @@
 """IORepresentation: representations that are files on the disk and not computed from video or other representations"""
 from __future__ import annotations
-from abc import ABC, abstractmethod
-from enum import Enum
-from pathlib import Path
+from enum import StrEnum
 import numpy as np
 
 from vre.logger import vre_logger as logger
-from vre.utils import MemoryData, DiskData
 
-class BinaryFormat(Enum):
+class BinaryFormat(StrEnum):
     """types of binary outputs from a representation"""
     NOT_SET = "not-set"
     NPZ = "npz"
     NPY = "npy"
 
-class ImageFormat(Enum):
+class ImageFormat(StrEnum):
     """types of image outputs from a representation"""
     NOT_SET = "not-set"
     PNG = "png"
     JPG = "jpg"
 
-class IORepresentationMixin(ABC):
+class IORepresentation:
     """
     StoredRepresentation. These methods define the blueprint to store and load a representation from disk to RAM.
     Data transformations order:
@@ -35,22 +32,6 @@ class IORepresentationMixin(ABC):
         self._compress: bool | None = None
         self._output_size: tuple[int, int] | None = None
         self._output_dtype: str | np.dtype | None = None
-
-    @abstractmethod
-    def load_from_disk(self, path: Path) -> DiskData:
-        """Reads the data from the disk into disk_fmt"""
-
-    @abstractmethod
-    def save_to_disk(self, memory_data: MemoryData, path: Path):
-        """Stores the disk_fmt data to disk"""
-
-    def disk_to_memory_fmt(self, disk_data: DiskData) -> MemoryData:
-        """Transforms the data from disk_fmt into memory_fmt (usable in VRE)"""
-        return MemoryData(disk_data)
-
-    def memory_to_disk_fmt(self, memory_data: MemoryData) -> DiskData:
-        """Transformes the data from memory_fmt (usable in VRE) to disk_fmt"""
-        return DiskData(memory_data)
 
     @property
     def binary_format(self) -> BinaryFormat:

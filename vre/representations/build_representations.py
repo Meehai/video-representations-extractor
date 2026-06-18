@@ -4,7 +4,7 @@ from typing import Type
 from .representation import Representation
 from .representations_list import RepresentationsList
 from ..logger import vre_logger as logger
-from .mixins import IORepresentationMixin, LearnedRepresentationMixin
+from .mixins import LearnedRepresentationMixin
 from ..utils import topological_sort, load_function_from_module, vre_yaml_load
 
 def build_representations_from_cfg(cfg: Path | str | dict,
@@ -69,15 +69,13 @@ def build_representation_from_cfg(repr_cfg: dict, name: str, representation_type
         compute_params = {**compute_params, **repr_cfg["compute_parameters"]}
         logger.debug(f"[{obj}] Setting node specific 'Compute' params: {compute_params}")
     if "io_parameters" in repr_cfg:
-        assert isinstance(obj, IORepresentationMixin), obj
         io_params = {**io_params, **repr_cfg["io_parameters"]}
         logger.debug(f"[{obj}] Setting node specific 'IO' params: {io_params}")
 
     obj.set_compute_params(**compute_params)
+    obj.set_io_params(**io_params)
     if isinstance(obj, LearnedRepresentationMixin):
         obj.set_learned_params(**learned_params)
-    if isinstance(obj, IORepresentationMixin):
-        obj.set_io_params(**io_params)
     return obj
 
 def _add_external_representations_dict(built_so_far: list[Representation],
@@ -95,10 +93,9 @@ def _add_external_representations_dict(built_so_far: list[Representation],
     # (converted) initially os it uses 'built_so_far' objects, but then it crashes on depth=2 (semantic_output).
     for obj in external_reprs.values():
         obj.set_compute_params(**compute_params)
+        obj.set_io_params(**io_params)
         if isinstance(obj, LearnedRepresentationMixin):
             obj.set_learned_params(**learned_params)
-        if isinstance(obj, IORepresentationMixin):
-            obj.set_io_params(**io_params)
 
         # update clashes in dependencies
         for i, external_dep in enumerate(obj.dependencies):

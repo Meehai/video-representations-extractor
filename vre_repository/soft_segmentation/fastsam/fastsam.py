@@ -11,7 +11,7 @@ from vre_video import VREVideo
 
 from vre.utils import image_resize_batch, image_write, image_read, MemoryData
 from vre.logger import vre_logger as logger
-from vre.representations import ReprOut
+from vre import ReprOut
 from vre.representations.mixins import LearnedRepresentationMixin
 from vre_repository.utils import fetch_weights
 from vre_repository.soft_segmentation import SoftSegmentationRepresentation
