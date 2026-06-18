@@ -41,16 +41,16 @@ class IORepresentationMixin(ABC):
         """Reads the data from the disk into disk_fmt"""
 
     @abstractmethod
-    def disk_to_memory_fmt(self, disk_data: DiskData) -> MemoryData:
-        """Transforms the data from disk_fmt into memory_fmt (usable in VRE)"""
-
-    @abstractmethod
-    def memory_to_disk_fmt(self, memory_data: MemoryData) -> DiskData:
-        """Transformes the data from memory_fmt (usable in VRE) to disk_fmt"""
-
-    @abstractmethod
     def save_to_disk(self, memory_data: MemoryData, path: Path):
         """Stores the disk_fmt data to disk"""
+
+    def disk_to_memory_fmt(self, disk_data: DiskData) -> MemoryData:
+        """Transforms the data from disk_fmt into memory_fmt (usable in VRE)"""
+        return MemoryData(disk_data)
+
+    def memory_to_disk_fmt(self, memory_data: MemoryData) -> DiskData:
+        """Transformes the data from memory_fmt (usable in VRE) to disk_fmt"""
+        return DiskData(memory_data)
 
     @property
     def binary_format(self) -> BinaryFormat:

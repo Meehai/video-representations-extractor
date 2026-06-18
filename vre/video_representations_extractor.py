@@ -88,8 +88,10 @@ class VideoRepresentationsExtractor:
                                                        output_dir_exists_mode=output_dir_exists_mode,
                                                        runtime_args=runtime_args)
             if repr_metadata.run_had_exceptions and runtime_args.exception_mode == "stop_execution":
-                raise RuntimeError(f"Representation '{vrepr.name}' threw. "
-                                   f"Check '{logger.get_file_handler().file_path}' for information")
+                with open(logger.get_file_handler().file_path, "r") as fp:
+                    last_rows = "".join(fp.readlines()[-100:])
+                raise RuntimeError(f"Representation '{vrepr.name}' threw. Last 100 rows:\n{last_rows}\n"
+                                   f"Check '{logger.get_file_handler().file_path}' for full information.")
             run_metadata.add_run_stats(repr_metadata)
             summary_printer.repr_metadatas[vrepr.name] = repr_metadata
         print(summary_printer())
