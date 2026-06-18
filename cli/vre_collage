@@ -14,8 +14,8 @@ import numpy as np
 import torch as tr
 from image_utils import image_resize
 
-from vre.utils import image_write, reorder_dict, MemoryData, str_topk, natsorted, get_project_root
-from vre.representations import build_representations_from_cfg, add_external_repositories, Representation, ReprOut
+from vre.utils import image_write, reorder_dict, MemoryData, str_topk, natsorted, get_project_root, ReprOut
+from vre.representations import build_representations_from_cfg, add_external_repositories, Representation
 from vre.logger import vre_logger as logger
 from vre_repository import get_vre_repository
 from vre_repository.utils import collage_fn
