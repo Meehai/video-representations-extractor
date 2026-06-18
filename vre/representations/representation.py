@@ -1,6 +1,6 @@
 """VRE Representation module"""
 from __future__ import annotations
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 import numpy as np
 from vre_video import VREVideo
 
