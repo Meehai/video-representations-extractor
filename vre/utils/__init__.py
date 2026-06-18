@@ -6,6 +6,7 @@ from .topological_sort import topological_sort, vre_topo_sort
 from .resources import fetch_resource
 from .lovely import lo, monkey_patch
 from .repr_memory_layout import MemoryData, DiskData
+from .repr_out import ReprOut
 from .atomic_open import AtomicOpen
 from .summary_printer import SummaryPrinter
 from .yaml import vre_yaml_load

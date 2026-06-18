@@ -1,14 +1,14 @@
 """TaskMapper module"""
 from pathlib import Path
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from overrides import overrides
 from vre_video import VREVideo
 
 from vre.utils import MemoryData
 from .representation import Representation, ReprOut
-from .mixins import IORepresentationMixin, ResizableRepresentationMixin
+from .mixins import ResizableRepresentationMixin
 
-class TaskMapper(Representation, IORepresentationMixin, ResizableRepresentationMixin, ABC):
+class TaskMapper(ResizableRepresentationMixin, Representation):
     """
     TaskMapper abstract class for >=1 dependency that is transformed (mapped) (e.g. mapillary -> 8 classes).
     Must implement:
@@ -17,11 +17,9 @@ class TaskMapper(Representation, IORepresentationMixin, ResizableRepresentationM
     - `IORepresentationMixin`: `save_to_disk`
     """
     def __init__(self, name: str, n_channels: int, **kwargs):
-        Representation.__init__(self, name=name, dependencies=kwargs["dependencies"])
-        IORepresentationMixin.__init__(self)
         ResizableRepresentationMixin.__init__(self)
+        Representation.__init__(self, name=name, dependencies=kwargs["dependencies"])
         assert len(self.dependencies) > 0 and self.dep_names[0] != self.name, "Need at least one dependency"
-        assert all(isinstance(dep, IORepresentationMixin) for dep in self.dependencies), self.dependencies
         self._n_channels = n_channels
 
     @abstractmethod
@@ -52,7 +50,6 @@ class TaskMapper(Representation, IORepresentationMixin, ResizableRepresentationM
         paths = [paths] if isinstance(paths, Path) else paths
         assert isinstance(paths, list) and len(paths) == len(self.dependencies), (paths, self.dependencies)
         deps_memory_data = []
-        dep: IORepresentationMixin
         for i, dep in enumerate(self.dependencies):
             deps_memory_data.append(dep.disk_to_memory_fmt(dep.load_from_disk(paths[i])))
         merged_data = self.merge_fn(deps_memory_data)

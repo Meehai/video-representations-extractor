@@ -11,7 +11,7 @@ import torch as tr
 from torch.utils.data import Dataset
 
 from vre.representations import Representation, TaskMapper
-from vre.representations.mixins import IORepresentationMixin, NormedRepresentationMixin
+from vre.representations.mixins import NormedRepresentationMixin
 from vre.logger import vre_logger as logger
 from vre.utils import natsorted, get_project_root
 
@@ -29,7 +29,6 @@ A tuple of two items:
 """
 
 MultiTaskItem = tuple[dict[str, tr.Tensor], str] # [{task: data}, stem(name) | list[stem(name)]]
-Repr = Representation | IORepresentationMixin
 
 class MultiTaskDataset(Dataset):
     """
@@ -96,7 +95,7 @@ class MultiTaskDataset(Dataset):
         logger.info(f"Tasks used in this dataset: {self.task_names}")
 
         self._data_shape: tuple[int, ...] | None = None
-        self._tasks: list[Repr] | None = None
+        self._tasks: list[Representation] | None = None
         self._default_vals: dict[str, tr.Tensor] | None = None
         self._statistics: dict[str, TaskStatistics] | None = None
         if statistics is not None:
@@ -131,7 +130,7 @@ class MultiTaskDataset(Dataset):
         return self._statistics
 
     @property
-    def name_to_task(self) -> dict[str, Repr]:
+    def name_to_task(self) -> dict[str, Representation]:
         """A dict that maps the name of the task to the task"""
         return {task.name: task for task in self.tasks}
 
@@ -179,7 +178,7 @@ class MultiTaskDataset(Dataset):
         return {k: v[3] for k, v in self.statistics.items() if k in self.task_names}
 
     @property
-    def tasks(self) -> list[Repr]:
+    def tasks(self) -> list[Representation]:
         """
         Returns a list of instantiated tasks in the same order as self.task_names. Overwrite this to add
         new tasks and semantics (i.e. plot_fn or doing some preprocessing after loading from disk in some tasks.
@@ -192,7 +191,7 @@ class MultiTaskDataset(Dataset):
         return self._tasks
 
     @property
-    def classification_tasks(self) -> list[Repr]:
+    def classification_tasks(self) -> list[Representation]:
         """Returns a list of only the classification tasks"""
         return [task for task in self.tasks if task.is_classification]
 
@@ -212,7 +211,7 @@ class MultiTaskDataset(Dataset):
                     raise e
         return res, items_name
 
-    def add_task(self, task: Repr, overwrite: bool=False):
+    def add_task(self, task: Representation, overwrite: bool=False):
         """Safely adds a task to this reader. Most likely can be optimized"""
         logger.info(f"Adding a new task: '{task.name}'")
         if task.name in self.task_names:
@@ -280,7 +279,7 @@ class MultiTaskDataset(Dataset):
         assert not any(len(x) == 0 for x in in_files.values()), f"{ [k for k, v in in_files.items() if len(v) == 0] }"
         return in_files
 
-    def _build_dataset(self, task_types: dict[str, Repr], task_names: list[str]) -> BuildDatasetTuple:
+    def _build_dataset(self, task_types: dict[str, Representation], task_names: list[str]) -> BuildDatasetTuple:
         """Builds the dataset from the disk. Also handles missing data (i.e. looking at TaskMappings)."""
         logger.debug(f"Building dataset from: '{self.path}'")
         all_npz_files = self._get_all_npz_files()

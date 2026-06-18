@@ -1,7 +1,6 @@
 import numpy as np
 import pytest
-from vre.utils import MemoryData
-from vre.representations import ReprOut
+from vre.utils import MemoryData, ReprOut
 
 def test_ReprOut_ctor():
     with pytest.raises(AssertionError): # need to wrap output in MemoryData
