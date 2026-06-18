@@ -4,12 +4,9 @@ import shutil
 from pathlib import Path
 import numpy as np
 
-from .utils import image_write, is_dir_empty
-from .representations import ReprOut, Representation
-from .representations.mixins import IORepresentationMixin
-from .logger import vre_logger as logger
-
-Repr = Representation | IORepresentationMixin
+from vre.utils import image_write, is_dir_empty, ReprOut
+from vre.representations import Representation
+from vre.logger import vre_logger as logger
 
 def _check_dtype_compat(disk_data_dtype: str, rep_dtype: str):
     if (np.issubdtype(disk_data_dtype, np.integer) and np.issubdtype(rep_dtype, np.floating) or
@@ -27,7 +24,7 @@ class DataWriter:
         - 'skip_computed' Skip the computed frames and continue from the last computed frame
         - 'raise' (default) Raise an error if the output dir already exists
     """
-    def __init__(self, output_dir: Path, representation: Repr, output_dir_exists_mode: str):
+    def __init__(self, output_dir: Path, representation: Representation, output_dir_exists_mode: str):
         assert output_dir_exists_mode in ("overwrite", "skip_computed", "raise"), output_dir_exists_mode
         self.rep = representation
         assert self.rep.export_binary or self.rep.export_image, f"One must be set: {self.rep}"

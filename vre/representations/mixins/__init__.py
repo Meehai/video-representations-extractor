@@ -1,6 +1,5 @@
 """init file"""
-from .io_representation_mixin import IORepresentationMixin
-from .np_io_representation import NpIORepresentation
+from .np_io_representation_mixin import NpIORepresentationMixin
 from .learned_representation_mixin import LearnedRepresentationMixin
 from .normed_representation_mixin import NormedRepresentationMixin
 from .resizable_representation_mixin import ResizableRepresentationMixin

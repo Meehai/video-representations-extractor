@@ -33,5 +33,6 @@ def test_DataStorer(n_threads: int):
     if n_threads > 0:
         with pytest.raises(AssertionError):
             storer(ReprOut(frames=None, output=MemoryData(y[0:1]), output_images=imgs[0:1], key=[0]))
+
     assert writer_rgb.all_batch_exists(list(range(10)))
     assert writer_hsv.all_batch_exists(list(range(10)))

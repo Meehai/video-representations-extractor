@@ -3,12 +3,9 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Callable
 from pathlib import Path
-from overrides import overrides
 import numpy as np
-from vre.utils import FixedSizeOrderedDict
+from vre.utils import FixedSizeOrderedDict, MemoryData, DiskData
 from vre.logger import vre_logger as logger
-
-from .io_representation_mixin import IORepresentationMixin, MemoryData, DiskData
 
 _CACHE = FixedSizeOrderedDict(maxlen=1024)
 
@@ -17,7 +14,7 @@ Question for future self:
 How can a NPIORepresentation have "not-set" on binary but "jpg" or "png" on image ? Seems like bad design.
 """
 
-class NpIORepresentation(IORepresentationMixin):
+class NpIORepresentationMixin:
     """Generic Task with data read from/saved to numpy files. Tries to read data as-is from disk and store it as well"""
     @property
     def save_fn(self) -> Callable | None:
@@ -29,7 +26,6 @@ class NpIORepresentation(IORepresentationMixin):
             return np.save
         return None
 
-    @overrides
     def load_from_disk(self, path: Path) -> DiskData:
         """Reads the npz data from the disk and transforms it properly"""
         if (key := (str(getattr(self, "name", None)), str(getattr(self, "normalization", None)), str(path))) in _CACHE:
@@ -46,17 +42,7 @@ class NpIORepresentation(IORepresentationMixin):
         _CACHE[key] = deepcopy(data)
         return data
 
-    @overrides
     def save_to_disk(self, memory_data: MemoryData, path: Path):
         """stores this item to the disk which can then be loaded via `load_from_disk`"""
         assert self.save_fn is not None
         self.save_fn(path, memory_data, allow_pickle=False) # pylint: disable=not-callable
-
-    @overrides
-    def memory_to_disk_fmt(self, memory_data: MemoryData) -> DiskData:
-        return memory_data
-
-    @overrides
-    def disk_to_memory_fmt(self, disk_data: DiskData) -> MemoryData:
-        assert not isinstance(disk_data, MemoryData), type(disk_data)
-        return MemoryData(disk_data)

@@ -6,16 +6,14 @@ r1 has its data on disk already so it should only load without ever calling vre_
 from tempfile import TemporaryDirectory
 from pathlib import Path
 import numpy as np
-from vre import VideoRepresentationsExtractor as VRE
-from vre.representations import Representation, ReprOut
-from vre.representations.mixins import LearnedRepresentationMixin, NpIORepresentation
+from vre import VideoRepresentationsExtractor as VRE, ReprOut, Representation
+from vre.representations.mixins import LearnedRepresentationMixin
 from vre_video import VREVideo
 
-class MyRepresentation(Representation, LearnedRepresentationMixin, NpIORepresentation):
+class MyRepresentation(Representation, LearnedRepresentationMixin):
     def __init__(self, *args, **kwargs):
         Representation.__init__(self, *args, **kwargs)
         LearnedRepresentationMixin.__init__(self)
-        NpIORepresentation.__init__(self)
         self.vre_setup_called = False
         self.vre_free_called = False
         self.make_called = False
@@ -33,10 +31,9 @@ class MyRepresentation(Representation, LearnedRepresentationMixin, NpIORepresent
     def n_channels(self):
         return 1
 
-class MyDependentRepresentation(Representation, NpIORepresentation):
+class MyDependentRepresentation(Representation):
     def __init__(self, *args, **kwargs):
         Representation.__init__(self, *args, **kwargs)
-        NpIORepresentation.__init__(self)
     def compute(self, video, ixs, dep_data):
         return ReprOut(frames=video[ixs], output=dep_data[0].output, key=ixs)
     def make_images(self, data: ReprOut) -> np.ndarray:

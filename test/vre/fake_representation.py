@@ -5,15 +5,14 @@ from overrides import overrides
 
 from vre_video import VREVideo
 from vre.logger import vre_logger as logger
-from vre.utils import MemoryData
-from vre.representations import Representation, ReprOut
-from vre.representations.mixins import NpIORepresentation, ResizableRepresentationMixin
+from vre.utils import MemoryData, ReprOut
+from vre.representations import Representation
+from vre.representations.mixins import NpIORepresentationMixin, ResizableRepresentationMixin
 
-class FakeRepresentation(Representation, NpIORepresentation, ResizableRepresentationMixin):
+class FakeRepresentation(Representation, NpIORepresentationMixin, ResizableRepresentationMixin):
     """FakeRepresentation that is used in unit tests and some basic classes, like RGB."""
     def __init__(self, *args, n_channels: int = 1, output_dtype: str = "uint8", **kwargs):
         Representation.__init__(self, *args, **kwargs)
-        NpIORepresentation.__init__(self)
         if len(self.dependencies) != 0:
             logger.warning(f"{self} has {len(self.dependencies)} dependencies. Usually it's supposed to be 0")
         self._n_channels = n_channels

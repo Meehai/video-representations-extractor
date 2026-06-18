@@ -5,9 +5,9 @@ from queue import Queue, Empty
 from copy import deepcopy
 from time import time
 
-from .representations import ReprOut
-from .data_writer import DataWriter
-from .logger import vre_logger as logger
+from vre.utils import ReprOut
+from vre.data_writer import DataWriter
+from vre.logger import vre_logger as logger
 
 class DataStorer:
     """

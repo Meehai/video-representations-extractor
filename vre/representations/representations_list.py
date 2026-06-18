@@ -4,7 +4,6 @@ from typing import Any, Iterator
 from overrides import overrides
 from vre.utils import vre_topo_sort
 from .representation import Representation
-from .mixins import IORepresentationMixin
 
 class RepresentationsList(list):
     """module that topo-sorts and implements helper functions on top of a representation list"""
@@ -14,6 +13,7 @@ class RepresentationsList(list):
         assert len(self) > 0, "At least one representation must be provided"
         assert all(isinstance(x, Representation) for x in self), [(x.name, type(x)) for x in self]
         self.names = [r.name for r in self]
+        self.representations = representations
 
     @overrides
     def append(self, object: Any): # pylint: disable=redefined-builtin
@@ -32,9 +32,8 @@ class RepresentationsList(list):
         assert all(name in self.names for name in subset), (
             f"{subset=}\n{self.names=}\nmissing={[n for n in subset if n not in self.names]}")
 
-        io_reprs: list[IORepresentationMixin] = [_r for _r in self if isinstance(_r, IORepresentationMixin)]
         res = []
-        for r in io_reprs:
+        for r in self.representations:
             if (r.export_binary or r.export_image) and r.name in subset:
                 res.append(r)
         return RepresentationsList(res, topo_sort=False)
