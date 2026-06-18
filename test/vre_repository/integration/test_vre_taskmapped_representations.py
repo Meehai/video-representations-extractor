@@ -5,19 +5,19 @@ import shutil
 import numpy as np
 from vre import VRE
 from vre_video import VREVideo
-from vre.utils import DiskData, MemoryData, get_project_root, natsorted
-from vre.representations import Representation, TaskMapper, ReprOut
-from vre.representations.mixins import NpIORepresentation
+from vre.utils import DiskData, MemoryData, get_project_root, natsorted, ReprOut
+from vre.representations import Representation, TaskMapper
+from vre.representations.mixins import NpIORepresentationMixin
 from vre_repository.utils import colorize_semantic_segmentation, semantic_mapper
 from vre_repository.semantic_segmentation import SemanticRepresentation
 
 sys.path.append(str(get_project_root() / "test/vre"))
 from fake_representation import FakeRepresentation
 
-class Buildings(TaskMapper, NpIORepresentation):
+class Buildings(NpIORepresentationMixin, TaskMapper):
     def __init__(self, name: str, dependencies: list[Representation]):
-        super().__init__(name=name, dependencies=dependencies, n_channels=2)
-        NpIORepresentation.__init__(self)
+        NpIORepresentationMixin.__init__(self)
+        TaskMapper.__init__(self, name=name, dependencies=dependencies, n_channels=2)
         self.dtype = "bool"
         self.mapping = [
             {"buildings": [0, 1, 2, 3], "others": [4, 5, 6, 7]},

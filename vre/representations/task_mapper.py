@@ -1,6 +1,6 @@
 """TaskMapper module"""
 from pathlib import Path
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from overrides import overrides
 from vre_video import VREVideo
 
@@ -8,7 +8,7 @@ from vre.utils import MemoryData
 from .representation import Representation, ReprOut
 from .mixins import ResizableRepresentationMixin
 
-class TaskMapper(Representation, ResizableRepresentationMixin, ABC):
+class TaskMapper(ResizableRepresentationMixin, Representation):
     """
     TaskMapper abstract class for >=1 dependency that is transformed (mapped) (e.g. mapillary -> 8 classes).
     Must implement:
@@ -17,8 +17,8 @@ class TaskMapper(Representation, ResizableRepresentationMixin, ABC):
     - `IORepresentationMixin`: `save_to_disk`
     """
     def __init__(self, name: str, n_channels: int, **kwargs):
-        Representation.__init__(self, name=name, dependencies=kwargs["dependencies"])
         ResizableRepresentationMixin.__init__(self)
+        Representation.__init__(self, name=name, dependencies=kwargs["dependencies"])
         assert len(self.dependencies) > 0 and self.dep_names[0] != self.name, "Need at least one dependency"
         self._n_channels = n_channels
 
