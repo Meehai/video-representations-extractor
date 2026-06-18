@@ -10,10 +10,10 @@ from pprint import pprint
 import numpy as np
 import torch as tr
 
-from vre.utils import DiskData, MemoryData,  reorder_dict, lo, image_write, get_project_root
+from vre.utils import DiskData, MemoryData,  reorder_dict, lo, image_write, get_project_root, ReprOut
 from vre.logger import vre_logger as logger
-from vre.representations import TaskMapper, Representation, build_representations_from_cfg, ReprOut
-from vre.representations.mixins import NpIORepresentation
+from vre.representations import TaskMapper, Representation, build_representations_from_cfg
+from vre.representations.mixins import NpIORepresentationMixin
 from vre_repository import get_vre_repository
 from vre_repository.depth import DepthRepresentation
 from vre_repository.normals import NormalsRepresentation
@@ -203,7 +203,7 @@ class SemanticMask2FormerCOCOConverted(TaskMapper, SemanticRepresentation):
         res = MemoryData(np.eye(len(self.classes))[m2f_mapillary_converted].astype(np.float32)) # (H, W, C) f32
         return res
 
-class BinaryMapper(TaskMapper, NpIORepresentation):
+class BinaryMapper(NpIORepresentationMixin, TaskMapper, ):
     """
     Note for future self: this is never generic enough to be in VRE -- we'll keep it in this separate code only
     TaskMapper is the only high level interface that makes sense, so we should focus on keeping that generic and easy.
@@ -211,7 +211,7 @@ class BinaryMapper(TaskMapper, NpIORepresentation):
     def __init__(self, name: str, dependencies: list[Representation], mapping: list[dict[str, list]],
                  mode: str, disk_mode: str = "binary"):
         TaskMapper.__init__(self, name=name, dependencies=dependencies, n_channels=2)
-        NpIORepresentation.__init__(self)
+        NpIORepresentationMixin.__init__(self)
         assert mode in ("all_agree", "at_least_one", "majority"), (name, mode)
         assert disk_mode in ("float", "binary"), (name, disk_mode)
         assert len(mapping[0]) == 2, (name, mapping)
