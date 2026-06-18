@@ -1,16 +1,18 @@
 """VRE Representation module"""
 from __future__ import annotations
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 import numpy as np
 from vre_video import VREVideo
 
 from .repr_out import ReprOut
+from .mixins import IORepresentationMixin
 from ..utils import parsed_str_type
 from ..logger import vre_logger as logger
 
-class Representation(ABC):
+class Representation(IORepresentationMixin):
     """Generic Representation class for VRE"""
     def __init__(self, name: str, dependencies: list[Representation] | None = None):
+        IORepresentationMixin.__init__(self)
         deps = [] if dependencies is None else dependencies
         assert isinstance(deps, list), type(deps)
         self.name = name
