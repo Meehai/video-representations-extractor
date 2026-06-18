@@ -1,8 +1,8 @@
 """VRE Representation module"""
 from __future__ import annotations
 from abc import ABC, abstractmethod
-import numpy as np
 from pathlib import Path
+import numpy as np
 from vre_video import VREVideo
 
 from vre.utils import parsed_str_type, ReprOut, DiskData, MemoryData
