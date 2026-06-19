@@ -4,4 +4,3 @@ from vre.representations.mixins import NpIORepresentationMixin
 
 class DescriptorRepresentation(NpIORepresentationMixin, Representation):
     """Defines the concepts of keypoints (if it uses) and descriptors (or embeddings)"""
-    pass
