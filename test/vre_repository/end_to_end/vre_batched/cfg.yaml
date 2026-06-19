@@ -34,6 +34,13 @@ representations:
       antialias: False
       resolution: [240, 426]
 
+  sift:
+    type: descriptor/sift
+    dependencies: []
+    parameters:
+      max_keypoints: 500
+      process_scale: 0.5
+
   edges_canny:
     type: edges/canny
     dependencies: []

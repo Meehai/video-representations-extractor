@@ -4,8 +4,10 @@ import numpy as np
 try:
     import torch as tr
     _HAS_TORCH = True
+    Array = np.ndarray | tr.Tensor
 except ImportError:
     _HAS_TORCH = False
+    Array = np.ndarray
 
 def monkey_patch(cls=None):
     "Monkey-patch lovely features into `cls`"
@@ -16,16 +18,23 @@ def monkey_patch(cls=None):
     setattr(cls, "v", cls.__repr__)
     cls.__repr__ = cls.__str__ = lo
 
+def _rnd(x: Array) -> Array:
+    return round(x.item(), 2)
+
+def _dtp(x) -> str:
+    y = str(x).removeprefix("torch.") if str(x).startswith("torch.") else str(x)
+    return y if y == "bool" else (f"{y[0]}{y[-1]}" if y[-1] == "8" else f"{y[0]}{y[-2:]}")
+
 def lo(x: "np.ndarray | tr.Tensor | None") -> str:
     """reimplementation of lovely_numpy's lo() without any extra stuff that spams the terminal. Only for numericals!"""
-    def _dt(x) -> str:
-        y = str(x).removeprefix("torch.") if str(x).startswith("torch.") else str(x)
-        return y if y == "bool" else (f"{y[0]}{y[-1]}" if y[-1] == "8" else f"{y[0]}{y[-2:]}")
     _valid_types = (type(None), np.ndarray, tr.Tensor) if _HAS_TORCH else (type(None), np.ndarray)
     assert isinstance(x, _valid_types), type(x)
+
     if x is None:
         return x
-    _r = lambda x: round(x.item(), 2) # pylint: disable=unnecessary-lambda-assignment
+    if isinstance(x, np.ndarray) and x.dtype == "object":
+        return f"arr{[*x.shape]} obj"
+
     arr_type = "arr" if isinstance(x, np.ndarray) else "tr"
     μ, σ = x.float().mean() if arr_type == "tr" else x.mean(), x.float().std() if arr_type == "tr" else x.std() # thx tr
-    return f"{arr_type}{[*x.shape]} {_dt(x.dtype)} x∈[{_r(x.min())}, {_r(x.max())}], μ={_r(μ)}, σ={_r(σ)}"
+    return f"{arr_type}{[*x.shape]} {_dtp(x.dtype)} x∈[{_rnd(x.min())}, {_rnd(x.max())}], μ={_rnd(μ)}, σ={_rnd(σ)}"

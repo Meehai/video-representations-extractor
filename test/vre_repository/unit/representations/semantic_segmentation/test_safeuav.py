@@ -11,7 +11,7 @@ def test_safeuav():
     assert safeuav_repr.device == "cpu" # default from LearnedRepresentationMixin
 
     out = safeuav_repr.compute(video, [0])
-    assert out.output.shape == (1, 50, 50, 8)
+    assert out.output.shape == (1, 50, 50, 8) # hardcoded size in variant='testing'
 
     out_image = safeuav_repr.make_images(out)
     assert out_image.shape == (1, 50, 50, 3)
