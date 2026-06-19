@@ -1,5 +1,5 @@
 import numpy as np
-from vre_repository.descriptors.sift import SIFT
+from vre_repository.descriptor.sift import SIFT
 from vre_video import VREVideo
 
 def test_sift():
@@ -14,13 +14,13 @@ def test_sift():
     assert out.output[0].shape[1] == 128, out.output[0].shape
 
     out_image = sift_repr.make_images(out)
-    assert out_image.shape == (1, 50, 50, 3)
+    assert out_image.shape == (1, 64, 128, 3)
     assert out_image.dtype == np.uint8, out_image.dtype
 
-    assert sift_repr.size(out) == (1, 50, 50, 8)
-    out_resized = sift_repr.resize(out, (64, 128)) # we can resize it though
-    assert sift_repr.size(out_resized) == (1, 64, 128, 8)
-    assert sift_repr.make_images(out_resized).shape == (1, 64, 128, 3)
+    assert sift_repr.size(out) == (1, ) # (N, ?, 128) as ? == variable number of keypoints/descriptors
+    out_resized = sift_repr.resize(out, (50, 50)) # we can resize it though
+    assert sift_repr.size(out_resized) == (1, )
+    assert sift_repr.make_images(out_resized).shape == (1, 50, 50, 3)
 
 if __name__ == "__main__":
     test_sift()

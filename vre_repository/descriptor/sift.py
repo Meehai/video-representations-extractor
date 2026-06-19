@@ -16,11 +16,11 @@ from pathlib import Path
 from argparse import ArgumentParser
 import numpy as np
 from numpy.lib.stride_tricks import sliding_window_view
-from vre_video import VREVideo
-from vre import Representation, ReprOut, MemoryData
-from vre.representations.mixins import NpIORepresentationMixin
 from loggez import loggez_logger as logger
 from PIL import Image
+from vre_video import VREVideo
+from vre import Representation, ReprOut, MemoryData
+from image_utils import image_draw_circle, image_resize
 
 from .descriptor_representation import DescriptorRepresentation
 
@@ -65,8 +65,13 @@ class SIFT(DescriptorRepresentation):
 
     def make_images(self, data: ReprOut) -> np.ndarray:
         """image representation of SIFT"""
-        breakpoint()
-        raise NotImplementedError
+        res = np.zeros((len(data.output), *data.extra[0]["frame_size"], 3), "uint8")
+        for i in range(len(data.output)):
+            if data.frames[i] is not None:
+                res[i] = image_resize(data.frames[i], *data.extra[0]["frame_size"])
+            for kp in data.extra[i]["keypoints_ij"]:
+                image_draw_circle(res[i], kp, radius=1, color=(0, 0, 255), fill=True, inplace=True)
+        return res
 
     def compute(self, video: VREVideo, ixs: list[int], dep_data: list[ReprOut] | None = None) -> ReprOut:
         """binary representation of SIFT"""
@@ -81,16 +86,34 @@ class SIFT(DescriptorRepresentation):
                 assumed_blur=self.assumed_blur, image_border_width=self.image_border_width,
                 max_keypoints=self.max_keypoints, process_scale=self.process_scale)
             res[i] = desc
-            extra.append({"frame_size": frame.shape[0:2], "coordinates": [kp.pt for kp in kps],
+
+            keypoints_ij = [(kp.pt[1], kp.pt[0]) for kp in kps] # convert xy -> ij as this is the VRE standard.
+            extra.append({"frame_size": frame.shape[0:2], "keypoints_ij": keypoints_ij,
                           "angles": [kp.angle for kp in kps], "responses": [kp.response for kp in kps],
                           "octave": [kp.octave for kp in kps], "sizes": [kp.size for kp in kps] })
         return ReprOut(frames=frames, output=MemoryData(res), extra=extra, key=ixs)
 
     def resize(self, data: ReprOut, new_size: tuple[int, int]) -> ReprOut:
-        if any(new_size != extra["frame_size"] for extra in data.extra):
-            # TODO: resize keypoints to new size (see fastsam).
-            raise NotImplementedError(f"{[e['frame_size'] for e in data.extra]} vs {new_size}")
-        return data
+        new_extras = []
+        for extra in data.extra:
+            if extra["frame_size"] == new_size:
+                new_extra.append(extra)
+                continue
+            dh, dw = new_size[0] / extra["frame_size"][0], new_size[1] / extra["frame_size"][1]
+            new_extra = {k: v for k, v in extra.items() if k not in ("frame_size", "keypoints_ij")}
+            new_extra["frame_size"] = new_size
+            new_extra["keypoints_ij"] = []
+            for kp in extra["keypoints_ij"]:
+                new_extra["keypoints_ij"].append((kp[0] * dh, kp[1] * dw))
+            new_extras.append(new_extra)
+
+        output_images = None
+        if data.output_images is not None:
+            output_images = np.array([image_resize(img, *new_size, interpolation="nearest")
+                                      for img in data.output_images])
+
+        return ReprOut(frames=data.frames, output=data.output, key=data.key, extra=new_extras,
+                       output_images=output_images)
 
 ############################
 # numpy cv2 replacements   #
@@ -644,7 +667,7 @@ if __name__ == "__main__":
     sift = SIFT("sift", max_keypoints=args.max_keypoints, process_scale=args.process_scale)
     res = sift.compute(image[None], ixs=[0])
     extra, desc = res.extra[0], res.output[0]
-    pts = np.array(extra["coordinates"])
+    pts = np.array(extra["keypoints"])
 
     # sanity check with a fixed image in test/e2e/data/rgb/0.npz -- defaults reproduce sift.py
     if np.allclose(image.mean(), 69.36927854938271) and np.allclose(image.std(), 36.73498952105777):
