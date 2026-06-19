@@ -4,8 +4,10 @@ import numpy as np
 try:
     import torch as tr
     _HAS_TORCH = True
+    Array = np.ndarray | tr.Tensor
 except ImportError:
     _HAS_TORCH = False
+    Array = np.ndarray
 
 def monkey_patch(cls=None):
     "Monkey-patch lovely features into `cls`"
@@ -16,7 +18,7 @@ def monkey_patch(cls=None):
     setattr(cls, "v", cls.__repr__)
     cls.__repr__ = cls.__str__ = lo
 
-def _rnd(x: np.ndarray | tr.Tensor) -> np.ndarray | tr.Tensor:
+def _rnd(x: Array) -> Array:
     return round(x.item(), 2)
 
 def _dtp(x) -> str:
