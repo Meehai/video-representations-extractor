@@ -19,7 +19,7 @@ def get_vre_repository() -> dict[str, Type[Representation]]:
     from .semantic_segmentation.safeuav import SafeUAV
     from .semantic_segmentation.mask2former import Mask2Former
     from .normals.depth_svd import DepthNormalsSVD
-    from .descriptors.sift import SIFT
+    from .descriptor.sift import SIFT
 
     return {
         "color/rgb": RGB,
@@ -36,5 +36,5 @@ def get_vre_repository() -> dict[str, Type[Representation]]:
         "optical-flow/rife": FlowRife,
         "optical-flow/raft": FlowRaft,
         "normals/depth-svd": DepthNormalsSVD,
-        "descriptors/sift": SIFT,
+        "descriptor/sift": SIFT,
     }
