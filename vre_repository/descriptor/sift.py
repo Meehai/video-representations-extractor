@@ -97,7 +97,7 @@ class SIFT(DescriptorRepresentation):
         new_extras = []
         for extra in data.extra:
             if extra["frame_size"] == new_size:
-                new_extra.append(extra)
+                new_extras.append(extra)
                 continue
             dh, dw = new_size[0] / extra["frame_size"][0], new_size[1] / extra["frame_size"][1]
             new_extra = {k: v for k, v in extra.items() if k not in ("frame_size", "keypoints_ij")}
