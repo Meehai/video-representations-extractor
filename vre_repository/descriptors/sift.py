@@ -65,6 +65,7 @@ class SIFT(DescriptorRepresentation):
 
     def make_images(self, data: ReprOut) -> np.ndarray:
         """image representation of SIFT"""
+        breakpoint()
         raise NotImplementedError
 
     def compute(self, video: VREVideo, ixs: list[int], dep_data: list[ReprOut] | None = None) -> ReprOut:

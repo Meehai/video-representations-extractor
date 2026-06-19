@@ -4,13 +4,14 @@ from vre_video import VREVideo
 
 def test_sift():
     video = VREVideo(np.random.randint(0, 255, size=(20, 64, 128, 3), dtype=np.uint8), fps=30)
-    sift_repr = SIFT(name="sift", dependencies=[])
+    sift_repr = SIFT(name="sift", dependencies=[], max_keypoints=10)
     assert sift_repr.name == "sift"
     assert sift_repr.compress is True # default
 
     out = sift_repr.compute(video, [0])
-    breakpoint()
-    assert out.output.shape == (1, 50, 50, 8)
+    assert len(out.output) == 1, out
+    assert out.output[0].shape[0] <= 10, out.output[0].shape
+    assert out.output[0].shape[1] == 128, out.output[0].shape
 
     out_image = sift_repr.make_images(out)
     assert out_image.shape == (1, 50, 50, 3)
