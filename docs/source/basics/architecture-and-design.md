@@ -59,8 +59,8 @@ name_of_representation_2:
     compress: False
 ```
 
-Example cfg file: See [out of the box supported representations](test/end_to_end/imgur/cfg.yaml) and the CFG defined
-in the [CI process](test/end_to_end/imgur/run.sh) for an actual export that is done at every commit on a real video.
+Example cfg file: See [out of the box supported representations](test/vre_repository/end_to_end/vre_batched/cfg.yaml) and the CFG defined
+in the [CI process](test/vre_repository/end_to_end/vre_batched/run.sh) for an actual export that is done at every commit on a real video.
 
 Note: If the topological sort fails (because of cycle dependencies), an error will be thrown.
 

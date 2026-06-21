@@ -887,7 +887,7 @@ JINJA
 # --- render --------------------------------------------------------------------------------------
 rm -rf "$OUT"
 python - "$OUT" "$TMPL" <<'PY'
-import sys, pathlib, re, tempfile, importlib, warnings
+import sys, os, subprocess, pathlib, re, tempfile, importlib, warnings
 import pdoc, pdoc.render
 warnings.simplefilter("ignore")
 
@@ -927,19 +927,55 @@ excludes += ["!" + re.escape(m) for m in bad]
 #    page in the same sidebar as the API. README.md becomes the guide package docstring = home page.
 md_files = sorted((root / "docs/source/basics").glob("*.md")) + [root / "docs/source/examples/example.md"]
 stem2mod = {p.stem: p.stem.replace("-", "_") for p in md_files}   # cli-tools.md -> cli_tools.html
-def fixlinks(text):
-    for stem, mod in stem2mod.items():
-        text = text.replace(f"./{stem}.md", f"{mod}.html").replace(f"{stem}.md", f"{mod}.html")
-    return text
+
+# --- portable links -------------------------------------------------------------------------------
+# Prose (README + docs/source/*.md) is authored with repo-relative links so it also reads correctly on
+# GitLab's file view. The GENERATED site is a SEPARATE artifact (only API + prose pages, served from
+# any host/subpath), so rewrite link TARGETS -- only the `](...)` markdown form, never fenced code --
+# so every link resolves from the site everywhere. `depth` = how many dirs deep the page sits:
+#   1. self-links to our own Pages site (https://<proj>.gitlab.io/<proj>/X) -> page-relative X
+#   2. repo paths not shipped in the site (cfg/scripts/notebooks/source)     -> gitlab.com blob/tree URL
+#   3. inter-prose foo.md cross-links                                        -> the in-site foo.html
+#   4. external / in-site .html / copied assets (logo.png)                   -> left as-is
+def _git(*a, default=""):
+    try:
+        return subprocess.run(["git", *a], cwd=root, capture_output=True, text=True, check=True).stdout.strip()
+    except Exception:
+        return default
+_slug   = re.sub(r"^.*gitlab\.com[:/]", "", _git("remote", "get-url", "origin",
+            default="git@gitlab.com:video-representations-extractor/video-representations-extractor.git")).removesuffix(".git")
+_branch = os.environ.get("CI_DEFAULT_BRANCH") or _git("symbolic-ref", "--short", "HEAD", default="master") or "master"
+PAGES   = [p.rstrip("/") + "/" for p in
+           {f"https://{_slug.split('/')[0]}.gitlab.io/{_slug.split('/')[-1]}", os.environ.get("CI_PAGES_URL", "")} if p]
+REPO    = f"https://gitlab.com/{_slug}/-/%s/{_branch}/"      # %s -> "blob" (file) or "tree" (dir)
+_LINK   = re.compile(r"\]\(([^)]+)\)")
+def fixlinks(text, depth):
+    up = "../" * depth
+    def repl(m):
+        tgt = m.group(1).strip()
+        for pre in PAGES:                                          # 1. our Pages site -> relative
+            if tgt.startswith(pre):
+                return f"]({up}{tgt[len(pre):] or 'index.html'})"
+        if re.match(r"^(https?:|mailto:|#)", tgt):                 # 4. external / pure anchor
+            return m.group(0)
+        path, sep, frag = tgt.partition("#")
+        clean = path[2:] if path.startswith("./") else path
+        if clean.endswith(".html") or clean == "logo.png":        # 4. already in-site
+            return m.group(0)
+        stem = pathlib.PurePosixPath(clean).stem
+        if clean.endswith(".md") and stem in stem2mod:             # 3. prose cross-link -> in-site html
+            return f"]({stem2mod[stem]}.html{sep}{frag})"
+        return f"]({REPO % ('tree' if clean.endswith('/') else 'blob')}{clean}{sep}{frag})"  # 2. repo url
+    return _LINK.sub(repl, text)
 
 guidedir = pathlib.Path(tempfile.mkdtemp())
 (guidedir / "guide").mkdir()
 toc = "\n".join(f"- [{p.stem.replace('-', ' ').title()}](guide/{stem2mod[p.stem]}.html)" for p in md_files)
-home = (root / "README.md").read_text(encoding="utf-8") + f"\n\n## Documentation\n\n{toc}\n"
+home = fixlinks((root / "README.md").read_text(encoding="utf-8"), 0) + f"\n\n## Documentation\n\n{toc}\n"
 (guidedir / "guide" / "__init__.py").write_text('"""' + home + '"""\n', encoding="utf-8")
 guide_mods = ["guide"]
 for p in md_files:
-    body = fixlinks(p.read_text(encoding="utf-8"))
+    body = fixlinks(p.read_text(encoding="utf-8"), 1)
     (guidedir / "guide" / f"{stem2mod[p.stem]}.py").write_text('"""' + body + '"""\n', encoding="utf-8")
     guide_mods.append(f"guide.{stem2mod[p.stem]}")
 sys.path.insert(0, str(guidedir))
