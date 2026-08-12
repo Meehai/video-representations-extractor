@@ -25,19 +25,19 @@ representations:
       sensor_size: [3840, 2160]
       window_size: 11
 
-  depth_marigold:
-    type: depth/marigold
-    dependencies: []
-    parameters:
-      variant: marigold-lcm-v1-0
-      denoising_steps: 4
-      ensemble_size: 1
-      processing_resolution: 768
+  # depth_marigold:
+  #   type: depth/marigold
+  #   dependencies: []
+  #   parameters:
+  #     variant: marigold-lcm-v1-0
+  #     denoising_steps: 4
+  #     ensemble_size: 1
+  #     processing_resolution: 768
 
-  normals_svd(depth_marigold):
-    type: normals/depth-svd
-    dependencies: [depth_marigold]
-    parameters:
-      sensor_fov: 75
-      sensor_size: [3840, 2160]
-      window_size: 11
+  # normals_svd(depth_marigold):
+  #   type: normals/depth-svd
+  #   dependencies: [depth_marigold]
+  #   parameters:
+  #     sensor_fov: 75
+  #     sensor_size: [3840, 2160]
+  #     window_size: 11
