@@ -1,0 +1,23 @@
+image: python:3.11-bullseye
+
+workflow:
+  rules:
+  - if: $CI_COMMIT_BRANCH == "master"
+    when: always
+  - if: $CI_PIPELINE_SOURCE == 'merge_request_event' && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == 'master'
+    when: always
+  - when: never
+
+before_script:
+  - apt-get update
+  - apt-get install -y ffmpeg
+  - pip install -r requirements.txt
+  - pip install pylint pytest
+
+pylint:
+  script:
+    - python -m pylint --rcfile=.pylintrc $(git ls-files "*.py" | grep -v "test/\|examples/")
+
+pytest:
+  script:
+    - python3 -m pytest test

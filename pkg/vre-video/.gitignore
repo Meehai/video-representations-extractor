@@ -1,0 +1,8 @@
+*.mp4
+__pycache__
+.venv
+build/
+dist/
+vre_video.egg-info/
+*.log
+

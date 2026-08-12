@@ -2,7 +2,6 @@ image: python:3.11-bullseye
 
 variables:
   GIT_LFS_SKIP_SMUDGE: "1"
-  GIT_SUBMODULE_STRATEGY: recursive
 
 workflow:
   rules:
@@ -18,11 +17,11 @@ before_script:
   - export VRE_ROOT=`pwd`
   - export VRE_WEIGHTS_DIR=$VRE_ROOT/weights
   - export VRE_LOGLEVEL=3
-  - export PYTHONPATH="$PYTHONPATH:$VRE_ROOT:$VRE_ROOT/vre-video"
   - export PATH="$PATH:$VRE_ROOT/cli"
-  - pip install -r requirements.txt
-  - cat requirements-extra.txt | grep -v "^-r " | sed "s/torch==2.8.0/torch @ https:\/\/download.pytorch.org\/whl\/cpu\/torch-2.8.0%2Bcpu-cp311-cp311-manylinux_2_28_x86_64.whl/g" | sed "s/torchvision==0.23.0/torchvision @ https:\/\/download.pytorch.org\/whl\/cpu\/torchvision-0.23.0%2Bcpu-cp311-cp311-manylinux_2_28_x86_64.whl/g" > /tmp/requirements_ci_extra.txt
-  - pip install -r /tmp/requirements_ci_extra.txt
+  - pip install -e .          # base deps from setup.py (no requirements*.txt anymore)
+  # CPU-only torch first, so the repository extra below skips the CUDA build.
+  - pip install torch==2.8.0 torchvision==0.23.0 --index-url https://download.pytorch.org/whl/cpu
+  - pip install -e ".[repository]"   # heavy model deps; torch already satisfied by the CPU wheel
   - pip install pylint==3.2.7 pytest pytest-rerunfailures
 
 pages:
@@ -38,8 +37,9 @@ pages:
     - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
 
 pylint:
+  # vendored packages under pkg/ are pinned as-is (their own repos lint them) -- not our code.
   script:
-    - python -m pylint --rcfile=.pylintrc $(git ls-files "*.py" | grep -v "test/\|examples/") $(git ls-files cli/)
+    - python -m pylint --rcfile=.pylintrc $(git ls-files "*.py" | grep -v "test/\|examples/\|pkg/") $(git ls-files cli/)
 
 vre_unit_integration:
   before_script:
@@ -49,9 +49,8 @@ vre_unit_integration:
     - export VRE_WEIGHTS_DIR=$VRE_ROOT/weights
     - export VRE_LOGLEVEL=3
     - export VRE_COLORIZE_SEMSEG_FAST=1
-    - export PYTHONPATH="$PYTHONPATH:$VRE_ROOT:$VRE_ROOT/vre-video"
     - export PATH="$PATH:$VRE_ROOT/cli"
-    - pip install -r requirements.txt
+    - pip install -e .          # core deps; vre-video + image_utils are vendored in pkg/ now
     - pip install pytest pytest-rerunfailures
   script:
     - python3 -m pytest test/vre

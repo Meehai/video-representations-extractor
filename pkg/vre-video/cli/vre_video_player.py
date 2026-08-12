@@ -1,0 +1,1 @@
+../examples/vre-video-player/vre_video_player.py
