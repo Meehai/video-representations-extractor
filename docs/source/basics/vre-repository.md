@@ -6,4 +6,4 @@ VRE has a built-in representations repository of various ported algorithms and M
 Weights are stored using `git-lfs`, co-located with each representation under [vre_repository/](vre_repository/).
 
 Note: If you just want to clone the repo, without the weights resources, use `GIT_LFS_SKIP_SMUDGE=1 git clone ...`.
-See below other installation options, like pip (recommended) or docker.
+The heavy model deps (torch, cv2, timm, ...) install as an extra: `pip install -e ".[repository]"`.

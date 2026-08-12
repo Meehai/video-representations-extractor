@@ -1,0 +1,34 @@
+image: python:3.11-bullseye
+
+variables:
+  GIT_LFS_SKIP_SMUDGE: "1"
+
+workflow:
+  rules:
+  - if: $CI_COMMIT_BRANCH == "master"
+    when: always
+  - if: $CI_PIPELINE_SOURCE == 'merge_request_event' && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == 'master'
+    when: always
+  - when: never
+
+before_script:
+  - pip install -r requirements.txt
+  - export PYTHONPATH="$PYTHONPATH:$(pwd)"
+
+linters:
+  script:
+    - pip install pylint
+    - python -m pylint --rcfile=.pylintrc $(git ls-files "*.py" | grep -v "test\|examples")
+
+unit_tests:
+  script:
+    - apt-get update
+    - pip install pytest pytest-mock
+    - rm __init__.py # huh ? gitlab CI doing weird shit.
+    - pytest test/unit
+
+e2e_draw_sun_on_cat:
+  script:
+    - apt-get update
+    - apt install -y bc
+    - bash test/e2e/draw_sun_on_cat/run.sh

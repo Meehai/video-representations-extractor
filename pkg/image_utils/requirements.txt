@@ -1,0 +1,4 @@
+numpy
+Pillow
+loggez>=0.6.0
+# opencv-python # optional

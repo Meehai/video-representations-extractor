@@ -1,7 +1,0 @@
-[submodule "vre-video"]
-	path = vre-video
-	url = https://gitlab.com/video-representations-extractor/vre-video.git
-
-[submodule "image_utils"]
-	path = image_utils
-	url = https://gitlab.com/meehai/image_utils.py

@@ -3,7 +3,7 @@
 # A comma-separated list of package or module names from where C extensions may
 # be loaded. Extensions are loading into the active Python interpreter and may
 # run arbitrary code.
-extension-pkg-whitelist=nmslib, numpy, torch, cv2
+extension-pkg-whitelist=nmslib, numpy, torch
 
 # Add files or directories to the blacklist. They should be base names, not paths.
 ignore=CVS
@@ -14,11 +14,7 @@ ignore-patterns=
 
 # Python code to execute, usually for sys.path manipulation such as
 # pygtk.require().
-# Vendored packages live under pkg/ and are only reachable through the PEP 660 editable-install
-# meta-path finder, which astroid doesn't consult. Put pkg/ AND each pkg/<repo>/ dir on sys.path so
-# `import image_utils` (package at pkg/image_utils/) and `import vre_video` (package at
-# pkg/vre-video/vre_video/) resolve regardless of the editable mode. Run from the repo root.
-init-hook='import sys, pathlib; sys.path[:0] = [str(pathlib.Path("pkg")), *[str(p) for p in pathlib.Path("pkg").glob("*") if p.is_dir()]]'
+#init-hook=
 
 # Use multiple processes to speed up Pylint. Specifying 0 will auto-detect the
 # number of processors available to use.
@@ -236,7 +232,6 @@ disable = logging-fstring-interpolation,
           expression-not-assigned,
           unnecessary-dunder-call,
           no-else-return,
-          unnecessary-lambda-assignment,
 
 [FORMAT]
 

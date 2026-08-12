@@ -1,0 +1,5 @@
+numpy>=1.21.6
+Pillow>=11.3.0
+loggez>=0.5.0
+tqdm>=4.66.5
+overrides==7.7.0
