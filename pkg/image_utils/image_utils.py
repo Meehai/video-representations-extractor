@@ -1,13 +1,18 @@
 """
 image_utils.py: generic utils for images manipulation. Repo at https://gitlab.com/meehai/image_utils.py.
-Version: 2025.03.01.2
+Version: 2025.03.02.1
 """
 from typing import NamedTuple
-from PIL import Image, ImageDraw
+import os
+from PIL import Image as PILImage, ImageDraw
 import numpy as np
 from loggez import make_logger
 
 logger = make_logger("IMAGE_UTILS", exists_ok=True)
+
+if os.getenv("TYPEGUARD", "0") == "1":
+    from typeguard import install_import_hook
+    install_import_hook(["image_utils", "image_utils_pil"])
 
 try:
     import cv2
@@ -21,44 +26,41 @@ class PointIJ(NamedTuple):
     i: int
     j: int
 
-class Color(tuple):
-    """class for colors: tuples of 3 integers"""
-    BLACK    = (  0,   0,   0)
-    WHITE    = (255, 255, 255)
-    RED      = (255,   0,   0)
-    GREEN    = (  0, 255,   0)
-    GREENISH = (  0, 200,   0)
-    BLUE     = (  0,   0, 255)
+Image = np.ndarray
+Color = tuple[int, int, int]
+Point2D = PointIJ | tuple[int, int] | tuple[float, float]
+Shape = tuple[int, int, int]
 
 # Module utilities
 
-def _check_image(image: np.ndarray):
+def _check_image(image: Image):
     assert image.dtype in (np.uint8, np.float32), f"{image.dtype=}"
-    assert len(image.shape) in (3, 1), image.shape # RGB or grayscale only for now
+    if image.dtype == np.uint8:
+        assert image.shape[-1] in (3, 1), image.shape # RGB or grayscale only for now
 
 def _scale(a: int, b: int, c: int) -> int:
     return int(b / a * c)
 
-def _get_height_width(image_shape: tuple[int, int], height: int | None, width: int | None) -> tuple[int, int]:
+def _get_height_width(image_shape: Shape, height: int | None, width: int | None) -> tuple[int, int]:
     """used by image_resize to get height from width or vice-versa if one is missing while maintaining scale"""
     width = _scale(image_shape[0], height, image_shape[1]) if (width is None or width == -1) else width
     height = _scale(image_shape[1], width, image_shape[0]) if (height is None or height == -1) else height
     return height, width
 
-def _get_px_from_perc(perc: float, image_shape: tuple[int, int]) -> int:
+def _get_px_from_perc(perc: float, image_shape: Shape) -> int:
     """returns the size in pixels from percents"""
     min_shape = perc * min(image_shape[0], image_shape[1]) / 100
     if min_shape < 1:
         logger.trace(f"{min_shape=} below 1 pixel. Returning 1")
     return max(1, int(min_shape))
 
-def _check_points(p1: PointIJ, p2: PointIJ, image_shape: tuple[int, int, int]) -> tuple[PointIJ, PointIJ]:
+def _check_points(p1: Point2D, p2: Point2D, image_shape: Shape) -> tuple[PointIJ, PointIJ]:
     p1, p2 = (p1, p2) if p1[0] < p2[0] else ((p1, p2) if p1[0] == p2[0] and p1[1] < p2[1] else (p2, p1))
     p1 = (min(p1[0], image_shape[0] - 1), min(p1[1], image_shape[1] - 1))
     p2 = (min(p2[0], image_shape[0] - 1), min(p2[1], image_shape[1] - 1))
     return PointIJ(*p1), PointIJ(*p2)
 
-def _update(res: np.ndarray, us: np.ndarray, vs: np.ndarray, color: tuple[int, int, int]):
+def _update(res: np.ndarray, us: np.ndarray, vs: np.ndarray, color: Shape):
     """safely write (sub-)pixels into an image without going out of bounds. 2.4 writes to both 2 and 3 position."""
     u_floor = us.astype(int).clip(0, res.shape[0] - 1)
     v_floor = vs.astype(int).clip(0, res.shape[1] - 1)
@@ -71,26 +73,26 @@ def _update(res: np.ndarray, us: np.ndarray, vs: np.ndarray, color: tuple[int, i
 
 # Image manipulation functions (i.e. resizing).
 
-def _image_resize_pil(image: np.ndarray, height: int, width: int, resample: Image.Resampling, **kwargs) -> np.ndarray:
+def _image_resize_pil(image: Image, height: int, width: int, resample: PILImage.Resampling, **kwargs) -> Image:
     """image is supposed to be validated here, 3-sized rgb or grayscale with uint8 or float32 only"""
     out = np.empty((height, width, channels := image.shape[2]), dtype=image.dtype)
     if image.dtype == np.uint8:
         if image.shape[-1] == 1:
             image = image[..., 0] # grayscale pil uint8 needs to be 2D
-        pil_image = Image.fromarray(image).resize((width, height), resample=resample, **kwargs)
+        pil_image = PILImage.fromarray(image).resize((width, height), resample=resample, **kwargs)
         out[:] = np.asarray(pil_image).reshape(height, width, channels)
     elif image.dtype == np.float32:
         for c in range(channels):
-            pil_image_c = Image.fromarray(image[..., c]).resize((width, height), resample=resample, **kwargs)
+            pil_image_c = PILImage.fromarray(image[..., c]).resize((width, height), resample=resample, **kwargs)
             out[..., c] = np.asarray(pil_image_c)
     return out
 
-def _image_resize_cv2(image: np.ndarray, height: int, width: int, interpolation: int, **kwargs) -> np.ndarray:
+def _image_resize_cv2(image: Image, height: int, width: int, interpolation: int, **kwargs) -> Image:
     res = cv2.resize(image, dsize=(width, height), interpolation=interpolation, **kwargs)
     return res.astype(image.dtype).reshape(height, width, image.shape[2]) # for e.g. grayscale with (h, w, 1)
 
-def image_resize(image: np.ndarray, height: int | None, width: int | None,
-                 interpolation: str = "bilinear", backend: str = DEFAULT_RESIZE_BACKEND, **kwargs) -> np.ndarray:
+def image_resize(image: Image, height: int | None, width: int | None,
+                 interpolation: str = "bilinear", backend: str = DEFAULT_RESIZE_BACKEND, **kwargs) -> Image:
     """Wrapper on top of Image(arr).resize((w, h), args) or cv2.resize. Sadly cv2 is faster so we cannot remove it."""
     # TODO: reimplement with image_utils primitives.
     _check_image(image)
@@ -107,18 +109,18 @@ def image_resize(image: np.ndarray, height: int | None, width: int | None,
         }[interpolation]
         res = _image_resize_cv2(image, height, width, interpolation=interpolation_type, **kwargs)
     elif backend.upper() == "PIL":
-        interpolation_type: Image.Resampling = {
-            "nearest": Image.Resampling.NEAREST,
-            "bilinear": Image.Resampling.BILINEAR,
-            "lanczos": Image.Resampling.LANCZOS,
+        interpolation_type: PILImage.Resampling = {
+            "nearest": PILImage.Resampling.NEAREST,
+            "bilinear": PILImage.Resampling.BILINEAR,
+            "lanczos": PILImage.Resampling.LANCZOS,
         }[interpolation]
         res = _image_resize_pil(image, height, width, resample=interpolation_type, **kwargs)
     else:
         raise ValueError(str(backend))
     return res
 
-def image_paste(image1: np.ndarray, image2: np.ndarray, top_left: PointIJ=(0, 0),
-                background_color: Color=(0, 0, 0), inplace: bool=False) -> np.ndarray:
+def image_paste(image1: Image, image2: Image, top_left: Point2D=(0, 0),
+                background_color: Color=(0, 0, 0), inplace: bool=False) -> Image:
     """Pastes two [0:255] images over each other. image  takes priority everywhere except where it's (0, 0, 0)"""
     _check_image(image1)
     _check_image(image2)
@@ -134,8 +136,8 @@ def image_paste(image1: np.ndarray, image2: np.ndarray, top_left: PointIJ=(0, 0)
 
 # Drawing functions
 
-def image_draw_line(image: np.ndarray, p1: PointIJ, p2: PointIJ, color: Color,
-                    thickness: float, inplace: bool=False) -> np.ndarray:
+def image_draw_line(image: Image, p1: Point2D, p2: Point2D, color: Color,
+                    thickness: float, inplace: bool=False) -> Image:
     """Draws a lines between two points with a given thickness"""
     _check_image(image)
     p1, p2 = _check_points(p1, p2, image.shape)
@@ -193,8 +195,8 @@ def image_draw_line(image: np.ndarray, p1: PointIJ, p2: PointIJ, color: Color,
 
     return res
 
-def image_draw_rectangle(image: np.ndarray, top_left: PointIJ, bottom_right: PointIJ,
-                         color: Color, thickness: float, inplace: bool=False) -> np.ndarray:
+def image_draw_rectangle(image: Image, top_left: Point2D, bottom_right: Point2D,
+                         color: Color, thickness: float, inplace: bool=False) -> Image:
     """Draws a rectangle (i.e. bounding box) over an image. Thinkness is in percents w.r.t smallest axis (min 1)."""
     _check_image(image)
     top_left, bottom_right = PointIJ(*top_left), PointIJ(*bottom_right)
@@ -213,8 +215,8 @@ def image_draw_rectangle(image: np.ndarray, top_left: PointIJ, bottom_right: Poi
 
     return res
 
-def image_draw_polygon(image: np.ndarray, points: list[PointIJ], color: Color, thickness: int,
-                       inplace: bool=False) -> np.ndarray:
+def image_draw_polygon(image: Image, points: list[Point2D], color: Color, thickness: float,
+                       inplace: bool=False) -> Image:
     """draws a polygon given some points"""
     _check_image(image)
     assert len(points) >= 2, "at least 2 points needed"
@@ -225,12 +227,12 @@ def image_draw_polygon(image: np.ndarray, points: list[PointIJ], color: Color, t
         image_draw_line(res, p1=l, p2=r, color=color, thickness=thickness, inplace=True)
     return res
 
-def image_draw_circle(image: np.ndarray, center: PointIJ, radius: float, color: Color, fill: bool,
-                      outline_thickness: int | None = None, inplace: bool=False) -> np.ndarray:
+def image_draw_circle(image: Image, center: Point2D, radius: float, color: Color, fill: bool,
+                      outline_thickness: float | None = None, inplace: bool=False) -> Image:
     """draw a circle at a given center with a radius (in percents). Outline thickness is also in percents (or none)"""
     # TODO: reimplement with image_utils primitives.
     _check_image(image)
-    img_pil = Image.fromarray(image)
+    img_pil = PILImage.fromarray(image)
     draw = ImageDraw.Draw(img_pil)
     r_px = _get_px_from_perc(radius, image.shape)
     assert (fill is True and outline_thickness is None) or not fill, "if fill is set, outline_thickness shouldn't be"

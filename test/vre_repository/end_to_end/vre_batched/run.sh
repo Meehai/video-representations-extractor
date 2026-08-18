@@ -4,7 +4,8 @@ export CWD=$(dirname $(readlink -f ${BASH_SOURCE[0]}))
 export VRE_ROOT=$CWD/../../../
 export VID=$CWD/test_video.mp4
 
-test -e $VID || curl "https://gitlab.com/video-representations-extractor/video-representations-extractor/-/raw/master/resources/test_video.mp4" -o $VID
+test -e $VID || curl -fL "https://gitlab.com/open-visual-robotics/video-representations-extractor/-/raw/master/resources/test_video.mp4" -o $VID
+file --mime-type $VID | grep -q "video/" || { echo "ERROR: $VID is not a valid video file"; exit 1; }
 
 # make sure we start from scratch
 test -f $CWD/cfg.yaml || { echo "$CWD/cfg.yaml does not exist"; exit 1; }

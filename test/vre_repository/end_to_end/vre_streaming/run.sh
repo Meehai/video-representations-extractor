@@ -5,6 +5,9 @@ export CWD=$(dirname $(readlink -f ${BASH_SOURCE[0]}))
 export VRE_ROOT=$CWD/../../../../
 export VID=$VRE_ROOT/resources/test_video.mp4
 
+test -e $VID || curl -fL "https://gitlab.com/open-visual-robotics/video-representations-extractor/-/raw/master/resources/test_video.mp4" -o $VID
+file --mime-type $VID | grep -q "video/" || { echo "ERROR: $VID is not a valid video file"; exit 1; }
+
 rm -f $CWD/frame.png
 ffmpeg -i $VID -vframes 200 -f rawvideo -pix_fmt rgb24 - | \
   vre_streaming - $CWD/cfg_rgb.yaml --input_size 720 1280 --output_size 360 640 | \
