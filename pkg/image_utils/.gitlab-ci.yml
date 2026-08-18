@@ -17,18 +17,19 @@ before_script:
 
 linters:
   script:
-    - pip install pylint
+    - pip install pylint typeguard
     - python -m pylint --rcfile=.pylintrc $(git ls-files "*.py" | grep -v "test\|examples")
 
 unit_tests:
   script:
     - apt-get update
-    - pip install pytest pytest-mock
+    - pip install pytest pytest-mock typeguard
     - rm __init__.py # huh ? gitlab CI doing weird shit.
-    - pytest test/unit
+    - TYPEGUARD=1 pytest test/unit
 
 e2e_draw_sun_on_cat:
   script:
     - apt-get update
     - apt install -y bc
-    - bash test/e2e/draw_sun_on_cat/run.sh
+    - pip install typeguard
+    - TYPEGUARD=1 bash test/e2e/draw_sun_on_cat/run.sh

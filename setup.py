@@ -18,7 +18,7 @@ from setuptools import setup, find_packages
 from setuptools.command.develop import develop as _develop
 
 NAME = "video-representations-extractor"
-VERSION = "1.18.4"
+VERSION = "1.18.5"
 DESCRIPTION = "Video Representations Extractor (VRE) for computing algorithmic or neural representations of each frame."
 URL = "https://gitlab.com/video-representations-extractor/video-representations-extractor"
 

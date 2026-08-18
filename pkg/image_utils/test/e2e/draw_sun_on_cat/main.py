@@ -1,8 +1,14 @@
 #!/usr/bin/env python3
+import os
 import sys
-from image_utils import image_draw_polygon, image_draw_rectangle
+
+if os.getenv("TYPEGUARD", "0") == "1":  # scoped to our modules, BEFORE importing them (see test/conftest.py)
+    from typeguard import install_import_hook
+    install_import_hook(["image_utils", "image_utils_pil"])
+
 from image_utils import image_draw_circle, image_resize, image_paste
-# from image_utils_pil import image_draw_polygon_pil as image_draw_polygon, image_draw_rectangle_pil as image_draw_rectangle
+# from image_utils import image_draw_polygon, image_draw_rectangle
+from image_utils_pil import image_draw_polygon, image_draw_rectangle
 
 from PIL import Image
 import numpy as np

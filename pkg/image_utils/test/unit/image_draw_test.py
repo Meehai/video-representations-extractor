@@ -1,11 +1,14 @@
-from image_utils import image_draw_rectangle, image_draw_circle, Color, image_draw_line
+from image_utils import image_draw_rectangle, image_draw_circle, image_draw_line
 import numpy as np
 import pytest
 
 np.set_printoptions(linewidth=200)
 
+BLACK = (0, 0, 0)
+WHITE = (255, 255, 255)
+
 def white(*size) -> np.ndarray:
-    return (np.ones((*size, 3)) * Color.WHITE).astype(np.uint8)
+    return (np.ones((*size, 3)) * WHITE).astype(np.uint8)
 
 @pytest.mark.parametrize("inplace", [True, False])
 def test_image_draw_rectangle_1(inplace: bool):
@@ -13,22 +16,22 @@ def test_image_draw_rectangle_1(inplace: bool):
     img = white(80, 80)
     thickness = 0.1
     res = image_draw_rectangle(img, top_left=(0, 0), bottom_right=(20, 20),
-                               color=Color.BLACK, thickness=thickness, inplace=inplace)
+                               color=BLACK, thickness=thickness, inplace=inplace)
     res = img if inplace else res
-    assert (res[0, 0] == Color.BLACK).all()
-    assert (res[0, 1] == Color.BLACK).all()
-    assert (res[1, 0] == Color.BLACK).all()
-    assert (res[1, 1] == Color.WHITE).all()
-    assert (res[20, 20] == Color.BLACK).all()
-    assert (res[20, 19] == Color.BLACK).all()
-    assert (res[19, 20] == Color.BLACK).all()
-    assert (res[19, 19] == Color.WHITE).all()
+    assert (res[0, 0] == BLACK).all()
+    assert (res[0, 1] == BLACK).all()
+    assert (res[1, 0] == BLACK).all()
+    assert (res[1, 1] == WHITE).all()
+    assert (res[20, 20] == BLACK).all()
+    assert (res[20, 19] == BLACK).all()
+    assert (res[19, 20] == BLACK).all()
+    assert (res[19, 19] == WHITE).all()
 
 @pytest.mark.parametrize("inplace", [True, False])
 def test_image_draw_circle_1(inplace: bool):
     """draws a single non-filled circle centered at (10, 10) with a radius of 10% (2px) and no contour thickness"""
     img = white(20, 20)
-    res = image_draw_circle(img, center=(10, 10), radius=10, color=Color.BLACK, fill=False,
+    res = image_draw_circle(img, center=(10, 10), radius=10, color=BLACK, fill=False,
                             outline_thickness=None, inplace=inplace)
     res = img if inplace else res
 
@@ -58,7 +61,7 @@ def test_image_draw_circle_1(inplace: bool):
 def test_image_draw_circle_2(inplace: bool):
     """draws a single filled circle centered at (10, 10) with a radius of 10% (2px) w/o contour thickness"""
     img = white(20, 20)
-    res = image_draw_circle(img, center=(10, 10), radius=10, color=Color.BLACK, fill=True,
+    res = image_draw_circle(img, center=(10, 10), radius=10, color=BLACK, fill=True,
                             outline_thickness=None, inplace=inplace)
     res = img if inplace else res
 
@@ -89,7 +92,7 @@ def test_image_draw_circle_2(inplace: bool):
 def test_image_draw_circle_3(inplace: bool):
     """draws a single non-filled circle centered at (10, 10) with a radius of 10% (px) and a contour of 10% (2px)"""
     img = white(20, 20)
-    res = image_draw_circle(img, center=(10, 10), radius=10, color=Color.BLACK, fill=False,
+    res = image_draw_circle(img, center=(10, 10), radius=10, color=BLACK, fill=False,
                             outline_thickness=10, inplace=inplace)
     res = img if inplace else res
     expected = [[255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255],
@@ -118,7 +121,7 @@ def test_image_draw_circle_3(inplace: bool):
 def test_image_draw_circle_4(inplace: bool):
     """same as test_image_draw_circle_3 but outline_thickness=9.9% which leads to 1 less pixel in the outline"""
     img = white(20, 20)
-    res = image_draw_circle(img, center=(10, 10), radius=10, color=Color.BLACK, fill=False,
+    res = image_draw_circle(img, center=(10, 10), radius=10, color=BLACK, fill=False,
                             outline_thickness=9.9, inplace=inplace)
     res = img if inplace else res
     expected = [[255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255],
@@ -146,13 +149,13 @@ def test_image_draw_circle_4(inplace: bool):
 def test_image_draw_circle_bad():
     with pytest.raises(AssertionError):
         _ = image_draw_circle(white(20, 20), center=(10, 10), radius=10,
-                              color=Color.BLACK, fill=True, outline_thickness=10)
+                              color=BLACK, fill=True, outline_thickness=10)
 
 @pytest.mark.parametrize("inplace", [True, False])
 def test_image_draw_line_1(inplace: bool):
     """draw a single line from (10, 10) to (15, 15)."""
     img = white(20, 20)
-    res = image_draw_line(img, p1=(10, 10), p2=(15, 15), color=Color.BLACK, thickness=1, inplace=inplace)
+    res = image_draw_line(img, p1=(10, 10), p2=(15, 15), color=BLACK, thickness=1, inplace=inplace)
     res = img if inplace else res
 
     expected = [[255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255],
@@ -181,7 +184,7 @@ def test_image_draw_line_1(inplace: bool):
 def test_image_draw_line_2(inplace: bool):
     """draw a single line from (5, 5) to (15, 15) with a thickness of 10% (width=2 pixels)"""
     img = white(20, 20)
-    res = image_draw_line(img, p1=(5, 5), p2=(15, 15), color=Color.BLACK, thickness=10, inplace=inplace)
+    res = image_draw_line(img, p1=(5, 5), p2=(15, 15), color=BLACK, thickness=10, inplace=inplace)
     res = img if inplace else res
 
     expected = [[255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255],
@@ -210,7 +213,7 @@ def test_image_draw_line_2(inplace: bool):
 def test_image_draw_line_3(inplace: bool):
     """draw a single line from (5, 5) to (15, 15) with a thickness of 1"""
     img = white(20, 20)
-    res = image_draw_line(img, p1=(5, 5), p2=(15, 15), color=Color.BLACK, thickness=1, inplace=inplace)
+    res = image_draw_line(img, p1=(5, 5), p2=(15, 15), color=BLACK, thickness=1, inplace=inplace)
 
     expected = [[255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255],
                 [255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255],
@@ -237,7 +240,7 @@ def test_image_draw_line_3(inplace: bool):
 @pytest.mark.parametrize("inplace", [True, False])
 def test_image_draw_line_4(inplace: bool):
     img = white(20, 20)
-    res = image_draw_line(img, p1=(2, 7), p2=(7, 7), color=Color.BLACK, thickness=20, inplace=inplace)
+    res = image_draw_line(img, p1=(2, 7), p2=(7, 7), color=BLACK, thickness=20, inplace=inplace)
 
     expected = [[255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255],
                 [255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255],
@@ -267,7 +270,7 @@ def test_image_draw_line_5(inplace: bool):
     p1 = (20, 10)
     p2 = (20, 15)
     thickness = 10
-    res = image_draw_line(img, p1, p2, Color.BLACK, thickness, inplace=inplace)
+    res = image_draw_line(img, p1, p2, BLACK, thickness, inplace=inplace)
 
     expected = [[255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255],
                 [255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255],

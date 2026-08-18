@@ -67,7 +67,7 @@ def test_image_resize_downscale_bilinear(dtype: str):
              [128, 128, 128,  64,  64,  64],
              [128, 128, 128,  64,  64,  64],
              [128, 128, 128,  64,  64,  64]]
-    res = image_resize(gray(image, dtype), height=2, width=2, interpolation="bilinear")
+    res = image_resize(gray(image, dtype), height=2, width=2, interpolation="bilinear", backend="PIL")
     expected = [[ 43, 204],
                 [109,  91]]
     assert res.dtype == np.dtype(dtype), f"{res.dtype=}"
