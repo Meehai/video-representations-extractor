@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 
 # Upload images to imgur and output their URLs to stdout.
-# Uses imgur's browser upload endpoint (the v3 API stopped working in 2025).
+# Uses imgur's v3 API with imgur's public web client_id (extracted from
+# imgur.com's JS bundle); the old browser endpoint (imgur.com/upload) now
+# returns 410 and the API rejects requests without a client_id.
 
 # Function to output usage instructions
 function usage {
@@ -15,11 +17,13 @@ function usage {
 	echo "the URLs are put on the X selection or clipboard for easy pasting." >&2
 }
 
-# Function to upload a file via imgur's browser upload endpoint
+# Public web client_id used by imgur.com (see imgur.com's JS bundle)
+CLIENT_ID="d70305e7c3ac5c6"
+
+# Function to upload a file via imgur's v3 API
 function upload {
-	curl -s -X POST "https://imgur.com/upload" \
-		-H "Referer: https://imgur.com/upload" \
-		-F "Filedata=$1"
+	curl -s -X POST "https://api.imgur.com/3/upload?client_id=${CLIENT_ID}" \
+		-F "image=$1"
 }
 
 # Check arguments
@@ -61,17 +65,16 @@ while [ $# -gt 0 ]; do
 		continue
 	fi
 
-	# Parse JSON response to extract the hash
-	hash=$(echo "$response" | grep -o '"hash":"[^"]*"' | head -1 | cut -d'"' -f4)
+	# Parse JSON response to extract the link
+	url=$(echo "$response" | grep -o '"link":"[^"]*"' | head -1 | cut -d'"' -f4)
 
-	if [ -z "$hash" ]; then
+	if [ -z "$url" ]; then
 		echo "Error from imgur:" >&2
 		echo "$response" >&2
 		errors=true
 		continue
 	fi
 
-	url="https://i.imgur.com/${hash}.png"
 	echo "$url"
 	delete_hash=$(echo "$response" | grep -o '"deletehash":"[^"]*"' | head -1 | cut -d'"' -f4)
 	echo "Delete page: https://imgur.com/delete/$delete_hash" >&2
