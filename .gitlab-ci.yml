@@ -1,4 +1,4 @@
-image: python:3.11-bullseye
+image: python:3.11-bookworm
 
 variables:
   GIT_LFS_SKIP_SMUDGE: "1"
@@ -23,7 +23,7 @@ before_script:
   - export PATH="$PATH:$VRE_ROOT/cli"
   - pip install -e .          # base deps from setup.py (no requirements*.txt anymore)
   # CPU-only torch first, so the repository extra below skips the CUDA build.
-  - pip install torch==2.8.0 torchvision==0.23.0 --index-url https://download.pytorch.org/whl/cpu
+  - pip install torch==2.9.0 torchvision==0.24.0 --index-url https://download.pytorch.org/whl/cpu
   - pip install -e ".[repository]"   # heavy model deps; torch already satisfied by the CPU wheel
   - pip install pylint==3.2.7 pytest pytest-rerunfailures
 
