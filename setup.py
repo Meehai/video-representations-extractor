@@ -18,7 +18,7 @@ from setuptools import setup, find_packages
 from setuptools.command.develop import develop as _develop
 
 NAME = "video-representations-extractor"
-VERSION = "1.18.5"
+VERSION = "1.18.6"
 DESCRIPTION = "Video Representations Extractor (VRE) for computing algorithmic or neural representations of each frame."
 URL = "https://gitlab.com/video-representations-extractor/video-representations-extractor"
 
@@ -37,8 +37,8 @@ REQUIRED_CORE = [
 ]
 
 REQUIRED_REPOSITORY = [
-    "torch==2.8.0",
-    "torchvision==0.23.0",
+    "torch==2.9.0",
+    "torchvision==0.24.0",
     "opencv-python==4.12.0.88",
     "pycocotools==2.0.10",
     "timm==1.0.9",
