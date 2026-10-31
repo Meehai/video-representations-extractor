@@ -15,10 +15,10 @@ ignore-patterns=
 # Python code to execute, usually for sys.path manipulation such as
 # pygtk.require().
 # Vendored packages live under pkg/ and are only reachable through the PEP 660 editable-install
-# meta-path finder, which astroid doesn't consult. Put pkg/ AND each pkg/<repo>/ dir on sys.path so
-# `import image_utils` (package at pkg/image_utils/) and `import vre_video` (package at
-# pkg/vre-video/vre_video/) resolve regardless of the editable mode. Run from the repo root.
-init-hook='import sys, pathlib; sys.path[:0] = [str(pathlib.Path("pkg")), *[str(p) for p in pathlib.Path("pkg").glob("*") if p.is_dir()]]'
+# meta-path finder, which astroid doesn't consult. Put each pkg/<repo>/ dir on sys.path so
+# `import image_utils` (pkg/image_utils/image_utils/) and `import vre_video` (pkg/vre-video/vre_video/)
+# resolve regardless of the editable mode. Run from the repo root.
+init-hook='import sys, pathlib; sys.path[:0] = [str(p) for p in pathlib.Path("pkg").glob("*") if p.is_dir()]'
 
 # Use multiple processes to speed up Pylint. Specifying 0 will auto-detect the
 # number of processors available to use.
