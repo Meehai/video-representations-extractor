@@ -6,9 +6,10 @@ offline, there is no submodule init dance, and CI has no `GIT_SUBMODULE_STRATEGY
 copying its files here at the new commit (check `setup.py` -- the packages under `pkg/` are
 auto-discovered and put on the import path, so no per-package wiring is needed).
 
-Two layouts exist, both handled by `setup.py`'s `pkg/` scan:
-- the repo root IS the package (`image_utils`: `pkg/image_utils/__init__.py`), and
-- the package is nested one level (`vre-video`: `pkg/vre-video/vre_video/`).
+One layout: `pkg/<repo>/<package>/` (`pkg/vre-video/vre_video/`, `pkg/image_utils/image_utils/`).
+`image_utils` upstream is flat (repo root = package), so its three `.py` files are copied into
+`pkg/image_utils/image_utils/` when bumping. Its vendored `test/` tree imports the flat modules
+(`import image_utils_pil`), so run it with `PYTHONPATH=pkg/image_utils/image_utils` if ever needed.
 
 Vendored packages (pinned commits):
 - [image_utils](./image_utils) - image helpers (resize, paste, drawing). Pinned to `370728c`
