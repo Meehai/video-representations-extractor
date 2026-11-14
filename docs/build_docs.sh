@@ -16,8 +16,8 @@ set -euo pipefail
 cd "$(dirname "$0")/.."                 # repo root (this script lives in docs/)
 OUT="${1:-public}"
 
-# vendored packages live in pkg/ (vre_video under pkg/vre-video/, image_utils under pkg/image_utils/)
-export PYTHONPATH="$PWD:$PWD/pkg:$PWD/pkg/vre-video:${PYTHONPATH:-}"
+# vendored packages live in pkg/<repo>/<package>/ (pkg/vre-video/vre_video/, pkg/image_utils/image_utils/)
+export PYTHONPATH="$PWD:$PWD/pkg/image_utils:$PWD/pkg/vre-video:${PYTHONPATH:-}"
 
 # one pure-python build dependency; auto-install so a fresh checkout just works
 python -c "import pdoc" 2>/dev/null || { echo "[docs] installing pdoc..."; pip install --quiet pdoc; }
