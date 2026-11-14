@@ -2,7 +2,7 @@
 
 **Created**: 2026-08-12
 **Priority**: 2
-**Closed**: n/a
+**Closed**: 2026-11-14
 
 ## Description
 
@@ -13,7 +13,7 @@ Align packaging with robosim's conventions:
   breaking changes not yet fixed in VRE, do NOT bump blindly; vre-video at `8c9e5b5`).
   Removed `.gitmodules`, the gitlinks, and `.git/modules`.
 - `setup.py` is now the single source of truth for deps: auto-discovers `pkg/<repo>/` packages
-  (handles both a repo-root-is-package layout like image_utils and a nested one like vre-video),
+  (one layout, `pkg/<repo>/<package>/`; flat upstream image_utils is copied into `pkg/image_utils/image_utils/`),
   `install_requires` = core, `extras_require["repository"]` = heavy deps. Deleted
   `requirements.txt` and `requirements-extra.txt`.
 - Removed `Dockerfile` (out of scope).
