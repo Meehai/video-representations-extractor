@@ -21,7 +21,9 @@ On cuda the model runs under float16 autocast.
 
 `weights/<variant>.pt` is transformers' `facebook/<variant>` state_dict as-is (same keys), so the two stay
 interchangeable: `Dinov2Model.load_state_dict(...)` works both ways. Fetched on first use, like every other VRE
-representation. To regenerate them (needs `transformers` once, not at runtime):
+representation: from VRE's gitlab, and if it isn't there (HTTP/network error), from huggingface's
+`facebook/<variant>/pytorch_model.bin` at the commit pinned in `HF_REVISIONS` (`dinov2.py`). That file is the very same
+state_dict, tensor for tensor. To regenerate them (needs `transformers` once, not at runtime):
 
 ```python
 import torch
