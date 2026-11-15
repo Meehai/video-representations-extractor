@@ -125,7 +125,7 @@ def main(args: Namespace):
     else:
         write_buffer = sys.stdout.buffer
 
-    ixs = list(range(len(video)))
+    ixs = range(len(video)) # Note: suport important to not do list() here because len(fd_frame_reader)==2**31
     while True:
         for ix in ixs:
             now = datetime.now()
