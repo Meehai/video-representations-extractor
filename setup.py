@@ -30,16 +30,16 @@ with open(ROOT / "README.md", "r", encoding="utf-8") as fh:
 REQUIRED_CORE = [
     "loggez>=0.8.4",
     "numpy>=1.21.6",
+    "Pillow>=11.3.0",
     "PyYAML==6.0.3",
     "tqdm==4.66.5",
     "overrides==7.7.0",
-    "Pillow==11.3.0",
     "graphviz==0.20.3",
 ]
 
 REQUIRED_REPOSITORY = [
-    "torch==2.9.0",
-    "torchvision==0.24.0",
+    "torch>=2.9.0,<3.0.0",
+    "torchvision>=0.24.0,<1.0.0",
     "opencv-python==4.14.0.94",
     "pycocotools==2.0.10",
     "timm==1.0.9",
@@ -97,6 +97,6 @@ setup(
     },
     dependency_links=[],
     license="MIT",
-    python_requires=">=3.10",
+    python_requires=">=3.11",
     scripts=["cli/vre", "cli/vre_collage", "cli/vre_reader", "cli/vre_gpu_parallel", "cli/vre_dir_analysis"],
 )

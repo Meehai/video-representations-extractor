@@ -2,7 +2,7 @@
 
 **Created**: 2026-11-14
 **Priority**: 2
-**Closed**: n/a
+**Closed**: 2026-11-15
 
 **Labels**: representation
 
