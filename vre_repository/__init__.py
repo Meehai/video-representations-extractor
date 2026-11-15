@@ -20,6 +20,7 @@ def get_vre_repository() -> dict[str, Type[Representation]]:
     from .semantic_segmentation.mask2former import Mask2Former
     from .normals.depth_svd import DepthNormalsSVD
     from .descriptor.sift import SIFT
+    from .embeddings.dinov2 import DinoV2
 
     return {
         "color/rgb": RGB,
@@ -37,4 +38,5 @@ def get_vre_repository() -> dict[str, Type[Representation]]:
         "optical-flow/raft": FlowRaft,
         "normals/depth-svd": DepthNormalsSVD,
         "descriptor/sift": SIFT,
+        "embeddings/dinov2": DinoV2,
     }
