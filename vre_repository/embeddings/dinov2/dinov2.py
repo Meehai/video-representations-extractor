@@ -1,12 +1,14 @@
 """DINOv2 global image embeddings. Weights are transformers' facebook/dinov2-* state_dicts (see README.md)."""
 from pathlib import Path
+from urllib.error import URLError
 import numpy as np
 import torch as tr
 from torch.nn import functional as F
 from overrides import overrides
 
 from vre_video import VREVideo
-from vre.utils import MemoryData
+from vre.utils import MemoryData, fetch
+from vre.logger import vre_logger as logger
 from vre import ReprOut
 from vre.representations.mixins import LearnedRepresentationMixin
 from vre_repository.utils import fetch_weights
@@ -21,6 +23,14 @@ VARIANTS = { # variant: (hidden_size, num_layers, num_heads)
     "dinov2-base": (768, 12, 12),
     "dinov2-large": (1024, 24, 16),
     "testing": (32, 2, 2),
+}
+# Fallback when VRE's gitlab doesn't have weights/<variant>.pt: huggingface's facebook/<variant> pytorch_model.bin at
+# a pinned commit, which is the very same state_dict (same keys, same tensors).
+HF_URL = "https://huggingface.co/facebook/{variant}/resolve/{revision}/pytorch_model.bin"
+HF_REVISIONS = {
+    "dinov2-small": "ed25f3a31f01632728cabb09d1542f84ab7b0056",
+    "dinov2-base": "f9e44c814b77203eaa57a6bdbbd535f21ede1415",
+    "dinov2-large": "47b73eefe95e8d44ec3623f8890bd894b6ea2d6c",
 }
 POOLS = ("cls", "gem", "cat")
 
@@ -75,8 +85,7 @@ class DinoV2(EmbeddingRepresentation, LearnedRepresentationMixin):
         assert load_weights is False or self.variant != "testing", "the 'testing' variant has no weights"
         self.model = Dinov2Model(*VARIANTS[self.variant])
         if load_weights:
-            path = fetch_weights(DinoV2.get_weights_paths(self.variant))[0]
-            self.model.load_state_dict(tr.load(path, map_location="cpu"))
+            self.model.load_state_dict(tr.load(self._fetch_weights(), map_location="cpu"))
         self.model = self.model.eval().to(self.device)
         self.setup_called = True
 
@@ -88,6 +97,16 @@ class DinoV2(EmbeddingRepresentation, LearnedRepresentationMixin):
             tr.cuda.empty_cache()
         self.model = None
         self.setup_called = False
+
+    def _fetch_weights(self) -> Path:
+        """weights/<variant>.pt: on disk, else from VRE's gitlab, else from huggingface (same state_dict)"""
+        path = DinoV2.get_weights_paths(self.variant)[0]
+        try:
+            return fetch_weights([path])[0]
+        except URLError as e: # HTTPError (e.g. 404: not on gitlab) is a URLError
+            url = HF_URL.format(variant=self.variant, revision=HF_REVISIONS[self.variant])
+            logger.info(f"'{path.name}' not on VRE's gitlab ({e}). Falling back to huggingface: '{url}'")
+            return fetch(url, path)
 
     def _preprocess(self, frames: np.ndarray) -> tr.Tensor:
         """uint8 (B, H, W, 3) -> ImageNet-normalized float (B, 3, H', W'), long side ~long_side, sides multiple of 14"""

@@ -1,9 +1,12 @@
+from pathlib import Path
+from urllib.error import HTTPError
 import numpy as np
 import pytest
 import torch as tr
 from vre_video import VREVideo
 from vre import ReprOut, MemoryData
 from vre_repository.embeddings.dinov2 import DinoV2
+from vre_repository.embeddings.dinov2 import dinov2 as dinov2_module
 from vre_repository.embeddings.dinov2.dinov2_impl import Dinov2Model
 
 def test_dinov2():
@@ -91,6 +94,27 @@ def test_dinov2_model_batch_independent():
         y_batch = model(x)
         y_one = model(x[1:2])
     assert tr.allclose(y_batch[1:2], y_one, atol=1e-5) # each frame's embedding is independent of its batch
+
+def test_dinov2_weights_fallback_to_huggingface(monkeypatch: pytest.MonkeyPatch):
+    def gitlab_404(paths: list[Path]):
+        raise HTTPError(url=str(paths[0]), code=404, msg="Not Found", hdrs=None, fp=None)
+    fetched = []
+    monkeypatch.setattr(dinov2_module, "fetch_weights", gitlab_404) # stub the network: not on VRE's gitlab
+    monkeypatch.setattr(dinov2_module, "fetch", lambda src, dst: fetched.append((src, dst)) or dst)
+    dinov2_repr = DinoV2("dinov2-base", name="dinov2", dependencies=[])
+
+    path = dinov2_repr._fetch_weights()
+    assert path == DinoV2.get_weights_paths("dinov2-base")[0] # same destination as VRE's own weights
+    assert fetched == [("https://huggingface.co/facebook/dinov2-base/resolve/"
+                        "f9e44c814b77203eaa57a6bdbbd535f21ede1415/pytorch_model.bin", path)] # pinned commit
+
+def test_dinov2_weights_no_fallback_on_other_errors(monkeypatch: pytest.MonkeyPatch):
+    def broken_file(paths: list[Path]):
+        raise AssertionError(f"'{paths[0]}' exists (or is a dir)")
+    monkeypatch.setattr(dinov2_module, "fetch_weights", broken_file)
+    monkeypatch.setattr(dinov2_module, "fetch", lambda src, dst: pytest.fail("huggingface must not be tried"))
+    with pytest.raises(AssertionError): # only network errors fall back: a local problem must surface as-is
+        DinoV2("dinov2-small", name="dinov2", dependencies=[])._fetch_weights()
 
 if __name__ == "__main__":
     test_dinov2()
