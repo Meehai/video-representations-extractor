@@ -41,6 +41,14 @@ representations:
       max_keypoints: 500
       process_scale: 0.5
 
+  dinov2:
+    type: embeddings/dinov2
+    dependencies: []
+    parameters:
+      variant: dinov2-small
+      pool: cat
+      long_side: 224
+
   edges_canny:
     type: edges/canny
     dependencies: []
