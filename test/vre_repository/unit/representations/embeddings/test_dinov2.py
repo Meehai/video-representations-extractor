@@ -11,7 +11,7 @@ from vre_repository.embeddings.dinov2.dinov2_impl import Dinov2Model
 
 def test_dinov2():
     video = VREVideo(np.random.randint(0, 255, size=(20, 64, 128, 3), dtype=np.uint8), fps=30)
-    dinov2_repr = DinoV2("testing", pool="cat", long_side=70, name="dinov2", dependencies=[])
+    dinov2_repr = DinoV2("testing", pool="cat", input_size=(42, 70), name="dinov2", dependencies=[])
     dinov2_repr.vre_setup(load_weights=False)
     assert dinov2_repr.name == "dinov2"
     assert dinov2_repr.compress is True # default
@@ -48,7 +48,7 @@ def test_dinov2_resize_output_images():
 @pytest.mark.parametrize("pool, n_channels", [("cls", 32), ("gem", 32), ("cat", 64)])
 def test_dinov2_pools(pool: str, n_channels: int):
     video = VREVideo(np.random.randint(0, 255, size=(2, 40, 30, 3), dtype=np.uint8), fps=30)
-    dinov2_repr = DinoV2("testing", pool=pool, long_side=28, name="dinov2", dependencies=[])
+    dinov2_repr = DinoV2("testing", pool=pool, input_size=(28, 28), name="dinov2", dependencies=[])
     dinov2_repr.vre_setup(load_weights=False)
     assert dinov2_repr.n_channels == n_channels
     out = dinov2_repr.compute(video, ixs=[0, 1])
@@ -62,22 +62,86 @@ def test_dinov2_make_images_without_frames():
     assert images.shape == (3, 8, 8, 3) and images.dtype == np.uint8 # vre_reader: no frames, the raw grid
     assert images.min() == 0 and images.max() == 255 # min-max scaled per frame
 
+def test_dinov2_tokens():
+    video = VREVideo(np.random.randint(0, 255, size=(2, 64, 128, 3), dtype=np.uint8), fps=30)
+    dinov2_repr = DinoV2("testing", pool="none", input_size=(28, 42), name="dinov2", dependencies=[])
+    dinov2_repr.vre_setup(load_weights=False)
+    assert dinov2_repr.n_channels == 32 # hidden_size: one D-vector per patch
+
+    out = dinov2_repr.compute(video, ixs=[0, 1])
+    assert out.output.shape == (2, 2, 3, 32) and out.output.dtype == np.float32 # (28/14, 42/14) patch grid
+    assert not np.allclose(np.linalg.norm(out.output, axis=-1), 1, atol=1e-3) # raw tokens: not L2-normalized
+
+    with tr.inference_mode():
+        tokens = dinov2_repr.model(dinov2_repr._preprocess(video[[0, 1]])).numpy()
+    assert np.allclose(out.output.reshape(2, 6, 32), tokens[:, 1:], atol=1e-6) # patch tokens, row-major, no CLS
+
+    out_images = dinov2_repr.make_images(out)
+    assert out_images.shape == (2, 64, 128, 3) and out_images.dtype == np.uint8 # the frame's size
+    assert out_images.min() == 0 and out_images.max() == 255 # top-3 PCA components, min-max scaled per frame
+    assert np.array_equal(dinov2_repr.make_images(out), out_images) # deterministic: PCA signs are fixed
+
+    out_resized = dinov2_repr.resize(out, (32, 32)) # the grid is set by input_size, not output_size
+    assert np.array_equal(out_resized.output, out.output)
+
+def test_dinov2_tokens_make_images_without_frames():
+    dinov2_repr = DinoV2("testing", pool="none", name="dinov2", dependencies=[])
+    out = ReprOut(frames=None, output=MemoryData(np.random.randn(3, 4, 5, 32).astype(np.float32)), key=[0, 1, 2])
+    images = dinov2_repr.make_images(out)
+    assert images.shape == (3, 4, 5, 3) and images.dtype == np.uint8 # vre_reader: no frames, the raw grid
+
+def test_dinov2_tokens_make_images_pca():
+    dinov2_repr = DinoV2("testing", pool="none", name="dinov2", dependencies=[])
+    grid = np.zeros((1, 2, 4, 32), dtype=np.float32)
+    grid[0, :, 0:2] = np.random.randn(32) # left half: one token, repeated
+    grid[0, :, 2:4] = np.random.randn(32) # right half: another one
+    out = ReprOut(frames=None, output=MemoryData(grid), key=[0])
+    image = dinov2_repr.make_images(out)[0]
+    assert (image[:, 0:2] == image[0, 0]).all() and (image[:, 2:4] == image[0, 2]).all() # same token, same color
+    assert not np.array_equal(image[0, 0], image[0, 2]) # different tokens, different colors
+
+def test_dinov2_tokens_make_images_tiny_grid():
+    dinov2_repr = DinoV2("testing", pool="none", name="dinov2", dependencies=[])
+    out = ReprOut(frames=None, output=MemoryData(np.random.randn(2, 1, 2, 32).astype(np.float32)), key=[0, 1])
+    images = dinov2_repr.make_images(out) # 2 tokens: rank 1 once centered, so 1 component; the other 2 channels are 0
+    assert images.shape == (2, 1, 2, 3) and images.dtype == np.uint8
+    assert (images[..., 1:] == 0).all()
+
+def test_dinov2_input_size_changes_output():
+    video = VREVideo(np.random.randint(0, 255, size=(1, 64, 128, 3), dtype=np.uint8), fps=30)
+    dinov2_small = DinoV2("testing", pool="cat", input_size=(28, 56), name="dinov2", dependencies=[])
+    dinov2_big = DinoV2("testing", pool="cat", input_size=(56, 112), name="dinov2", dependencies=[])
+    dinov2_small.vre_setup(load_weights=False)
+    dinov2_big.vre_setup(load_weights=False)
+    dinov2_big.model.load_state_dict(dinov2_small.model.state_dict()) # same weights, only input_size differs
+    y_small = dinov2_small.compute(video, ixs=[0]).output
+    y_big = dinov2_big.compute(video, ixs=[0]).output
+    assert y_small.shape == y_big.shape == (1, 64) # pooled: same shape
+    assert not np.allclose(y_small, y_big, atol=1e-4) # but input_size is part of what the vectors mean
+
 def test_dinov2_bad_args():
     with pytest.raises(ValueError):
         DinoV2("dinov2-huge", name="dinov2", dependencies=[])
     with pytest.raises(ValueError):
         DinoV2("testing", pool="mean", name="dinov2", dependencies=[])
     with pytest.raises(ValueError):
-        DinoV2("testing", long_side=10, name="dinov2", dependencies=[])
+        DinoV2("testing", input_size=(10, 14), name="dinov2", dependencies=[]) # smaller than a patch
+    with pytest.raises(ValueError):
+        DinoV2("testing", input_size=(14, 30), name="dinov2", dependencies=[]) # not a multiple of 14: no rounding
+    with pytest.raises(ValueError):
+        DinoV2("testing", input_size=(14, ), name="dinov2", dependencies=[]) # (h, w) only
     with pytest.raises(AssertionError):
         DinoV2("testing", name="dinov2", dependencies=[]).vre_setup(load_weights=True) # 'testing' has no weights
 
 def test_dinov2_preprocess_shape():
     video = VREVideo(np.random.randint(0, 255, size=(1, 1080, 1920, 3), dtype=np.uint8), fps=30)
-    dinov2_repr = DinoV2("testing", long_side=672, name="dinov2", dependencies=[])
+    dinov2_repr = DinoV2("testing", name="dinov2", dependencies=[])
     dinov2_repr.vre_setup(load_weights=False)
-    x = dinov2_repr._preprocess(video[[0]])
-    assert x.shape == (1, 3, 378, 672) # long side 672, aspect kept, both sides multiple of 14
+    assert dinov2_repr._preprocess(video[[0]]).shape == (1, 3, 378, 672) # default input_size: 16:9, long side 672
+    dinov2_repr = DinoV2("testing", input_size=[560, 560], name="dinov2", dependencies=[]) # a list, as yaml gives it
+    dinov2_repr.vre_setup(load_weights=False)
+    assert dinov2_repr.input_size == (560, 560)
+    assert dinov2_repr._preprocess(video[[0]]).shape == (1, 3, 560, 560) # exactly input_size, aspect not kept
 
 def test_dinov2_model_pos_embeddings():
     model = Dinov2Model(hidden_size=32, num_layers=1, num_heads=2).eval()
