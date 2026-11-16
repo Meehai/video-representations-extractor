@@ -1,7 +1,7 @@
 # DINOv2 in VRE
 
-One global, L2-normalized embedding per frame from [DINOv2](https://github.com/facebookresearch/dinov2), as
-`embeddings/dinov2`. Pure torch: `dinov2_impl.py` is a port of transformers' `Dinov2Model` (no `transformers` dep).
+Per-frame embeddings from [DINOv2](https://github.com/facebookresearch/dinov2), as `embeddings/dinov2`: one global
+L2-normalized vector, or the raw patch tokens (`pool: none`). Pure torch: `dinov2_impl.py` is a port of transformers' `Dinov2Model` (no `transformers` dep).
 
 ```yaml
 dinov2:
@@ -10,11 +10,22 @@ dinov2:
   parameters:
     variant: dinov2-base  # dinov2-small (D=384) | dinov2-base (D=768) | dinov2-large (D=1024)
     pool: cat             # cls (CLS token) | gem (GeM p=3 over patch tokens) | cat (both, normalized; 2*D)
-    long_side: 672        # resize, aspect kept, long side to this; both sides rounded to a multiple of 14
+                          # | none (no pooling: the patch tokens, not normalized)
+    input_size: [378, 672] # (h, w) every frame is resized to (aspect not kept), both multiples of 14
 ```
 
-Output: `npz/<frame>.npz`, key `arr_0`, float32 `(D,)` or `(2*D,)` for `cat`, unit norm. `output_size` does not touch
-the vectors (they have no spatial dims), only the images: each vector drawn as a grayscale grid at the frame's size.
+`input_size` is part of what the output means: the same frame at another size gives other vectors. The default
+`[378, 672]` is a 16:9 frame with its long side at 672; set it to your video's aspect to avoid squashing.
+
+Output: `npz/<frame>.npz`, key `arr_0`, float32:
+- `cls | gem | cat`: `(D,)` or `(2*D,)` for `cat`, unit norm. Images: each vector drawn as a grayscale grid.
+- `none`: `(h/14, w/14, D)`, the last layer's patch tokens (after the final layernorm, row-major, no CLS), not
+  normalized. This is what dense matchers (e.g. RoMa's coarse stage) consume; the caller does the rest (its own
+  resizing, fine CNN features, ...). Images: the top-3 principal components of the frame's tokens as RGB (the
+  basis is per frame, so colors are not comparable across frames).
+  Size: `h/14 * w/14 * D * 4` bytes per frame, e.g. 40x40x1024 (dinov2-large at 560x560) = 6.5MB.
+
+`output_size` never touches the embeddings, only the images (resized to the frame's size).
 On cuda the model runs under float16 autocast.
 
 ## Weights
