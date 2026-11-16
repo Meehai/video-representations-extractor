@@ -1,4 +1,4 @@
-"""DINOv2 global image embeddings. Weights are transformers' facebook/dinov2-* state_dicts (see README.md)."""
+"""DINOv2 image embeddings: global vectors or patch tokens. Weights: transformers' facebook/dinov2-* (see README.md)."""
 from pathlib import Path
 from urllib.error import URLError
 import numpy as np
@@ -7,7 +7,7 @@ from torch.nn import functional as F
 from overrides import overrides
 
 from vre_video import VREVideo
-from vre.utils import MemoryData, fetch
+from vre.utils import MemoryData, fetch, image_resize_batch
 from vre.logger import vre_logger as logger
 from vre import ReprOut
 from vre.representations.mixins import LearnedRepresentationMixin
@@ -32,28 +32,32 @@ HF_REVISIONS = {
     "dinov2-base": "f9e44c814b77203eaa57a6bdbbd535f21ede1415",
     "dinov2-large": "47b73eefe95e8d44ec3623f8890bd894b6ea2d6c",
 }
-POOLS = ("cls", "gem", "cat")
+POOLS = ("cls", "gem", "cat", "none")
+PATCH_SIZE = 14
 
 class DinoV2(EmbeddingRepresentation, LearnedRepresentationMixin):
     """
-    One L2-normalized DINOv2 vector per frame.
+    DINOv2 embeddings per frame: one L2-normalized vector, or the raw patch tokens (pool='none').
     - variant: one of VARIANTS ('testing' = tiny random model, no weights).
-    - pool: 'cls' = the CLS token, 'gem' = GeM (p=3) over the patch tokens, 'cat' = both, each L2-normalized (2*D).
-    - long_side: frames are resized (aspect kept) so the long side is this, each side rounded to a multiple of 14.
+    - pool: 'cls' = the CLS token, 'gem' = GeM (p=3) over the patch tokens, 'cat' = both, each L2-normalized (2*D),
+      'none' = no pooling: the patch tokens as a (h/14, w/14, D) grid, not normalized (input for dense matchers).
+    - input_size: (h, w) every frame is resized to before the model, both multiples of 14 (the patch size). It sets
+      the output: pool='none' gives a (h/14, w/14) token grid, and the pooled vectors change with it too.
     On cuda the model runs under float16 autocast.
     """
-    def __init__(self, variant: str, pool: str = "cat", long_side: int = 672, **kwargs):
+    def __init__(self, variant: str, pool: str = "cat", input_size: tuple[int, int] = (378, 672),
+                 **kwargs):
         EmbeddingRepresentation.__init__(self, **kwargs)
         LearnedRepresentationMixin.__init__(self)
         if variant not in VARIANTS:
             raise ValueError(f"{variant=} not in {list(VARIANTS)}")
         if pool not in POOLS:
             raise ValueError(f"{pool=} not in {POOLS}")
-        if long_side < 14:
-            raise ValueError(f"{long_side=} must be at least the patch size (14)")
+        if len(input_size) != 2 or any(s < PATCH_SIZE or s % PATCH_SIZE != 0 for s in input_size):
+            raise ValueError(f"{input_size=} must be (h, w), each a positive multiple of the patch size ({PATCH_SIZE})")
         self.variant = variant
         self.pool = pool
-        self.long_side = long_side
+        self.input_size = tuple(input_size) # yaml gives a list
         self.model: Dinov2Model | None = None
 
     @property
@@ -70,8 +74,24 @@ class DinoV2(EmbeddingRepresentation, LearnedRepresentationMixin):
             x = self._preprocess(frames)
             with tr.autocast(device_type="cuda", dtype=tr.float16, enabled=str(self.device).startswith("cuda")):
                 tokens = self.model(x)
-            embeddings = F.normalize(self._pool(tokens.float()), dim=-1).cpu().numpy()
+            if self.pool == "none":
+                grid_h, grid_w = x.shape[2] // PATCH_SIZE, x.shape[3] // PATCH_SIZE
+                embeddings = tokens[:, 1:].float().reshape(len(frames), grid_h, grid_w, -1).cpu().numpy()
+            else:
+                embeddings = F.normalize(self._pool(tokens.float()), dim=-1).cpu().numpy()
         return ReprOut(frames=frames, output=MemoryData(embeddings), key=ixs)
+
+    @overrides
+    def make_images(self, data: ReprOut) -> np.ndarray:
+        """pool='none': each frame's token grid as RGB = its top-3 principal components (see _pca_rgb)"""
+        if self.pool != "none":
+            return super().make_images(data)
+        emb = np.asarray(data.output)
+        assert emb.ndim == 4 and emb.shape[-1] == self.n_channels, (emb.shape, self.n_channels)
+        images = np.stack([_pca_rgb(grid) for grid in emb])
+        if data.frames is None: # vre_reader: no frames, so the grid stays at its own size
+            return images
+        return image_resize_batch(images, *data.frames[0].shape[0:2], interpolation="nearest")
 
     @staticmethod
     @overrides
@@ -109,15 +129,10 @@ class DinoV2(EmbeddingRepresentation, LearnedRepresentationMixin):
             return fetch(url, path)
 
     def _preprocess(self, frames: np.ndarray) -> tr.Tensor:
-        """uint8 (B, H, W, 3) -> ImageNet-normalized float (B, 3, H', W'), long side ~long_side, sides multiple of 14"""
+        """uint8 (B, H, W, 3) -> ImageNet-normalized float (B, 3, *input_size)"""
         assert frames.ndim == 4 and frames.shape[-1] == 3 and frames.dtype == np.uint8, (frames.shape, frames.dtype)
-        h, w = frames.shape[1:3]
-        patch = self.model.patch_size
-        scale = self.long_side / max(h, w)
-        new_h = max(patch, round(h * scale / patch) * patch)
-        new_w = max(patch, round(w * scale / patch) * patch)
         x = tr.from_numpy(frames).to(self.device).permute(0, 3, 1, 2).float() / 255
-        x = F.interpolate(x, size=(new_h, new_w), mode="bilinear", align_corners=False, antialias=True)
+        x = F.interpolate(x, size=self.input_size, mode="bilinear", align_corners=False, antialias=True)
         mean = tr.tensor(IMAGENET_MEAN, device=self.device).view(1, 3, 1, 1)
         std = tr.tensor(IMAGENET_STD, device=self.device).view(1, 3, 1, 1)
         return (x - mean) / std
@@ -131,3 +146,20 @@ class DinoV2(EmbeddingRepresentation, LearnedRepresentationMixin):
         if self.pool == "gem":
             return gem
         return tr.cat([F.normalize(cls, dim=-1), F.normalize(gem, dim=-1)], dim=-1)
+
+def _pca_rgb(grid: np.ndarray) -> np.ndarray:
+    """
+    (h, w, D) tokens -> (h, w, 3) uint8: the top-3 principal components over the h*w tokens, each min-max scaled.
+    Each component's sign is fixed (its largest |loading| is positive), so the same grid always gives the same colors.
+    The basis is per frame: colors are not comparable across frames.
+    """
+    h, w, d = grid.shape
+    x = grid.reshape(h * w, d).astype(np.float64)
+    x = x - x.mean(axis=0)
+    _, _, vt = np.linalg.svd(x, full_matrices=False)
+    vt = vt[0:3] # fewer than 3 if h*w or D < 3
+    signs = np.sign(vt[np.arange(len(vt)), np.abs(vt).argmax(axis=1)])
+    proj = np.zeros((h * w, 3))
+    proj[:, 0:len(vt)] = x @ (vt * np.where(signs == 0, 1, signs)[:, None]).T
+    lo, hi = proj.min(axis=0), proj.max(axis=0)
+    return ((proj - lo) / np.maximum(hi - lo, 1e-8) * 255).astype(np.uint8).reshape(h, w, 3)

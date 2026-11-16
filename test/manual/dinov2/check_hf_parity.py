@@ -52,12 +52,15 @@ for variant in args.variants:
     for device in devices:
         for pool in ["cls", "gem", "cat"]:
             embedder = Embedder("dinov2", checkpoint=f"facebook/{variant}", pool=pool, long_side=672, device=device)
-            rep = DinoV2(variant=variant, pool=pool, long_side=672, name="dinov2", dependencies=[])
-            rep.device = device
-            rep.vre_setup()
             for name, x in inputs.items():
+                # the Embedder resizes the long side to 672 (aspect kept, sides rounded to 14): give VRE that size
+                scale = 672 / max(x.shape[1:3])
+                input_size = tuple(max(14, round(s * scale / 14) * 14) for s in x.shape[1:3])
+                rep = DinoV2(variant=variant, pool=pool, input_size=input_size, name="dinov2", dependencies=[])
+                rep.device = device
+                rep.vre_setup()
                 y_vre = rep.compute(VREVideo(x, fps=1), [0, 1]).output
                 y_embedder = embedder.embed(x)
-                print(f"[embedder] {variant} {device} {pool} {name} {y_vre.shape}: "
+                print(f"[embedder] {variant} {device} {pool} {name} {input_size} {y_vre.shape}: "
                       f"max|diff|={np.abs(y_vre - y_embedder).max()}")
-            rep.vre_free()
+                rep.vre_free()
