@@ -41,14 +41,6 @@ representations:
       max_keypoints: 500
       process_scale: 0.5
 
-  dinov2:
-    type: embeddings/dinov2
-    dependencies: []
-    parameters:
-      variant: dinov2-small
-      pool: cat
-      input_size: [126, 224]
-
   dinov2_tokens:
     type: embeddings/dinov2
     dependencies: []
