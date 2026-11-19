@@ -5,21 +5,19 @@ from pathlib import Path
 
 import numpy as np
 import torch
-from diffusers import AutoencoderKL, DDIMScheduler, LCMScheduler, UNet2DConditionModel
-from diffusers.configuration_utils import FrozenDict
 from torch.utils.data import DataLoader, TensorDataset
 from torchvision.transforms import InterpolationMode
 from tqdm.auto import tqdm
 
 from .ensemble import ensemble_depth
 from .marigold_util import resize_max_res, find_batch_size
+from .schedulers import DDIMScheduler, LCMScheduler
+from .unet import UNet2DConditionModel
+from .vae import AutoencoderKL
 
 class MarigoldPipeline(torch.nn.Module):
     """
     Pipeline for monocular depth estimation using Marigold: https://marigoldmonodepth.github.io.
-
-    This model inherits from [`DiffusionPipeline`]. Check the superclass documentation for the generic methods the
-    library implements for all the pipelines (such as downloading or saving, running on a particular device, etc.)
 
     Args:
         unet (`UNet2DConditionModel`):
@@ -70,16 +68,12 @@ class MarigoldPipeline(torch.nn.Module):
         self.dtype = torch.float32
         assert isinstance(default_denoising_steps, type(None)), default_denoising_steps
         assert isinstance(default_processing_resolution, type(None)), default_processing_resolution
-        self._internal_dict = FrozenDict(scale_invariant=scale_invariant, shift_invariant=shift_invariant,
-                                         default_denoising_steps=default_denoising_steps,
-                                         default_processing_resolution=default_processing_resolution)
 
         self.scale_invariant = scale_invariant
         self.shift_invariant = shift_invariant
         self.default_denoising_steps = default_denoising_steps
         self.default_processing_resolution = default_processing_resolution
-        # This used to be clip.encode("") + clip tokenizer. Since it's fixed and static, we stored it to disk and
-        # removed clip and the transformers library as a dependency.
+        # the fixed CLIP text embedding of "" (the UNet's context), stored on disk
         self.empty_text_embed: torch.Tensor = torch.load(Path(__file__).parent / "empty_text_embed.pkl").to(self.dtype)
         assert abs(self.empty_text_embed.mean().item() - -0.174562573) < 1e-3, self.empty_text_embed.mean().item()
         assert abs(self.empty_text_embed.std().item() - 0.8112) < 1e-3, self.empty_text_embed.std().item()
@@ -222,9 +216,9 @@ class MarigoldPipeline(torch.nn.Module):
                       disable=os.getenv("MARIGOLD_PBAR", "0") == "0", desc=" " * 4 + "Diffusion denoising"):
             unet_input = torch.cat([rgb_latent, depth_latent], dim=1)  # this order is important
             # predict the noise residual
-            noise_pred = self.unet(unet_input, t, encoder_hidden_states=batch_empty_text_embed).sample  # [B, 4, h, w]
+            noise_pred = self.unet(unet_input, t, batch_empty_text_embed)  # [B, 4, h, w]
             # compute the previous noisy sample x_t -> x_t-1
-            depth_latent = self.diffusion_scheduler.step(noise_pred, t, depth_latent, generator=generator).prev_sample
+            depth_latent = self.diffusion_scheduler.step(noise_pred, t, depth_latent, generator=generator)
 
         depth = self.decode_depth(depth_latent)
 
