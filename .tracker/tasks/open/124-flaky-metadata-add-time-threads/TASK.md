@@ -17,4 +17,4 @@ while another has truncated it but not finished writing. Then a run_stats entry 
 
 The test is right (N writers on one file is the real use: N representations / processes); the sync in
 `RepresentationMetadata` is not. Fix in `vre/`: atomic write (tmp file + `os.replace`) and/or a file lock around
-read-merge-write. Not a test change.
+read-merge-write, then drop the non-strict xfail on the test.
