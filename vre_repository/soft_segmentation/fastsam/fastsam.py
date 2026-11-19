@@ -2,18 +2,20 @@
 from argparse import ArgumentParser, Namespace
 from datetime import datetime
 from pathlib import Path
+
 from overrides import overrides
 import numpy as np
 import torch as tr
 from torch import nn
 from torch.nn import functional as F
 from vre_video import VREVideo
+from PIL import Image
 
-from vre.utils import image_resize_batch, image_write, image_read, MemoryData
 from vre.logger import vre_logger as logger
-from vre import ReprOut
+from vre.utils import ReprOut, MemoryData
 from vre.representations.mixins import LearnedRepresentationMixin
 from vre_repository.utils import fetch_weights
+from vre_repository.vre_image_utils import image_resize_batch
 from vre_repository.soft_segmentation import SoftSegmentationRepresentation
 
 try:
@@ -172,7 +174,7 @@ def get_args() -> Namespace:
 
 def main(args: Namespace):
     """main fn. Usage: python fastsam.py fastsam-x/fastsam-s demo1.jpg output1.jpg"""
-    img = image_read(args.input_image)
+    img = np.array(Image.open(args.input_image).convert("RGB"))
 
     fastsam = FastSam(args.model_id, iou=0.9, conf=0.4, name="fastsam", dependencies=[])
     fastsam.device = "cuda" if tr.cuda.is_available() else "cpu"
@@ -181,13 +183,13 @@ def main(args: Namespace):
     pred = fastsam.compute(VREVideo(img[None], fps=1), [0])
     logger.info(f"Pred took: {datetime.now() - now}")
     semantic_result = fastsam.make_images(pred)[0]
-    image_write(semantic_result, args.output_path)
+    Image.fromarray(semantic_result).save(args.output_path)
     logger.info(f"Written result to '{args.output_path}'")
 
     output_path_rsz = args.output_path.parent / f"{args.output_path.stem}_rsz{args.output_path.suffix}"
     pred_rsz = fastsam.resize(pred, (300, 1024))
     semantic_result_rsz = fastsam.make_images(pred_rsz)[0]
-    image_write(semantic_result_rsz, output_path_rsz)
+    Image.fromarray(semantic_result_rsz).save(output_path_rsz)
     logger.info(f"Written resized result to '{output_path_rsz}'")
 
     rtol = 1e-2 if tr.cuda.is_available() else 1e-5

@@ -662,7 +662,7 @@ if __name__ == "__main__":
     if args.image_path.suffix == ".npz":
         image = np.load(args.image_path)["arr_0"]
     else:
-        image = np.array(Image.open(args.image_path))
+        image = np.array(Image.open(args.image_path).convert("RGB"))
 
     sift = SIFT("sift", max_keypoints=args.max_keypoints, process_scale=args.process_scale)
     res = sift.compute(image[None], ixs=[0])

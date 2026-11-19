@@ -7,10 +7,11 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from urllib.error import HTTPError
 import numpy as np
+from PIL import Image
 import pytest
 from vre_video import VREVideo
 from vre import VRE
-from vre.utils import get_project_root, image_read
+from vre.utils import get_project_root
 from vre_repository.embeddings.dinov2 import DinoV2
 from vre_repository.embeddings.dinov2 import dinov2 as dinov2_module
 
@@ -25,8 +26,8 @@ EXPECTED = { # variant: (demo1[:4], demo2[:4], demo1 . demo2, demo1 . flipped(de
 @pytest.mark.parametrize("variant", ["dinov2-small", pytest.param("dinov2-base", marks=pytest.mark.skipif(
     "CI" in os.environ, reason="331MB checkpoint: too slow for CI, run locally"))])
 def test_i_dinov2_matches_transformers(variant: str):
-    demo1 = image_read(get_project_root() / "resources/demo1.jpg")
-    demo2 = image_read(get_project_root() / "resources/demo2.jpg")
+    demo1 = np.array(Image.open(get_project_root() / "resources/demo1.jpg").convert("RGB"))
+    demo2 = np.array(Image.open(get_project_root() / "resources/demo2.jpg").convert("RGB"))
     dinov2_demo1 = DinoV2(variant, pool="cat", input_size=(364, 672), name="dinov2", dependencies=[]) # 349x640
     dinov2_demo2 = DinoV2(variant, pool="cat", input_size=(504, 672), name="dinov2", dependencies=[]) # 960x1280
     dinov2_demo1.vre_setup() # fetches the weights if needed
@@ -55,14 +56,14 @@ def test_i_dinov2_vre_run():
     assert np.allclose(np.linalg.norm(y, axis=1), 1, atol=1e-5)
     dinov2_repr.vre_setup() # vre.run() frees the model when done
     assert np.allclose(dinov2_repr.compute(video, [0, 1, 2]).output, y, atol=1e-5) # what was stored is what we compute
-    assert image_read(output_dir / "dinov2/png/0.png").shape == (30, 40, 3) # images do follow output_size
+    assert np.array(Image.open(output_dir / "dinov2/png/0.png")).shape == (30, 40, 3) # images do follow output_size
 
 def test_i_dinov2_weights_from_huggingface(monkeypatch: pytest.MonkeyPatch):
     def gitlab_404(paths: list[Path]):
         raise HTTPError(url=str(paths[0]), code=404, msg="Not Found", hdrs=None, fp=None)
     monkeypatch.setattr(dinov2_module, "fetch_weights", gitlab_404) # stub VRE's gitlab only: huggingface is real
     monkeypatch.setattr(DinoV2, "get_weights_paths", lambda variant: [Path(TemporaryDirectory().name) / "w.pt"])
-    demo1 = image_read(get_project_root() / "resources/demo1.jpg")
+    demo1 = np.array(Image.open(get_project_root() / "resources/demo1.jpg").convert("RGB"))
     dinov2_repr = DinoV2("dinov2-small", pool="cat", input_size=(364, 672), name="dinov2", dependencies=[])
     dinov2_repr.vre_setup() # downloads facebook/dinov2-small's pytorch_model.bin and loads it (strict)
     y1 = dinov2_repr.compute(VREVideo(demo1[None], fps=1), [0]).output[0]
@@ -81,4 +82,4 @@ def test_i_dinov2_tokens_vre_run():
     dinov2_repr.vre_setup() # vre.run() frees the model when done
     y_computed = dinov2_repr.compute(video, [0, 1, 2]).output # bs=3 here, bs=2 in the run: float noise on raw tokens
     assert np.allclose(y_computed, y, atol=1e-3), np.abs(y_computed - y).max() # what was stored is what we compute
-    assert image_read(output_dir / "dinov2/png/0.png").shape == (30, 40, 3) # images do follow output_size
+    assert np.array(Image.open(output_dir / "dinov2/png/0.png")).shape == (30, 40, 3) # images do follow output_size

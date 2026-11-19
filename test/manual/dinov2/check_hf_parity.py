@@ -11,10 +11,11 @@ import sys
 from argparse import ArgumentParser
 from pathlib import Path
 import numpy as np
+from PIL import Image
 import torch as tr
 from transformers import AutoModel
 from vre_video import VREVideo
-from vre.utils import get_project_root, image_read
+from vre.utils import get_project_root
 from vre_repository.embeddings.dinov2 import DinoV2
 from vre_repository.embeddings.dinov2.dinov2_impl import Dinov2Model
 
@@ -25,7 +26,7 @@ parser.add_argument("--variants", nargs="+", default=["dinov2-small", "dinov2-ba
 args = parser.parse_args()
 
 devices = ["cpu", "cuda"] if tr.cuda.is_available() else ["cpu"]
-frames = np.stack([image_read(get_project_root() / "resources/demo1.jpg")] * 2) # (2, H, W, 3)
+frames = np.stack([np.array(Image.open(get_project_root() / "resources/demo1.jpg").convert("RGB"))] * 2) # (2, H, W, 3)
 inputs = {"frames": frames, "square518": np.ascontiguousarray(frames[:, :518, :518]),
           "portrait": np.ascontiguousarray(frames[:, :, :frames.shape[1] // 2])}
 

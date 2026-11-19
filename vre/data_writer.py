@@ -3,8 +3,9 @@ from __future__ import annotations
 import shutil
 from pathlib import Path
 import numpy as np
+from PIL import Image
 
-from vre.utils import image_write, is_dir_empty, ReprOut
+from vre.utils import is_dir_empty, ReprOut
 from vre.representations import Representation
 from vre.logger import vre_logger as logger
 
@@ -58,7 +59,7 @@ class DataWriter:
                 assert image.dtype == np.uint8, image
                 if (img_path := self.rep_out_dir / ext / f"{t}.{ext}").exists():
                     logger.warning(f"[{self.rep}] '{img_path}' already exists. Overwriting.")
-                image_write(image, img_path)
+                Image.fromarray(image).save(img_path)
 
     def all_batch_exists(self, frames: list[int]) -> bool:
         """true if all batch [l:r] exists on the disk"""

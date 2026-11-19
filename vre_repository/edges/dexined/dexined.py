@@ -6,10 +6,11 @@ from overrides import overrides
 
 from vre_video import VREVideo
 from vre.logger import vre_logger as logger
-from vre.utils import image_resize_batch, MemoryData
+from vre.utils import MemoryData
 from vre import ReprOut
 from vre.representations.mixins import LearnedRepresentationMixin
 from vre_repository.utils import fetch_weights
+from vre_repository.vre_image_utils import image_resize_batch
 from vre_repository.edges import EdgesRepresentation
 
 from .model_dexined import DexiNed as Model
