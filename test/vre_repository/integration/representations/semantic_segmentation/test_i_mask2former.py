@@ -1,3 +1,4 @@
+import os
 from types import SimpleNamespace
 from tempfile import NamedTemporaryFile
 from pathlib import Path
@@ -6,7 +7,12 @@ from vre_repository.semantic_segmentation.mask2former.mask2former import main as
 from vre.utils import get_project_root
 import pytest
 
-@pytest.mark.parametrize("variant", ["47429163_0", "49189528_1", "49189528_0"])
+IN_CI = "CI" in os.environ
+BIG_CKPT = pytest.mark.skipif(IN_CI, reason="~830MB checkpoint: too slow for CI, run locally")
+
+# CI runs the smallest checkpoint (49189528_1, 169MB), the one the e2e configs use too
+@pytest.mark.parametrize("variant", [pytest.param("47429163_0", marks=BIG_CKPT), "49189528_1",
+                                     pytest.param("49189528_0", marks=BIG_CKPT)])
 def test_i_mask2former(variant):
     args = SimpleNamespace(
         model_id=variant,
@@ -26,6 +32,3 @@ def test_i_mask2former(variant):
     elif args.model_id == "49189528_0" and args.input_image.name == "demo1.jpg":
         assert np.allclose(mean := semantic_result.mean(), 0.0049801, rtol=rtol), (mean, semantic_result.std())
         assert np.allclose(std := semantic_result.std(), 0.063540, rtol=rtol), std
-
-# if __name__ == "__main__":
-#     test_i_mask2former("47429163_0")
