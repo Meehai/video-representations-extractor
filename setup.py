@@ -39,7 +39,6 @@ REQUIRED_CORE = [
 REQUIRED_REPOSITORY = [
     "torch>=2.9.0,<3.0.0",
     "torchvision>=0.24.0,<1.0.0",
-    "opencv-python==4.14.0.94",
 ]
 
 # Vendored packages: scan each repo dir under pkg/ for its packages (test/ trees are not installed).

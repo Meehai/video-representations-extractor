@@ -2,14 +2,13 @@
 from vre.logger import vre_logger as logger
 from pathlib import Path
 from functools import lru_cache
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageFont, ImageOps
 import torch
 import numpy as np
 import os
 from copy import deepcopy
-from image_utils import image_resize
-from vre_repository.vre_image_utils.cv2_utils import (cv2_copyMakeBorder, cv2_BORDER_CONSTANT, cv2_rectangle,
-                                            cv2_putText, cv2_getTextSize, cv2_LINE_AA)
+from image_utils import image_resize, image_draw_rectangle
+from image_utils.image_utils_pil import image_add_title
 from .ops import xyxy2xywh, xywh2xyxy, clip_boxes
 
 class Colors:
@@ -734,11 +733,10 @@ class LetterBox:
             labels['ratio_pad'] = (labels['ratio_pad'], (dw, dh))  # for evaluation
 
         if shape[::-1] != new_unpad:  # resize
-            img = image_resize(img, new_unpad[1], new_unpad[0], interpolation="bilinear", backend="cv2")
+            img = image_resize(img, new_unpad[1], new_unpad[0], interpolation="bilinear")
         top, bottom = int(round(dh - 0.1)), int(round(dh + 0.1))
         left, right = int(round(dw - 0.1)), int(round(dw + 0.1))
-        img = cv2_copyMakeBorder(img, top, bottom, left, right, cv2_BORDER_CONSTANT,
-                                 value=(114, 114, 114))  # add border
+        img = np.array(ImageOps.expand(Image.fromarray(img), border=(left, top, right, bottom), fill=(114, 114, 114)))
 
         if len(labels):
             labels = self._update_labels(labels, ratio, dw, dh)
@@ -756,40 +754,14 @@ class LetterBox:
         labels['instances'].add_padding(padw, padh)
         return labels
 
-def is_ascii(s) -> bool:
-    """
-    Check if a string is composed of only ASCII characters.
-
-    Args:
-        s (str): String to be checked.
-
-    Returns:
-        bool: True if the string is composed only of ASCII characters, False otherwise.
-    """
-    # Convert list, tuple, None, etc. to string
-    s = str(s)
-
-    # Check if the string is composed of only ASCII characters
-    return all(ord(c) < 128 for c in s)
-
-
 class Annotator:
     # YOLOv8 Annotator for train/val mosaics and jpgs and detect/hub inference annotations
     def __init__(self, im, line_width=None, font_size=None, font='Arial.ttf', pil=False, example='abc'):
         """Initialize the Annotator class with image and line width along with color palette for keypoints and limbs."""
         assert im.data.contiguous, 'Image not contiguous. Apply np.ascontiguousarray(im) to Annotator() input images.'
-        non_ascii = not is_ascii(example)  # non-latin labels, i.e. asian, arabic, cyrillic
-        self.pil = pil or non_ascii
-        if self.pil:  # use PIL
-            self.im = im if isinstance(im, Image.Image) else Image.fromarray(im)
-            self.draw = ImageDraw.Draw(self.im)
-            self.font = ImageFont.load_default()
-            # Deprecation fix for w, h = getsize(string) -> _, _, w, h = getbox(string)
-            # if check_version(pil_version, '9.2.0'):
-            #     self.font.getsize = lambda x: self.font.getbbox(x)[2:4]  # text width, height
-        else:  # use cv2
-            self.im = im
+        self.im = np.asarray(im)
         self.lw = line_width or max(round(sum(im.shape) / 2 * 0.003), 2)  # line width
+        self.font_size = font_size or max(round(sum(im.shape) / 2 * 0.035), 12)
         # Pose
         self.skeleton = [[16, 14], [14, 12], [17, 15], [15, 13], [12, 13], [6, 12], [7, 13], [6, 7], [6, 8], [7, 9],
                          [8, 10], [9, 11], [2, 3], [1, 2], [1, 3], [2, 4], [3, 5], [4, 6], [5, 7]]
@@ -801,26 +773,12 @@ class Annotator:
         """Add one xyxy box to image with label."""
         if isinstance(box, torch.Tensor):
             box = box.tolist()
-        if self.pil or not is_ascii(label):
-            self.draw.rectangle(box, width=self.lw, outline=color)  # box
-            if label:
-                w, h = self.font.getsize(label)  # text width, height
-                outside = box[1] - h >= 0  # label fits outside box
-                self.draw.rectangle(
-                    (box[0], box[1] - h if outside else box[1], box[0] + w + 1,
-                     box[1] + 1 if outside else box[1] + h + 1),
-                    fill=color,
-                )
-                # self.draw.text((box[0], box[1]), label, fill=txt_color, font=self.font, anchor='ls')  # for PIL>8.0
-                self.draw.text((box[0], box[1] - h if outside else box[1]), label, fill=txt_color, font=self.font)
-        else:  # cv2
-            p1, p2 = (int(box[0]), int(box[1])), (int(box[2]), int(box[3]))
-            cv2_rectangle(self.im, p1, p2, color, thickness=self.lw, lineType=cv2_LINE_AA)
-            if label:
-                tf = max(self.lw - 1, 1)  # font thickness
-                w, h = cv2_getTextSize(label, 0, fontScale=self.lw / 3, thickness=tf)[0]  # text width, height
-                outside = p1[1] - h >= 3
-                p2 = p1[0] + w, p1[1] - h - 3 if outside else p1[1] + h + 3
-                cv2_rectangle(self.im, p1, p2, color, -1, cv2_LINE_AA)  # filled
-                cv2_putText(self.im, label, (p1[0], p1[1] - 2 if outside else p1[1] + h + 2), 0,
-                            self.lw / 3, txt_color, thickness=tf, lineType=cv2_LINE_AA)
+        x0, y0, x1, y1 = (int(v) for v in box)
+        thickness = (self.lw + 0.5) * 100 / min(self.im.shape[0:2]) # image_utils' thickness: % of the smallest side
+        image_draw_rectangle(self.im, (y0, x0), (y1, x1), color=tuple(color), thickness=thickness, inplace=True)
+        if label:
+            _, _, w, h = ImageFont.load_default(size=self.font_size).getbbox(label)  # text width, height
+            outside = y0 - h >= 0  # label fits outside box
+            ty = y0 - h if outside else y0
+            self.im[ty:ty + h + 1, x0:x0 + w + 1] = color  # label background
+            self.im = image_add_title(self.im, label, (ty, x0), font_size=self.font_size, font_color=tuple(txt_color))
