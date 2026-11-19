@@ -91,6 +91,7 @@ setup(
     extras_require={
         "core": [],
         "repository": REQUIRED_REPOSITORY,
+        "docs": ["opdoc==0.2.3"],
     },
     dependency_links=[],
     license="MIT",
