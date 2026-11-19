@@ -43,7 +43,6 @@ REQUIRED_REPOSITORY = [
     "opencv-python==4.14.0.94",
     "pycocotools==2.0.10",
     "timm==1.0.9",
-    "diffusers==0.30.3",
 ]
 
 # Vendored packages: scan each repo dir under pkg/ for its packages (test/ trees are not installed).
