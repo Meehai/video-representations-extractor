@@ -2,6 +2,7 @@
 DINOv2 with the real weights. The expected values come from transformers' facebook/dinov2-* Dinov2Model with the same
 preprocessing (long side resized to 672, aspect kept, ImageNet norm) and 'cat' pooling, on CPU: VRE's port must reproduce them.
 """
+import os
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from urllib.error import HTTPError
@@ -20,7 +21,9 @@ EXPECTED = { # variant: (demo1[:4], demo2[:4], demo1 . demo2, demo1 . flipped(de
                     0.43634585, 0.89947236),
 }
 
-@pytest.mark.parametrize("variant", ["dinov2-small", "dinov2-base"])
+# CI runs dinov2-small only (85MB); base (331MB) is the same code at a bigger size
+@pytest.mark.parametrize("variant", ["dinov2-small", pytest.param("dinov2-base", marks=pytest.mark.skipif(
+    "CI" in os.environ, reason="331MB checkpoint: too slow for CI, run locally"))])
 def test_i_dinov2_matches_transformers(variant: str):
     demo1 = image_read(get_project_root() / "resources/demo1.jpg")
     demo2 = image_read(get_project_root() / "resources/demo2.jpg")
