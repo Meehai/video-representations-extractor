@@ -1,107 +1,76 @@
-# pylint: disable=all
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
+"""
+DPT depth (MiDaS, "dpt_large") in plain torch, inference only: ViT-L/16 backbone, readout "project", non-negative
+head. Module names match the checkpoint (`pretrained.*` = backbone + reassemble, `scratch.*` = decoder).
+"""
+import torch as tr
+from torch import nn
 
-from .base_model import BaseModel
-from .blocks import (
-    FeatureFusionBlock,
-    FeatureFusionBlock_custom,
-    Interpolate,
-    _make_encoder,
-    forward_vit,
-)
+from .blocks import FeatureFusionBlock, ProjectReadout
+from .vit import VisionTransformer
 
+def _make_reassemble(vit_dim: int, features: int, resample: nn.Module) -> nn.Sequential:
+    """readout projection, 2 parameter-free placeholders (tokens -> grid, done in DPTEncoder.forward), 1x1 conv,
+    resample. The placeholders keep the checkpoint's indices (act_postprocessN.{0,3,4})."""
+    return nn.Sequential(ProjectReadout(vit_dim), nn.Identity(), nn.Identity(),
+                         nn.Conv2d(vit_dim, features, kernel_size=1, stride=1, padding=0), resample)
 
-def _make_fusion_block(features, use_bn):
-    return FeatureFusionBlock_custom(
-        features,
-        nn.ReLU(False),
-        deconv=False,
-        bn=use_bn,
-        expand=False,
-        align_corners=True,
-    )
+class DPTEncoder(nn.Module):
+    """(B, 3, H, W) -> 4 maps: strides 4, 8, 16, 32 with 256, 512, 1024, 1024 channels"""
+    def __init__(self):
+        super().__init__()
+        vit_dim = 1024
+        self.model = VisionTransformer(out_blocks=(5, 11, 17, 23), dim=vit_dim)
+        self.act_postprocess1 = _make_reassemble(vit_dim, 256, nn.ConvTranspose2d(256, 256, kernel_size=4, stride=4))
+        self.act_postprocess2 = _make_reassemble(vit_dim, 512, nn.ConvTranspose2d(512, 512, kernel_size=2, stride=2))
+        self.act_postprocess3 = _make_reassemble(vit_dim, 1024, nn.Identity())
+        self.act_postprocess4 = _make_reassemble(vit_dim, 1024,
+                                                 nn.Conv2d(1024, 1024, kernel_size=3, stride=2, padding=1))
 
+    def forward(self, x: tr.Tensor) -> list[tr.Tensor]:
+        """forward"""
+        grid = (x.shape[2] // self.model.patch_size, x.shape[3] // self.model.patch_size)
+        posts = [self.act_postprocess1, self.act_postprocess2, self.act_postprocess3, self.act_postprocess4]
+        return [post[3:](post[0](tokens).transpose(1, 2).unflatten(2, grid))
+                for post, tokens in zip(posts, self.model(x), strict=True)]
 
-class DPT(BaseModel):
-    def __init__(
-        self,
-        head,
-        features=256,
-        backbone="vitb_rn50_384",
-        readout="project",
-        channels_last=False,
-        use_bn=False,
-    ):
-
-        super(DPT, self).__init__()
-
-        self.channels_last = channels_last
-
-        hooks = {
-            "vitb_rn50_384": [0, 1, 8, 11],
-            "vitb16_384": [2, 5, 8, 11],
-            "vitl16_384": [5, 11, 17, 23],
-        }
-
-        # Instantiate backbone and reassemble blocks
-        self.pretrained, self.scratch = _make_encoder(
-            backbone,
-            features,
-            False, # Set to true of you want to train from scratch, uses ImageNet weights
-            groups=1,
-            expand=False,
-            exportable=False,
-            hooks=hooks[backbone],
-            use_readout=readout,
-        )
-
-        self.scratch.refinenet1 = _make_fusion_block(features, use_bn)
-        self.scratch.refinenet2 = _make_fusion_block(features, use_bn)
-        self.scratch.refinenet3 = _make_fusion_block(features, use_bn)
-        self.scratch.refinenet4 = _make_fusion_block(features, use_bn)
-
-        self.scratch.output_conv = head
-
-
-    def forward(self, x):
-        if self.channels_last == True:
-            x.contiguous(memory_format=torch.channels_last)
-
-        layer_1, layer_2, layer_3, layer_4 = forward_vit(self.pretrained, x)
-
-        layer_1_rn = self.scratch.layer1_rn(layer_1)
-        layer_2_rn = self.scratch.layer2_rn(layer_2)
-        layer_3_rn = self.scratch.layer3_rn(layer_3)
-        layer_4_rn = self.scratch.layer4_rn(layer_4)
-
-        path_4 = self.scratch.refinenet4(layer_4_rn)
-        path_3 = self.scratch.refinenet3(path_4, layer_3_rn)
-        path_2 = self.scratch.refinenet2(path_3, layer_2_rn)
-        path_1 = self.scratch.refinenet1(path_2, layer_1_rn)
-
-        out = self.scratch.output_conv(path_1)
-
-        return out
-
-
-class DPTDepthModel(DPT):
-    def __init__(self, non_negative=True, **kwargs):
-        features = kwargs["features"] if "features" in kwargs else 256
-
-        head = nn.Sequential(
+class DPTDecoder(nn.Module):
+    """4 encoder maps -> (B, 1, H, W): 3x3 convs to `features` channels, fusion (coarse to fine), head"""
+    def __init__(self, in_channels: tuple[int, int, int, int] = (256, 512, 1024, 1024), features: int = 256):
+        super().__init__()
+        self.layer1_rn = nn.Conv2d(in_channels[0], features, kernel_size=3, stride=1, padding=1, bias=False)
+        self.layer2_rn = nn.Conv2d(in_channels[1], features, kernel_size=3, stride=1, padding=1, bias=False)
+        self.layer3_rn = nn.Conv2d(in_channels[2], features, kernel_size=3, stride=1, padding=1, bias=False)
+        self.layer4_rn = nn.Conv2d(in_channels[3], features, kernel_size=3, stride=1, padding=1, bias=False)
+        self.refinenet1 = FeatureFusionBlock(features)
+        self.refinenet2 = FeatureFusionBlock(features)
+        self.refinenet3 = FeatureFusionBlock(features)
+        self.refinenet4 = FeatureFusionBlock(features) # no skip input: its resConfUnit1 is unused, kept for strict load
+        self.output_conv = nn.Sequential(
             nn.Conv2d(features, features // 2, kernel_size=3, stride=1, padding=1),
-            Interpolate(scale_factor=2, mode="bilinear"),
+            nn.Upsample(scale_factor=2, mode="bilinear", align_corners=False),
             nn.Conv2d(features // 2, 32, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(True),
+            nn.ReLU(),
             nn.Conv2d(32, 1, kernel_size=1, stride=1, padding=0),
-            nn.ReLU(True) if non_negative else nn.Identity(),
-            nn.Identity(),
+            nn.ReLU(),
         )
 
-        super().__init__(head, **kwargs)
+    def forward(self, layers: list[tr.Tensor]) -> tr.Tensor:
+        """forward"""
+        assert len(layers) == 4, len(layers)
+        path_4 = self.refinenet4(self.layer4_rn(layers[3]))
+        path_3 = self.refinenet3(path_4, self.layer3_rn(layers[2]))
+        path_2 = self.refinenet2(path_3, self.layer2_rn(layers[1]))
+        path_1 = self.refinenet1(path_2, self.layer1_rn(layers[0]))
+        return self.output_conv(path_1)
 
-    def forward(self, x):
-        return super().forward(x).squeeze(dim=1)
+class DPTDepthModel(nn.Module):
+    """(B, 3, H, W) in [-1, 1], H and W multiples of 32 -> (B, H, W) non-negative inverse relative depth"""
+    def __init__(self):
+        super().__init__()
+        self.pretrained = DPTEncoder()
+        self.scratch = DPTDecoder()
 
+    def forward(self, x: tr.Tensor) -> tr.Tensor:
+        """forward"""
+        assert x.ndim == 4 and x.shape[1] == 3 and x.shape[2] % 32 == 0 and x.shape[3] % 32 == 0, x.shape
+        return self.scratch(self.pretrained(x)).squeeze(dim=1)

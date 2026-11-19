@@ -42,7 +42,6 @@ REQUIRED_REPOSITORY = [
     "torchvision>=0.24.0,<1.0.0",
     "opencv-python==4.14.0.94",
     "pycocotools==2.0.10",
-    "timm==1.0.9",
     "diffusers==0.30.3",
 ]
 
