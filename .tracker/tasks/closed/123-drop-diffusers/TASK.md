@@ -26,5 +26,5 @@ Same recipe as DINOv2 (#120): plain-torch port, same state_dict keys, `vae.pt` +
 - [x] bit-identical with diffusers 0.30.3 on CPU fp32: modules, schedulers
       (`test/manual/marigold/check_diffusers_parity.py`). The final version (after review fixes) was validated by CI
       e2e only; the full seeded demo1.jpg run of the parity script was not re-run on it.
-- [x] `vre_repository` imports no diffusers (core leftover: #124)
+- [x] nothing imports diffusers (`vre_repository` and `vre/__init__.py`)
 - [x] review gate green in CI (!255)
