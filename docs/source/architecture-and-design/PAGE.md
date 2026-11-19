@@ -1,3 +1,6 @@
+**Menu Title**: Architecture and design
+**Menu Position**: 2
+
 # VRE basic concepts
 
 ## High level

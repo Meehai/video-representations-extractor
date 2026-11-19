@@ -1,3 +1,6 @@
+**Menu Title**: CLI tools
+**Menu Position**: 3
+
 # CLI tools
 
 ## vre

@@ -1,3 +1,6 @@
+**Menu Title**: Introduction and installation
+**Menu Position**: 1
+
 # Introduction
 
 The purpose of this tool is to export various representations starting from RGB videos only.Representations are defined as ways of 'looking at the world'. One can watch at various levels of information:
@@ -60,4 +63,4 @@ directory.
 vre <path/to/dir_of_images> --config_path <path/to/cfg> -o <path/to/export_dir>
 ```
 
-For understanding a bit more about the architecture and design of this tool, see the [architecture and design](./architecture-and-design.md) page.
+For understanding a bit more about the architecture and design of this tool, see the [architecture and design](../architecture-and-design/PAGE.md) page.

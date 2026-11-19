@@ -1,3 +1,6 @@
+**Menu Title**: VRE repository
+**Menu Position**: 4
+
 ### VRE Repository
 
 VRE has a built-in representations repository of various ported algorithms and ML models. See
