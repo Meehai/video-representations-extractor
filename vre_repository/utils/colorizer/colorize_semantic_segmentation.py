@@ -35,6 +35,42 @@ def colorize_semantic_segmentation(semantic_map: np.ndarray, color_map: list[tup
                                           alpha=alpha, size_px=size_px)
                         for _r, _s in zip(rgb, semantic_map)])
 
+def _coco_polygon_area(xy: np.ndarray, height: int, width: int) -> int:
+    """Pixel area of polygon [x0, y0, x1, y1, ...] as rasterized by COCO (pycocotools rleFrPoly + rleArea)."""
+    assert len(xy) >= 6 and len(xy) % 2 == 0, len(xy)
+    scale = 5
+    pts = np.trunc(scale * np.asarray(xy, dtype=np.float64).reshape(-1, 2) + 0.5).astype(np.int64) # C (int) cast
+    pts = np.concatenate([pts, pts[0:1]])
+    us, vs = [], []
+    for (xs, ys), (xe, ye) in zip(pts[:-1], pts[1:]): # upsample: dense integer points along every edge
+        dx, dy = abs(xe - xs), abs(ye - ys)
+        flip = (dx >= dy and xs > xe) or (dx < dy and ys > ye)
+        xs, ys, xe, ye = (xe, ye, xs, ys) if flip else (xs, ys, xe, ye)
+        t = np.arange(max(dx, dy) + 1)
+        t = t[::-1] if flip else t
+        if dx >= dy:
+            us.append(xs + t)
+            vs.append(np.trunc(ys + (ye - ys) / max(dx, 1) * t + 0.5).astype(np.int64))
+        else:
+            vs.append(ys + t)
+            us.append(np.trunc(xs + (xe - xs) / dy * t + 0.5).astype(np.int64))
+    u, v = np.concatenate(us), np.concatenate(vs)
+    ix = np.nonzero(u[1:] != u[:-1])[0] + 1 # points where x changes = y-boundaries; downsample them
+    xd = (np.where(u[ix] < u[ix - 1], u[ix], u[ix] - 1) + 0.5) / scale - 0.5
+    yd = (np.minimum(v[ix], v[ix - 1]) + 0.5) / scale - 0.5
+    keep = (np.floor(xd) == xd) & (xd >= 0) & (xd <= width - 1)
+    yd = np.ceil(np.clip(yd[keep], 0, height))
+    runs = np.diff(np.sort(np.append(xd[keep] * height + yd, height * width)), prepend=0).astype(np.int64)
+    counts, j = [runs[0]], 1 # column-major RLE (bg, fg, bg, ...); a zero run merges its neighbours
+    while j < len(runs):
+        if runs[j] > 0:
+            counts.append(runs[j])
+        elif j + 1 < len(runs):
+            j += 1
+            counts[-1] += runs[j]
+        j += 1
+    return int(sum(counts[1::2]))
+
 class _GenericMask:
     """
     Attribute:
@@ -159,7 +195,6 @@ def _colorize_sem_seg(sema: np.ndarray, rgb: np.ndarray | None, classes: list[st
                       color_map: list[tuple[int, int, int]], alpha: float=0.8,
                       size_px: int | None = None) -> np.ndarray:
     """colorize semantic segmentation -- based on Mask2Former's approach but without MPL"""
-    import pycocotools.mask as mask_util # pylint: disable=import-outside-toplevel
     classes = list(map(str, classes)) if all(isinstance(x, int) for x in classes) else classes
     assert all(isinstance(x, str) for x in classes), classes
     sema_rgb = np.zeros((*sema.shape, 3), dtype=np.uint8)
@@ -180,7 +215,7 @@ def _colorize_sem_seg(sema: np.ndarray, rgb: np.ndarray | None, classes: list[st
             texts_data.append((mask.mask, classes[sorted_labels[ix]], _WHITE)) # texts are in fg
         else:
             for segment in mask.polygons:
-                area = mask_util.area(mask_util.frPyObjects([segment], *sema.shape[0:2]))
+                area = _coco_polygon_area(segment, *sema.shape[0:2])
                 if area < _AREA_THRESHOLD:
                     continue
                 texts_data.append((mask.mask, classes[sorted_labels[ix]], _WHITE)) # texts are in fg
