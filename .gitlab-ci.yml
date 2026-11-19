@@ -29,10 +29,8 @@ before_script:
   - export VRE_WEIGHTS_DIR=$VRE_ROOT/weights
   - export VRE_LOGLEVEL=3
   - export PATH="$PATH:$VRE_ROOT/cli"
-  - pip install -e .          # base deps from setup.py (no requirements*.txt anymore)
-  # CPU-only torch first, so the repository extra below skips the CUDA build.
-  - pip install torch==2.9.0 torchvision==0.24.0 --index-url https://download.pytorch.org/whl/cpu
-  - pip install -e ".[repository]"   # heavy model deps; torch already satisfied by the CPU wheel
+  # vre + vre_repository with the CPU-only torch build (setup.py is the single source of truth for deps)
+  - pip install -e ".[cpu]" --extra-index-url https://download.pytorch.org/whl/cpu
   - pip install pylint==4.1.4 pytest pytest-rerunfailures
 
 pages:
@@ -62,7 +60,7 @@ vre_unit_integration:
     - export VRE_LOGLEVEL=3
     - export VRE_COLORIZE_SEMSEG_FAST=1
     - export PATH="$PATH:$VRE_ROOT/cli"
-    - pip install -e .          # core deps; vre-video + image_utils are vendored in pkg/ now
+    - pip install -e ".[cpu]" --extra-index-url https://download.pytorch.org/whl/cpu
     - pip install pytest pytest-rerunfailures
   script:
     - python3 -m pytest test/vre --durations=15

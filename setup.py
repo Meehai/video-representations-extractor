@@ -7,7 +7,10 @@ Import roots:
   One layout: the package lives one level in (`pkg/vre-video/vre_video/`, `pkg/image_utils/image_utils/`, `pkg/overrides/overrides/`).
 
 `install_requires` / `extras_require` below are the single source of truth for deps (there are no
-requirements*.txt files anymore). The vendored packages ship their own setup.py but we do NOT install
+requirements*.txt files anymore). `pip install video-representations-extractor` installs everything: the `vre`
+library and the built-in `vre_repository` (torch, torchvision). The `[cpu]` extra pins the CPU-only torch builds,
+which live on PyTorch's index, not PyPI (pip extras cannot pick an index):
+`pip install "video-representations-extractor[cpu]" --extra-index-url https://download.pytorch.org/whl/cpu`. The vendored packages ship their own setup.py but we do NOT install
 them as separate distributions -- they are just packages on our path.
 
 Editable installs must take the PEP 660 path (it honours package_dir, i.e. the vendored pkg/ roots).
@@ -27,7 +30,7 @@ ROOT = Path(__file__).absolute().parent
 with open(ROOT / "README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
-REQUIRED_CORE = [
+REQUIRED_CORE = [ # vre/: light deps only
     "loggez>=0.8.4",
     "numpy>=1.21.6",
     "Pillow>=11.3.0",
@@ -36,9 +39,14 @@ REQUIRED_CORE = [
     "graphviz==0.20.3",
 ]
 
-REQUIRED_REPOSITORY = [
+REQUIRED_REPOSITORY = [ # vre_repository/: the heavy deps
     "torch>=2.9.0,<3.0.0",
     "torchvision>=0.24.0,<1.0.0",
+]
+
+REQUIRED_CPU = [ # macOS wheels are CPU-only already and have no +cpu builds
+    "torch==2.9.0+cpu; sys_platform != 'darwin'",
+    "torchvision==0.24.0+cpu; sys_platform != 'darwin'",
 ]
 
 # Vendored packages: scan each repo dir under pkg/ for its packages (test/ trees are not installed).
@@ -85,10 +93,9 @@ setup(
     package_dir=vendored_dirs,
     package_data=package_data,
     include_package_data=False,
-    install_requires=REQUIRED_CORE,
+    install_requires=REQUIRED_CORE + REQUIRED_REPOSITORY,
     extras_require={
-        "core": [],
-        "repository": REQUIRED_REPOSITORY,
+        "cpu": REQUIRED_CPU,
         "docs": ["opdoc==0.2.3"],
     },
     dependency_links=[],
