@@ -204,9 +204,9 @@ def _annotation_key(annotation, globals_=None):
         return "None" if annotation is type(None) else annotation.__qualname__
     origin = getattr(annotation, "__origin__", None)
     args = getattr(annotation, "__args__", None)
+    if isinstance(annotation, types.UnionType) or (origin is Union and args):  # `X | Y`: no __origin__ before 3.14
+        return " | ".join(_annotation_key(arg) for arg in args)
     if origin is not None and args:
-        if origin is types.UnionType or origin is Union:
-            return " | ".join(_annotation_key(arg) for arg in args)
         return f"{_annotation_key(origin)}[{', '.join(_annotation_key(arg) for arg in args)}]"
     return str(annotation)
 

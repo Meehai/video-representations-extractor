@@ -271,6 +271,13 @@ def test_annotation_key_renders_ellipsis_as_written():
     assert _ov_inner._annotation_key(tuple[int, ...]) == _ov_inner._annotation_key("tuple[int, ...]", globals())
 
 
+def test_annotation_key_renders_live_union_as_written():
+    """A live `X | None` (non-future module) keys like the future-import string of the same union. Before python 3.14
+    the live union has no `__origin__` and its str() is module-qualified, so it must be recognised by its type."""
+    assert _ov_inner._annotation_key(list[Base] | None) == "list[Base] | None"
+    assert _ov_inner._annotation_key(list[Base] | None) == _ov_inner._annotation_key("list[Base] | None", globals())
+
+
 def test_future_import_variadic_tuple_matches_live_alias():
     """A future-imported base `-> tuple[int, ...]` and a non-future override with the same hint
     are the same signature. Exec'd without the future import, as in the dotted-type test."""

@@ -23,5 +23,8 @@ return types).
 
 - [x] code applied (!259): `pkg/overrides`, pip `overrides` out of `setup.py`, the signature fixes, vre-video bump,
       `pkg/README.md` + AGENTS.md vendored-packages table, `--import-path pkg/overrides` in `docs/build_docs.sh`
+- [x] python 3.12 (CI): a live `X | None` has no `__origin__` before 3.14, so the shim keyed it by its
+      module-qualified str() and rejected `TaskMapper.compute` vs its future-annotated base. Fixed in robosim's
+      `pkg/overrides` (+ test) and re-vendored; `test/vre` and `test/vre_repository/unit` green on 3.12 locally
 - [x] full pytest gate green locally (159 passed, 1 xpassed)
 - [ ] review gate green in CI (!259)
