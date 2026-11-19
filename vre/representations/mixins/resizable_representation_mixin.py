@@ -1,6 +1,8 @@
 """resizable_representation_mixin.py -- Interface that allows us to resize a ReprOut but also overwrite it"""
 import numpy as np
-from vre.utils import image_resize_batch, ReprOut
+from vre.utils import ReprOut
+
+from image_utils import image_resize
 
 class ResizableRepresentationMixin:
     """Interface that allows us to resize a ReprOut but also overwrite it"""
@@ -10,6 +12,6 @@ class ResizableRepresentationMixin:
         interpolation = "nearest" if np.issubdtype(d := data.output.dtype, np.integer) or d == bool else "bilinear"
         output_images = None
         if data.output_images is not None:
-            output_images = image_resize_batch(data.output_images, *new_size, interpolation="nearest")
-        return ReprOut(frames=data.frames, key=data.key, extra=data.extra, output_images=output_images,
-                       output=image_resize_batch(data.output, *new_size, interpolation=interpolation))
+            output_images = np.array([image_resize(x, *new_size, interpolation="nearest")] for x in data.output_images)
+        output = np.array([image_resize(x, *new_size, interpolation=interpolation)] for x in data.output)
+        return ReprOut(frames=data.frames, key=data.key, extra=data.extra, output_images=output_images, output=output)

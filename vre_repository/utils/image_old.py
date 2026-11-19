@@ -7,6 +7,8 @@ from vre.utils import lo, get_closest_square, array_blend
 from .cv2_utils import cv2_image_write, cv2_image_read
 from .pil_utils import pil_image_add_title, pil_image_read, pil_image_write
 
+from image_utils import image_resize
+
 def image_write(x: np.ndarray, path: Path, library: str = "PIL"):
     """writes an image to a bytes string"""
     assert x.dtype == np.uint8, x.dtype
@@ -156,3 +158,8 @@ def image_blend(x: np.ndarray, y: np.ndarray, alpha: float | np.ndarray) -> np.n
     y = y.astype(np.float32) / 255
     res_float = array_blend(x, y, alpha)
     return (res_float * 255).astype(np.uint8)
+
+def image_resize_batch(x_batch: np.ndarray | list[np.ndarray], *args, **kwargs) -> np.ndarray:
+    """resizes a bath of images to the given height and width"""
+    fn = MemoryData if isinstance(x_batch[0], MemoryData) else np.asarray
+    return fn([image_resize(x, *args, **kwargs) for x in x_batch])
