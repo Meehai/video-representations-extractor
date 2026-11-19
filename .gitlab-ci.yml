@@ -4,10 +4,6 @@ variables:
   GIT_LFS_SKIP_SMUDGE: "1"
   CACHE_COMPRESSION_LEVEL: "fastest" # checkpoints don't compress: don't spend time trying
 
-# Downloaded weights, reused across pipelines (MRs + master). fetch_weights() replaces the LFS pointers under
-# vre_repository/**/weights/ with the real files; restoring the cache puts them back before the tests, so nothing is
-# downloaded again. One cache per job: jobs run in parallel and need different weights (a shared key = last writer
-# wins). A cached file is never re-fetched: bump the "v1" when a checkpoint changes under the same path.
 .weights_cache: &weights_cache
   key: weights-v1-$CI_JOB_NAME
   paths:
