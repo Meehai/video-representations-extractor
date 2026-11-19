@@ -8,6 +8,7 @@ from pathlib import Path
 from functools import reduce
 from pprint import pprint
 import numpy as np
+from PIL import Image
 import torch as tr
 
 from vre.utils import DiskData, MemoryData,  reorder_dict, lo, get_project_root, ReprOut
@@ -18,8 +19,8 @@ from vre_repository import get_vre_repository
 from vre_repository.depth import DepthRepresentation
 from vre_repository.normals import NormalsRepresentation
 from vre_repository.semantic_segmentation import SemanticRepresentation
-from vre_repository.utils import (semantic_mapper, colorize_semantic_segmentation, collage_fn, image_add_title,
-                                  image_write)
+from vre_repository.utils import semantic_mapper, colorize_semantic_segmentation
+from vre_repository.vre_image_utils import collage_fn, image_add_title
 
 sys.path.append((get_project_root() / "examples/vre_reader").__str__())
 from multitask_dataset import MultiTaskDataset, MultiTaskItem
@@ -530,7 +531,7 @@ if __name__ == "__main__":
         pprint(data)
         res, origs = plot_one(data, title=name, order=order, name_to_task=reader.name_to_task, return_origs=True)
         print(f"{name} -- {res.shape}")
-        image_write(res, f"collage_{name[0:-4]}.png")
+        Image.fromarray(res).save(f"collage_{name[0:-4]}.png")
         for k, v in origs.items():
-            image_write(v, f"collage_{name[0:-4]}_{k}.png")
+            Image.fromarray(v).save(f"collage_{name[0:-4]}_{k}.png")
         break

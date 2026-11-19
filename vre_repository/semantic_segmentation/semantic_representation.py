@@ -6,7 +6,8 @@ from vre import Representation, ReprOut
 from vre.representations.mixins import NpIORepresentationMixin, ResizableRepresentationMixin
 from vre.utils import DiskData, MemoryData
 from vre.logger import vre_logger as logger
-from vre_repository.utils import colorize_semantic_segmentation, image_resize_batch
+from vre_repository.utils import colorize_semantic_segmentation
+from vre_repository.vre_image_utils import image_resize_batch
 
 # TODO: ideally we'd not need to specify disk_data_argmax explicitly
 # TODO: we may need a way to specify memory data format (one-hot, softmax, logits, index etc.)

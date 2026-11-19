@@ -5,7 +5,7 @@ from overrides import overrides
 from vre.utils import ReprOut
 from vre.representations import Representation
 from vre.representations.mixins import NpIORepresentationMixin
-from vre_repository.utils import image_resize_batch
+from vre_repository.vre_image_utils import image_resize_batch
 
 class EmbeddingRepresentation(NpIORepresentationMixin, Representation, ABC):
     """

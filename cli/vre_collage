@@ -11,6 +11,7 @@ import subprocess
 import shutil
 from tqdm import tqdm
 import numpy as np
+from PIL import Image
 import torch as tr
 from image_utils import image_resize
 
@@ -18,7 +19,7 @@ from vre.utils import reorder_dict, MemoryData, str_topk, natsorted, get_project
 from vre.representations import build_representations_from_cfg, add_external_repositories, Representation
 from vre.logger import vre_logger as logger
 from vre_repository import get_vre_repository
-from vre_repository.utils import collage_fn, image_write
+from vre_repository.vre_image_utils import collage_fn
 
 sys.path.append((get_project_root() / "examples/vre_reader").__str__())
 from multitask_dataset import MultiTaskDataset # pylint: disable=all
@@ -55,7 +56,7 @@ def do_one(ix: int, reader: MultiTaskDataset, output_path: Path, output_resoluti
     img_data = reorder_dict(plot_one(data, name, reader.path, name_to_task=reader.name_to_task), ["rgb"])
     collage = collage_fn(list(img_data.values()), titles=[str_topk(t, 40) for t in img_data.keys()], size_px=40)
     collage = collage if output_resolution is None else image_resize(collage, *output_resolution)
-    image_write(collage, out_path)
+    Image.fromarray(collage).save(out_path)
 
 def get_args() -> Namespace:
     """CLI args"""

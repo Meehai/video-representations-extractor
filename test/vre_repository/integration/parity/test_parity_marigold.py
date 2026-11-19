@@ -5,9 +5,10 @@ modules with the same weights driven by the Marigold denoising loop. Runs only i
 """
 import pytest
 import torch as tr
+import numpy as np
+from PIL import Image
 from torch.nn import functional as F
 from vre.utils import get_project_root
-from vre_repository.utils import image_read
 from vre_repository.depth.marigold import Marigold
 from vre_repository.depth.marigold.marigold_impl import DDIMScheduler, LCMScheduler
 from vre_repository.utils import fetch_weights, vre_load_weights
@@ -70,7 +71,8 @@ def test_parity_marigold_lcm_vs_diffusers():
     assert sorted(lib_unet.state_dict()) == sorted(marigold.model.unet.state_dict())
     assert sorted(lib_vae.state_dict()) == sorted(marigold.model.vae.state_dict())
 
-    rgb = tr.from_numpy(image_read(get_project_root() / "resources/demo1.jpg")).permute(2, 0, 1)[None].float()
+    rgb = np.array(Image.open(get_project_root() / "resources/demo1.jpg"))
+    rgb = tr.from_numpy(rgb).permute(2, 0, 1)[None].float()
     rgb = F.interpolate(rgb, size=(192, 256), mode="bilinear") / 255 * 2 - 1
     ctx = marigold.model.empty_text_embed.repeat(1, 1, 1)
     noise = tr.randn(1, 8, 24, 32, generator=tr.Generator().manual_seed(0))

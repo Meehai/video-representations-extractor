@@ -8,7 +8,7 @@ import numpy as np
 import os
 from copy import deepcopy
 from image_utils import image_resize
-from vre_repository.utils.cv2_utils import (cv2_copyMakeBorder, cv2_BORDER_CONSTANT, cv2_rectangle,
+from vre_repository.vre_image_utils.cv2_utils import (cv2_copyMakeBorder, cv2_BORDER_CONSTANT, cv2_rectangle,
                                             cv2_putText, cv2_getTextSize, cv2_LINE_AA)
 from .ops import xyxy2xywh, xywh2xyxy, clip_boxes
 

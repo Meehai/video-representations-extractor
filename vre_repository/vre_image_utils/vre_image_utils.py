@@ -1,21 +1,10 @@
-"""image utils for VRE"""
-from pathlib import Path
+"""vre_image_utils.py -- image utils for vre_repository"""
 import numpy as np
 from image_utils import image_resize
 
 from vre.logger import vre_logger as logger
 from vre.utils import lo, get_closest_square, array_blend, MemoryData
-from .cv2_utils import cv2_image_write, cv2_image_read
-from .pil_utils import pil_image_add_title, pil_image_read, pil_image_write
-
-def image_write(x: np.ndarray, path: Path, library: str = "PIL"):
-    """writes an image to a bytes string"""
-    assert x.dtype == np.uint8, x.dtype
-    return {"cv2": cv2_image_write, "PIL": pil_image_write}[library](x, path)
-
-def image_read(path: Path, library: str = "PIL") -> np.ndarray:
-    """Read an image from a path. Return uint8 [0:255] ndarray"""
-    return {"cv2": cv2_image_read, "PIL": pil_image_read}[library](path)
+from .pil_utils import pil_image_add_title
 
 def _get_rows_cols(n_imgs: int, rows_cols: tuple[int | None, int | None] | None) -> tuple[int, int]:
     assert isinstance(n_imgs, int) and n_imgs > 0, n_imgs

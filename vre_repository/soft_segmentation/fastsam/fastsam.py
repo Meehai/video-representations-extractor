@@ -14,7 +14,8 @@ from PIL import Image
 from vre.logger import vre_logger as logger
 from vre.utils import ReprOut, MemoryData
 from vre.representations.mixins import LearnedRepresentationMixin
-from vre_repository.utils import fetch_weights, image_resize_batch
+from vre_repository.utils import fetch_weights
+from vre_repository.vre_image_utils import image_resize_batch
 from vre_repository.soft_segmentation import SoftSegmentationRepresentation
 
 try:

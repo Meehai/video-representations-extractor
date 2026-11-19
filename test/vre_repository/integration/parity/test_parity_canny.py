@@ -4,10 +4,10 @@ the Sobel gradients are integer sums and every threshold, direction and tie test
 real behaviour difference. Runs only if opencv is installed.
 """
 import numpy as np
+from PIL import Image
 import pytest
 from vre_video import VREVideo
 from vre.utils import get_project_root
-from vre_repository.utils import image_read
 from vre_repository.edges.canny import Canny, canny
 
 cv2 = pytest.importorskip("cv2")
@@ -34,14 +34,14 @@ def test_parity_canny_random_vs_cv2(aperture_size: int, scale: int, l2_gradient:
 def test_parity_canny_photos_vs_cv2(name: str, aperture_size: int, threshold1: float, threshold2: float,
                                     l2_gradient: bool):
     """full-size photos, RGB and grey"""
-    rgb = image_read(get_project_root() / "resources" / name)
+    rgb = np.array(Image.open(get_project_root() / "resources" / name))
     for image in [rgb, cv2.cvtColor(rgb, cv2.COLOR_RGB2GRAY)]:
         expected = cv2.Canny(image, threshold1, threshold2, apertureSize=aperture_size, L2gradient=l2_gradient) == 255
         assert np.array_equal(canny(image, threshold1, threshold2, aperture_size, l2_gradient), expected), image.shape
 
 def test_parity_canny_representation_vs_cv2():
     """the representation's output is cv2.Canny's edge map as (1, H, W, 1) float32 in {0, 1}"""
-    frame = image_read(get_project_root() / "resources/demo1.jpg")
+    frame = np.array(Image.open(get_project_root() / "resources/demo1.jpg"))
     canny_repr = Canny(name="canny", dependencies=[], threshold1=100, threshold2=200, aperture_size=3, l2_gradient=True)
     y = canny_repr.compute(VREVideo(frame[None], fps=1), [0]).output
     expected = np.float32(cv2.Canny(frame, 100, 200, apertureSize=3, L2gradient=True))[None, ..., None] / 255

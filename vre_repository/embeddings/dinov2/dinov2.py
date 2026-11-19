@@ -11,7 +11,8 @@ from vre.utils import MemoryData, fetch
 from vre.logger import vre_logger as logger
 from vre import ReprOut
 from vre.representations.mixins import LearnedRepresentationMixin
-from vre_repository.utils import fetch_weights, image_resize_batch
+from vre_repository.utils import fetch_weights
+from vre_repository.vre_image_utils import image_resize_batch
 from vre_repository.embeddings import EmbeddingRepresentation
 
 from .dinov2_impl import Dinov2Model
@@ -162,4 +163,4 @@ def _pca_rgb(grid: np.ndarray) -> np.ndarray:
     proj = np.zeros((h * w, 3))
     proj[:, 0:len(vt)] = x @ (vt * np.where(signs == 0, 1, signs)[:, None]).T
     lo, hi = proj.min(axis=0), proj.max(axis=0)
-    return ((proj - lo) / np.maximum(hi - lo, 1e-8) * 255).astype(np.uint8).reshape(h, w, 3)
+    return np.round((proj - lo) / np.maximum(hi - lo, 1e-8) * 255).astype(np.uint8).reshape(h, w, 3)
