@@ -6,7 +6,7 @@ offline, there is no submodule init dance, and CI has no `GIT_SUBMODULE_STRATEGY
 copying its files here at the new commit (check `setup.py` -- the packages under `pkg/` are
 auto-discovered and put on the import path, so no per-package wiring is needed).
 
-One layout: `pkg/<repo>/<package>/` (`pkg/vre-video/vre_video/`, `pkg/image_utils/image_utils/`).
+One layout: `pkg/<repo>/<package>/` (`pkg/vre-video/vre_video/`, `pkg/image_utils/image_utils/`, `pkg/overrides/overrides/`).
 `image_utils` upstream is flat (repo root = package), so its three `.py` files are copied into
 `pkg/image_utils/image_utils/` when bumping. Its vendored `test/` tree imports the flat modules
 (`import image_utils_pil`), so run it with `PYTHONPATH=pkg/image_utils/image_utils` if ever needed.
@@ -15,7 +15,10 @@ Vendored packages (pinned commits):
 - [image_utils](./image_utils) - image helpers (resize, paste, drawing). Pinned to `370728c`
   on purpose: later commits add breaking changes (typeguard instrumentation, new API) not yet
   fixed in VRE -- do NOT bump blindly.
-- [vre-video](./vre-video) - VRE's video reading/writing library (`import vre_video`).
+- [vre-video](./vre-video) - VRE's video reading/writing library (`import vre_video`). Pinned to `1e04e9e`.
+- [overrides](./overrides) - first-party `@overrides` shim from robosim (`robosim/pkg/overrides`), replacing the
+  pip `overrides` package. Checks at class-definition time that the method exists in a base class AND that
+  its signature matches the base's as written; opt out with `@overrides(check_signature=False)`.
 
 CAVEAT: vendoring puts a package's code on the path but NOT its third-party deps. Each package's own
 `setup.py`/`requirements.txt` here is informational; the deps we actually need are declared in the

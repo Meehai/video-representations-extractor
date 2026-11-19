@@ -1,4 +1,5 @@
 """depth_representationpy -- module implementing a Depth Represenatation generic class"""
+from abc import ABC
 from overrides import overrides
 import numpy as np
 from vre.utils import MemoryData, DiskData, ReprOut
@@ -7,7 +8,7 @@ from vre.representations.mixins import NpIORepresentationMixin, NormedRepresenta
 from vre_repository.utils import colorize_depth
 
 class DepthRepresentation(NpIORepresentationMixin, NormedRepresentationMixin,
-                          ResizableRepresentationMixin, Representation):
+                          ResizableRepresentationMixin, Representation, ABC):
     """DepthRepresentation. Implements depth task-specific stuff, like spectral map for plots."""
     def __init__(self, name: str, min_depth: float, max_depth: float, **kwargs):
         Representation.__init__(self, name, **kwargs)

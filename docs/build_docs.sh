@@ -10,6 +10,6 @@ set -euo pipefail
 cd "$(dirname "$0")/.."                 # repo root (this script lives in docs/)
 opdoc docs/ "${1:-public}" \
   --api-package vre --api-package vre_repository \
-  --import-path . --import-path pkg/image_utils --import-path pkg/vre-video \
+  --import-path . --import-path pkg/image_utils --import-path pkg/vre-video --import-path pkg/overrides \
   --exclude '*_impl' --exclude '*ultralytics' --exclude '*.resources' \
   --site-title "VRE documentation"

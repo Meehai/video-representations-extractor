@@ -11,14 +11,18 @@ from ..utils import logger
 
 class FFmpegFrameWriter(FrameWriter):
     """FFmpegFrameWriter implementation that writes to disk a video using ffmpeg process"""
-    def write(self, video: "VREVideo", out_path: Path, start_frame: int = 0, end_frame: int | None = None):
+    def write(self, video: "VREVideo", out_path: Path, start_frame: int = 0, end_frame: int | None = None,
+              overwrite: bool=False):
         out_path = Path(out_path)
         assert out_path.suffix == ".mp4", out_path
         assert isinstance(start_frame, int) and start_frame >= 0, start_frame
 
+        if video.frame_shape[0] % 2 == 1:
+            logger.warning(f"FFmpeg doesn't like odd frame shapes. Got: {video.frame_shape}. You should pad them.")
+
         process, logfile = self._start_ffmpeg_write_process(video, out_path)
 
-        assert not out_path.exists(), out_path
+        assert not out_path.exists() or overwrite, out_path
         out_path.parent.mkdir(exist_ok=True, parents=True)
         start_frame = start_frame or 0
         end_frame = end_frame or len(video)

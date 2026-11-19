@@ -11,6 +11,8 @@ from PIL import Image, ImageDraw, ImageFont
 
 logger = make_logger("VRE_VIDEO")
 
+SupportsGTAndLT = Any
+
 def image_write(file: np.ndarray, path: str):
     """PIL image writer"""
     assert file.min() >= 0 and file.max() <= 255
@@ -65,7 +67,7 @@ def parsed_str_type(item: Any) -> str:
     """Given an object with a type of the format: <class 'A.B.C.D'>, parse it and return 'A.B.C.D'"""
     return str(type(item)).rsplit(".", maxsplit=1)[-1][0:-2]
 
-def natsorted(seq: Iterable[T], key: Callable[[T], "SupportsGTAndLT"] | None = None, reverse: bool=False) -> list[T]:
+def natsorted(seq: Iterable[T], key: Callable[[T], SupportsGTAndLT] | None = None, reverse: bool=False) -> list[T]:
     """wrapper on top of natsorted so we can properly remove it"""
     def _try_convert_to_num(x: str) -> str | int | float:
         try:
@@ -76,7 +78,7 @@ def natsorted(seq: Iterable[T], key: Callable[[T], "SupportsGTAndLT"] | None = N
             except ValueError:
                 return x
 
-    def natsorted_key(item: T, key: Callable) -> "SupportsGTAndLT":
+    def natsorted_key(item: T, key: Callable) -> SupportsGTAndLT:
         item = key(item)
         if isinstance(item, str):
             ix_dot = item.rfind(".")

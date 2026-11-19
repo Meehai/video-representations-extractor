@@ -1,6 +1,7 @@
 """pil_frame_writer - Module that implements frame writing using Pillow"""
 from pathlib import Path
 import os
+import shutil
 from tqdm import trange
 
 from .frame_writer import FrameWriter
@@ -13,10 +14,15 @@ class PILFrameWriter(FrameWriter):
         assert fmt in {"png", "jpg"}, fmt
         self.suffix = fmt
 
-    def write(self, video: "VREVideo", out_path: str | Path, start_frame: int = 0, end_frame: int | None = None):
-        out_path = Path(out_path)
-        out_path.mkdir(exist_ok=True, parents=True)
-        assert len(files := list(out_path.iterdir())) == 0, f"Data exists in out_path. N files: {len(files)}"
+    def write(self, video: "VREVideo", out_path: str | Path, start_frame: int = 0, end_frame: int | None = None,
+              overwrite: bool = False):
+        (out_path := Path(out_path)).mkdir(exist_ok=True, parents=True)
+        if len(files := list(out_path.iterdir())) > 0:
+            if overwrite:
+                shutil.rmtree(out_path)
+            else:
+                raise ValueError(f"Data exists in out_path ({out_path}). N files: {len(files)}")
+
         start_frame = start_frame or 0
         end_frame = end_frame or len(video)
         assert start_frame >= 0 and end_frame <= len(video), (start_frame, end_frame)

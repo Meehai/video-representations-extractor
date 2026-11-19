@@ -33,7 +33,7 @@ before_script:
   # CPU-only torch first, so the repository extra below skips the CUDA build.
   - pip install torch==2.9.0 torchvision==0.24.0 --index-url https://download.pytorch.org/whl/cpu
   - pip install -e ".[repository]"   # heavy model deps; torch already satisfied by the CPU wheel
-  - pip install pylint==3.2.7 pytest pytest-rerunfailures
+  - pip install pylint==4.1.4 pytest pytest-rerunfailures
 
 pages:
   # docs site is built by opdoc (docs/build_docs.sh), not sphinx: README + docs/source + the API of

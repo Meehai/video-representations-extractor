@@ -107,12 +107,12 @@ class FFmpegFrameReader(FrameReader):
 
     @property
     @overrides
-    def shape(self) -> str:
+    def shape(self) -> tuple[int, int, int, int]:
         return self._shape
 
     @property
     @overrides
-    def fps(self) -> str:
+    def fps(self) -> float:
         return self._fps
 
     def get_one_frame(self, ix: int) -> np.ndarray:

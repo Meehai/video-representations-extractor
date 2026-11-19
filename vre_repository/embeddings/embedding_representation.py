@@ -1,11 +1,12 @@
 """embedding_representation.py - embeddings: one (D, ) float vector per frame, or a (h, w, D) grid of them"""
+from abc import ABC
 import numpy as np
 from overrides import overrides
 from vre.utils import ReprOut, image_resize_batch
 from vre.representations import Representation
 from vre.representations.mixins import NpIORepresentationMixin
 
-class EmbeddingRepresentation(NpIORepresentationMixin, Representation):
+class EmbeddingRepresentation(NpIORepresentationMixin, Representation, ABC):
     """
     An embedding: one (D, ) float vector per frame, or a (h, w, D) grid of them (e.g. patch tokens). resize() keeps
     the embeddings as they are (only output_images are resized). make_images() draws a (D, ) vector as a grayscale grid

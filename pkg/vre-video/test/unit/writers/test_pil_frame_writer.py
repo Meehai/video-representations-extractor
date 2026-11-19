@@ -42,7 +42,7 @@ def test_pil_framewriter_raises_on_nonempty_output(tmpdir: Path):
     (out_dir / "dummy.png").touch()  # simulate existing file
 
     writer = PILFrameWriter()
-    with pytest.raises(AssertionError, match="Data exists in out_path"):
+    with pytest.raises(ValueError, match="Data exists in out_path"):
         writer.write(video, out_dir)
 
 def test_pil_framewriter_writes_images_interval(tmpdir: Path):

@@ -37,5 +37,5 @@ class OpticalFlowRepresentation(NpIORepresentationMixin, NormedRepresentationMix
         return video[_get_delta_frames(video, ixs, self.delta)]
 
     @overrides
-    def compute(self, video: VREVideo, ixs: list[int], dep_data = None) -> ReprOut:
+    def compute(self, video: VREVideo, ixs: list[int], dep_data: list[ReprOut] | None = None) -> ReprOut:
         raise NotImplementedError(self)
