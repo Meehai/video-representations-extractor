@@ -41,7 +41,7 @@ class DepthDpt(DepthRepresentation, LearnedRepresentationMixin):
     @overrides
     def vre_setup(self, load_weights: bool = True):
         assert self.setup_called is False
-        self.model = DPTDepthModel(backbone="vitl16_384", non_negative=True).to("cpu")
+        self.model = DPTDepthModel().to("cpu")
         if load_weights:
             path = fetch_weights(DepthDpt.get_weights_paths())[0]
             self.model.load_state_dict(tr.load(path, map_location="cpu"))

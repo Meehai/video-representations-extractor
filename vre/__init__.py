@@ -1,13 +1,6 @@
 """Init file"""
 # pylint: disable=reimported, wrong-import-position
 import warnings
-try:
-    from diffusers.utils.logging import disable_progress_bar
-    disable_progress_bar() # pylint: disable=all
-except ImportError:
-    pass
-
-
 from .video_representations_extractor import VideoRepresentationsExtractor, VideoRepresentationsExtractor as VRE
 from .representations import Representation
 from .utils.lovely import monkey_patch
@@ -24,6 +17,5 @@ monkey_patch()
 try:
     import torch # noqa: F401
     warnings.filterwarnings("ignore", "You are using `torch.load` with `weights_only=False`*.")
-    warnings.filterwarnings("ignore", "`clean_up_tokenization_spaces` was not set*.")
 except ImportError:
     pass

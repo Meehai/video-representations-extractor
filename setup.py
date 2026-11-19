@@ -19,7 +19,7 @@ from pathlib import Path
 from setuptools import setup, find_packages
 
 NAME = "video-representations-extractor"
-VERSION = "1.20.0"
+VERSION = "1.20.1"
 DESCRIPTION = "Video Representations Extractor (VRE) for computing algorithmic or neural representations of each frame."
 URL = "https://gitlab.com/video-representations-extractor/video-representations-extractor"
 
@@ -42,7 +42,6 @@ REQUIRED_REPOSITORY = [
     "torchvision>=0.24.0,<1.0.0",
     "opencv-python==4.14.0.94",
     "pycocotools==2.0.10",
-    "timm==1.0.9",
 ]
 
 # Vendored packages: scan each repo dir under pkg/ for its packages (test/ trees are not installed).

@@ -14,7 +14,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.utils.checkpoint as checkpoint
-from timm.models.layers import DropPath, to_2tuple, trunc_normal_
+from torch.nn.init import trunc_normal_
+from torchvision.ops import StochasticDepth
 
 from ...layers import ShapeSpec
 from ..resnet import Backbone
@@ -215,7 +216,7 @@ class SwinTransformerBlock(nn.Module):
         self.norm1 = norm_layer(dim)
         self.attn = WindowAttention(
             dim,
-            window_size=to_2tuple(self.window_size),
+            window_size=(self.window_size, self.window_size),
             num_heads=num_heads,
             qkv_bias=qkv_bias,
             qk_scale=qk_scale,
@@ -223,7 +224,7 @@ class SwinTransformerBlock(nn.Module):
             proj_drop=drop,
         )
 
-        self.drop_path = DropPath(drop_path) if drop_path > 0.0 else nn.Identity()
+        self.drop_path = StochasticDepth(drop_path, "row") if drop_path > 0.0 else nn.Identity()
         self.norm2 = norm_layer(dim)
         mlp_hidden_dim = int(dim * mlp_ratio)
         self.mlp = Mlp(
@@ -465,7 +466,7 @@ class PatchEmbed(nn.Module):
 
     def __init__(self, patch_size=4, in_chans=3, embed_dim=96, norm_layer=None):
         super().__init__()
-        patch_size = to_2tuple(patch_size)
+        patch_size = (patch_size, patch_size)
         self.patch_size = patch_size
 
         self.in_chans = in_chans
@@ -566,8 +567,8 @@ class SwinTransformer(nn.Module):
 
         # absolute position embedding
         if self.ape:
-            pretrain_img_size = to_2tuple(pretrain_img_size)
-            patch_size = to_2tuple(patch_size)
+            pretrain_img_size = (pretrain_img_size, pretrain_img_size)
+            patch_size = (patch_size, patch_size)
             patches_resolution = [
                 pretrain_img_size[0] // patch_size[0],
                 pretrain_img_size[1] // patch_size[1],

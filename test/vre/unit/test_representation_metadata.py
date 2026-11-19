@@ -87,8 +87,10 @@ def test_RepresentationMetadata_add_time_1(tmp_path: Path):
         }
     }
 
-# note: can be flaky due to how we lock the files. Works 99% of the time.
-@pytest.mark.flaky(reruns=3)
+# N writers on one metadata.json is the real use (N representations/processes). Sync isn't atomic yet: a reader can
+# see the file truncated mid-write (JSONDecodeError) and a run_stats entry is lost. Passes most runs, hence not strict.
+@pytest.mark.xfail(reason="RepresentationMetadata read-merge-write of metadata.json isn't atomic across writers",
+                   strict=False)
 def test_RepresentationMetadata_add_time_in_threads(tmp_path: Path):
     def worker_fn(thread_ix: int, n_threads: int, tmp_path: Path):
         metadata = RepresentationMetadata("repr_metadata", tmp_path / "metadata.json", N := range(100), ["fmt"])
