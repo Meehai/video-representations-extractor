@@ -10,7 +10,7 @@ from pprint import pprint
 import numpy as np
 import torch as tr
 
-from vre.utils import DiskData, MemoryData,  reorder_dict, lo, image_write, get_project_root, ReprOut
+from vre.utils import DiskData, MemoryData,  reorder_dict, lo, get_project_root, ReprOut
 from vre.logger import vre_logger as logger
 from vre.representations import TaskMapper, Representation, build_representations_from_cfg
 from vre.representations.mixins import NpIORepresentationMixin
@@ -18,7 +18,8 @@ from vre_repository import get_vre_repository
 from vre_repository.depth import DepthRepresentation
 from vre_repository.normals import NormalsRepresentation
 from vre_repository.semantic_segmentation import SemanticRepresentation
-from vre_repository.utils import semantic_mapper, colorize_semantic_segmentation, collage_fn, image_add_title
+from vre_repository.utils import (semantic_mapper, colorize_semantic_segmentation, collage_fn, image_add_title,
+                                  image_write)
 
 sys.path.append((get_project_root() / "examples/vre_reader").__str__())
 from multitask_dataset import MultiTaskDataset, MultiTaskItem

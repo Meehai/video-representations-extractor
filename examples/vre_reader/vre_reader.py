@@ -10,10 +10,10 @@ from tqdm import tqdm
 import numpy as np
 
 from vre.representations import build_representations_from_cfg, add_external_repositories
-from vre.utils import lo, MemoryData, image_write, str_topk, get_project_root, ReprOut
+from vre.utils import lo, MemoryData, str_topk, get_project_root, ReprOut
 from vre.logger import vre_logger as logger
 from vre_repository import get_vre_repository
-from vre_repository.utils import collage_fn
+from vre_repository.utils import collage_fn, image_write
 
 sys.path.append((get_project_root() / "examples/vre_reader").__str__())
 from multitask_dataset import MultiTaskDataset
