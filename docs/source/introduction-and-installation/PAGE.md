@@ -37,7 +37,8 @@ pytest /local/vre/dir/test # requires that pytest is installed
 [VRE_DEVICE=cuda CUDA_VISIBLE_DEVICES=0] vre example/video.mp4 --connfig_path example/cfg.yaml -o example
 ```
 
-Note: `vre-repository` (the heavy models: torch, torchvision, cv2, ...) is an extra: `pip install -e ".[repository]"`.
+Note: the install includes `vre_repository` (the built-in models: torch, torchvision). For the CPU-only torch build:
+`pip install -e ".[cpu]" --extra-index-url https://download.pytorch.org/whl/cpu`.
 
 ## Usage
 

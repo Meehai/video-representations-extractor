@@ -18,7 +18,7 @@ NEVER EVER EVER modify non-test Python files (the sole exceptions: test files an
 VRE (Video Representations Extractor): computes per-frame representations (depth, normals, semantic segmentation, optical flow, edges, ...) of a video, batched or streaming, and stores them on disk.
 
 - `vre/` — core library + runtime (`video_representations_extractor.py`, `representations/`, data writer/storer, run + per-representation metadata). Light deps only.
-- `vre_repository/` — built-in representations on top of `vre/` (heavy deps: torch, opencv, ...). `pip install -e ".[repository]"`.
+- `vre_repository/` — built-in representations on top of `vre/` (heavy deps: torch, torchvision). Installed with `vre`: `pip install -e .`; CPU-only torch: `pip install -e ".[cpu]" --extra-index-url https://download.pytorch.org/whl/cpu`.
 - `cli/` — `vre`, `vre_collage`, `vre_reader`, `vre_streaming`, `vre_gpu_parallel`, `vre_dir_analysis`.
 - `pkg/` — vendored in-tree packages (`image_utils`, `vre-video`), see `pkg/README.md`.
 - `examples/`, `docs/` (pdoc site, `docs/build_docs.sh`).
