@@ -1,12 +1,13 @@
 
 """color_representation.py -- module implementing an 'Color' (RGB-like) Represenatation generic class"""
+from abc import ABC
 from overrides import overrides
 import numpy as np
 from vre import Representation, ReprOut
 from vre.representations.mixins import NpIORepresentationMixin, NormedRepresentationMixin, ResizableRepresentationMixin
 
 class ColorRepresentation(NormedRepresentationMixin, NpIORepresentationMixin,
-                          ResizableRepresentationMixin, Representation):
+                          ResizableRepresentationMixin, Representation, ABC):
     """ColorRepresentation -- a wrapper over all 3-channeled colored representations"""
     def __init__(self, name: str, **kwargs):
         Representation.__init__(self, name, **kwargs)

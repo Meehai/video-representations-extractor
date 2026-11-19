@@ -4,7 +4,7 @@ from vre.utils import image_resize_batch, ReprOut
 
 class ResizableRepresentationMixin:
     """Interface that allows us to resize a ReprOut but also overwrite it"""
-    def resize(self, data: ReprOut, new_size: tuple[int, int]):
+    def resize(self, data: ReprOut, new_size: tuple[int, int]) -> ReprOut:
         """resizes the data. size is provided in (h, w)"""
         assert data is not None, "No data provided"
         interpolation = "nearest" if np.issubdtype(d := data.output.dtype, np.integer) or d == bool else "bilinear"

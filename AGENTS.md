@@ -35,7 +35,7 @@ VRE (Video Representations Extractor): computes per-frame representations (depth
 - **Tests are scoped by package**: `test/<package>/unit/`, `test/<package>/integration/`, `test/<package>/end_to_end/` (package = `vre`, `vre_repository`).
 - **Tests carry no history.** No task ids (`task 7`, `TODO(7)`), no "the regression", "used to", "the old X". A docstring, comment, xfail reason or script header says what is checked and why it matters today; history lives in the tracker and git. A strict xfail names the missing behaviour, not the task. `test/manual/` is exempt (investigation notes).
 - **Integration tests use the real interface**, not a mock of the thing under test. Use fake representations (`test/vre/fake_representation.py`) or the real `vre` CLI; stub only boundaries you don't own (model weights download, network).
-- **Minimal deps.** Core (`vre/`) deps: `numpy`, `Pillow`, `PyYAML`, `tqdm`, `loggez`, `overrides`, `graphviz`. Heavy deps belong to `vre_repository` only. No big libs for tiny features. Near-zero dead code. `setup.py` is the single source of truth for deps.
+- **Minimal deps.** Core (`vre/`) deps: `numpy`, `Pillow`, `PyYAML`, `tqdm`, `loggez`, `graphviz` (`overrides` is vendored in `pkg/`). Heavy deps belong to `vre_repository` only. No big libs for tiny features. Near-zero dead code. `setup.py` is the single source of truth for deps.
 
 ## Design principles
 
@@ -63,12 +63,13 @@ Optional `**Labels**: ...` goes in the body, after the header's blank line. IDs:
 
 ## Vendored packages
 
-`image_utils` and `vre-video` (under `pkg/`) are ours, pinned copies of their upstream repos, each with its own tracker:
+`image_utils`, `vre-video` and `overrides` (under `pkg/`) are ours, pinned copies of their upstream repos, each with its own tracker (`overrides` uses robosim's):
 
 | Package | Upstream |
 |---|---|
 | image_utils | `/home/mihai/code/graphics/image_utils/` |
 | vre-video | `/home/mihai/code/others/vre-video/` |
+| overrides | `/home/mihai/code/robotics/robosim/pkg/overrides/` |
 
 - Library tasks live in `pkg/<lib>/.tracker/`, never VRE's. Refer to them as `vre-video #6`.
 - Don't edit vendored code in place; fix upstream, then bump the pinned copy (see `pkg/README.md`). `image_utils` is pinned on purpose — don't bump blindly.

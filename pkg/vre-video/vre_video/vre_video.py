@@ -33,13 +33,14 @@ class VREVideo(Iterable):
         """The path of the video"""
         return self.reader.path
 
-    def write(self, out_path: Path, start_frame: int = 0, end_frame: int | None = None, **writer_kwargs) -> FrameWriter:
+    def write(self, out_path: Path, start_frame: int = 0, end_frame: int | None = None, overwrite: bool = False,
+              **writer_kwargs) -> FrameWriter:
         """writes this video to the disk"""
         if Path(out_path).suffix != "": # .mp4 etc.
             writer = build_frame_writer("ffmpeg")
         else:
             writer = build_frame_writer(**writer_kwargs)
-        writer.write(self, out_path, start_frame, end_frame)
+        writer.write(self, out_path, start_frame, end_frame, overwrite)
         return writer
 
     def __iter__(self):
@@ -55,3 +56,7 @@ class VREVideo(Iterable):
 
     def __repr__(self):
         return f"[VREVideo] {self.reader}"
+
+    def __contains__(self, item: int) -> bool:
+        assert isinstance(item, int), f"Can only check contains for integers, got: {type(int)}"
+        return 0 <= item < len(self)

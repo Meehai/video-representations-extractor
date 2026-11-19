@@ -22,7 +22,7 @@ class SemanticRepresentation(NpIORepresentationMixin, ResizableRepresentationMix
         self.classes = list(range(classes)) if isinstance(classes, int) else classes
         self.color_map = color_map
         self.disk_data_argmax = disk_data_argmax
-        assert len(color_map) == self.n_classes and self.n_classes > 1, (self.name, color_map, self.n_classes)
+        assert 1 < self.n_classes == len(color_map), (self.name, color_map, self.n_classes)
         self._output_dtype = "uint8" if disk_data_argmax else "float16"
 
     @property
@@ -59,5 +59,5 @@ class SemanticRepresentation(NpIORepresentationMixin, ResizableRepresentationMix
                                               classes=self.classes, rgb=frames_rsz)
 
     @overrides
-    def compute(self, video: VREVideo, ixs: list[int], dep_data = None) -> ReprOut:
+    def compute(self, video: VREVideo, ixs: list[int], dep_data: list[ReprOut] | None = None) -> ReprOut:
         raise NotImplementedError(self)
