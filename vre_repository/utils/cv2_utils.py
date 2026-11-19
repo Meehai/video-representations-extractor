@@ -50,10 +50,6 @@ def cv2_connectedComponents(*args, **kwargs):
     """Wrapper on top of cv2"""
     return cv2.connectedComponents(*args, **kwargs)
 
-def cv2_Canny(*args, **kwargs):
-    """Wrapper on top of cv2"""
-    return cv2.Canny(*args, **kwargs)
-
 def cv2_findContours(*args, **kwargs):
     """Wrapper on top of cv2"""
     return cv2.findContours(*args, **kwargs)
