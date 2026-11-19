@@ -17,7 +17,7 @@ NEVER EVER EVER modify non-test Python files (the sole exceptions: test files an
 
 VRE (Video Representations Extractor): computes per-frame representations (depth, normals, semantic segmentation, optical flow, edges, ...) of a video, batched or streaming, and stores them on disk.
 
-- `vre/` — core library + runtime (`video_representations_extractor.py`, `representations/`, data writer/storer, run + per-representation metadata). Light deps only.
+- `vre/` — core library + runtime (`video_representations_extractor.py`, `representations/`, data writer/storer, run + per-representation metadata). Imports light deps only (no torch).
 - `vre_repository/` — built-in representations on top of `vre/` (heavy deps: torch, torchvision). Installed with `vre`: `pip install -e .`; CPU-only torch: `pip install -e ".[cpu]" --extra-index-url https://download.pytorch.org/whl/cpu`.
 - `cli/` — `vre`, `vre_collage`, `vre_reader`, `vre_streaming`, `vre_gpu_parallel`, `vre_dir_analysis`.
 - `pkg/` — vendored in-tree packages (`image_utils`, `vre-video`), see `pkg/README.md`.
@@ -35,7 +35,7 @@ VRE (Video Representations Extractor): computes per-frame representations (depth
 - **Tests are scoped by package**: `test/<package>/unit/`, `test/<package>/integration/`, `test/<package>/end_to_end/` (package = `vre`, `vre_repository`).
 - **Tests carry no history.** No task ids (`task 7`, `TODO(7)`), no "the regression", "used to", "the old X". A docstring, comment, xfail reason or script header says what is checked and why it matters today; history lives in the tracker and git. A strict xfail names the missing behaviour, not the task. `test/manual/` is exempt (investigation notes).
 - **Integration tests use the real interface**, not a mock of the thing under test. Use fake representations (`test/vre/fake_representation.py`) or the real `vre` CLI; stub only boundaries you don't own (model weights download, network).
-- **Minimal deps.** Core (`vre/`) deps: `numpy`, `Pillow`, `PyYAML`, `tqdm`, `loggez`, `graphviz` (`overrides` is vendored in `pkg/`). Heavy deps belong to `vre_repository` only. No big libs for tiny features. Near-zero dead code. `setup.py` is the single source of truth for deps.
+- **Minimal deps.** One install for `vre` + `vre_repository` (torch included; `[cpu]` pins the CPU-only build); no core/repository split in `setup.py`. Imports still are: `vre/` uses only `numpy`, `Pillow`, `PyYAML`, `tqdm`, `loggez`, `graphviz` (`overrides` is vendored in `pkg/`); torch & co. are imported in `vre_repository/` only. No big libs for tiny features. Near-zero dead code. `setup.py` is the single source of truth for deps.
 
 ## Design principles
 

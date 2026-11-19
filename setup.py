@@ -1,23 +1,5 @@
-"""setup.py -- note use setuptools==73.0.1; older versions fuck up the data files, newer versions include resources.
-
-Import roots:
-- `vre/` and `vre_repository/` are the app's own packages (imported as `import vre`, `import vre_repository`).
-- each `pkg/<repo>/` is a vendored, in-tree copy of an external repo (pinned to an exact commit, no `.git`),
-  auto-discovered and put on the import path so `import vre_video` / `import image_utils` just works.
-  One layout: the package lives one level in (`pkg/vre-video/vre_video/`, `pkg/image_utils/image_utils/`, `pkg/overrides/overrides/`).
-
-`install_requires` / `extras_require` below are the single source of truth for deps (there are no
-requirements*.txt files anymore). `pip install video-representations-extractor` installs everything: the `vre`
-library and the built-in `vre_repository` (torch, torchvision). The `[cpu]` extra pins the CPU-only torch builds,
-which live on PyTorch's index, not PyPI (pip extras cannot pick an index):
-`pip install "video-representations-extractor[cpu]" --extra-index-url https://download.pytorch.org/whl/cpu`. The vendored packages ship their own setup.py but we do NOT install
-them as separate distributions -- they are just packages on our path.
-
-Editable installs must take the PEP 660 path (it honours package_dir, i.e. the vendored pkg/ roots).
-Old pip (e.g. 24.0) with setuptools+wheel installed falls back to legacy `setup.py develop`, which ignores
-package_dir and leaves pkg/ unimportable. Fix: `pip install -U pip`. CI uses python:3.12 (no setuptools
-preinstalled), so pip always builds via PEP 517/660 there.
-"""
+"""setup.py -- use setuptools==73.0.1 (data files) and a recent pip (PEP 660 editable installs see the vendored pkg/).
+CPU-only torch: `pip install ".[cpu]" --extra-index-url https://download.pytorch.org/whl/cpu`."""
 from pathlib import Path
 from setuptools import setup, find_packages
 
@@ -29,25 +11,6 @@ URL = "https://gitlab.com/video-representations-extractor/video-representations-
 ROOT = Path(__file__).absolute().parent
 with open(ROOT / "README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
-
-REQUIRED_CORE = [ # vre/: light deps only
-    "loggez>=0.8.4",
-    "numpy>=1.21.6",
-    "Pillow>=11.3.0",
-    "PyYAML==6.0.3",
-    "tqdm==4.66.5",
-    "graphviz==0.20.3",
-]
-
-REQUIRED_REPOSITORY = [ # vre_repository/: the heavy deps
-    "torch>=2.9.0,<3.0.0",
-    "torchvision>=0.24.0,<1.0.0",
-]
-
-REQUIRED_CPU = [ # macOS wheels are CPU-only already and have no +cpu builds
-    "torch==2.15.0+cpu; sys_platform != 'darwin'",
-    "torchvision==0.29.2+cpu; sys_platform != 'darwin'",
-]
 
 # Vendored packages: scan each repo dir under pkg/ for its packages (test/ trees are not installed).
 vendored, vendored_dirs = [], {}
@@ -64,10 +27,8 @@ glob_files = lambda x: list(Path(x).glob("**/*")) # pylint: disable=all
 packages = find_packages() + vendored
 
 def _build_package_data(roots: list[str]) -> dict[str, list[str]]:
-    """Ship non-py data files (e.g. marigold's empty_text_embed.pkl, mask2former's *.json) as package_data
-    keyed by their owning package, so they install *into* site-packages next to the code where
-    `Path(__file__).parent / ...` can find them. data_files installs relative to sys.prefix instead, which
-    flattens the paths and breaks those runtime lookups."""
+    """non-py data files as package_data of their owning package: installed next to the code, where
+    `Path(__file__).parent / ...` finds them (data_files would install them under sys.prefix)"""
     pkg_dirs = {p: Path(p.replace(".", "/")) for p in find_packages()}
     result: dict[str, list[str]] = {}
     for root in roots:
@@ -93,9 +54,22 @@ setup(
     package_dir=vendored_dirs,
     package_data=package_data,
     include_package_data=False,
-    install_requires=REQUIRED_CORE + REQUIRED_REPOSITORY,
+    install_requires=[
+        "loggez>=0.8.4",
+        "numpy>=1.21.6",
+        "Pillow>=11.3.0",
+        "PyYAML==6.0.3",
+        "tqdm==4.66.5",
+        "graphviz==0.20.3",
+        # torch is used just in vre_repository/ not in core vre
+        "torch>=2.9.0,<3.0.0",
+        "torchvision>=0.24.0,<1.0.0",
+    ],
     extras_require={
-        "cpu": REQUIRED_CPU,
+        "cpu": [
+            "torch==2.15.0+cpu; sys_platform != 'darwin'",
+            "torchvision==0.29.2+cpu; sys_platform != 'darwin'",
+        ],
         "docs": ["opdoc==0.2.3"],
     },
     dependency_links=[],
