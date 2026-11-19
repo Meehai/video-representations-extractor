@@ -68,23 +68,6 @@ def pil_image_add_text(image: np.ndarray, text: str, position: tuple[int, int], 
     new_image = np.array(pil_image, dtype=image.dtype)
     return new_image
 
-def pil_image_read(path: str) -> np.ndarray:
-    """PIL image reader"""
-    # TODO: for grayscale, this returns a RGB image too
-    img_pil = Image.open(path)
-    img_np = np.array(img_pil, dtype=np.uint8)
-    # grayscale -> 3 gray channels repeated.
-    if img_pil.mode == "L":
-        return np.repeat(img_np[..., None], 3, axis=-1)
-    # RGB or RGBA
-    return img_np[..., 0:3]
-
-def pil_image_write(file: np.ndarray, path: str):
-    """PIL image writer"""
-    assert file.min() >= 0 and file.max() <= 255
-    img = Image.fromarray(file.astype(np.uint8), "RGB")
-    img.save(path)
-
 def _get_default_font(size_px: int | None = None):
     """
     Gets the default font for some pixel size. Downloads it if it's not provided in:

@@ -3,14 +3,15 @@
 import sys
 from pathlib import Path
 from overrides import overrides
+
 import numpy as np
 import torch as tr
 from torch.nn import functional as F
+from PIL import Image
 
 from vre_video import VREVideo
 from vre.logger import vre_logger as logger
-from vre.utils import MemoryData, image_read, image_write
-from vre import ReprOut
+from vre.utils import MemoryData, ReprOut
 from vre.representations.mixins import LearnedRepresentationMixin
 from vre_repository.utils import fetch_weights
 from vre_repository.semantic_segmentation import SemanticRepresentation
@@ -126,7 +127,7 @@ class SafeUAV(SemanticRepresentation, LearnedRepresentationMixin):
 if __name__ == "__main__":
     assert len(sys.argv) in (3, 4), ("Usage: python safeuav.py /path/to/img.png {model_430k/model_1M/model_4M/"
                                      "path_to_ckpt} [out_path]")
-    img = image_read(sys.argv[1])
+    img = np.array(Image.open(sys.argv[1]).convert("RGB"))
     model = SafeUAV(name="safeuav", disk_data_argmax=True, variant=sys.argv[2])
     model.vre_setup(load_weights=True)
 
@@ -134,5 +135,5 @@ if __name__ == "__main__":
     res_img = model.make_images(out)[0]
     out_path = Path(sys.argv[1]).parent / f"{Path(sys.argv[1]).stem}_res{Path(sys.argv[1]).suffix}"
     out_path = out_path if len(sys.argv) == 3 else sys.argv[3]
-    image_write(res_img, out_path)
+    Image.fromarray(res_img).save(out_path)
     logger.info(f"Stored prediction at '{out_path}'")

@@ -9,7 +9,7 @@
 ## Description
 
 Drop `opencv-python` from `vre_repository` (`REQUIRED_REPOSITORY` in `setup.py`). The calls go through
-`vre_repository/utils/cv2_utils.py`, one wrapper per cv2 function; the one exception is `cv2.resize` in the vendored
+`vre_repository/vre_image_utils/cv2_utils.py`, one wrapper per cv2 function; the one exception is `cv2.resize` in the vendored
 `image_utils`. Per live call: port it to numpy, prove it against cv2 with a parity test in
 `test/vre_repository/integration/parity/` (skipped where cv2 isn't installed), delete the wrapper. Callers that are
 dead or opt-in get deleted, not ported.
@@ -34,8 +34,8 @@ Live calls left (port + parity test):
       `findContours` (`RETR_TREE`, `CHAIN_APPROX_SIMPLE`) + `drawContours`.
 
 Opt-in or dead code left (delete):
-- [ ] `utils/image_old.py`: the `library="cv2"` backend of `image_read` / `image_write` (`imread`, `imwrite`,
-      `split`, `merge`); PIL is the default and nothing passes `"cv2"`.
+- [x] `cv2_image_read` / `cv2_image_write` (`imread`, `imwrite`, `split`, `merge`): removed; callers use PIL
+      (`Image.open` / `Image.fromarray(...).save`) directly.
 - [ ] FastSAM paths the representation never reaches: `prompt.py` `_crop_image` / `_get_bbox_from_mask`
       (`text_prompt` only: `findContours` `RETR_EXTERNAL`, `boundingRect`, `cvtColor`); `results.py` `LetterBox`
       (`copyMakeBorder`) and `Annotator` (`rectangle`, `getTextSize`, `putText`), used by the predictor's

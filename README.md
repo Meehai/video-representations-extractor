@@ -7,7 +7,7 @@ Documentation at: [link](https://video-representations-extractor.gitlab.io/video
 ### Installation
 
 ```python
-conda create -n vre python=3.11 anaconda # >=3.10 tested
+conda create -n vre python=3.12 anaconda # CI runs 3.12; setup.py requires >=3.11
 pip install video-representations-extractor
 [VRE_DEVICE=cuda CUDA_VISIBLE_DEVICES=0] vre example/video.mp4 --connfig_path example/cfg.yaml -o example/
 ```

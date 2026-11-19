@@ -4,8 +4,8 @@ from PIL import Image, ImageDraw
 import numpy as np
 from vre.utils import lo
 
-from ..pil_utils import _get_default_font, _pil_image_draw_textsize
-from ..image_old import image_blend
+from vre_repository.vre_image_utils import image_blend
+from vre_repository.vre_image_utils.pil_utils import _get_default_font, _pil_image_draw_textsize
 
 _AREA_THRESHOLD = 10
 _LINE_WIDTH = 1.2
@@ -91,7 +91,8 @@ class _GenericMask:
         self.polygons, self.has_holes = self._mask_to_polygons(self.mask)
 
     def _mask_to_polygons(self, mask) -> tuple[list[tuple[int, int]], bool]:
-        from ..cv2_utils import cv2_findContours, cv2_RETR_CCOMP, cv2_CHAIN_APPROX_NONE # pylint: disable=import-outside-toplevel
+        from vre_repository.vre_image_utils.cv2_utils import ( # pylint: disable=import-outside-toplevel
+            cv2_findContours, cv2_RETR_CCOMP, cv2_CHAIN_APPROX_NONE)
         # cv2_RETR_CCOMP flag retrieves all the contours and arranges them to a 2-level
         # hierarchy. External contours (boundary) of the object are placed in hierarchy-1.
         # Internal contours (holes) are placed in hierarchy-2.
@@ -138,7 +139,8 @@ def _draw_text_in_mask(res: np.ndarray, binary_mask: np.ndarray, text: str, colo
     """
     Find proper places to draw text given a binary mask.
     """
-    from ..cv2_utils import cv2_connectedComponentsWithStats # pylint: disable=import-outside-toplevel
+    from vre_repository.vre_image_utils.cv2_utils import ( # pylint: disable=import-outside-toplevel
+        cv2_connectedComponentsWithStats)
     _num_cc, cc_labels, stats, _ = cv2_connectedComponentsWithStats(binary_mask, 8)
     if stats[1:, -1].size == 0:
         return res

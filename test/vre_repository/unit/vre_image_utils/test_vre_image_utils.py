@@ -1,5 +1,5 @@
 import pytest
-from vre_repository.utils.image_old import _get_rows_cols, collage_fn, image_blend
+from vre_repository.vre_image_utils.vre_image_utils import _get_rows_cols, collage_fn, image_blend
 import numpy as np
 
 def test_get_rows_cols():
