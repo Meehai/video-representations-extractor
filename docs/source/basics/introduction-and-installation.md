@@ -9,7 +9,7 @@ The purpose of this tool is to export various representations starting from RGB 
 
 ### 2.1 Google Colab
 Here's a recent google colab run: [link](https://colab.research.google.com/drive/1vAp71H-TLewhF56odv33TkmGwwhuoFJ-?usp=sharing)
-that is based in [this examples notebook](examples/semantic_mapper/semantic_mapper.ipynb).
+that is based in [this examples notebook](../../../examples/semantic_mapper/semantic_mapper.ipynb).
 
 ### 2.2 Local installation: Pip (recommended)
 
@@ -48,7 +48,7 @@ For testing that the installation works (pip or development), we run with this t
 mkdir example/
 curl "https://gitlab.com/video-representations-extractor/video-representations-extractor/-/raw/master/resources/test_video.mp4" \
   -o example/video.mp4 # you can of course use any video, not just our test one
-curl https://gitlab.com/video-representations-extractor/video-representations-extractor/-/raw/master/test/end_to_end/imgur/cfg.yaml -o example/cfg.yaml
+curl https://gitlab.com/video-representations-extractor/video-representations-extractor/-/raw/master/test/vre_repository/end_to_end/vre_batched/cfg.yaml -o example/cfg.yaml
 ```
 
 **Single image usage**

@@ -110,4 +110,4 @@ MPL=1 vre_streaming test_video.mp4 # matplotlib, requires no external tools
 vre_streaming VIDEO.mp4 | ffplay -f rawvideo -pixel_format rgb24 -video_size 1280x360 -framerate 30 -i - # ffplay
 ```
 
-See [here](examples/vre_streaming/README.md) for more examples.
+See [here](../../../examples/vre_streaming/README.md) for more examples.
