@@ -9,7 +9,6 @@ import numpy as np
 import torch as tr
 from overrides import overrides
 from tqdm.auto import tqdm
-from diffusers import AutoencoderKL, DDIMScheduler, LCMScheduler, UNet2DConditionModel
 
 from vre_video import VREVideo
 from vre.utils import image_read, image_write, MemoryData
@@ -19,9 +18,10 @@ from vre_repository.depth import DepthRepresentation
 from vre_repository.utils import fetch_weights, vre_load_weights
 
 try:
-    from .marigold_impl import MarigoldPipeline
+    from .marigold_impl import AutoencoderKL, DDIMScheduler, LCMScheduler, MarigoldPipeline, UNet2DConditionModel
 except ImportError:
-    from vre_repository.depth.marigold.marigold_impl import MarigoldPipeline
+    from vre_repository.depth.marigold.marigold_impl import (AutoencoderKL, DDIMScheduler, LCMScheduler,
+                                                             MarigoldPipeline, UNet2DConditionModel)
 
 class Marigold(DepthRepresentation, LearnedRepresentationMixin):
     """Marigold VRE implementation"""
@@ -65,11 +65,7 @@ class Marigold(DepthRepresentation, LearnedRepresentationMixin):
             vae.load_state_dict(tr.load(paths[0], map_location="cpu"))
             unet.load_state_dict(vre_load_weights(paths[1]))
 
-        if self.variant == "marigold-lcm-v1-0":
-            lcm_scheduler_config = {**self._get_ddim_cfg(), "original_inference_steps": 50, "timestep_scaling": 10.0}
-            scheduler = LCMScheduler(**lcm_scheduler_config)
-        else:
-            scheduler = DDIMScheduler(**self._get_ddim_cfg())
+        scheduler = LCMScheduler() if self.variant == "marigold-lcm-v1-0" else DDIMScheduler()
         self.model = MarigoldPipeline(unet=unet, vae=vae, scheduler=scheduler,
                                       scale_invariant=True, shift_invariant=True)
         self.model = self.model.to(self.device)
@@ -101,16 +97,6 @@ class Marigold(DepthRepresentation, LearnedRepresentationMixin):
                              processing_res=self.processing_resolution, generator=generator)
         return y_model[0][..., None]
 
-    def _get_ddim_cfg(self) -> dict:
-        return {
-            "beta_end": 0.012, "beta_schedule": "scaled_linear", "beta_start": 0.00085,
-            "clip_sample": False, "clip_sample_range": 1.0,
-            "dynamic_thresholding_ratio": 0.995, "num_train_timesteps": 1000,
-            "prediction_type": "v_prediction", "rescale_betas_zero_snr": False,
-            "sample_max_value": 1.0, "set_alpha_to_one": False, "steps_offset": 1,
-            "thresholding": False, "timestep_spacing": "leading", "trained_betas": None
-        }
-
     def _get_unet_cfg(self) -> dict:
         block_out_channels = {
             "testing": [8, 16, 32, 32],
@@ -122,30 +108,10 @@ class Marigold(DepthRepresentation, LearnedRepresentationMixin):
             "marigold-lcm-v1-0": 32,
             "marigold-v1-0": 32,
         }[self.variant]
-        cfg = {
-            "sample_size": 96, "in_channels": 8, "out_channels": 4, "center_input_sample": False,
-            "flip_sin_to_cos": True, "freq_shift": 0,
-            "down_block_types": ["CrossAttnDownBlock2D", "CrossAttnDownBlock2D", "CrossAttnDownBlock2D", "DownBlock2D"],
-            "mid_block_type": "UNetMidBlock2DCrossAttn",
-            "up_block_types": ["UpBlock2D", "CrossAttnUpBlock2D", "CrossAttnUpBlock2D", "CrossAttnUpBlock2D"],
-            "only_cross_attention": False, "block_out_channels": block_out_channels, "layers_per_block": 2,
-            "downsample_padding": 1, "mid_block_scale_factor": 1, "dropout": 0.0, "act_fn": "silu",
-            "norm_num_groups": norm_num_groups, "norm_eps": 1e-05, "cross_attention_dim": 1024,
-            "transformer_layers_per_block": 1, "reverse_transformer_layers_per_block": None,
-            "encoder_hid_dim": None, "encoder_hid_dim_type": None, "attention_head_dim": [5, 10, 20, 20],
-            "num_attention_heads": None, "dual_cross_attention": False, "use_linear_projection": True,
-            "class_embed_type": None, "addition_embed_type": None, "addition_time_embed_dim": None,
-            "num_class_embeds": None, "upcast_attention": False, "resnet_time_scale_shift": "default",
-            "resnet_skip_time_act": False, "resnet_out_scale_factor": 1.0, "time_embedding_type": "positional",
-            "time_embedding_dim": None, "time_embedding_act_fn": None, "timestep_post_act": None,
-            "time_cond_proj_dim": None, "conv_in_kernel": 3, "conv_out_kernel": 3,
-            "projection_class_embeddings_input_dim": None, "attention_type": "default",
-            "class_embeddings_concat": False, "mid_block_only_cross_attention": None, "cross_attention_norm": None,
-            "addition_embed_type_num_heads": 64
-        }
-        return cfg
+        return {"in_channels": 8, "out_channels": 4, "block_out_channels": block_out_channels,
+                "heads": [5, 10, 20, 20], "norm_num_groups": norm_num_groups, "cross_attention_dim": 1024}
 
-    def _get_vae_cfg(self):
+    def _get_vae_cfg(self) -> dict:
         block_out_channels = {
             "testing": [8, 16, 32, 32],
             "marigold-lcm-v1-0": [128, 256, 512, 512],
@@ -156,18 +122,7 @@ class Marigold(DepthRepresentation, LearnedRepresentationMixin):
             "marigold-lcm-v1-0": 32,
             "marigold-v1-0": 32,
         }[self.variant]
-
-        return {
-            "in_channels": 3, "out_channels": 3,
-            "down_block_types": ["DownEncoderBlock2D", "DownEncoderBlock2D",
-            "DownEncoderBlock2D", "DownEncoderBlock2D"],
-            "up_block_types": ["UpDecoderBlock2D", "UpDecoderBlock2D", "UpDecoderBlock2D", "UpDecoderBlock2D"],
-            "block_out_channels": block_out_channels, "layers_per_block": 2, "act_fn": "silu",
-            "latent_channels": 4, "norm_num_groups": norm_num_groups, "sample_size": 768,
-            "scaling_factor": 0.18215, "shift_factor": None, "latents_mean": None,
-            "latents_std": None, "force_upcast": True, "use_quant_conv": True,
-            "use_post_quant_conv": True, "mid_block_add_attention": True
-        }
+        return {"block_out_channels": block_out_channels, "norm_num_groups": norm_num_groups}
 
 def main():
     """main fn"""
