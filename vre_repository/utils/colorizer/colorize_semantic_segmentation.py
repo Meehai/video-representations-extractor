@@ -6,6 +6,8 @@ from vre.utils import lo
 
 from vre_repository.vre_image_utils import image_blend
 from vre_repository.vre_image_utils.pil_utils import _get_default_font, _pil_image_draw_textsize
+from vre_repository.vre_image_utils.cv2_utils import (cv2_findContours, cv2_connectedComponentsWithStats,
+                                                      cv2_RETR_CCOMP, cv2_CHAIN_APPROX_NONE)
 
 _AREA_THRESHOLD = 10
 _LINE_WIDTH = 1.2
@@ -91,13 +93,10 @@ class _GenericMask:
         self.polygons, self.has_holes = self._mask_to_polygons(self.mask)
 
     def _mask_to_polygons(self, mask) -> tuple[list[tuple[int, int]], bool]:
-        from vre_repository.vre_image_utils.cv2_utils import ( # pylint: disable=import-outside-toplevel
-            cv2_findContours, cv2_RETR_CCOMP, cv2_CHAIN_APPROX_NONE)
         # cv2_RETR_CCOMP flag retrieves all the contours and arranges them to a 2-level
         # hierarchy. External contours (boundary) of the object are placed in hierarchy-1.
         # Internal contours (holes) are placed in hierarchy-2.
         # cv2_CHAIN_APPROX_NONE flag gets vertices of polygons from contours.
-        mask = np.ascontiguousarray(mask)  # some versions of cv2 does not support incontiguous arr
         res = cv2_findContours(mask.astype("uint8"), cv2_RETR_CCOMP, cv2_CHAIN_APPROX_NONE)
         hierarchy = res[-1]
         if hierarchy is None:  # empty mask
@@ -139,8 +138,6 @@ def _draw_text_in_mask(res: np.ndarray, binary_mask: np.ndarray, text: str, colo
     """
     Find proper places to draw text given a binary mask.
     """
-    from vre_repository.vre_image_utils.cv2_utils import ( # pylint: disable=import-outside-toplevel
-        cv2_connectedComponentsWithStats)
     _num_cc, cc_labels, stats, _ = cv2_connectedComponentsWithStats(binary_mask, 8)
     if stats[1:, -1].size == 0:
         return res

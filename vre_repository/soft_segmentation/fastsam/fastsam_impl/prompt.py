@@ -2,12 +2,10 @@
 import numpy as np
 import torch
 from PIL import Image
-from image_utils import image_resize
+from image_utils import image_resize, image_draw_polygon
 
 from vre.utils import array_blend
-from vre_repository.vre_image_utils.cv2_utils import (cv2_findContours, cv2_boundingRect, cv2_drawContours,
-                                                      cv2_RETR_TREE, cv2_CHAIN_APPROX_SIMPLE, cv2_RETR_EXTERNAL,
-                                                      cv2_COLOR_BGR2RGB, cv2_cvtColor)
+from vre_repository.vre_image_utils.cv2_utils import cv2_findContours, cv2_RETR_TREE, cv2_CHAIN_APPROX_SIMPLE
 
 from .utils import image_to_np_ndarray
 
@@ -69,21 +67,8 @@ class FastSAMPrompt:
         return [a for i, a in enumerate(annotations) if i not in to_remove], to_remove
 
     def _get_bbox_from_mask(self, mask):
-        mask = mask.astype(np.uint8)
-        contours, _ = cv2_findContours(mask, cv2_RETR_EXTERNAL, cv2_CHAIN_APPROX_SIMPLE)
-        x1, y1, w, h = cv2_boundingRect(contours[0])
-        x2, y2 = x1 + w, y1 + h
-        if len(contours) > 1:
-            for b in contours:
-                x_t, y_t, w_t, h_t = cv2_boundingRect(b)
-                # Merge multiple bounding boxes into one.
-                x1 = min(x1, x_t)
-                y1 = min(y1, y_t)
-                x2 = max(x2, x_t + w_t)
-                y2 = max(y2, y_t + h_t)
-            h = y2 - y1
-            w = x2 - x1
-        return [x1, y1, x2, y2]
+        ys, xs = np.nonzero(mask) # the union of the outer contours' boxes is the box of the foreground pixels
+        return [int(xs.min()), int(ys.min()), int(xs.max()) + 1, int(ys.max()) + 1]
 
     def plot_to_result(self,
              annotations: torch.Tensor,
@@ -107,7 +92,7 @@ class FastSAMPrompt:
 
         if withContours:
             contour_all = []
-            temp = np.zeros((original_h, original_w, 1))
+            temp = np.zeros((original_h, original_w, 3), dtype=np.uint8)
             annotations_np = annotations.cpu().numpy()
             for mask in annotations_np:
                 if type(mask) == dict:
@@ -118,9 +103,15 @@ class FastSAMPrompt:
                 contours, _ = cv2_findContours(annotation[..., 0], cv2_RETR_TREE, cv2_CHAIN_APPROX_SIMPLE)
                 for contour in contours:
                     contour_all.append(contour)
-            cv2_drawContours(temp, contour_all, -1, (255, 255, 255), 2)
+            thickness = 250 / min(original_h, original_w) # 2px: image_utils' thickness is in % of the smallest side
+            for contour in contour_all:
+                points = contour[:, 0, ::-1] # (x, y) -> (i, j)
+                if len(points) == 1:
+                    temp[points[0, 0], points[0, 1]] = 255
+                else:
+                    image_draw_polygon(temp, points.tolist(), color=(255, 255, 255), thickness=thickness, inplace=True)
             color = np.array([0 / 255, 0 / 255, 255 / 255, 0.8])
-            contour_mask = temp / 255 * color.reshape(1, 1, -1)
+            contour_mask = temp[..., 0:1] / 255 * color.reshape(1, 1, -1)
             res = array_blend(res, contour_mask[..., 0:3], contour_mask[..., 3:4])
         return (res * 255).astype(np.uint8)
 
@@ -156,7 +147,7 @@ class FastSAMPrompt:
         show[h_indices, w_indices, :] = mask_image[indices]
         show_cpu = show.cpu().numpy()
         if not retinamask:
-            show_cpu = image_resize(show_cpu, target_height, target_width, interpolation="nearest", backend="cv2")
+            show_cpu = image_resize(show_cpu, target_height, target_width, interpolation="nearest")
         return show_cpu
 
     # clip
@@ -175,7 +166,7 @@ class FastSAMPrompt:
 
     def _crop_image(self, format_results):
 
-        image = Image.fromarray(cv2_cvtColor(self.img, cv2_COLOR_BGR2RGB))
+        image = Image.fromarray(np.ascontiguousarray(self.img[..., ::-1])) # BGR <-> RGB
         ori_w, ori_h = image.size
         annotations = format_results
         mask_h, mask_w = annotations[0]['segmentation'].shape
