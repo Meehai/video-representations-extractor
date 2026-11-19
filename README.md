@@ -12,7 +12,7 @@ pip install video-representations-extractor
 [VRE_DEVICE=cuda CUDA_VISIBLE_DEVICES=0] vre example/video.mp4 --connfig_path example/cfg.yaml -o example/
 ```
 
-For more details, see usage and installation page: [link](https://video-representations-extractor.gitlab.io/video-representations-extractor/guide/introduction_and_installation.html).
+For more details, see the [usage and installation page](docs/source/introduction-and-installation/PAGE.md).
 
 ### Google Colab examples
 
