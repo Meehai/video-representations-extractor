@@ -24,7 +24,7 @@ Same recipe as DINOv2 (#120): plain-torch port, same state_dict keys, weights fi
 ## Done when
 
 - [x] code applied (!254)
-- [x] bit-identical with timm 1.0.9 (`test/manual/dpt/check_timm_parity.py`): DPT + swin max|diff| 0.0 on cpu fp32,
+- [x] bit-identical with timm 1.0.9 (`test/vre_repository/integration/parity/test_parity_{dpt,mask2former}.py`): DPT + swin max|diff| 0.0 on cpu fp32,
       cuda fp32, cuda fp16; 368 keys, `depth_dpt_midas.pth` unchanged
 - [x] nothing imports timm (grep)
 - [x] review gate green in CI (!254)
