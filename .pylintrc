@@ -8,6 +8,10 @@ extension-pkg-whitelist=nmslib, numpy, torch, cv2
 # Add files or directories to the blacklist. They should be base names, not paths.
 ignore=CVS
 
+# Name modules by their path from the repo root: the `cli/vre` script is `cli.vre`, not a second `vre` that shadows
+# the package (which shows up as a fake import-self and fake cyclic imports).
+source-roots=.
+
 # Add files or directories matching the regex patterns to the blacklist. The
 # regex matches against base names, not paths.
 ignore-patterns=
@@ -38,10 +42,6 @@ persistent=yes
 
 # Specify a configuration file.
 #rcfile=
-
-# When enabled, pylint would attempt to guess common misconfiguration and emit
-# user-friendly hints instead of false-positive error messages.
-suggestion-mode=yes
 
 # Allow loading of arbitrary C extensions. Extensions are imported into the
 # active Python interpreter and may run arbitrary code.
@@ -502,6 +502,9 @@ valid-metaclass-classmethod-first-arg=cls
 
 # Maximum number of arguments for function / method.
 max-args=30
+
+# Maximum number of positional arguments for function / method (same budget as max-args).
+max-positional-arguments=30
 
 # Maximum number of attributes for a class (see R0902).
 max-attributes=20

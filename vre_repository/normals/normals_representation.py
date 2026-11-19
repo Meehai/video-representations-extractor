@@ -1,11 +1,12 @@
 """normals_representation.py -- module implementing an Normals & Cameras Normals Represenatation generic class"""
+from abc import ABC
 from overrides import overrides
 import numpy as np
 from vre import Representation, ReprOut
 from vre.representations.mixins import NpIORepresentationMixin, NormedRepresentationMixin, ResizableRepresentationMixin
 
 class NormalsRepresentation(NpIORepresentationMixin, NormedRepresentationMixin,
-                            ResizableRepresentationMixin, Representation):
+                            ResizableRepresentationMixin, Representation, ABC):
     """NormalsRepresentation -- CV representation for world and camera normals"""
     def __init__(self, name: str, **kwargs):
         Representation.__init__(self, name, **kwargs)

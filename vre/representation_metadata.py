@@ -6,7 +6,11 @@ import json
 
 from .utils import AtomicOpen
 
-FrameStats = NamedTuple("frame_stats", duration=float, run_id=str, formats=list[str])
+class FrameStats(NamedTuple):
+    """duration, run id and written formats of one computed frame"""
+    duration: float
+    run_id: str
+    formats: list[str]
 
 class RepresentationMetadata:
     """

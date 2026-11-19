@@ -1,10 +1,11 @@
 """soft_segmentation_representation.py - Generic class for all the soft segmentation algorithms"""
+from abc import ABC
 from overrides import overrides
 from vre.representations import Representation
 from vre.representations.mixins import NpIORepresentationMixin, ResizableRepresentationMixin, NormedRepresentationMixin
 
 class SoftSegmentationRepresentation(NpIORepresentationMixin, NormedRepresentationMixin,
-                                     ResizableRepresentationMixin, Representation):
+                                     ResizableRepresentationMixin, Representation, ABC):
     """Generic class for all the soft segmentation algorithms"""
     def __init__(self, name: str, **kwargs):
         Representation.__init__(self, name, **kwargs)
