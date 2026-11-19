@@ -45,8 +45,8 @@ REQUIRED_REPOSITORY = [ # vre_repository/: the heavy deps
 ]
 
 REQUIRED_CPU = [ # macOS wheels are CPU-only already and have no +cpu builds
-    "torch==2.9.0+cpu; sys_platform != 'darwin'",
-    "torchvision==0.24.0+cpu; sys_platform != 'darwin'",
+    "torch==2.15.0+cpu; sys_platform != 'darwin'",
+    "torchvision==0.29.2+cpu; sys_platform != 'darwin'",
 ]
 
 # Vendored packages: scan each repo dir under pkg/ for its packages (test/ trees are not installed).
