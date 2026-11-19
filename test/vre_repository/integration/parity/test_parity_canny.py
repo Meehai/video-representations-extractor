@@ -6,7 +6,8 @@ real behaviour difference. Runs only if opencv is installed.
 import numpy as np
 import pytest
 from vre_video import VREVideo
-from vre.utils import get_project_root, image_read
+from vre.utils import get_project_root
+from vre_repository.utils import image_read
 from vre_repository.edges.canny import Canny, canny
 
 cv2 = pytest.importorskip("cv2")

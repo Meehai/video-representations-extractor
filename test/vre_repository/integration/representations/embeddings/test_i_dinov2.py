@@ -10,7 +10,8 @@ import numpy as np
 import pytest
 from vre_video import VREVideo
 from vre import VRE
-from vre.utils import get_project_root, image_read
+from vre.utils import get_project_root
+from vre_repository.utils import image_read
 from vre_repository.embeddings.dinov2 import DinoV2
 from vre_repository.embeddings.dinov2 import dinov2 as dinov2_module
 

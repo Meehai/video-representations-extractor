@@ -7,11 +7,11 @@ from torch.nn import functional as F
 from overrides import overrides
 
 from vre_video import VREVideo
-from vre.utils import MemoryData, fetch, image_resize_batch
+from vre.utils import MemoryData, fetch
 from vre.logger import vre_logger as logger
 from vre import ReprOut
 from vre.representations.mixins import LearnedRepresentationMixin
-from vre_repository.utils import fetch_weights
+from vre_repository.utils import fetch_weights, image_resize_batch
 from vre_repository.embeddings import EmbeddingRepresentation
 
 from .dinov2_impl import Dinov2Model

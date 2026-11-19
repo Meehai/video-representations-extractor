@@ -7,7 +7,8 @@ import numpy as np
 import pytest
 from vre_video import VREVideo
 from vre import VRE, ReprOut, MemoryData
-from vre.utils import image_resize_batch, fetch_resource, get_project_root
+from vre.utils import fetch_resource, get_project_root
+from image_utils import image_resize
 
 sys.path.append(str(get_project_root() / "test/vre"))
 from fake_representation import FakeRepresentation
@@ -67,7 +68,7 @@ def test_vre_output_shape(video: VREVideo):
             self.shape = shape
 
         def compute(self, video: VREVideo, ixs: list[int], dep_data: list[ReprOut] | None = None) -> ReprOut:
-            output = MemoryData(image_resize_batch(super().compute(video, ixs).output, *self.shape))
+            output = MemoryData([image_resize(x, *self.shape) for x in super().compute(video, ixs).output])
             return ReprOut(frames=video[ixs], output=output, key=ixs)
 
     vre = VRE(video=video, representations=[RGBWithShape((64, 64), "rgb", n_channels=3)])

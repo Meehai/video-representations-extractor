@@ -9,9 +9,10 @@ import numpy as np
 import torch as tr
 from overrides import overrides
 from tqdm.auto import tqdm
+from PIL import Image
 
 from vre_video import VREVideo
-from vre.utils import image_read, image_write, MemoryData
+from vre.utils import MemoryData
 from vre.representations.mixins import LearnedRepresentationMixin
 from vre import ReprOut
 from vre_repository.depth import DepthRepresentation
@@ -147,7 +148,7 @@ def main():
 
     for rgb_path in (pbar := tqdm(image_paths, leave=True)):
         pbar.set_description(f"Estimating depth: {rgb_path.name}")
-        rgb = image_read(rgb_path)
+        rgb = np.array(Image.open(rgb_path))
         depth = marigold.compute(rgb[None], [0])
         if marigold.variant == "marigold-lcm-v1-0" and rgb_path.name in expected.keys() \
                 and marigold.seed is not None and marigold.seed == 42 and str(device) in expected[rgb_path.name]:
@@ -160,7 +161,7 @@ def main():
 
         depth_rsz = marigold.resize(depth, rgb.shape[0:2])
         depth_img = marigold.make_images(depth_rsz)[0]
-        image_write(depth_img, output_dir / "png" / f"{rgb_path.stem}_pred.png")
+        Image.fromarray(depth_img).save(output_dir / "png" / f"{rgb_path.stem}_pred.png")
 
 if __name__ == "__main__":
     main()

@@ -1,13 +1,12 @@
 """image utils for VRE"""
 from pathlib import Path
 import numpy as np
+from image_utils import image_resize
 
 from vre.logger import vre_logger as logger
-from vre.utils import lo, get_closest_square, array_blend
+from vre.utils import lo, get_closest_square, array_blend, MemoryData
 from .cv2_utils import cv2_image_write, cv2_image_read
 from .pil_utils import pil_image_add_title, pil_image_read, pil_image_write
-
-from image_utils import image_resize
 
 def image_write(x: np.ndarray, path: Path, library: str = "PIL"):
     """writes an image to a bytes string"""

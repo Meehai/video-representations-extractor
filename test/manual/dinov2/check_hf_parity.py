@@ -14,7 +14,8 @@ import numpy as np
 import torch as tr
 from transformers import AutoModel
 from vre_video import VREVideo
-from vre.utils import get_project_root, image_read
+from vre.utils import get_project_root
+from vre_repository.utils import image_read
 from vre_repository.embeddings.dinov2 import DinoV2
 from vre_repository.embeddings.dinov2.dinov2_impl import Dinov2Model
 

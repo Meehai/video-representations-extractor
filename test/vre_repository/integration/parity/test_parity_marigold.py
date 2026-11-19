@@ -6,7 +6,8 @@ modules with the same weights driven by the Marigold denoising loop. Runs only i
 import pytest
 import torch as tr
 from torch.nn import functional as F
-from vre.utils import get_project_root, image_read
+from vre.utils import get_project_root
+from vre_repository.utils import image_read
 from vre_repository.depth.marigold import Marigold
 from vre_repository.depth.marigold.marigold_impl import DDIMScheduler, LCMScheduler
 from vre_repository.utils import fetch_weights, vre_load_weights

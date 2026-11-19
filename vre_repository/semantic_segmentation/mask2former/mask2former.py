@@ -7,13 +7,14 @@ from types import SimpleNamespace
 from overrides import overrides
 import torch as tr
 import numpy as np
+from PIL import Image
 
 from vre_video import VREVideo
 from vre.logger import vre_logger as logger
-from vre.utils import image_resize_batch, image_read, image_write, MemoryData
+from vre.utils import MemoryData
 from vre import ReprOut
 from vre.representations.mixins import LearnedRepresentationMixin
-from vre_repository.utils import fetch_weights
+from vre_repository.utils import fetch_weights, image_resize_batch
 from vre_repository.semantic_segmentation import SemanticRepresentation
 
 try:
@@ -105,7 +106,7 @@ def get_args() -> Namespace:
 
 def main(args: Namespace):
     """main fn. Usage: python mask2former.py 49189528_1/47429163_0/49189528_0 demo1.jpg output1.jpg"""
-    img = image_read(args.input_image)
+    img = np.array(Image.open(args.input_image))
 
     m2f = Mask2Former(args.model_id, disk_data_argmax=False, name="m2f", dependencies=[])
     m2f.device = "cuda" if tr.cuda.is_available() else "cpu"
@@ -114,7 +115,7 @@ def main(args: Namespace):
     m2f_out = m2f.compute(VREVideo(img[None], fps=1), [0])
     logger.info(f"Pred took: {datetime.now() - now}")
     semantic_result: np.ndarray = m2f.make_images(m2f_out)[0]
-    image_write(semantic_result, args.output_path)
+    Image.fromarray(semantic_result).save(args.output_path)
     logger.info(f"Written prediction to '{args.output_path}'")
     return m2f_out.output # for integration tests
 
