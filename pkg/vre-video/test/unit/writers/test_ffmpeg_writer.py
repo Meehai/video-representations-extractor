@@ -10,6 +10,7 @@ class DummyVideo:
     def __init__(self, frames):
         self.frames: list[np.ndarray] = frames
         self.shape = (len(self.frames), *self.frames[0].shape)
+        self.frame_shape = self.frames[0].shape
         self.fps = 1
     def __len__(self):
         return len(self.frames)

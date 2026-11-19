@@ -62,7 +62,7 @@ class Mask2Former(SemanticRepresentation, LearnedRepresentationMixin):
             case _: raise NotImplementedError(variant)
 
     @overrides
-    def vre_setup(self, load_weights = True):
+    def vre_setup(self, load_weights: bool = True):
         assert self.setup_called is False
         self.cfg = CfgNode(json.load(open(f"{self._m2f_resources}/{self.model_id}_cfg.json", "r")))
         params = MaskFormer.from_config(self.cfg)

@@ -24,7 +24,7 @@ class Representation(IORepresentation, ABC):
         """Given the output of self.compute(video, ixs) of type ReprOut, return a [0:255] image for each frame"""
 
     @abstractmethod
-    def resize(self, data: ReprOut, new_size: tuple[int, int]):
+    def resize(self, data: ReprOut, new_size: tuple[int, int]) -> ReprOut:
         """resizes the data. size is provided in (h, w)"""
 
     @abstractmethod

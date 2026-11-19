@@ -14,5 +14,5 @@ class SoftSegmentationRepresentation(NpIORepresentationMixin, NormedRepresentati
 
     @property
     @overrides
-    def n_channels(self):
+    def n_channels(self) -> int:
         return 3

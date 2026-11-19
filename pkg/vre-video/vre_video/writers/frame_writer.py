@@ -5,5 +5,6 @@ from pathlib import Path
 class FrameWriter(ABC):
     """FrameWriter - defines the interface of a reader"""
     @abstractmethod
-    def write(self, video: "VREVideo", out_path: str | Path, start_frame: int = 0, end_frame: int | None = None):
+    def write(self, video: "VREVideo", out_path: str | Path, start_frame: int = 0, end_frame: int | None = None,
+              overwrite: bool = False):
         """writes video frames to the disk"""

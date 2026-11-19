@@ -59,5 +59,5 @@ class SemanticRepresentation(NpIORepresentationMixin, ResizableRepresentationMix
                                               classes=self.classes, rgb=frames_rsz)
 
     @overrides
-    def compute(self, video: VREVideo, ixs: list[int], dep_data = None) -> ReprOut:
+    def compute(self, video: VREVideo, ixs: list[int], dep_data: list[ReprOut] | None = None) -> ReprOut:
         raise NotImplementedError(self)

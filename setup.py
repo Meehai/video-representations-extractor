@@ -4,7 +4,7 @@ Import roots:
 - `vre/` and `vre_repository/` are the app's own packages (imported as `import vre`, `import vre_repository`).
 - each `pkg/<repo>/` is a vendored, in-tree copy of an external repo (pinned to an exact commit, no `.git`),
   auto-discovered and put on the import path so `import vre_video` / `import image_utils` just works.
-  One layout: the package lives one level in (`pkg/vre-video/vre_video/`, `pkg/image_utils/image_utils/`).
+  One layout: the package lives one level in (`pkg/vre-video/vre_video/`, `pkg/image_utils/image_utils/`, `pkg/overrides/overrides/`).
 
 `install_requires` / `extras_require` below are the single source of truth for deps (there are no
 requirements*.txt files anymore). The vendored packages ship their own setup.py but we do NOT install
@@ -33,7 +33,6 @@ REQUIRED_CORE = [
     "Pillow>=11.3.0",
     "PyYAML==6.0.3",
     "tqdm==4.66.5",
-    "overrides==7.7.0",
     "graphviz==0.20.3",
 ]
 

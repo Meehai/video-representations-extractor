@@ -1,4 +1,4 @@
-image: python:3.11-bullseye
+image: python:3.11-bookworm
 
 workflow:
   rules:
@@ -10,7 +10,7 @@ workflow:
 
 before_script:
   - apt-get update
-  - apt-get install -y ffmpeg
+  - apt-get install -y --no-install-recommends ffmpeg
   - pip install -r requirements.txt
   - pip install pylint pytest
 
