@@ -33,7 +33,7 @@ HF_REVISIONS = {
     "dinov2-base": "f9e44c814b77203eaa57a6bdbbd535f21ede1415",
     "dinov2-large": "47b73eefe95e8d44ec3623f8890bd894b6ea2d6c",
 }
-POOLS = ("cls", "gem", "cat", "none")
+POOLS = ("cls", "gem", "mean", "none")
 PATCH_SIZE = 14
 
 class DinoV2(EmbeddingRepresentation, LearnedRepresentationMixin):
@@ -47,7 +47,7 @@ class DinoV2(EmbeddingRepresentation, LearnedRepresentationMixin):
     On cuda the model runs under float16 autocast.
     """
     def __init__(self, variant: str, pool: str = "cat", input_size: tuple[int, int] = (378, 672),
-                 **kwargs):
+                 gem_p: float = 3, **kwargs):
         EmbeddingRepresentation.__init__(self, **kwargs)
         LearnedRepresentationMixin.__init__(self)
         if variant not in VARIANTS:
@@ -58,6 +58,7 @@ class DinoV2(EmbeddingRepresentation, LearnedRepresentationMixin):
             raise ValueError(f"{input_size=} must be (h, w), each a positive multiple of the patch size ({PATCH_SIZE})")
         self.variant = variant
         self.pool = pool
+        self.gem_p = gem_p
         self.input_size = tuple(input_size) # yaml gives a list
         self.model: Dinov2Model | None = None
 
@@ -140,13 +141,13 @@ class DinoV2(EmbeddingRepresentation, LearnedRepresentationMixin):
 
     def _pool(self, tokens: tr.Tensor) -> tr.Tensor:
         """(B, 1 + N, D) last_hidden_state -> (B, n_channels), not yet L2-normalized"""
-        cls = tokens[:, 0]
-        gem = tokens[:, 1:].clamp(min=1e-6).pow(3.0).mean(dim=1).pow(1.0 / 3.0)
         if self.pool == "cls":
-            return cls
+            return tokens[:, 0]
         if self.pool == "gem":
-            return gem
-        return tr.cat([F.normalize(cls, dim=-1), F.normalize(gem, dim=-1)], dim=-1)
+            return tokens[:, 1:].clamp(min=1e-6).pow(self.gem_p).mean(dim=1).pow(1.0 / self.gem_p)
+        if self.pool == "mean":
+            return tokens[:, 1:].mean(dim=1)
+        raise ValueError(self.pool)
 
 def _pca_rgb(grid: np.ndarray) -> np.ndarray:
     """
