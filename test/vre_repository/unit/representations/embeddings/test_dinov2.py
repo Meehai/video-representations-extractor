@@ -3,6 +3,7 @@ from urllib.error import HTTPError
 import numpy as np
 import pytest
 import torch as tr
+from torch.nn import functional as F
 from vre_video import VREVideo
 from vre import ReprOut, MemoryData
 from vre_repository.embeddings.dinov2 import DinoV2
@@ -11,15 +12,15 @@ from vre_repository.embeddings.dinov2.dinov2_impl import Dinov2Model
 
 def test_dinov2():
     video = VREVideo(np.random.randint(0, 255, size=(20, 64, 128, 3), dtype=np.uint8), fps=30)
-    dinov2_repr = DinoV2("testing", pool="cat", input_size=(42, 70), name="dinov2", dependencies=[])
+    dinov2_repr = DinoV2("testing", pool="mean", input_size=(42, 70), name="dinov2", dependencies=[])
     dinov2_repr.vre_setup(load_weights=False)
     assert dinov2_repr.name == "dinov2"
     assert dinov2_repr.compress is True # default
     assert dinov2_repr.device == "cpu" # default from LearnedRepresentationMixin
-    assert dinov2_repr.n_channels == 64 # cat = 2 * hidden_size (32)
+    assert dinov2_repr.n_channels == 32 # hidden_size
 
     out = dinov2_repr.compute(video, ixs=[0, 1])
-    assert out.output.shape == (2, 64) and out.output.dtype == np.float32, (out.output.shape, out.output.dtype)
+    assert out.output.shape == (2, 32) and out.output.dtype == np.float32, (out.output.shape, out.output.dtype)
     assert np.allclose(np.linalg.norm(out.output, axis=1), 1, atol=1e-5) # L2-normalized
     assert np.allclose(dinov2_repr.compute(video, ixs=[0, 1]).output, out.output) # eval mode: no randomness
 
@@ -27,10 +28,10 @@ def test_dinov2():
     assert out_images.shape == (2, 64, 128, 3) # the frame's size, so it fits in a collage next to rgb
     assert out_images.dtype == np.uint8
 
-    assert dinov2_repr.size(out) == (2, 64)
+    assert dinov2_repr.size(out) == (2, 32)
     out_resized = dinov2_repr.resize(out, (32, 32)) # a vector has no size: resize keeps it
     assert np.array_equal(out_resized.output, out.output)
-    assert dinov2_repr.size(out_resized) == (2, 64)
+    assert dinov2_repr.size(out_resized) == (2, 32)
 
     dinov2_repr.vre_free()
     assert dinov2_repr.setup_called is False and dinov2_repr.model is None
@@ -45,21 +46,58 @@ def test_dinov2_resize_output_images():
     assert out_resized.output_images.shape == (2, 32, 48, 3)
     assert np.array_equal(out_resized.output, out.output)
 
-@pytest.mark.parametrize("pool, n_channels", [("cls", 32), ("gem", 32), ("cat", 64)])
-def test_dinov2_pools(pool: str, n_channels: int):
+@pytest.mark.parametrize("pool", ["cls", "gem", "mean"])
+def test_dinov2_pools(pool: str):
     video = VREVideo(np.random.randint(0, 255, size=(2, 40, 30, 3), dtype=np.uint8), fps=30)
     dinov2_repr = DinoV2("testing", pool=pool, input_size=(28, 28), name="dinov2", dependencies=[])
     dinov2_repr.vre_setup(load_weights=False)
-    assert dinov2_repr.n_channels == n_channels
+    assert dinov2_repr.n_channels == 32 # hidden_size, whatever the pool
     out = dinov2_repr.compute(video, ixs=[0, 1])
-    assert out.output.shape == (2, n_channels)
+    assert out.output.shape == (2, 32)
     assert np.allclose(np.linalg.norm(out.output, axis=1), 1, atol=1e-5)
 
+def test_dinov2_pools_from_tokens():
+    video = VREVideo(np.random.randint(0, 255, size=(2, 40, 30, 3), dtype=np.uint8), fps=30)
+    dinov2_cls = DinoV2("testing", pool="cls", input_size=(28, 28), name="dinov2", dependencies=[])
+    dinov2_gem = DinoV2("testing", pool="gem", input_size=(28, 28), name="dinov2", dependencies=[]) # gem_p=3 default
+    dinov2_mean = DinoV2("testing", pool="mean", input_size=(28, 28), name="dinov2", dependencies=[])
+    dinov2_cls.vre_setup(load_weights=False)
+    dinov2_gem.vre_setup(load_weights=False)
+    dinov2_mean.vre_setup(load_weights=False)
+    dinov2_gem.model.load_state_dict(dinov2_cls.model.state_dict()) # same weights: only the pool differs
+    dinov2_mean.model.load_state_dict(dinov2_cls.model.state_dict())
+    with tr.inference_mode():
+        tokens = dinov2_cls.model(dinov2_cls._preprocess(video[[0, 1]])) # (2, 1 + 4, 32): CLS + 2x2 patches
+    cls = tokens[:, 0]
+    gem = tokens[:, 1:].clamp(min=1e-6).pow(3).mean(dim=1).pow(1 / 3) # GeM over the patches, p=3
+    mean = tokens[:, 1:].mean(dim=1) # plain average over the patches, CLS excluded
+    assert np.allclose(dinov2_cls.compute(video, ixs=[0, 1]).output, F.normalize(cls, dim=-1).numpy(), atol=1e-6)
+    assert np.allclose(dinov2_gem.compute(video, ixs=[0, 1]).output, F.normalize(gem, dim=-1).numpy(), atol=1e-6)
+    assert np.allclose(dinov2_mean.compute(video, ixs=[0, 1]).output, F.normalize(mean, dim=-1).numpy(), atol=1e-6)
+
+def test_dinov2_gem_p():
+    video = VREVideo(np.random.randint(0, 255, size=(2, 40, 30, 3), dtype=np.uint8), fps=30)
+    dinov2_p1 = DinoV2("testing", pool="gem", gem_p=1, input_size=(28, 28), name="dinov2", dependencies=[])
+    dinov2_p3 = DinoV2("testing", pool="gem", gem_p=3, input_size=(28, 28), name="dinov2", dependencies=[])
+    dinov2_mean = DinoV2("testing", pool="mean", input_size=(28, 28), name="dinov2", dependencies=[])
+    dinov2_p1.vre_setup(load_weights=False)
+    dinov2_p3.vre_setup(load_weights=False)
+    dinov2_mean.vre_setup(load_weights=False)
+    dinov2_p3.model.load_state_dict(dinov2_p1.model.state_dict()) # same weights: only the pool differs
+    dinov2_mean.model.load_state_dict(dinov2_p1.model.state_dict())
+    with tr.inference_mode():
+        tokens = dinov2_p1.model(dinov2_p1._preprocess(video[[0, 1]]))
+    y_p1 = dinov2_p1.compute(video, ixs=[0, 1]).output
+    assert np.allclose(y_p1, F.normalize(tokens[:, 1:].clamp(min=1e-6).mean(dim=1), dim=-1).numpy(), atol=1e-6)
+    assert not np.allclose(y_p1, dinov2_p3.compute(video, ixs=[0, 1]).output, atol=1e-4) # p is used
+    # tokens are signed (post-layernorm) and GeM clamps them at 0: p=1 is not 'mean'
+    assert not np.allclose(y_p1, dinov2_mean.compute(video, ixs=[0, 1]).output, atol=1e-4)
+
 def test_dinov2_make_images_without_frames():
-    dinov2_repr = DinoV2("testing", pool="cat", name="dinov2", dependencies=[]) # D = 64 -> an 8x8 grid
-    out = ReprOut(frames=None, output=MemoryData(np.random.randn(3, 64).astype(np.float32)), key=[0, 1, 2])
+    dinov2_repr = DinoV2("testing", pool="gem", name="dinov2", dependencies=[]) # D = 32 -> a 4x8 grid
+    out = ReprOut(frames=None, output=MemoryData(np.random.randn(3, 32).astype(np.float32)), key=[0, 1, 2])
     images = dinov2_repr.make_images(out)
-    assert images.shape == (3, 8, 8, 3) and images.dtype == np.uint8 # vre_reader: no frames, the raw grid
+    assert images.shape == (3, 4, 8, 3) and images.dtype == np.uint8 # vre_reader: no frames, the raw grid
     assert images.min() == 0 and images.max() == 255 # min-max scaled per frame
 
 def test_dinov2_tokens():
@@ -109,21 +147,23 @@ def test_dinov2_tokens_make_images_tiny_grid():
 
 def test_dinov2_input_size_changes_output():
     video = VREVideo(np.random.randint(0, 255, size=(1, 64, 128, 3), dtype=np.uint8), fps=30)
-    dinov2_small = DinoV2("testing", pool="cat", input_size=(28, 56), name="dinov2", dependencies=[])
-    dinov2_big = DinoV2("testing", pool="cat", input_size=(56, 112), name="dinov2", dependencies=[])
+    dinov2_small = DinoV2("testing", pool="gem", input_size=(28, 56), name="dinov2", dependencies=[])
+    dinov2_big = DinoV2("testing", pool="gem", input_size=(56, 112), name="dinov2", dependencies=[])
     dinov2_small.vre_setup(load_weights=False)
     dinov2_big.vre_setup(load_weights=False)
     dinov2_big.model.load_state_dict(dinov2_small.model.state_dict()) # same weights, only input_size differs
     y_small = dinov2_small.compute(video, ixs=[0]).output
     y_big = dinov2_big.compute(video, ixs=[0]).output
-    assert y_small.shape == y_big.shape == (1, 64) # pooled: same shape
+    assert y_small.shape == y_big.shape == (1, 32) # pooled: same shape
     assert not np.allclose(y_small, y_big, atol=1e-4) # but input_size is part of what the vectors mean
 
 def test_dinov2_bad_args():
     with pytest.raises(ValueError):
         DinoV2("dinov2-huge", name="dinov2", dependencies=[])
     with pytest.raises(ValueError):
-        DinoV2("testing", pool="mean", name="dinov2", dependencies=[])
+        DinoV2("testing", pool="cat", name="dinov2", dependencies=[])
+    with pytest.raises(ValueError):
+        DinoV2("testing", pool="gem", gem_p=0, name="dinov2", dependencies=[]) # 1/p: p must be > 0
     with pytest.raises(ValueError):
         DinoV2("testing", input_size=(10, 14), name="dinov2", dependencies=[]) # smaller than a patch
     with pytest.raises(ValueError):

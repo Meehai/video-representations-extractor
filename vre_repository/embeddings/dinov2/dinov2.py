@@ -33,21 +33,21 @@ HF_REVISIONS = {
     "dinov2-base": "f9e44c814b77203eaa57a6bdbbd535f21ede1415",
     "dinov2-large": "47b73eefe95e8d44ec3623f8890bd894b6ea2d6c",
 }
-POOLS = ("cls", "gem", "cat", "none")
+POOLS = ("cls", "gem", "mean", "none")
 PATCH_SIZE = 14
 
 class DinoV2(EmbeddingRepresentation, LearnedRepresentationMixin):
     """
     DINOv2 embeddings per frame: one L2-normalized vector, or the raw patch tokens (pool='none').
     - variant: one of VARIANTS ('testing' = tiny random model, no weights).
-    - pool: 'cls' = the CLS token, 'gem' = GeM (p=3) over the patch tokens, 'cat' = both, each L2-normalized (2*D),
+    - pool: 'cls' = the CLS token, 'gem' = GeM (power gem_) over the patch tokens, 'mean' = avg, each L2-normed.
       'none' = no pooling: the patch tokens as a (h/14, w/14, D) grid, not normalized (input for dense matchers).
     - input_size: (h, w) every frame is resized to before the model, both multiples of 14 (the patch size). It sets
       the output: pool='none' gives a (h/14, w/14) token grid, and the pooled vectors change with it too.
     On cuda the model runs under float16 autocast.
     """
-    def __init__(self, variant: str, pool: str = "cat", input_size: tuple[int, int] = (378, 672),
-                 **kwargs):
+    def __init__(self, variant: str, pool: str = "cls", input_size: tuple[int, int] = (378, 672),
+                 gem_p: float = 3, **kwargs):
         EmbeddingRepresentation.__init__(self, **kwargs)
         LearnedRepresentationMixin.__init__(self)
         if variant not in VARIANTS:
@@ -56,16 +56,18 @@ class DinoV2(EmbeddingRepresentation, LearnedRepresentationMixin):
             raise ValueError(f"{pool=} not in {POOLS}")
         if len(input_size) != 2 or any(s < PATCH_SIZE or s % PATCH_SIZE != 0 for s in input_size):
             raise ValueError(f"{input_size=} must be (h, w), each a positive multiple of the patch size ({PATCH_SIZE})")
+        if gem_p <= 0:
+            raise ValueError(f"{gem_p=} cannot be <=0")
         self.variant = variant
         self.pool = pool
+        self.gem_p = gem_p
         self.input_size = tuple(input_size) # yaml gives a list
         self.model: Dinov2Model | None = None
 
     @property
     @overrides
     def n_channels(self) -> int:
-        hidden_size = VARIANTS[self.variant][0]
-        return 2 * hidden_size if self.pool == "cat" else hidden_size
+        return VARIANTS[self.variant][0]
 
     @overrides
     def compute(self, video: VREVideo, ixs: list[int], dep_data: list[ReprOut] | None = None) -> ReprOut:
@@ -140,13 +142,13 @@ class DinoV2(EmbeddingRepresentation, LearnedRepresentationMixin):
 
     def _pool(self, tokens: tr.Tensor) -> tr.Tensor:
         """(B, 1 + N, D) last_hidden_state -> (B, n_channels), not yet L2-normalized"""
-        cls = tokens[:, 0]
-        gem = tokens[:, 1:].clamp(min=1e-6).pow(3.0).mean(dim=1).pow(1.0 / 3.0)
         if self.pool == "cls":
-            return cls
+            return tokens[:, 0]
         if self.pool == "gem":
-            return gem
-        return tr.cat([F.normalize(cls, dim=-1), F.normalize(gem, dim=-1)], dim=-1)
+            return tokens[:, 1:].clamp(min=1e-6).pow(self.gem_p).mean(dim=1).pow(1.0 / self.gem_p)
+        if self.pool == "mean":
+            return tokens[:, 1:].mean(dim=1)
+        raise ValueError(self.pool)
 
 def _pca_rgb(grid: np.ndarray) -> np.ndarray:
     """
@@ -155,12 +157,13 @@ def _pca_rgb(grid: np.ndarray) -> np.ndarray:
     The basis is per frame: colors are not comparable across frames.
     """
     h, w, d = grid.shape
-    x = grid.reshape(h * w, d).astype(np.float64)
-    x = x - x.mean(axis=0)
-    _, _, vt = np.linalg.svd(x, full_matrices=False)
-    vt = vt[0:3] # fewer than 3 if h*w or D < 3
-    signs = np.sign(vt[np.arange(len(vt)), np.abs(vt).argmax(axis=1)])
+    x = grid.reshape(h * w, d).astype(np.float64) # (h*w, d), d = number of dinov2 dims
+    x = x - x.mean(axis=0) # (h*w, d)
+    _, _, vt = np.linalg.svd(x, full_matrices=False) # (d, h*w)
+    vt = vt[0:3] # fewer than 3 if h*w or D < 3, (3, h*w)
+    signs = np.sign(vt[np.arange(len(vt)), np.abs(vt).argmax(axis=1)]) # (3, )
     proj = np.zeros((h * w, 3))
-    proj[:, 0:len(vt)] = x @ (vt * np.where(signs == 0, 1, signs)[:, None]).T
+    # multiply with signs so the final component per pixel is always positive I think?
+    proj[:, 0:len(vt)] = x @ (vt * np.where(signs == 0, 1, signs)[:, None]).T # (h*w, d) @ (3, h*w)^T = (h*w, 3)
     lo, hi = proj.min(axis=0), proj.max(axis=0)
     return np.round((proj - lo) / np.maximum(hi - lo, 1e-8) * 255).astype(np.uint8).reshape(h, w, 3)
