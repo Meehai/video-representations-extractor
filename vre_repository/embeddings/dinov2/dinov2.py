@@ -40,7 +40,7 @@ class DinoV2(EmbeddingRepresentation, LearnedRepresentationMixin):
     """
     DINOv2 embeddings per frame: one L2-normalized vector, or the raw patch tokens (pool='none').
     - variant: one of VARIANTS ('testing' = tiny random model, no weights).
-    - pool: 'cls' = the CLS token, 'gem' = GeM (power ge_m) over the patch tokens, 'mean' = avg, each L2-normed (2*D),
+    - pool: 'cls' = the CLS token, 'gem' = GeM (power gem_) over the patch tokens, 'mean' = avg, each L2-normed.
       'none' = no pooling: the patch tokens as a (h/14, w/14, D) grid, not normalized (input for dense matchers).
     - input_size: (h, w) every frame is resized to before the model, both multiples of 14 (the patch size). It sets
       the output: pool='none' gives a (h/14, w/14) token grid, and the pooled vectors change with it too.
@@ -57,7 +57,7 @@ class DinoV2(EmbeddingRepresentation, LearnedRepresentationMixin):
         if len(input_size) != 2 or any(s < PATCH_SIZE or s % PATCH_SIZE != 0 for s in input_size):
             raise ValueError(f"{input_size=} must be (h, w), each a positive multiple of the patch size ({PATCH_SIZE})")
         if gem_p <= 0:
-            raise ValueError(f"{gem_p=} cannot be <0")
+            raise ValueError(f"{gem_p=} cannot be <=0")
         self.variant = variant
         self.pool = pool
         self.gem_p = gem_p
