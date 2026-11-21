@@ -1,10 +1,9 @@
-"""setup.py -- use setuptools==73.0.1 (data files) and a recent pip (PEP 660 editable installs see the vendored pkg/).
-CPU-only torch: `pip install ".[cpu]" --extra-index-url https://download.pytorch.org/whl/cpu`."""
+"""setup.py for VRE. This allows to install using 'pip install -e .' on a dev machine (w/ venv/conda) after git clone"""
 from pathlib import Path
 from setuptools import setup, find_packages
 
 NAME = "video-representations-extractor"
-VERSION = "1.20.2"
+VERSION = "1.20.3"
 DESCRIPTION = "Video Representations Extractor (VRE) for computing algorithmic or neural representations of each frame."
 URL = "https://gitlab.com/video-representations-extractor/video-representations-extractor"
 
