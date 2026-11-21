@@ -40,13 +40,13 @@ class DinoV2(EmbeddingRepresentation, LearnedRepresentationMixin):
     """
     DINOv2 embeddings per frame: one L2-normalized vector, or the raw patch tokens (pool='none').
     - variant: one of VARIANTS ('testing' = tiny random model, no weights).
-    - pool: 'cls' = the CLS token, 'gem' = GeM (p=3) over the patch tokens, 'cat' = both, each L2-normalized (2*D),
+    - pool: 'cls' = the CLS token, 'gem' = GeM (power ge_m) over the patch tokens, 'mean' = avg, each L2-normed (2*D),
       'none' = no pooling: the patch tokens as a (h/14, w/14, D) grid, not normalized (input for dense matchers).
     - input_size: (h, w) every frame is resized to before the model, both multiples of 14 (the patch size). It sets
       the output: pool='none' gives a (h/14, w/14) token grid, and the pooled vectors change with it too.
     On cuda the model runs under float16 autocast.
     """
-    def __init__(self, variant: str, pool: str = "cat", input_size: tuple[int, int] = (378, 672),
+    def __init__(self, variant: str, pool: str = "cls", input_size: tuple[int, int] = (378, 672),
                  gem_p: float = 3, **kwargs):
         EmbeddingRepresentation.__init__(self, **kwargs)
         LearnedRepresentationMixin.__init__(self)
@@ -56,6 +56,8 @@ class DinoV2(EmbeddingRepresentation, LearnedRepresentationMixin):
             raise ValueError(f"{pool=} not in {POOLS}")
         if len(input_size) != 2 or any(s < PATCH_SIZE or s % PATCH_SIZE != 0 for s in input_size):
             raise ValueError(f"{input_size=} must be (h, w), each a positive multiple of the patch size ({PATCH_SIZE})")
+        if gem_p <= 0:
+            raise ValueError(f"{gem_p=} cannot be <0")
         self.variant = variant
         self.pool = pool
         self.gem_p = gem_p
@@ -65,8 +67,7 @@ class DinoV2(EmbeddingRepresentation, LearnedRepresentationMixin):
     @property
     @overrides
     def n_channels(self) -> int:
-        hidden_size = VARIANTS[self.variant][0]
-        return 2 * hidden_size if self.pool == "cat" else hidden_size
+        return VARIANTS[self.variant][0]
 
     @overrides
     def compute(self, video: VREVideo, ixs: list[int], dep_data: list[ReprOut] | None = None) -> ReprOut:

@@ -49,6 +49,14 @@ representations:
       pool: none
       input_size: [378, 672]
 
+  dinov2_mean:
+    type: embeddings/dinov2
+    dependencies: []
+    parameters:
+      variant: dinov2-small
+      pool: mean
+      input_size: [378, 672]
+
   edges_canny:
     type: edges/canny
     dependencies: []

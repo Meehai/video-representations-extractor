@@ -9,8 +9,9 @@ dinov2:
   dependencies: []
   parameters:
     variant: dinov2-base  # dinov2-small (D=384) | dinov2-base (D=768) | dinov2-large (D=1024)
-    pool: cat             # cls (CLS token) | gem (GeM p=3 over patch tokens) | cat (both, normalized; 2*D)
+    pool: cls             # cls (CLS token) | gem (GeM over patch tokens) | mean (average of patch tokens)
                           # | none (no pooling: the patch tokens, not normalized)
+    gem_p: 3              # GeM power, pool: gem only. Tokens are clamped at 0 first, so p=1 is not 'mean'
     input_size: [378, 672] # (h, w) every frame is resized to (aspect not kept), both multiples of 14
 ```
 
@@ -18,7 +19,7 @@ dinov2:
 `[378, 672]` is a 16:9 frame with its long side at 672; set it to your video's aspect to avoid squashing.
 
 Output: `npz/<frame>.npz`, key `arr_0`, float32:
-- `cls | gem | cat`: `(D,)` or `(2*D,)` for `cat`, unit norm. Images: each vector drawn as a grayscale grid.
+- `cls | gem | mean`: `(D,)`, unit norm. Images: each vector drawn as a grayscale grid.
 - `none`: `(h/14, w/14, D)`, the last layer's patch tokens (after the final layernorm, row-major, no CLS), not
   normalized. This is what dense matchers (e.g. RoMa's coarse stage) consume; the caller does the rest (its own
   resizing, fine CNN features, ...). Images: the top-3 principal components of the frame's tokens as RGB (the

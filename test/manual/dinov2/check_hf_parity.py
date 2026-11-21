@@ -51,7 +51,7 @@ sys.path.insert(0, str(args.embedder_dir))
 from embeddings.embedder import Embedder # pylint: disable=wrong-import-position,import-error
 for variant in args.variants:
     for device in devices:
-        for pool in ["cls", "gem", "cat"]:
+        for pool in ["cls", "gem"]: # the pools the Embedder has too
             embedder = Embedder("dinov2", checkpoint=f"facebook/{variant}", pool=pool, long_side=672, device=device)
             for name, x in inputs.items():
                 # the Embedder resizes the long side to 672 (aspect kept, sides rounded to 14): give VRE that size
