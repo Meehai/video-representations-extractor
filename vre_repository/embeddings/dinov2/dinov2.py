@@ -156,12 +156,13 @@ def _pca_rgb(grid: np.ndarray) -> np.ndarray:
     The basis is per frame: colors are not comparable across frames.
     """
     h, w, d = grid.shape
-    x = grid.reshape(h * w, d).astype(np.float64)
-    x = x - x.mean(axis=0)
-    _, _, vt = np.linalg.svd(x, full_matrices=False)
-    vt = vt[0:3] # fewer than 3 if h*w or D < 3
-    signs = np.sign(vt[np.arange(len(vt)), np.abs(vt).argmax(axis=1)])
+    x = grid.reshape(h * w, d).astype(np.float64) # (h*w, d), d = number of dinov2 dims
+    x = x - x.mean(axis=0) # (h*w, d)
+    _, _, vt = np.linalg.svd(x, full_matrices=False) # (d, h*w)
+    vt = vt[0:3] # fewer than 3 if h*w or D < 3, (3, h*w)
+    signs = np.sign(vt[np.arange(len(vt)), np.abs(vt).argmax(axis=1)]) # (3, )
     proj = np.zeros((h * w, 3))
-    proj[:, 0:len(vt)] = x @ (vt * np.where(signs == 0, 1, signs)[:, None]).T
+    # multiply with signs so the final component per pixel is always positive I think?
+    proj[:, 0:len(vt)] = x @ (vt * np.where(signs == 0, 1, signs)[:, None]).T # (h*w, d) @ (3, h*w)^T = (h*w, 3)
     lo, hi = proj.min(axis=0), proj.max(axis=0)
     return np.round((proj - lo) / np.maximum(hi - lo, 1e-8) * 255).astype(np.uint8).reshape(h, w, 3)
